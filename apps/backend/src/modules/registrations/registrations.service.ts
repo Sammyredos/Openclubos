@@ -1,0 +1,143 @@
+import { 
+  Injectable, 
+  BadRequestException, 
+  NotFoundException, 
+  ConflictException 
+} from '@nestjs/common';
+import { PrismaService } from '../../common/prisma.service';
+import { RegisterTournamentDto } from './dto/register-tournament.dto';
+import { RegistrationStatus, PaymentStatus, TournamentStatus } from '@prisma/client';
+
+@Injectable()
+export class RegistrationsService {
+  constructor(private prisma: PrismaService) {}
+
+  async register(userId: string, dto: RegisterTournamentDto) {
+    const { tournamentId, playerType, paymentReference } = dto;
+
+    // 1. Fetch tournament and user details
+    const [tournament, user] = await Promise.all([
+      this.prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        include: { registrations: true },
+      }),
+      this.prisma.user.findUnique({ where: { id: userId } }),
+    ]);
+
+    if (!tournament) throw new NotFoundException('Tournament not found');
+    if (!user) throw new NotFoundException('User not found');
+
+    // 2. Validate Tournament Status
+    if (tournament.status !== TournamentStatus.REGISTRATION_OPEN) {
+      throw new BadRequestException('Registration is currently closed for this tournament');
+    }
+
+    // 3. Validate Deadline
+    if (tournament.registrationDeadline && new Date() > new Date(tournament.registrationDeadline)) {
+      throw new BadRequestException('Registration deadline has passed');
+    }
+
+    // 4. Check for existing registration
+    const existing = await this.prisma.registration.findUnique({
+      where: { userId_tournamentId: { userId, tournamentId } },
+    });
+    if (existing) throw new ConflictException('You are already registered for this tournament');
+
+    // 5. Validate Eligibility (Player Type)
+    const effectivePlayerType = playerType || user.role; // Default to user role if not provided
+    if (tournament.playerTypes && tournament.playerTypes.length > 0) {
+      if (!tournament.playerTypes.includes(effectivePlayerType)) {
+        throw new BadRequestException(`This tournament is not open to ${effectivePlayerType} players`);
+      }
+    }
+
+    // 6. Validate Eligibility (Handicap)
+    if (user.handicap !== null) {
+      if (tournament.minHandicap !== null && user.handicap < tournament.minHandicap) {
+        throw new BadRequestException(`Your handicap (${user.handicap}) is below the minimum required (${tournament.minHandicap})`);
+      }
+      if (tournament.maxHandicap !== null && user.handicap > tournament.maxHandicap) {
+        throw new BadRequestException(`Your handicap (${user.handicap}) exceeds the maximum allowed (${tournament.maxHandicap})`);
+      }
+    }
+
+    // 7. Check Capacity & Waitlist
+    const approvedCount = tournament.registrations.filter(r => r.status === RegistrationStatus.APPROVED).length;
+    let status: RegistrationStatus = RegistrationStatus.PENDING;
+    
+    if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+      status = RegistrationStatus.WAITLISTED;
+    }
+
+    // 8. Create Registration
+    return this.prisma.registration.create({
+      data: {
+        userId,
+        tournamentId,
+        playerType: effectivePlayerType,
+        status,
+        paymentStatus: paymentReference ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+        paymentReference,
+      },
+    });
+  }
+
+  async getMyRegistrations(userId: string) {
+    return this.prisma.registration.findMany({
+      where: { userId },
+      include: { tournament: true },
+    });
+  }
+
+  async findAll(query: {
+    clubId?: string;
+    paymentStatus?: PaymentStatus;
+    skip?: number;
+    take?: number;
+  }) {
+    const where: any = {};
+    if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
+    if (query.clubId) where.tournament = { clubId: query.clubId };
+
+    const [items, total] = await Promise.all([
+      this.prisma.registration.findMany({
+        where,
+        skip: query.skip ? +query.skip : 0,
+        take: query.take ? +query.take : 10,
+        orderBy: { registeredAt: 'desc' },
+        include: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          tournament: {
+            select: {
+              id: true,
+              name: true,
+              entryFee: true,
+              startDate: true,
+              club: { select: { id: true, name: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.registration.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  async updateStatus(registrationId: string, status: RegistrationStatus) {
+    return this.prisma.registration.update({
+      where: { id: registrationId },
+      data: { status },
+    });
+  }
+
+  async confirmPayment(registrationId: string, paymentReference: string) {
+    return this.prisma.registration.update({
+      where: { id: registrationId },
+      data: { 
+        paymentStatus: PaymentStatus.PAID,
+        paymentReference 
+      },
+    });
+  }
+}

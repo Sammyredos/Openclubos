@@ -1,0 +1,302 @@
+import { Injectable } from '@nestjs/common';
+import { ClubStatus, PaymentStatus, TournamentStatus } from '@prisma/client';
+import { PrismaService } from '../../common/prisma.service';
+
+@Injectable()
+export class SuperAdminDashboardService {
+  constructor(private prisma: PrismaService) {}
+
+  private startOfMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  private startOfNextMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  }
+
+  private formatChange(current: number, previous: number) {
+    const diff = current - previous;
+    const sign = diff >= 0 ? '+' : '';
+    return `${sign}${diff}`;
+  }
+
+  private formatPercentChange(current: number, previous: number) {
+    if (previous === 0) {
+      if (current === 0) return '0%';
+      return '+100%';
+    }
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(1).replace(/\\.0$/, '')}%`;
+  }
+
+  private async revenueForRange(start: Date, end: Date, paymentStatus: PaymentStatus) {
+    const regs = await this.prisma.registration.findMany({
+      where: { registeredAt: { gte: start, lt: end }, paymentStatus },
+      select: { tournament: { select: { entryFee: true } } },
+    });
+    return regs.reduce((sum, r) => sum + (r.tournament.entryFee || 0), 0);
+  }
+
+  async stats() {
+    const now = new Date();
+    const startThisMonth = this.startOfMonth(now);
+    const startNextMonth = this.startOfNextMonth(now);
+    const startLastMonth = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+    const [totalClubs, totalMembers, activeTournaments] = await Promise.all([
+      this.prisma.club.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.tournament.count({
+        where: {
+          deletedAt: null,
+          status: { in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN] },
+        },
+      }),
+    ]);
+
+    const [clubsThisMonth, clubsLastMonth] = await Promise.all([
+      this.prisma.club.count({ where: { deletedAt: null, createdAt: { gte: startThisMonth, lt: startNextMonth } } }),
+      this.prisma.club.count({ where: { deletedAt: null, createdAt: { gte: startLastMonth, lt: startThisMonth } } }),
+    ]);
+
+    const [membersThisMonth, membersLastMonth] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: startThisMonth, lt: startNextMonth } } }),
+      this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: startLastMonth, lt: startThisMonth } } }),
+    ]);
+
+    const [revenueThisMonth, revenueLastMonth] = await Promise.all([
+      this.revenueForRange(startThisMonth, startNextMonth, PaymentStatus.PAID),
+      this.revenueForRange(startLastMonth, startThisMonth, PaymentStatus.PAID),
+    ]);
+
+    const [pendingPayments, pendingAmount] = await Promise.all([
+      this.prisma.registration.count({ where: { paymentStatus: PaymentStatus.UNPAID } }),
+      this.revenueForRange(new Date(0), new Date('9999-12-31T00:00:00.000Z'), PaymentStatus.UNPAID),
+    ]);
+
+    const activeClubs = totalClubs;
+    const activeClubsPercent = totalClubs === 0 ? '0% of total' : '100% of total';
+
+    return {
+      totalClubs,
+      activeClubs,
+      activeClubsPercent,
+      clubsGrowth: this.formatChange(clubsThisMonth, clubsLastMonth),
+      totalMembers,
+      membersGrowth: this.formatChange(membersThisMonth, membersLastMonth),
+      activeTournaments,
+      tournamentsGrowth: '0',
+      totalRevenue: Math.round(revenueThisMonth),
+      revenueGrowth: this.formatPercentChange(revenueThisMonth, revenueLastMonth),
+      pendingPayments,
+      pendingAmount: Math.round(pendingAmount),
+    };
+  }
+
+  async revenueTrend(year: number) {
+    const start = new Date(year, 0, 1);
+    const end = new Date(year + 1, 0, 1);
+    const regs = await this.prisma.registration.findMany({
+      where: { registeredAt: { gte: start, lt: end }, paymentStatus: PaymentStatus.PAID },
+      select: { registeredAt: true, tournament: { select: { entryFee: true } } },
+    });
+
+    const buckets = new Array(12).fill(0) as number[];
+    for (const r of regs) {
+      const month = r.registeredAt.getMonth();
+      buckets[month] += r.tournament.entryFee || 0;
+    }
+
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return labels.map((month, idx) => ({ month, amount: Math.round(buckets[idx]) }));
+  }
+
+  async clubGrowth(year: number) {
+    const start = new Date(year, 0, 1);
+    const end = new Date(year + 1, 0, 1);
+    const clubs = await this.prisma.club.findMany({
+      where: { deletedAt: null, createdAt: { gte: start, lt: end } },
+      select: { createdAt: true },
+    });
+
+    const buckets = new Array(12).fill(0) as number[];
+    for (const c of clubs) {
+      buckets[c.createdAt.getMonth()] += 1;
+    }
+
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return labels.map((month, idx) => ({ month, count: buckets[idx] }));
+  }
+
+  async topClubs() {
+    const now = new Date();
+    const startThisMonth = this.startOfMonth(now);
+    const startNextMonth = this.startOfNextMonth(now);
+
+    const regs = await this.prisma.registration.findMany({
+      where: {
+        registeredAt: { gte: startThisMonth, lt: startNextMonth },
+        paymentStatus: PaymentStatus.PAID,
+        tournament: { deletedAt: null, club: { deletedAt: null } },
+      },
+      select: {
+        tournamentId: true,
+        tournament: { select: { entryFee: true, clubId: true, club: { select: { name: true } } } },
+      },
+    });
+
+    const revenueByClub = new Map<
+      string,
+      { name: string; revenue: number; paidRegistrations: number; tournamentIds: Set<string> }
+    >();
+    for (const r of regs) {
+      const clubId = r.tournament.clubId;
+      const name = r.tournament.club?.name || '—';
+      const entryFee = r.tournament.entryFee || 0;
+      const prev = revenueByClub.get(clubId);
+      if (!prev) {
+        revenueByClub.set(clubId, {
+          name,
+          revenue: entryFee,
+          paidRegistrations: 1,
+          tournamentIds: new Set([r.tournamentId]),
+        });
+      } else {
+        prev.revenue += entryFee;
+        prev.paidRegistrations += 1;
+        prev.tournamentIds.add(r.tournamentId);
+      }
+    }
+
+    const rows = Array.from(revenueByClub.entries())
+      .map(([clubId, v]) => ({ clubId, ...v, tournaments: v.tournamentIds.size }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const topRevenue = rows[0]?.revenue || 0;
+    return rows.map((r) => {
+      const progress = topRevenue === 0 ? 0 : Math.round((r.revenue / topRevenue) * 100);
+      const statusType = r.revenue > 0 ? 'success' : 'warning';
+      return {
+        clubId: r.clubId,
+        name: r.name,
+        revenue: Math.round(r.revenue),
+        paidRegistrations: r.paidRegistrations,
+        tournaments: r.tournaments,
+        progress,
+        status: 'Active',
+        statusType,
+        logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}`,
+      };
+    });
+  }
+
+  async activity() {
+    const regs = await this.prisma.registration.findMany({
+      where: { tournament: { deletedAt: null, club: { deletedAt: null } } },
+      orderBy: { registeredAt: 'desc' },
+      take: 5,
+      select: {
+        registeredAt: true,
+        user: { select: { email: true, firstName: true, lastName: true } },
+        tournament: { select: { name: true, club: { select: { name: true } } } },
+      },
+    });
+
+    return regs.map((r) => {
+      const name =
+        `${r.user.firstName || ''} ${r.user.lastName || ''}`.trim() ||
+        r.user.email;
+      const subtitle = `${r.tournament.club?.name || '—'} • ${r.tournament.name}`;
+      return {
+        type: 'registration',
+        title: `${name} registered`,
+        subtitle,
+        time: r.registeredAt.toISOString(),
+      };
+    });
+  }
+
+  async alerts() {
+    const now = new Date();
+    const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const [unpaidRegs, suspendedClubs, lowRegTournaments, overdueOngoing] = await Promise.all([
+      this.prisma.registration.findMany({
+        where: { paymentStatus: PaymentStatus.UNPAID, tournament: { deletedAt: null, club: { deletedAt: null } } },
+        select: { tournament: { select: { entryFee: true } } },
+      }),
+      this.prisma.club.count({ where: { deletedAt: null, status: ClubStatus.SUSPENDED } }),
+      this.prisma.tournament.findMany({
+        where: {
+          deletedAt: null,
+          status: TournamentStatus.REGISTRATION_OPEN,
+          startDate: { gte: now, lt: inSevenDays },
+        },
+        include: { _count: { select: { registrations: true } } },
+        orderBy: { startDate: 'asc' },
+        take: 20,
+      }),
+      this.prisma.tournament.count({
+        where: {
+          deletedAt: null,
+          status: TournamentStatus.ONGOING,
+          endDate: { not: null, lt: now },
+        },
+      }),
+    ]);
+
+    const unpaidCount = unpaidRegs.length;
+    const unpaidAmount = unpaidRegs.reduce((sum, r) => sum + (r.tournament.entryFee || 0), 0);
+    const lowRegCount = lowRegTournaments.filter((t) => (t._count?.registrations ?? 0) < 5).length;
+
+    const items: Array<{ type: 'danger' | 'warning' | 'success'; title: string; subtitle: string; time: string }> = [];
+    const time = now.toISOString();
+
+    if (unpaidCount > 0) {
+      const nf = new Intl.NumberFormat('en-US');
+      items.push({
+        type: 'warning',
+        title: `${unpaidCount} unpaid registrations`,
+        subtitle: `Pending amount: ₦${nf.format(Math.round(unpaidAmount))}`,
+        time,
+      });
+    }
+    if (suspendedClubs > 0) {
+      items.push({
+        type: 'warning',
+        title: `${suspendedClubs} suspended clubs`,
+        subtitle: 'Review club status and restore access if needed',
+        time,
+      });
+    }
+    if (lowRegCount > 0) {
+      items.push({
+        type: 'danger',
+        title: `${lowRegCount} tournaments start soon`,
+        subtitle: 'Low registrations in the next 7 days',
+        time,
+      });
+    }
+    if (overdueOngoing > 0) {
+      items.push({
+        type: 'danger',
+        title: `${overdueOngoing} tournaments overdue`,
+        subtitle: 'Ongoing tournaments have end dates in the past',
+        time,
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        type: 'success',
+        title: 'All systems normal',
+        subtitle: 'No action required right now',
+        time,
+      });
+    }
+
+    return items.slice(0, 5);
+  }
+}

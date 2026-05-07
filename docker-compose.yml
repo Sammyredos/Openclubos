@@ -1,0 +1,54 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - postgres
+      - redis
+
+  web-admin:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: openclub-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: OpenClub2024
+      POSTGRES_DB: openclub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: openclub-redis
+    ports:
+      - "6379:6379"
+
+  nginx:
+    image: nginx:alpine
+    container_name: openclub-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - web-admin
+
+volumes:
+  postgres_data:

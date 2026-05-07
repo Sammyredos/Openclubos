@@ -1,0 +1,42 @@
+
+> @openclubos/backend@0.0.1 start C:\Users\samue\Desktop\Openclub\apps\backend
+> nest start
+
+◇ injected env (11) from ..\..\.env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from ..\..\.env // tip: ⌘ suppress logs { quiet: true }
+🚀 DATABASE_URL in main.ts: postgresql://postgres:OpenClub2024@localhost:5432/openclub?schema=public 
+🚀 DATABASE_URL in bootstrap: postgresql://postgres:OpenClub2024@localhost:5432/openclub?schema=public 
+[32m[Nest] 4472  - [39m02/05/2026, 13:36:23 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[31m[Nest] 4472  - [39m02/05/2026, 13:36:23 [31m  ERROR[39m [38;5;3m[ExceptionHandler] [39mPrismaClientInitializationError: `PrismaClient` needs to be constructed with a non-empty, valid `PrismaClientOptions`:
+
+```
+new PrismaClient({
+  ...
+})
+```
+
+or
+
+```
+constructor() {
+  super({ ... });
+}
+```
+          
+    at new t (C:\Users\samue\Desktop\Openclub\node_modules\[4m@prisma\client[24m\src\runtime\getPrismaClient.ts:336:15)
+    at new PrismaService [90m(C:\Users\samue\Desktop\Openclub\apps\backend\[39msrc\common\prisma.service.ts:11:8[90m)[39m
+    at Injector.instantiateClass (C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\injector.js:422:19)
+    at callback (C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\injector.js:70:45)
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async Injector.resolveConstructorParams (C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\injector.js:170:24)
+    at async Injector.loadInstance (C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\injector.js:75:13)
+    at async Injector.loadProvider (C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\injector.js:103:9)
+    at async C:\Users\samue\Desktop\Openclub\node_modules\[4m.pnpm[24m\@nestjs+core@11.1.19_@nestjs+common@11.1.19_class-transformer@0.5.1_class-validator@0.15.1_re_4havrlnqqlk55zthgzl4fzxusq\node_modules\[4m@nestjs\core[24m\injector\instance-loader.js:56:13
+    at async Promise.all (index 3) {
+  clientVersion: [32m'7.8.0'[39m,
+  errorCode: [90mundefined[39m,
+  retryable: [90mundefined[39m
+}
+C:\Users\samue\Desktop\Openclub\apps\backend:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @openclubos/backend@0.0.1 start: `nest start`
+Exit status 1

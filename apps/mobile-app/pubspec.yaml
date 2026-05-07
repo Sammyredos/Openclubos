@@ -1,0 +1,49 @@
+name: openclubos_mobile
+description: Industry-grade golf tournament management mobile application.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Networking
+  dio: ^5.4.3
+  socket_io_client: ^3.0.0
+  
+  # Firebase & Notifications
+  firebase_core: ^3.1.0
+  firebase_messaging: ^15.0.1
+  flutter_local_notifications: ^17.1.2
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  hive_generator: ^2.0.1
+  
+  # Linting
+  flutter_lints: ^3.0.2
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/

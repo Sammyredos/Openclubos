@@ -1,0 +1,9 @@
+{
+  "name": "@openclubos/ui",
+  "version": "0.0.0",
+  "private": true,
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

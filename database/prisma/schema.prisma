@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          UserRole  @default(PLAYER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  profilePhoto  String?
+  status        MemberStatus @default(ACTIVE)
+  handicap      Float?       @default(0.0)
+
+  // Relations
+  club          Club?     @relation(fields: [clubId], references: [id])
+  clubId        String?
+  scores        Score[]
+  registrations Registration[]
+}
+
+enum MemberStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  CLUB_ADMIN
+  STAFF
+  PLAYER
+  MARKER
+}
+
+enum ClubStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
+enum ClubPlan {
+  PRO
+  BASIC
+}
+
+model Club {
+  id          String    @id @default(uuid())
+  name        String
+  address     String?
+  status      ClubStatus @default(ACTIVE)
+  plan        ClubPlan   @default(BASIC)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  users       User[]
+  tournaments Tournament[]
+  courses     Course[]
+}
+
+model Course {
+  id          String    @id @default(uuid())
+  name        String
+  holesCount  Int       @default(18)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  club        Club      @relation(fields: [clubId], references: [id])
+  clubId      String
+  holes       Hole[]
+  tournaments Tournament[]
+}
+
+model Hole {
+  id          String    @id @default(uuid())
+  number      Int
+  par         Int
+  index       Int?
+  distance    Int?      // In meters/yards
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  course      Course    @relation(fields: [courseId], references: [id])
+  courseId    String
+  scores      Score[]
+}
+
+model Tournament {
+  id          String    @id @default(uuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime?
+  status      TournamentStatus @default(DRAFT)
+  
+  // Configuration
+  entryFee             Float?
+  minHandicap          Float?
+  maxHandicap          Float?
+  playerTypes          String[]         @default(["MEMBER"])
+  maxPlayers           Int?
+  registrationDeadline DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  club        Club      @relation(fields: [clubId], references: [id])
+  clubId      String
+  course      Course    @relation(fields: [courseId], references: [id])
+  courseId    String
+  registrations Registration[]
+  groups      Group[]
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model Registration {
+  id               String    @id @default(uuid())
+  registeredAt     DateTime  @default(now())
+  status           RegistrationStatus @default(PENDING)
+  paymentStatus    PaymentStatus @default(UNPAID)
+  playerType       String?   // MEMBER, EXTERNAL, GUEST
+  paymentReference String?
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId  String
+
+  @@unique([userId, tournamentId])
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITLISTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+model Group {
+  id            String    @id @default(uuid())
+  name          String?
+  startTime     DateTime?
+
+  // Relations
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId  String
+  scores        Score[]
+}
+
+model Score {
+  id            String    @id @default(uuid())
+  strokes       Int
+  putts         Int?
+  points        Int?      // Stableford points
+  recordedAt    DateTime  @default(now())
+
+  status        ScoreStatus @default(ENTERED)
+  markerId      String?
+  confirmedAt   DateTime?
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  hole          Hole      @relation(fields: [holeId], references: [id])
+  holeId        String
+  group         Group?    @relation(fields: [groupId], references: [id])
+  groupId       String?
+
+  @@unique([userId, holeId, groupId])
+}
+
+enum ScoreStatus {
+  ENTERED
+  CONFIRMED
+  LOCKED
+}

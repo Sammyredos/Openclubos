@@ -1,0 +1,261 @@
+"use client"
+
+import * as React from "react"
+import { useParams, useRouter } from "next/navigation"
+import { registerForTournament } from "@/lib/api/registrations"
+import { Tournament, getTournaments } from "@/lib/api/tournaments"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Icons } from "@/components/ui/icons"
+import { 
+  ShieldCheck, 
+  CreditCard, 
+  AlertCircle, 
+  ChevronRight, 
+  ArrowLeft,
+  CheckCircle2,
+  DollarSign,
+  User,
+  Info,
+  Clock
+} from "lucide-react"
+import { toast } from "sonner"
+
+type Step = "details" | "payment" | "success"
+
+export default function TournamentRegistrationPage() {
+  const params = useParams()
+  const router = useRouter()
+  const [step, setStep] = React.useState<Step>("details")
+  const [tournament, setTournament] = React.useState<Tournament | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [playerType, setPlayerType] = React.useState("MEMBER")
+  const [paymentRef, setPaymentRef] = React.useState("")
+
+  React.useEffect(() => {
+    async function loadTournament() {
+      try {
+        const id = params.id as string
+        const data = await getTournaments({ id }) // Assuming getTournaments can filter by ID or I use a specific findOne
+        // For now, let's just fetch all and find (or I should have created getTournamentById)
+        const all = await getTournaments()
+        const match = all.find((t: any) => t.id === id)
+        if (match) setTournament(match)
+        else toast.error("Tournament not found")
+      } catch (err) {
+        toast.error("Failed to load tournament")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadTournament()
+  }, [params.id])
+
+  async function handleRegister() {
+    setIsSubmitting(true)
+    try {
+      await registerForTournament({
+        tournamentId: tournament!.id,
+        playerType,
+        paymentReference: tournament!.entryFee && tournament!.entryFee > 0 ? paymentRef : undefined
+      })
+      setStep("success")
+    } catch (error: any) {
+      toast.error(error.message || "Registration failed")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
+      <Icons.spinner className="w-10 h-10 text-primary animate-spin" />
+    </div>
+  )
+
+  if (!tournament) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
+      <div className="text-center space-y-4">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+        <h1 className="text-2xl font-nexa-bold">Tournament Not Found</h1>
+        <Button onClick={() => router.back()}>Go Back</Button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-nexa-regular">
+      <div className="max-w-2xl mx-auto">
+        
+        {/* Progress Stepper */}
+        <div className="mb-12 flex items-center justify-center gap-4">
+          <div className={`flex items-center gap-2 ${step === 'details' ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'details' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>1</div>
+            <span className="font-nexa-bold text-sm">Review</span>
+          </div>
+          <div className="w-12 h-px bg-gray-200" />
+          <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'payment' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>2</div>
+            <span className="font-nexa-bold text-sm">Payment</span>
+          </div>
+          <div className="w-12 h-px bg-gray-200" />
+          <div className={`flex items-center gap-2 ${step === 'success' ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'success' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>3</div>
+            <span className="font-nexa-bold text-sm">Done</span>
+          </div>
+        </div>
+
+        {step === "details" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-nexa-bold text-gray-900">{tournament.name}</h1>
+                    <p className="text-gray-500">Registration Review</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                    <p className="text-xs font-nexa-bold text-gray-400 uppercase tracking-wider">Entry Fee</p>
+                    <p className="text-xl font-nexa-bold text-gray-900">
+                      {tournament.entryFee && tournament.entryFee > 0 ? `$${tournament.entryFee.toFixed(2)}` : 'FREE'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                    <p className="text-xs font-nexa-bold text-gray-400 uppercase tracking-wider">Player Type</p>
+                    <div className="flex items-center gap-2 font-nexa-bold text-primary">
+                      <User className="w-4 h-4" />
+                      {playerType}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-gray-50">
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <span>Starts: {new Date(tournament.startDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Info className="w-4 h-4 text-primary" />
+                    <span>Eligibility: {tournament.playerTypes.join(", ")}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full h-14 rounded-lg font-nexa-bold text-lg bg-primary hover:bg-primary/90 border border-primary/60 text-white flex items-center justify-center gap-2 group"
+              onClick={() => tournament.entryFee && tournament.entryFee > 0 ? setStep("payment") : handleRegister()}
+            >
+              {tournament.entryFee && tournament.entryFee > 0 ? "Proceed to Payment" : "Confirm Registration"}
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        )}
+
+        {step === "payment" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden p-8 space-y-8">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-primary mx-auto mb-4">
+                  <CreditCard className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-nexa-bold text-gray-900">Secure Payment</h2>
+                <p className="text-gray-500">Complete your entry fee payment</p>
+              </div>
+
+              <div className="bg-primary/5 rounded-2xl p-6 flex items-center justify-between">
+                <span className="font-nexa-bold text-gray-600">Amount to Pay</span>
+                <span className="text-3xl font-nexa-bold text-primary">${tournament.entryFee?.toFixed(2)}</span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-nexa-bold text-gray-700 ml-1">Payment Reference (Simulation)</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Input 
+                      placeholder="e.g. TRN-12345678" 
+                      className="pl-12 h-14 bg-gray-50 border-transparent focus:bg-white focus:border-primary transition-all rounded-xl"
+                      value={paymentRef}
+                      onChange={(e) => setPaymentRef(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 ml-1">In a real scenario, this would be handled via Stripe/Paypal.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button 
+                variant="outline" 
+                className="flex-1 h-14 rounded-lg font-nexa-bold border-gray-200"
+                onClick={() => setStep("details")}
+              >
+                Back
+              </Button>
+              <Button 
+                className="flex-[2] h-14 rounded-lg font-nexa-bold text-lg bg-primary hover:bg-primary/90 border border-primary/60 text-white disabled:opacity-50"
+                disabled={!paymentRef || isSubmitting}
+                onClick={handleRegister}
+              >
+                {isSubmitting ? <Icons.spinner className="w-6 h-6 animate-spin mx-auto" /> : "Complete & Register"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="text-center space-y-8 animate-in zoom-in duration-500">
+            <div className="relative inline-block">
+              <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center border-4 border-white shadow-xl relative z-10">
+                <CheckCircle2 className="w-12 h-12 text-primary" strokeWidth={1.5} />
+              </div>
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+            </div>
+            
+            <div className="space-y-3">
+              <h1 className="text-4xl font-nexa-bold text-gray-900 tracking-tight">You're All Set!</h1>
+              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
+                Your registration for <span className="font-nexa-bold text-gray-800">{tournament.name}</span> has been confirmed. We've sent a summary to your email.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm max-w-sm mx-auto">
+              <div className="space-y-4 text-left">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400 font-nexa-bold">STATUS</span>
+                  <span className="text-primary font-nexa-bold bg-primary/5 px-2 py-0.5 rounded-lg">CONFIRMED</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400 font-nexa-bold">PLAYER TYPE</span>
+                  <span className="text-gray-700 font-nexa-bold">{playerType}</span>
+                </div>
+                {paymentRef && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400 font-nexa-bold">PAYMENT REF</span>
+                    <span className="text-gray-700 font-nexa-bold">{paymentRef}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Button
+              className="h-14 px-12 rounded-lg font-nexa-bold text-lg bg-gray-900 hover:bg-gray-800 border border-gray-800/40 text-white transition-colors"
+              onClick={() => router.push("/tournaments")}
+            >
+              Back to Tournaments
+            </Button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}

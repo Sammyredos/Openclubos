@@ -1,0 +1,5 @@
+FROM cirrusci/flutter:stable AS build
+WORKDIR /app
+COPY . .
+RUN flutter pub get
+RUN flutter build apk

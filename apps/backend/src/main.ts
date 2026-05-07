@@ -1,0 +1,83 @@
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import type { INestApplication } from '@nestjs/common';
+
+// Load .env from root
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
+console.log('🚀 DATABASE_URL in main.ts:', process.env.DATABASE_URL);
+
+async function bootstrap() {
+  console.log('🚀 DATABASE_URL in bootstrap:', process.env.DATABASE_URL);
+  const app = await NestFactory.create(AppModule);
+
+  // Global prefix
+  app.setGlobalPrefix('api');
+
+  // Security — helmet without CSP to avoid blocking API calls
+  app.use(helmet({ contentSecurityPolicy: false }));
+
+  // CORS — allow the web-admin front end (dev & production)
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3002',
+      'http://127.0.0.1:3003',
+      'http://127.0.0.1:3001',
+      process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
+  // Validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
+  // Swagger
+  const config = new DocumentBuilder()
+    .setTitle('Openclub API')
+    .setDescription('The Openclub Golf Tournament API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
+  const preferredPort = Number(process.env.BACKEND_PORT ?? 3001);
+  const port = await listenWithFallback(app, preferredPort);
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+}
+bootstrap();
+
+async function listenWithFallback(app: INestApplication, preferredPort: number) {
+  const maxAttempts = 20;
+  const startPort = Number.isFinite(preferredPort) ? preferredPort : 3001;
+
+  for (let port = startPort; port < startPort + maxAttempts; port++) {
+    try {
+      await app.listen(port);
+      return port;
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err?.code !== 'EADDRINUSE') throw error;
+    }
+  }
+
+  throw new Error(`No available port found in range ${startPort}-${startPort + maxAttempts - 1}`);
+}
