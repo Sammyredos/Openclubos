@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore, type ElementType } from "react";
 import {
   Building2,
   Users,
@@ -29,7 +29,7 @@ import {
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn, formatNumber, formatWithCommas } from "@/lib/utils";
+import { cn, formatNumber, formatWithCommas, subscribeAdminEvents } from "@/lib/utils";
 import { getAuthToken } from "@/lib/api/auth";
 import { SearchableSelect } from "@/components/ui/input";
 
@@ -54,15 +54,60 @@ function timeAgo(iso: string) {
   return `${absDays}d ago`;
 }
 
+type DashboardStats = {
+  totalClubs?: number;
+  activeClubs?: number;
+  totalMembers?: number;
+  activeTournaments?: number;
+  totalRevenue?: number;
+  pendingPayments?: number;
+  pendingAmount?: number;
+  clubsGrowth?: string;
+  activeClubsPercent?: string;
+  membersGrowth?: string;
+  tournamentsGrowth?: string;
+  revenueGrowth?: string;
+};
+
+type ActivityRecord = { title: string; subtitle: string; time: string };
+
+type SubscriptionClub = {
+  id: string;
+  name: string;
+  logo: string;
+  plan: string;
+  status: "Active" | "Inactive";
+  yearlyFee: number;
+};
+
+type PerformingClub = {
+  id: string;
+  name: string;
+  logo: string;
+  status: string;
+  statusType: "success" | "warning" | "danger";
+  progress: number;
+  revenue?: number;
+  paidRegistrations?: number;
+  tournaments?: number;
+};
+
+type RevenuePoint = { month: string; amount: number };
+type GrowthPoint = { month: string; count: number };
+
 export default function SuperAdminDashboard() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [stats, setStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [performingClubs, setPerformingClubs] = useState<any[]>([]);
-  const [subscriptionClubs, setSubscriptionClubs] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [growthData, setGrowthData] = useState<any[]>([]);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<ActivityRecord[]>([]);
+  const [alerts, setAlerts] = useState<Array<{ type: "danger" | "warning" | "success"; title: string; subtitle: string; time: string }>>([]);
+  const [performingClubs, setPerformingClubs] = useState<PerformingClub[]>([]);
+  const [subscriptionClubs, setSubscriptionClubs] = useState<SubscriptionClub[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
+  const [growthData, setGrowthData] = useState<GrowthPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [revenueRange, setRevenueRange] = useState("This Year");
@@ -71,9 +116,10 @@ export default function SuperAdminDashboard() {
   const [topSubsRange, setTopSubsRange] = useState("All Time");
 
   useEffect(() => {
-    setIsMounted(true);
+    let cancelled = false;
     async function fetchDashboardData() {
       try {
+        setLoading(true);
         const token = getAuthToken();
         if (!token) {
           setAuthError("Not authenticated. Please login again.");
@@ -98,6 +144,7 @@ export default function SuperAdminDashboard() {
           fetch(`${API_BASE}/super-admin/clubs`, { headers }), // Fetching clubs to derive subscription info
         ]);
 
+        if (cancelled) return;
         if (statsRes.status === 401 || statsRes.status === 403) {
           setAuthError("Session expired. Please login again.");
           setStats(null);
@@ -109,42 +156,64 @@ export default function SuperAdminDashboard() {
           setStats(null);
           return;
         }
-        setStats(await statsRes.json());
+        setStats((await statsRes.json()) as DashboardStats);
 
-        if (activityRes.ok) setRecentActivity(await activityRes.json());
-        if (clubsRes.ok) setPerformingClubs(await clubsRes.json());
-        if (revenueRes.ok) setRevenueData(await revenueRes.json());
-        if (growthRes.ok) setGrowthData(await growthRes.json());
+        if (activityRes.ok) setRecentActivity((await activityRes.json()) as ActivityRecord[]);
+        if (clubsRes.ok) setPerformingClubs((await clubsRes.json()) as PerformingClub[]);
+        if (revenueRes.ok) setRevenueData((await revenueRes.json()) as RevenuePoint[]);
+        if (growthRes.ok) setGrowthData((await growthRes.json()) as GrowthPoint[]);
         
         if (clubsListRes.ok) {
-          const clubsData = await clubsListRes.json();
-          const items = Array.isArray(clubsData) ? clubsData : (clubsData?.items || []);
+          type ClubListItem = { id: string; name: string; plan?: string | null; status?: string | null };
+          const clubsData: unknown = await clubsListRes.json();
+          const items: ClubListItem[] = Array.isArray(clubsData)
+            ? (clubsData as ClubListItem[])
+            : clubsData && typeof clubsData === "object" && "items" in clubsData && Array.isArray((clubsData as { items?: unknown }).items)
+              ? ((clubsData as { items: unknown }).items as ClubListItem[])
+              : [];
           // Sort by plan and status to simulate "top" subscription clubs
-          const topSubs = items
-            .sort((a: any, b: any) => {
+          const topSubs: SubscriptionClub[] = items
+            .sort((a, b) => {
               if (a.plan === "PRO" && b.plan !== "PRO") return -1;
               if (a.plan !== "PRO" && b.plan === "PRO") return 1;
               return 0;
             })
             .slice(0, 5)
-            .map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`,
-              plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
-              status: c.status === "ACTIVE" ? "Active" : "Inactive",
-              yearlyFee: c.plan === "PRO" ? 150000 : 50000,
-            }));
+            .map((c) => {
+              const status: SubscriptionClub["status"] = c.status === "ACTIVE" ? "Active" : "Inactive";
+              return {
+                id: String(c.id),
+                name: String(c.name),
+                logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(c.name))}`,
+                plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
+                status,
+                yearlyFee: c.plan === "PRO" ? 150000 : 50000,
+              };
+            });
           setSubscriptionClubs(topSubs);
         }
       } catch (err) {
         console.error("Dashboard data fetch error:", err);
         setAuthError("Failed to load dashboard data");
       } finally {
+        if (cancelled) return;
         setLoading(false);
       }
     }
     fetchDashboardData();
+    const unsubscribe = subscribeAdminEvents((evt) => {
+      if (evt.type !== "clubs-changed") return;
+      fetchDashboardData();
+    });
+    function onFocus() {
+      fetchDashboardData();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   if (!isMounted) return null;
@@ -245,7 +314,10 @@ export default function SuperAdminDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
-                      formatter={(value: any) => [`₦${value.toLocaleString()}`, "Revenue"]}
+                      formatter={(value: number | string | readonly (string | number)[] | undefined) => {
+                        const raw = Array.isArray(value) ? value[0] : value;
+                        return [`₦${Number(raw ?? 0).toLocaleString()}`, "Revenue"];
+                      }}
                     />
                     <Line 
                       type="monotone" 
@@ -402,7 +474,7 @@ export default function SuperAdminDashboard() {
                     <div className="flex justify-between items-center mb-1.5">
                       <div className="flex flex-col">
                         <p className="text-[15px] font-bold text-gray-800 truncate leading-tight">{club.name}</p>
-                        <StatusBadge type={club.statusType as any} label={club.status} />
+                        <StatusBadge type={club.statusType} label={club.status} />
                       </div>
                       <div className="flex flex-col items-end"
                         title={`Revenue is the sum of paid registrations (entry fee per registration) this month: ${formatWithCommas(club.paidRegistrations ?? 0)} paid registrations across ${formatWithCommas(club.tournaments ?? 0)} tournaments`}
@@ -495,7 +567,7 @@ function StatusBadge({ type, label }: { type: 'success' | 'warning' | 'danger', 
 }
 
 interface ActivityItemProps {
-  icon: any;
+  icon: ElementType;
   title: string;
   subtitle: string;
   time: string;

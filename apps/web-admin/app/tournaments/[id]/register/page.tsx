@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
 import { registerForTournament } from "@/lib/api/registrations"
-import { Tournament, getTournaments } from "@/lib/api/tournaments"
+import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
@@ -12,7 +12,6 @@ import {
   CreditCard, 
   AlertCircle, 
   ChevronRight, 
-  ArrowLeft,
   CheckCircle2,
   DollarSign,
   User,
@@ -22,6 +21,15 @@ import {
 import { toast } from "sonner"
 
 type Step = "details" | "payment" | "success"
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message
+  if (typeof e === "string") return e
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message
+  }
+  return null
+}
 
 export default function TournamentRegistrationPage() {
   const params = useParams()
@@ -36,15 +44,12 @@ export default function TournamentRegistrationPage() {
   React.useEffect(() => {
     async function loadTournament() {
       try {
-        const id = params.id as string
-        const data = await getTournaments({ id }) // Assuming getTournaments can filter by ID or I use a specific findOne
-        // For now, let's just fetch all and find (or I should have created getTournamentById)
-        const all = await getTournaments()
-        const match = all.find((t: any) => t.id === id)
-        if (match) setTournament(match)
-        else toast.error("Tournament not found")
-      } catch (err) {
-        toast.error("Failed to load tournament")
+        const id = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : ""
+        if (!id) throw new Error("Tournament not found")
+        const match = (await getTournament(id)) as Tournament
+        setTournament(match)
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || "Failed to load tournament")
       } finally {
         setIsLoading(false)
       }
@@ -61,8 +66,8 @@ export default function TournamentRegistrationPage() {
         paymentReference: tournament!.entryFee && tournament!.entryFee > 0 ? paymentRef : undefined
       })
       setStep("success")
-    } catch (error: any) {
-      toast.error(error.message || "Registration failed")
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Registration failed")
     } finally {
       setIsSubmitting(false)
     }
@@ -221,9 +226,9 @@ export default function TournamentRegistrationPage() {
             </div>
             
             <div className="space-y-3">
-              <h1 className="text-4xl font-nexa-bold text-gray-900 tracking-tight">You're All Set!</h1>
+              <h1 className="text-4xl font-nexa-bold text-gray-900 tracking-tight">You&apos;re All Set!</h1>
               <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                Your registration for <span className="font-nexa-bold text-gray-800">{tournament.name}</span> has been confirmed. We've sent a summary to your email.
+                Your registration for <span className="font-nexa-bold text-gray-800">{tournament.name}</span> has been confirmed. We&apos;ve sent a summary to your email.
               </p>
             </div>
 

@@ -1,4 +1,4 @@
-import { getAuthToken } from './auth';
+import { getAuthToken, handleAuthFailure } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -11,6 +11,21 @@ export interface Registration {
   paymentReference?: string;
   tournamentId: string;
   userId: string;
+}
+
+export type RegistrationListItem = Registration & {
+  paymentReference?: string | null;
+  user?: { id: string; email: string; firstName: string | null; lastName: string | null };
+  tournament?: { id: string; name: string; entryFee: number | null; startDate: string; club?: { id: string; name: string } };
+};
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message?: unknown }).message === 'string') {
+    return (e as { message: string }).message;
+  }
+  return null;
 }
 
 export async function registerForTournament(data: {
@@ -29,8 +44,9 @@ export async function registerForTournament(data: {
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || 'Registration failed');
+    await handleAuthFailure(res);
+    const error: unknown = await res.json().catch(() => null);
+    throw new Error(getErrorMessage(error) || 'Registration failed');
   }
   return res.json();
 }
@@ -43,7 +59,10 @@ export async function getMyRegistrations(): Promise<Registration[]> {
     },
   });
 
-  if (!res.ok) throw new Error('Failed to fetch registrations');
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    throw new Error('Failed to fetch registrations');
+  }
   return res.json();
 }
 
@@ -52,7 +71,7 @@ export async function getRegistrations(params?: {
   paymentStatus?: string;
   skip?: number;
   take?: number;
-}) {
+}): Promise<{ items: RegistrationListItem[]; total: number }> {
   const token = getAuthToken();
   const searchParams = new URLSearchParams();
   if (params?.clubId) searchParams.append('clubId', params.clubId);
@@ -68,8 +87,9 @@ export async function getRegistrations(params?: {
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to fetch registrations');
+    await handleAuthFailure(res);
+    const error: unknown = await res.json().catch(() => null);
+    throw new Error(getErrorMessage(error) || 'Failed to fetch registrations');
   }
-  return res.json() as Promise<{ items: any[]; total: number }>;
+  return res.json();
 }

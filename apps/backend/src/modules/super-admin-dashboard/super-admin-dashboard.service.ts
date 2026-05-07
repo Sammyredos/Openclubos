@@ -44,8 +44,9 @@ export class SuperAdminDashboardService {
     const startNextMonth = this.startOfNextMonth(now);
     const startLastMonth = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
 
-    const [totalClubs, totalMembers, activeTournaments] = await Promise.all([
+    const [totalClubs, activeClubs, totalMembers, activeTournaments] = await Promise.all([
       this.prisma.club.count({ where: { deletedAt: null } }),
+      this.prisma.club.count({ where: { deletedAt: null, status: ClubStatus.ACTIVE } }),
       this.prisma.user.count({ where: { deletedAt: null } }),
       this.prisma.tournament.count({
         where: {
@@ -75,8 +76,8 @@ export class SuperAdminDashboardService {
       this.revenueForRange(new Date(0), new Date('9999-12-31T00:00:00.000Z'), PaymentStatus.UNPAID),
     ]);
 
-    const activeClubs = totalClubs;
-    const activeClubsPercent = totalClubs === 0 ? '0% of total' : '100% of total';
+    const activeClubsPercent =
+      totalClubs === 0 ? '0% of total' : `${Math.round((activeClubs / totalClubs) * 100)}% of total`;
 
     return {
       totalClubs,
@@ -134,50 +135,90 @@ export class SuperAdminDashboardService {
     const startThisMonth = this.startOfMonth(now);
     const startNextMonth = this.startOfNextMonth(now);
 
-    const regs = await this.prisma.registration.findMany({
+    const tournamentsThisMonth = await this.prisma.tournament.findMany({
       where: {
-        registeredAt: { gte: startThisMonth, lt: startNextMonth },
-        paymentStatus: PaymentStatus.PAID,
-        tournament: { deletedAt: null, club: { deletedAt: null } },
+        deletedAt: null,
+        startDate: { gte: startThisMonth, lt: startNextMonth },
+        club: { deletedAt: null },
       },
       select: {
-        tournamentId: true,
-        tournament: { select: { entryFee: true, clubId: true, club: { select: { name: true } } } },
+        id: true,
+        entryFee: true,
+        clubId: true,
+        club: { select: { name: true, status: true } },
       },
     });
 
-    const revenueByClub = new Map<
+    const tournamentIds = tournamentsThisMonth.map((t) => t.id);
+    const paidRegs = tournamentIds.length
+      ? await this.prisma.registration.findMany({
+          where: {
+            paymentStatus: PaymentStatus.PAID,
+            tournamentId: { in: tournamentIds },
+            tournament: { deletedAt: null, club: { deletedAt: null } },
+          },
+          select: {
+            tournamentId: true,
+            tournament: { select: { entryFee: true, clubId: true } },
+          },
+        })
+      : [];
+
+    const clubAgg = new Map<
       string,
-      { name: string; revenue: number; paidRegistrations: number; tournamentIds: Set<string> }
+      {
+        name: string;
+        clubStatus: ClubStatus;
+        revenue: number;
+        paidRegistrations: number;
+        tournamentIdsThisMonth: Set<string>;
+      }
     >();
-    for (const r of regs) {
-      const clubId = r.tournament.clubId;
-      const name = r.tournament.club?.name || '—';
-      const entryFee = r.tournament.entryFee || 0;
-      const prev = revenueByClub.get(clubId);
+
+    for (const t of tournamentsThisMonth) {
+      const name = t.club?.name || '—';
+      const clubStatus = t.club?.status ?? ClubStatus.ACTIVE;
+      const prev = clubAgg.get(t.clubId);
       if (!prev) {
-        revenueByClub.set(clubId, {
+        clubAgg.set(t.clubId, {
           name,
-          revenue: entryFee,
-          paidRegistrations: 1,
-          tournamentIds: new Set([r.tournamentId]),
+          clubStatus,
+          revenue: 0,
+          paidRegistrations: 0,
+          tournamentIdsThisMonth: new Set([t.id]),
         });
       } else {
-        prev.revenue += entryFee;
-        prev.paidRegistrations += 1;
-        prev.tournamentIds.add(r.tournamentId);
+        prev.tournamentIdsThisMonth.add(t.id);
       }
     }
 
-    const rows = Array.from(revenueByClub.entries())
-      .map(([clubId, v]) => ({ clubId, ...v, tournaments: v.tournamentIds.size }))
-      .sort((a, b) => b.revenue - a.revenue)
+    for (const r of paidRegs) {
+      const clubId = r.tournament.clubId;
+      const prev = clubAgg.get(clubId);
+      if (!prev) continue;
+      prev.paidRegistrations += 1;
+      prev.revenue += r.tournament.entryFee || 0;
+    }
+
+    const rows = Array.from(clubAgg.entries())
+      .map(([clubId, v]) => ({
+        clubId,
+        name: v.name,
+        clubStatus: v.clubStatus,
+        revenue: v.revenue,
+        paidRegistrations: v.paidRegistrations,
+        tournaments: v.tournamentIdsThisMonth.size,
+      }))
+      .sort((a, b) => b.revenue - a.revenue || b.paidRegistrations - a.paidRegistrations || b.tournaments - a.tournaments)
       .slice(0, 5);
 
     const topRevenue = rows[0]?.revenue || 0;
     return rows.map((r) => {
       const progress = topRevenue === 0 ? 0 : Math.round((r.revenue / topRevenue) * 100);
-      const statusType = r.revenue > 0 ? 'success' : 'warning';
+      const status =
+        r.clubStatus === ClubStatus.SUSPENDED ? 'Suspended' : r.clubStatus === ClubStatus.EXPIRED ? 'Expired' : 'Active';
+      const statusType =
+        r.clubStatus === ClubStatus.SUSPENDED ? 'warning' : r.clubStatus === ClubStatus.EXPIRED ? 'danger' : 'success';
       return {
         clubId: r.clubId,
         name: r.name,
@@ -185,7 +226,7 @@ export class SuperAdminDashboardService {
         paidRegistrations: r.paidRegistrations,
         tournaments: r.tournaments,
         progress,
-        status: 'Active',
+        status,
         statusType,
         logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}`,
       };

@@ -1,4 +1,4 @@
-import { getAuthToken } from './auth';
+import { getAuthToken, handleAuthFailure } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -16,6 +16,7 @@ export async function getClubs() {
     cache: 'no-store',
   });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to fetch clubs');
   }
@@ -29,6 +30,7 @@ export async function getClub(id: string) {
     cache: 'no-store',
   });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to fetch club');
   }
@@ -58,6 +60,7 @@ export async function updateClub(id: string, payload: UpdateClubPayload) {
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to update club');
   }
@@ -67,6 +70,7 @@ export async function updateClub(id: string, payload: UpdateClubPayload) {
 export async function suspendClub(id: string) {
   const res = await authedFetch(`/clubs/${id}/suspend`, { method: 'POST' });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to suspend club');
   }
@@ -76,6 +80,7 @@ export async function suspendClub(id: string) {
 export async function activateClub(id: string) {
   const res = await authedFetch(`/clubs/${id}/activate`, { method: 'POST' });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to activate club');
   }
@@ -85,6 +90,7 @@ export async function activateClub(id: string) {
 export async function deleteClub(id: string) {
   const res = await authedFetch(`/clubs/${id}`, { method: 'DELETE' });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to delete club');
   }

@@ -27,7 +27,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { broadcastAdminEvent, cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
@@ -98,6 +98,15 @@ function toClubRow(c: ApiClub): ClubRow {
   };
 }
 
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return null;
+}
+
 export default function ClubsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -116,7 +125,7 @@ export default function ClubsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [selectedClub, setSelectedClub] = useState<any>(null);
+  const [selectedClub, setSelectedClub] = useState<ClubRow | null>(null);
   const [editPlan, setEditPlan] = useState("Pro");
   const [editStatus, setEditStatus] = useState<ClubRow["status"]>("Active");
   const [editName, setEditName] = useState("");
@@ -135,8 +144,8 @@ export default function ClubsPage() {
       const data = (await getClubs()) as ApiClub[];
       const rows = Array.isArray(data) ? data.map(toClubRow) : [];
       setClubsData(rows);
-    } catch (e: any) {
-      setError(e?.message || "Failed to fetch clubs");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || "Failed to fetch clubs");
       setClubsData([]);
     } finally {
       setLoading(false);
@@ -160,9 +169,9 @@ export default function ClubsPage() {
         if (cancelled) return;
         const rows = Array.isArray(data) ? data.map(toClubRow) : [];
         setClubsData(rows);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
-        setError(e?.message || "Failed to fetch clubs");
+        setError(getErrorMessage(e) || "Failed to fetch clubs");
         setClubsData([]);
       } finally {
         if (cancelled) return;
@@ -174,10 +183,6 @@ export default function ClubsPage() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, planFilter, locationFilter]);
 
   const filteredClubs = clubsData.filter((club) => {
     const matchesSearch = 
@@ -212,51 +217,51 @@ export default function ClubsPage() {
   }).length;
 
   // Handlers
-  const handleEdit = (club: any) => {
+  const handleEdit = (club: ClubRow) => {
     setSelectedClub(club);
-    setEditPlan(club?.plan || "Pro");
-    setEditStatus((club?.status as ClubRow["status"]) || "Active");
-    setEditName(club?.name || "");
-    setEditLocation(club?.location || "");
-    setEditAdminName(club?.admin?.name || "");
-    setEditAdminEmail(club?.admin?.email || "");
+    setEditPlan(club.plan || "Pro");
+    setEditStatus(club.status || "Active");
+    setEditName(club.name || "");
+    setEditLocation(club.location || "");
+    setEditAdminName(club.admin?.name || "");
+    setEditAdminEmail(club.admin?.email || "");
     setIsEditModalOpen(true);
     setActiveDropdown(null);
   };
 
-  const handleDelete = (club: any) => {
+  const handleDelete = (club: ClubRow) => {
     setSelectedClub(club);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
     setActiveDropdown(null);
   };
 
-  const handleStatusChange = (club: any) => {
+  const handleStatusChange = (club: ClubRow) => {
     setSelectedClub(club);
-    setStatusAction(club?.status === "Suspended" ? "activate" : "suspend");
+    setStatusAction(club.status === "Suspended" ? "activate" : "suspend");
     setIsStatusModalOpen(true);
     setActiveDropdown(null);
   };
 
-  const handleMoreAction = (action: string, club: any) => {
+  const handleMoreAction = (action: string, club: ClubRow) => {
     setActiveDropdown(null);
     if (action === "view-analytics") {
       router.push(`/super-admin/clubs/${club.id}`);
       return;
     }
     if (action === "impersonate") {
-      toast.success(`Impersonation started for ${club?.admin?.email ?? "admin"}`);
+      toast.success(`Impersonation started for ${club.admin?.email ?? "admin"}`);
       return;
     }
     if (action === "reset-password") {
-      const email = club?.admin?.email;
+      const email = club.admin?.email;
       if (!email || email === "—") {
         toast.error("No admin email found for this club");
         return;
       }
       forgotPasswordRequest(email)
         .then((r) => toast.success(r?.message || "Reset link sent"))
-        .catch((e: any) => toast.error(e?.message || "Failed to send reset email"));
+        .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to send reset email"));
       return;
     }
     if (action === "audit-logs") {
@@ -284,9 +289,10 @@ export default function ClubsPage() {
       .then(() => {
         toast.success(`${selectedClub?.name} has been deleted`);
         setIsDeleteModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         return reloadClubs();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to delete club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete club"))
       .finally(() => setMutating(false));
   };
 
@@ -302,11 +308,12 @@ export default function ClubsPage() {
             : `${selectedClub?.name} has been suspended`,
         );
         setIsStatusModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         return reloadClubs();
       })
-      .catch((e: any) =>
+      .catch((e: unknown) =>
         toast.error(
-          e?.message || (statusAction === "activate" ? "Failed to activate club" : "Failed to suspend club"),
+          getErrorMessage(e) || (statusAction === "activate" ? "Failed to activate club" : "Failed to suspend club"),
         ),
       )
       .finally(() => setMutating(false));
@@ -328,9 +335,10 @@ export default function ClubsPage() {
       .then(() => {
         toast.success("Club updated");
         setIsEditModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         return reloadClubs();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to update club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update club"))
       .finally(() => setMutating(false));
   };
 
@@ -403,12 +411,18 @@ export default function ClubsPage() {
                 placeholder="Search club name, location or admin..." 
                 className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
             <SearchableSelect
               value={statusFilter}
-              onValueChange={setStatusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setCurrentPage(1);
+              }}
               options={["All Status", "Active", "Suspended", "Expired"].map((v) => ({ value: v, label: v }))}
               className="min-w-[160px]"
               triggerClassName="h-11 bg-white font-medium"
@@ -416,7 +430,10 @@ export default function ClubsPage() {
             />
             <SearchableSelect
               value={planFilter}
-              onValueChange={setPlanFilter}
+              onValueChange={(v) => {
+                setPlanFilter(v);
+                setCurrentPage(1);
+              }}
               options={["All Plans", "Pro", "Basic"].map((v) => ({ value: v, label: v }))}
               className="min-w-[160px]"
               triggerClassName="h-11 bg-white font-medium"
@@ -424,7 +441,10 @@ export default function ClubsPage() {
             />
             <SearchableSelect
               value={locationFilter}
-              onValueChange={setLocationFilter}
+              onValueChange={(v) => {
+                setLocationFilter(v);
+                setCurrentPage(1);
+              }}
               options={["All Locations", ...uniqueLocations].map((v) => ({ value: v, label: v }))}
               className="min-w-[180px]"
               triggerClassName="h-11 bg-white font-medium"
@@ -853,7 +873,7 @@ export default function ClubsPage() {
           
           <div className="space-y-3">
             <Label className="font-bold text-gray-700">
-              Type <span className="text-red-600">"DELETE"</span> to confirm:
+              Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input 
               value={deleteConfirmText}

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { createTournament } from "@/lib/api/tournaments"
@@ -55,15 +55,28 @@ const tournamentSchema = z.object({
 
 type TournamentFormValues = z.infer<typeof tournamentSchema>
 
+type ClubItem = { id: string; name: string }
+type CourseItem = { id: string; name: string; holesCount?: number | null }
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message
+  if (typeof e === "string") return e
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message
+  }
+  return null
+}
+
 export default function NewTournamentPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
-  const [clubs, setClubs] = React.useState<any[]>([])
-  const [courses, setCourses] = React.useState<any[]>([])
+  const [clubs, setClubs] = React.useState<ClubItem[]>([])
+  const [courses, setCourses] = React.useState<CourseItem[]>([])
   const [selectedClub, setSelectedClub] = React.useState("")
 
+  const resolver = zodResolver(tournamentSchema) as unknown as Resolver<TournamentFormValues>
   const form = useForm<TournamentFormValues>({
-    resolver: zodResolver(tournamentSchema) as any,
+    resolver,
     defaultValues: {
       name: "",
       startDate: "",
@@ -78,12 +91,12 @@ export default function NewTournamentPage() {
   const tomorrowYMD = getTomorrowYMD()
 
   React.useEffect(() => {
-    getClubs().then(setClubs)
+    getClubs().then((data) => setClubs((Array.isArray(data) ? data : []) as ClubItem[]))
   }, [])
 
   React.useEffect(() => {
     if (selectedClub) {
-      getCourses(selectedClub).then(setCourses)
+      getCourses(selectedClub).then((data) => setCourses((Array.isArray(data) ? data : []) as CourseItem[]))
     } else {
       setCourses([])
     }
@@ -129,8 +142,8 @@ export default function NewTournamentPage() {
       await createTournament(data)
       toast.success("Tournament created successfully")
       router.push("/tournaments")
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create tournament")
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Failed to create tournament")
     } finally {
       setIsLoading(false)
     }

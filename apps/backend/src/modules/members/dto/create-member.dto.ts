@@ -1,5 +1,5 @@
 import { IsEmail, IsString, IsOptional, IsEnum, IsNumber, MinLength } from 'class-validator';
-import { UserRole, MemberStatus } from '@openclubos/types';
+import { MemberStatus } from '@prisma/client';
 
 export class CreateMemberDto {
   @IsEmail()

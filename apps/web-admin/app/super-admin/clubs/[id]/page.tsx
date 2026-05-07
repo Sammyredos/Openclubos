@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
-import { cn, formatWithCommas, formatNumber } from "@/lib/utils";
+import { broadcastAdminEvent, cn, formatWithCommas, formatNumber } from "@/lib/utils";
 import { activateClub, deleteClub, getClub, suspendClub, updateClub } from "@/lib/api/clubs";
 import { getMembers } from "@/lib/api/members";
 import { getTournaments } from "@/lib/api/tournaments";
@@ -106,6 +106,24 @@ type ApiRegistration = {
   tournament: { id: string; name: string; entryFee: number | null; startDate: string; club: { id: string; name: string } };
 };
 
+type ClubViewModel = {
+  id: string;
+  name: string;
+  location: string;
+  joinedDate: string;
+  logo: string;
+  status: "Active" | "Suspended" | "Expired";
+  plan: "Pro" | "Basic" | "—";
+  members: number;
+  tournaments: number;
+  email: string;
+  phone: string;
+  website: string;
+  admin: string;
+  createdAtISO: string;
+  courses: number;
+};
+
 function formatJoinedDate(iso: string) {
   const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
   return fmt.format(new Date(iso));
@@ -116,7 +134,7 @@ function fullName(firstName: string | null, lastName: string | null) {
   return name || "—";
 }
 
-function toClubViewModel(c: ApiClub) {
+function toClubViewModel(c: ApiClub): ClubViewModel {
   const adminUser = c.users?.[0] || null;
   const adminName = adminUser ? fullName(adminUser.firstName, adminUser.lastName) : "—";
   const adminEmail = adminUser?.email || "—";
@@ -141,12 +159,21 @@ function toClubViewModel(c: ApiClub) {
   };
 }
 
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return null;
+}
+
 export default function ClubDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
-  const [club, setClub] = React.useState<any>(null);
+  const [club, setClub] = React.useState<ClubViewModel | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -215,9 +242,9 @@ export default function ClubDetailsPage() {
         setMembers((membersRes?.items ?? []) as ApiMember[]);
         setMembersTotal(membersRes?.total ?? 0);
         setTournaments((Array.isArray(tournamentsRes) ? tournamentsRes : []) as ApiTournament[]);
-        setRegistrations((Array.isArray(registrationsRes) ? registrationsRes : []) as ApiRegistration[]);
-      } catch (err: any) {
-        setError(err.message);
+        setRegistrations((registrationsRes?.items ?? []) as ApiRegistration[]);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load club");
       } finally {
         setLoading(false);
         setMembersLoading(false);
@@ -376,21 +403,15 @@ export default function ClubDetailsPage() {
   })();
 
   function timeAgoShort(iso: string) {
-    const ts = new Date(iso).getTime();
-    if (Number.isNaN(ts)) return "—";
-    const diffMinutes = Math.floor((Date.now() - ts) / 60000);
-    if (diffMinutes < 0) return "just now";
-    if (diffMinutes < 1) return "just now";
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
   }
 
   const openEdit = () => {
+    if (!club) return;
     setEditPlan(club.plan || "Pro");
-    setEditStatus((club.status as any) || "Active");
+    setEditStatus(club.status || "Active");
     setEditName(club.name || "");
     setEditLocation(club.location || "");
     setEditAdminName(club.admin || "");
@@ -406,9 +427,10 @@ export default function ClubDetailsPage() {
       .then(() => {
         toast.success(statusAction === "activate" ? "Club activated" : "Club suspended");
         setIsStatusModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         return reloadClubData();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to update club status"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update club status"))
       .finally(() => setMutating(false));
   };
 
@@ -420,9 +442,10 @@ export default function ClubDetailsPage() {
       .then(() => {
         toast.success("Club deleted");
         setIsDeleteModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         router.push("/super-admin/clubs");
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to delete club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete club"))
       .finally(() => setMutating(false));
   };
 
@@ -442,9 +465,10 @@ export default function ClubDetailsPage() {
       .then(() => {
         toast.success("Club updated");
         setIsEditModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
         return reloadClubData();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to update club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update club"))
       .finally(() => setMutating(false));
   };
 
@@ -568,7 +592,10 @@ export default function ClubDetailsPage() {
               <Label className="font-bold text-gray-700">Status</Label>
               <SearchableSelect
                 value={editStatus}
-                onValueChange={(v) => setEditStatus(v as any)}
+                onValueChange={(v) => {
+                  const next = v === "Active" || v === "Suspended" || v === "Expired" ? v : "Active";
+                  setEditStatus(next);
+                }}
                 options={["Active", "Suspended", "Expired"].map((v) => ({ value: v, label: v }))}
                 triggerClassName="h-12 bg-white font-medium rounded-xl"
                 placeholder="Select status..."
@@ -714,7 +741,7 @@ export default function ClubDetailsPage() {
                     }
                     forgotPasswordRequest(email)
                       .then((r) => toast.success(r?.message || "Reset link sent"))
-                      .catch((e: any) => toast.error(e?.message || "Failed to send reset email"));
+                      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to send reset email"));
                   }}
                 >
                   <KeyRound className="w-4 h-4 text-gray-500" />
@@ -956,7 +983,10 @@ export default function ClubDetailsPage() {
                         />
                         <Tooltip
                           contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}
-                          formatter={(value: any) => [`₦${Number(value).toLocaleString()}`, "Revenue"]}
+                          formatter={(value: number | string | readonly (string | number)[] | undefined) => {
+                            const raw = Array.isArray(value) ? value[0] : value;
+                            return [`₦${Number(raw ?? 0).toLocaleString()}`, "Revenue"];
+                          }}
                         />
                         <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} barSize={18} />
                       </BarChart>

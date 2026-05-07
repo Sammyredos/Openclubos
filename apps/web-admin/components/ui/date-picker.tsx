@@ -53,6 +53,7 @@ export function DatePicker({
   disablePast,
   disableFuture,
   isDateDisabled,
+  onInvalidSelect,
   className,
   buttonClassName,
 }: DatePickerProps) {
@@ -71,11 +72,6 @@ export function DatePicker({
     window.addEventListener("mousedown", onMouseDown);
     return () => window.removeEventListener("mousedown", onMouseDown);
   }, [open]);
-
-  React.useEffect(() => {
-    if (!open) return;
-    if (selectedDate) setViewMonth(selectedDate);
-  }, [open, selectedDate]);
 
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
@@ -116,7 +112,10 @@ export function DatePicker({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open && selectedDate) setViewMonth(selectedDate);
+          setOpen((v) => !v);
+        }}
         className={cn(
           "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName,

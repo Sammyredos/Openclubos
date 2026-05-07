@@ -11,6 +11,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, UserPlus, CheckSquare, User, User2
 import { useAuth } from "@/lib/auth/AuthContext"
 import { loginRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Please enter your email or membership ID." }),
@@ -23,6 +24,23 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
   const { login } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  React.useEffect(() => {
+    const reason = searchParams.get("reason")
+    if (!reason) return
+    if (reason === "suspended") {
+      toast.error("Your account has been suspended. Contact Club Admin.")
+    } else if (reason === "expired") {
+      toast.error("Your account has expired. Contact Club Admin.")
+    } else {
+      toast.error("You have been logged out.")
+    }
+    const url = new URL(window.location.href)
+    url.searchParams.delete("reason")
+    router.replace(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""))
+  }, [router, searchParams])
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -35,9 +53,11 @@ export default function LoginPage() {
       const response = await loginRequest(data);
       login(response.accessToken, response.user);
       toast.success("Successfully logged in");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error details:", err);
-      toast.error(err.message || "Invalid email or password. Please check your credentials and try again.");
+      toast.error(
+        err instanceof Error ? err.message : "Invalid email or password. Please check your credentials and try again.",
+      );
     } finally {
       setIsLoading(false)
     }
@@ -182,7 +202,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-[13px] text-gray-500">
-              Don't have an acccount? <a href="#" className="text-[#10b981] font-bold hover:underline">Contact Administrator</a>
+              Don&apos;t have an acccount? <a href="#" className="text-[#10b981] font-bold hover:underline">Contact Administrator</a>
             </p>
           </div>
         </div>

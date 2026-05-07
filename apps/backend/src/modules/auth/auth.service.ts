@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma.service';
@@ -36,8 +36,14 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.prisma.user.findFirst({
-      where: { email, deletedAt: null, status: MemberStatus.ACTIVE },
+      where: { email, deletedAt: null },
     });
+    if (user && user.status === MemberStatus.SUSPENDED) {
+      throw new UnauthorizedException('ACCOUNT_SUSPENDED');
+    }
+    if (user && user.status === MemberStatus.EXPIRED) {
+      throw new UnauthorizedException('ACCOUNT_EXPIRED');
+    }
     if (user && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
@@ -51,6 +57,7 @@ export class AuthService {
       sub: user.id,
       role: user.role,
       clubId: user.clubId,
+      uat: user.updatedAt ? new Date(user.updatedAt).getTime() : undefined,
     };
     return {
       accessToken: this.jwtService.sign(payload),

@@ -18,6 +18,44 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+export function clearAuthSession() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage?.removeItem('oc_token');
+    window.localStorage?.removeItem('oc_user');
+  } catch {
+    // ignore
+  }
+  try {
+    document.cookie = 'accessToken=; path=/; max-age=0';
+  } catch {
+    // ignore
+  }
+}
+
+export async function handleAuthFailure(res: Response) {
+  if (typeof window === 'undefined') return;
+  if (res.status !== 401 && res.status !== 403) return;
+  let message = '';
+  try {
+    const data: unknown = await res.clone().json();
+    if (data && typeof data === 'object' && 'message' in data) {
+      const m = (data as { message?: unknown }).message;
+      if (typeof m === 'string') message = m;
+      if (Array.isArray(m) && m.every((x) => typeof x === 'string')) message = m.join(' ');
+    }
+  } catch {
+    message = '';
+  }
+
+  const url = new URL('/login', window.location.origin);
+  if (message === 'ACCOUNT_SUSPENDED') url.searchParams.set('reason', 'suspended');
+  if (message === 'ACCOUNT_EXPIRED') url.searchParams.set('reason', 'expired');
+
+  clearAuthSession();
+  window.location.href = url.toString();
+}
+
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
@@ -27,7 +65,14 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || 'Invalid email or password');
+    const msg = error.message || 'Invalid email or password';
+    if (msg === 'ACCOUNT_SUSPENDED') {
+      throw new Error('Your account has been suspended. Contact Club Admin.');
+    }
+    if (msg === 'ACCOUNT_EXPIRED') {
+      throw new Error('Your account has expired. Contact Club Admin.');
+    }
+    throw new Error(msg);
   }
 
   return res.json();

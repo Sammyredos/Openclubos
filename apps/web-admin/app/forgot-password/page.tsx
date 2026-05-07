@@ -34,8 +34,8 @@ export default function ForgotPasswordPage() {
       await forgotPasswordRequest(data.email)
       setSentEmail(data.email)
       setPageState("sent")
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong. Please try again.")
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
       setPageState("idle")
     }
   }
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
               {/* Title */}
               <div className="text-center mb-8">
                 <h1 className="text-[28px] font-bold text-[#1a2332] mb-1 tracking-tight">Forgot Password?</h1>
-                <p className="text-[14px] font-normal text-gray-500">Don't worry, it happens to the best of us. We'll send you a link to reset it.</p>
+                <p className="text-[14px] font-normal text-gray-500">Don&apos;t worry, it happens to the best of us. We&apos;ll send you a link to reset it.</p>
               </div>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
@@ -130,7 +130,7 @@ export default function ForgotPasswordPage() {
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h1 className="text-[28px] font-bold text-[#1a2332] mb-1 tracking-tight">Check Your Email</h1>
-                <p className="text-[14px] font-normal text-gray-500">We've sent a password reset link to <span className="font-bold text-gray-700">{sentEmail}</span></p>
+                <p className="text-[14px] font-normal text-gray-500">We&apos;ve sent a password reset link to <span className="font-bold text-gray-700">{sentEmail}</span></p>
               </div>
 
               <div className="w-full space-y-6">

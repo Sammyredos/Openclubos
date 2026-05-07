@@ -35,36 +35,42 @@ export default function MembersPage() {
   const [search, setSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("")
   const [page, setPage] = React.useState(1)
+  const [reloadSeq, setReloadSeq] = React.useState(0)
   const take = 10
 
-  const fetchMembers = React.useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await getMembers({
-        skip: (page - 1) * take,
-        take,
-        search,
-        status: statusFilter
-      })
-      setMembers(data.items)
-      setTotal(data.total)
-    } catch (error) {
-      toast.error("Failed to load members")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [page, search, statusFilter])
-
   React.useEffect(() => {
-    fetchMembers()
-  }, [fetchMembers])
+    let cancelled = false
+    ;(async () => {
+      try {
+        setIsLoading(true)
+        const data = await getMembers({
+          skip: (page - 1) * take,
+          take,
+          search,
+          status: statusFilter
+        })
+        if (cancelled) return
+        setMembers(data.items)
+        setTotal(data.total)
+      } catch (error) {
+        if (cancelled) return
+        toast.error("Failed to load members")
+      } finally {
+        if (cancelled) return
+        setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [page, search, statusFilter, reloadSeq])
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this member?")) return
     try {
       await deleteMember(id)
       toast.success("Member deleted")
-      fetchMembers()
+      setReloadSeq((v) => v + 1)
     } catch (error) {
       toast.error("Failed to delete member")
     }
@@ -161,7 +167,7 @@ export default function MembersPage() {
             placeholder="All Statuses"
           />
           <Button 
-            onClick={fetchMembers}
+            onClick={() => setReloadSeq((v) => v + 1)}
             variant="outline" 
             className="h-12 w-12 p-0 rounded-lg border-gray-200 hover:bg-gray-50"
           >

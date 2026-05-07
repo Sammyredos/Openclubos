@@ -88,3 +88,57 @@ export function formatNumber(value: string | number): string {
   const nf = new Intl.NumberFormat("en-US");
   return `${sign}${nf.format(absValue)}`;
 }
+
+export type AdminEvent = { type: string; payload?: unknown; at: number };
+
+export function broadcastAdminEvent(type: string, payload?: unknown) {
+  if (typeof window === "undefined") return;
+  const msg: AdminEvent = { type, payload, at: Date.now() };
+  try {
+    const ch = new BroadcastChannel("oc_admin_events");
+    ch.postMessage(msg);
+    ch.close();
+  } catch {}
+  try {
+    window.localStorage.setItem("__oc_admin_event", JSON.stringify(msg));
+    window.localStorage.removeItem("__oc_admin_event");
+  } catch {}
+}
+
+export function subscribeAdminEvents(handler: (event: AdminEvent) => void) {
+  if (typeof window === "undefined") return () => {};
+  let bc: BroadcastChannel | null = null;
+  function coerceEvent(data: unknown): AdminEvent | null {
+    if (!data || typeof data !== "object" || !("type" in data)) return null;
+    const t = (data as { type?: unknown }).type;
+    if (typeof t !== "string") return null;
+    const payload = (data as { payload?: unknown }).payload;
+    const atRaw = (data as { at?: unknown }).at;
+    const at = typeof atRaw === "number" ? atRaw : Date.now();
+    return { type: t, payload, at };
+  }
+  function onBroadcast(ev: MessageEvent) {
+    const evt = coerceEvent(ev.data);
+    if (evt) handler(evt);
+  }
+  try {
+    bc = new BroadcastChannel("oc_admin_events");
+    bc.addEventListener("message", onBroadcast);
+  } catch {}
+  function onStorage(ev: StorageEvent) {
+    if (ev.key !== "__oc_admin_event" || !ev.newValue) return;
+    try {
+      const parsed: unknown = JSON.parse(ev.newValue);
+      const evt = coerceEvent(parsed);
+      if (evt) handler(evt);
+    } catch {}
+  }
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    if (bc) {
+      bc.removeEventListener("message", onBroadcast);
+      bc.close();
+    }
+  };
+}

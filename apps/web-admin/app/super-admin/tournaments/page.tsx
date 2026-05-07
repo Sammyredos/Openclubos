@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import {
   Trophy,
   Users,
@@ -54,10 +54,34 @@ type ApiTournament = {
   _count?: { registrations: number };
 };
 
-const STATUS_META: Record<
-  Exclude<TournamentStatus, "DRAFT">,
-  { label: string; color: string; badge: string }
-> = {
+type TournamentRow = {
+  id: string;
+  name: string;
+  clubName: string;
+  types: string[];
+  dates: string;
+  players: string;
+  status: string;
+  badge: string;
+  entryFee: number | null;
+  startDate: string;
+  endDate: string | null;
+  maxPlayers: number | null;
+  statusKey: TournamentStatus;
+  registrations: number;
+};
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return null;
+}
+
+const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
+  DRAFT: { label: "Draft", color: "#9ca3af", badge: "bg-gray-100 text-gray-500" },
   REGISTRATION_OPEN: { label: "Upcoming", color: "#3b82f6", badge: "bg-blue-50 text-blue-600" },
   ONGOING: { label: "Ongoing", color: "#10b981", badge: "bg-emerald-50 text-emerald-600" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600" },
@@ -118,7 +142,11 @@ export default function TournamentsPage() {
     return toLocalYMD(d);
   })();
 
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [clubFilter, setClubFilter] = useState("All Clubs");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -133,7 +161,7 @@ export default function TournamentsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedTournament, setSelectedTournament] = useState<any>(null);
+  const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(false);
   const [editName, setEditName] = useState("");
@@ -144,31 +172,9 @@ export default function TournamentsPage() {
   const [editMaxPlayers, setEditMaxPlayers] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  useEffect(() => {
-    if (!isEditModalOpen) return;
-    if (editStartDate && editStartDate < tomorrowYMD) {
-      setEditStartDate("");
-      toast.error("Start date must be from tomorrow onwards");
-      return;
-    }
-    if (editEndDate && editEndDate < tomorrowYMD) {
-      setEditEndDate("");
-      toast.error("End date must be from tomorrow onwards");
-      return;
-    }
-    if (editStartDate && editEndDate && editEndDate < editStartDate) {
-      setEditEndDate("");
-      toast.error("End date cannot be before start date");
-    }
-  }, [isEditModalOpen, editStartDate, editEndDate, tomorrowYMD]);
-
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   async function reloadTournaments() {
     setLoading(true);
@@ -176,8 +182,8 @@ export default function TournamentsPage() {
     try {
       const data = (await getTournaments()) as ApiTournament[];
       setTournaments(Array.isArray(data) ? data : []);
-    } catch (e: any) {
-      setError(e?.message || "Failed to fetch tournaments");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || "Failed to fetch tournaments");
       setTournaments([]);
     } finally {
       setLoading(false);
@@ -193,9 +199,9 @@ export default function TournamentsPage() {
         const data = (await getTournaments()) as ApiTournament[];
         if (cancelled) return;
         setTournaments(Array.isArray(data) ? data : []);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
-        setError(e?.message || "Failed to fetch tournaments");
+        setError(getErrorMessage(e) || "Failed to fetch tournaments");
         setTournaments([]);
       } finally {
         if (cancelled) return;
@@ -338,16 +344,16 @@ export default function TournamentsPage() {
       };
     });
 
-  const openView = (tournament: any) => {
+  const openView = (tournament: TournamentRow) => {
     setSelectedTournament(tournament);
     setIsViewModalOpen(true);
   };
 
-  const openEdit = (tournament: any) => {
+  const openEdit = (tournament: TournamentRow) => {
     setSelectedTournament(tournament);
     setEditName(tournament?.name || "");
-    const status = tournament?.statusKey as Exclude<TournamentStatus, "DRAFT">;
-    setEditStatus(status === "DRAFT" ? "REGISTRATION_OPEN" : (status || "REGISTRATION_OPEN"));
+    const status = tournament?.statusKey as TournamentStatus | undefined;
+    setEditStatus(status && status !== "DRAFT" ? status : "REGISTRATION_OPEN");
     setEditStartDate(toDateInputValue(tournament?.startDate || ""));
     const endDate = tournament?.endDate ? toDateInputValue(tournament.endDate) : "";
     setEditEndDate(endDate);
@@ -361,18 +367,18 @@ export default function TournamentsPage() {
     setIsEditModalOpen(true);
   };
 
-  const openCancel = (tournament: any) => {
+  const openCancel = (tournament: TournamentRow) => {
     setSelectedTournament(tournament);
     setIsCancelModalOpen(true);
   };
 
-  const openDelete = (tournament: any) => {
+  const openDelete = (tournament: TournamentRow) => {
     setSelectedTournament(tournament);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
   };
 
-  const handleMoreAction = (action: string, tournament: any) => {
+  const handleMoreAction = (action: string, tournament: TournamentRow) => {
     setActiveDropdown(null);
     if (action === "export") {
       const blob = new Blob([JSON.stringify(tournament, null, 2)], { type: "application/json" });
@@ -429,7 +435,7 @@ export default function TournamentsPage() {
         // Still reload in background to ensure everything is perfectly synced
         reloadTournaments();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to update tournament"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update tournament"))
       .finally(() => setMutating(false));
   };
 
@@ -442,7 +448,7 @@ export default function TournamentsPage() {
         setIsCancelModalOpen(false);
         return reloadTournaments();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to cancel tournament"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to cancel tournament"))
       .finally(() => setMutating(false));
   };
 
@@ -455,7 +461,7 @@ export default function TournamentsPage() {
         setIsDeleteModalOpen(false);
         return reloadTournaments();
       })
-      .catch((e: any) => toast.error(e?.message || "Failed to delete tournament"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete tournament"))
       .finally(() => setMutating(false));
   };
 
@@ -969,7 +975,10 @@ export default function TournamentsPage() {
               <Label className="font-bold text-gray-700">{isOneDayEvent ? "Tournament Date" : "Start Date"}</Label>
               <DatePicker
                 value={editStartDate}
-                onValueChange={setEditStartDate}
+                onValueChange={(v) => {
+                  setEditStartDate(v);
+                  if (!isOneDayEvent && editEndDate && v && editEndDate < v) setEditEndDate("");
+                }}
                 placeholder="Select date"
                 minDate={tomorrowYMD}
                 onInvalidSelect={() => toast.error("Date must be from tomorrow onwards")}
@@ -1108,7 +1117,7 @@ export default function TournamentsPage() {
 
           <div className="space-y-3">
             <Label className="font-bold text-gray-700">
-              Type <span className="text-red-600">"DELETE"</span> to confirm:
+              Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input
               value={deleteConfirmText}

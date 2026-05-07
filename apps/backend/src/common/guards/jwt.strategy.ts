@@ -2,6 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { MemberStatus } from '@prisma/client';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,8 +16,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) {
-      throw new UnauthorizedException();
+    if (!user || user.deletedAt != null) throw new UnauthorizedException();
+    if (user.status === MemberStatus.SUSPENDED) throw new UnauthorizedException('ACCOUNT_SUSPENDED');
+    if (user.status === MemberStatus.EXPIRED) throw new UnauthorizedException('ACCOUNT_EXPIRED');
+    if (user.status !== MemberStatus.ACTIVE) throw new UnauthorizedException();
+    if (payload?.uat != null) {
+      const tokenUat = Number(payload.uat);
+      if (!Number.isFinite(tokenUat)) throw new UnauthorizedException();
+      const currentUat = user.updatedAt.getTime();
+      if (tokenUat !== currentUat) throw new UnauthorizedException('TOKEN_REVOKED');
     }
     return {
       userId: payload.sub,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore, type ElementType } from "react";
 import {
   Users,
   Trophy,
@@ -92,20 +92,20 @@ interface ActivityItemProps {
   title: string;
   subtitle: string;
   time: string;
-  icon: any;
+  icon: ElementType;
   iconBg: string;
   iconColor: string;
   amount?: string;
 }
 
 export default function ClubAdminDashboard() {
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [registrationsRange, setRegistrationsRange] = useState("This Year");
   const [revenueRange, setRevenueRange] = useState("This Year");
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
@@ -219,7 +219,7 @@ export default function ClubAdminDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      formatter={(value: any) => [`₦${value.toLocaleString()}`, "Revenue"]}
+                      formatter={(value: number | string) => [`₦${Number(value).toLocaleString()}`, "Revenue"]}
                     />
                     <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
                   </BarChart>
