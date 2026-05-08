@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AuthUser } from '@/lib/api/auth';
+import { getAuthToken, handleAuthFailure } from '@/lib/api/auth';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -67,6 +70,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('storage', syncAuth);
     return () => window.removeEventListener('storage', syncAuth);
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    let inFlight = false;
+
+    const ping = async () => {
+      if (cancelled) return;
+      if (inFlight) return;
+      const token = getAuthToken();
+      if (!token) return;
+      inFlight = true;
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (!res.ok) await handleAuthFailure(res);
+      } catch {
+        // ignore transient network errors
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    ping();
+    const id = window.setInterval(() => {
+      if (document.hidden) return;
+      ping();
+    }, 4000);
+
+    const onFocus = () => ping();
+    const onVisibility = () => {
+      if (!document.hidden) ping();
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user]);
 
   const login = (token: string, user: AuthUser) => {
     // Store token in localStorage for cross-tab persistence

@@ -7,6 +7,98 @@ import { UpdateClubDto } from './dto/update-club.dto';
 export class ClubsService {
   constructor(private prisma: PrismaService) {}
 
+  async stats(id: string) {
+    const club = await this.prisma.club.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+    if (!club) throw new NotFoundException('Club not found');
+
+    const now = new Date();
+    const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [
+      totalMembers,
+      membersThisMonth,
+      totalTournaments,
+      activeTournaments,
+      ongoingTournaments,
+      paidRegistrations,
+      unpaidRegistrations,
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null, clubId: id, role: UserRole.PLAYER } }),
+      this.prisma.user.count({
+        where: { deletedAt: null, clubId: id, role: UserRole.PLAYER, createdAt: { gte: startThisMonth, lt: startNextMonth } },
+      }),
+      this.prisma.tournament.count({ where: { deletedAt: null, clubId: id } }),
+      this.prisma.tournament.count({
+        where: { deletedAt: null, clubId: id, status: { in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN] } },
+      }),
+      this.prisma.tournament.count({ where: { deletedAt: null, clubId: id, status: TournamentStatus.ONGOING } }),
+      this.prisma.registration.count({
+        where: { paymentStatus: 'PAID', tournament: { deletedAt: null, clubId: id } },
+      }),
+      this.prisma.registration.count({
+        where: { paymentStatus: 'UNPAID', tournament: { deletedAt: null, clubId: id } },
+      }),
+    ]);
+
+    const totalRevenueRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+      SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'PAID'
+        AND t."deletedAt" IS NULL
+        AND t."clubId" = ${id}
+    `;
+    const revenueThisMonthRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+      SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'PAID'
+        AND t."deletedAt" IS NULL
+        AND t."clubId" = ${id}
+        AND r."registeredAt" >= ${startThisMonth}
+        AND r."registeredAt" < ${startNextMonth}
+    `;
+    const revenueLastMonthRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+      SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'PAID'
+        AND t."deletedAt" IS NULL
+        AND t."clubId" = ${id}
+        AND r."registeredAt" >= ${startLastMonth}
+        AND r."registeredAt" < ${startThisMonth}
+    `;
+    const unpaidAmountRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+      SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'UNPAID'
+        AND t."deletedAt" IS NULL
+        AND t."clubId" = ${id}
+    `;
+
+    const totalRevenue = Number(totalRevenueRow?.[0]?.amount ?? 0);
+    const revenueThisMonth = Number(revenueThisMonthRow?.[0]?.amount ?? 0);
+    const revenueLastMonth = Number(revenueLastMonthRow?.[0]?.amount ?? 0);
+    const unpaidAmount = Number(unpaidAmountRow?.[0]?.amount ?? 0);
+
+    return {
+      totalMembers,
+      membersThisMonth,
+      totalTournaments,
+      activeTournaments,
+      ongoingTournaments,
+      paidRegistrations,
+      unpaidRegistrations,
+      totalRevenue: Math.round(totalRevenue),
+      revenueThisMonth: Math.round(revenueThisMonth),
+      revenueLastMonth: Math.round(revenueLastMonth),
+      unpaidAmount: Math.round(unpaidAmount),
+    };
+  }
+
   async findAll(query: { search?: string }) {
     const search = query.search?.trim();
     return this.prisma.club.findMany({

@@ -28,18 +28,31 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
 
   React.useEffect(() => {
-    const reason = searchParams.get("reason")
-    if (!reason) return
-    if (reason === "suspended") {
-      toast.error("Your account has been suspended. Contact Club Admin.")
-    } else if (reason === "expired") {
-      toast.error("Your account has expired. Contact Club Admin.")
-    } else {
-      toast.error("You have been logged out.")
-    }
     const url = new URL(window.location.href)
-    url.searchParams.delete("reason")
-    router.replace(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""))
+    const leakedEmail = url.searchParams.get("email")
+    const leakedPassword = url.searchParams.get("password")
+    if (leakedEmail || leakedPassword) {
+      toast.error("For security, credentials were removed from the URL. Please re-enter your password.")
+      url.searchParams.delete("email")
+      url.searchParams.delete("password")
+    }
+
+    const reason = searchParams.get("reason")
+    if (reason) {
+      if (reason === "suspended") {
+        toast.error("Your account has been suspended. Please contact support.")
+      } else if (reason === "expired") {
+        toast.error("Your account has expired. Please contact support.")
+      } else if (reason === "revoked") {
+        toast.error("Your session has been ended. Please login again.")
+      } else {
+        toast.error("You have been logged out.")
+      }
+      url.searchParams.delete("reason")
+    }
+
+    const next = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "")
+    if (next !== window.location.pathname + window.location.search) router.replace(next)
   }, [router, searchParams])
 
   const form = useForm<LoginFormValues>({
@@ -95,7 +108,15 @@ export default function LoginPage() {
             <p className="text-[14px] font-normal text-gray-500">Sign in to your account to continue</p>
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
+          <form
+            method="post"
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              void form.handleSubmit(onSubmit)(e)
+            }}
+            className="w-full space-y-5"
+          >
             {/* Email/ID */}
             <div className="space-y-2.5">
               <label htmlFor="email" className="text-[14px] font-bold text-[#1a2332] block px-1">Email or Membership ID</label>

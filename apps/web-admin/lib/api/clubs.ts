@@ -37,6 +37,20 @@ export async function getClub(id: string) {
   return res.json();
 }
 
+export async function getClubStats(id: string) {
+  const token = getAuthToken();
+  const res = await fetchWithSuperAdminFallback(`/clubs/${id}/stats`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to fetch club stats');
+  }
+  return res.json();
+}
+
 export type UpdateClubPayload = {
   name?: string;
   address?: string;

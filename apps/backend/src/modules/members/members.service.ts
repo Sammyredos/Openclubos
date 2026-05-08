@@ -20,10 +20,14 @@ export class MembersService {
 
     const hashedPassword = await bcrypt.hash(createMemberDto.password, 10);
 
+    const phone =
+      typeof createMemberDto.phone === 'string' ? createMemberDto.phone.trim() || null : undefined;
+
     return this.prisma.user.create({
       data: {
         ...createMemberDto,
         password: hashedPassword,
+        ...(phone !== undefined ? { phone } : undefined),
         role: UserRole.PLAYER, // Default role for members
       },
     });
@@ -154,13 +158,15 @@ export class MembersService {
   async forceLogout(id: string) {
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, updatedAt: true },
     });
     if (!existing) throw new NotFoundException('Member not found');
 
+    const bumpFrom = existing.updatedAt?.getTime?.() ?? 0;
+    const nextUat = Math.max(Date.now(), bumpFrom + 1);
     await this.prisma.user.update({
       where: { id },
-      data: { updatedAt: new Date() },
+      data: { updatedAt: new Date(nextUat) },
     });
 
     return { success: true };
@@ -171,6 +177,9 @@ export class MembersService {
       updateMemberDto.password = await bcrypt.hash(updateMemberDto.password, 10);
     }
 
+    const data: any = { ...updateMemberDto };
+    if (typeof data.phone === 'string') data.phone = data.phone.trim() || null;
+
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       select: { id: true },
@@ -180,7 +189,7 @@ export class MembersService {
     try {
       return await this.prisma.user.update({
         where: { id },
-        data: updateMemberDto,
+        data,
       });
     } catch (error) {
       throw new NotFoundException('Member not found');

@@ -24,6 +24,7 @@ export interface AdminUser {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  phone?: string | null;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'STAFF' | 'PLAYER' | 'MARKER';
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
   clubId?: string | null;

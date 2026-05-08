@@ -20,7 +20,6 @@ import {
   KeyRound,
   BarChart3,
   Download,
-  LogIn,
   ChevronRight,
   ChevronLeft,
   ArrowLeft,
@@ -28,9 +27,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 import { Pagination } from "@/components/ui/pagination";
 import { broadcastAdminEvent, cn, formatWithCommas, formatNumber } from "@/lib/utils";
-import { activateClub, deleteClub, getClub, suspendClub, updateClub } from "@/lib/api/clubs";
+import { activateClub, deleteClub, getClub, getClubStats, suspendClub, updateClub } from "@/lib/api/clubs";
 import { getMembers } from "@/lib/api/members";
 import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
@@ -124,6 +124,20 @@ type ClubViewModel = {
   courses: number;
 };
 
+type ClubStats = {
+  totalMembers: number;
+  membersThisMonth: number;
+  totalTournaments: number;
+  activeTournaments: number;
+  ongoingTournaments: number;
+  paidRegistrations: number;
+  unpaidRegistrations: number;
+  totalRevenue: number;
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  unpaidAmount: number;
+};
+
 function formatJoinedDate(iso: string) {
   const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
   return fmt.format(new Date(iso));
@@ -186,6 +200,8 @@ export default function ClubDetailsPage() {
 
   const [registrations, setRegistrations] = React.useState<ApiRegistration[]>([]);
   const [registrationsLoading, setRegistrationsLoading] = React.useState(true);
+  const [clubStats, setClubStats] = React.useState<ClubStats | null>(null);
+  const [clubStatsLoading, setClubStatsLoading] = React.useState(true);
 
   const PAGE_SIZE = 10;
   const [membersPage, setMembersPage] = React.useState(1);
@@ -196,6 +212,16 @@ export default function ClubDetailsPage() {
   const [revenueRange, setRevenueRange] = useState("This Year");
   const [activeDropdown, setActiveDropdown] = useState(false);
   const [mutating, setMutating] = useState(false);
+  const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const closeTimeoutRef = React.useRef<number | null>(null);
+  const closeMoreMenu = () => {
+    setActiveDropdown(false);
+    if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setMoreMenuAnchorEl(null);
+      closeTimeoutRef.current = null;
+    }, 160);
+  };
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -218,6 +244,13 @@ export default function ClubDetailsPage() {
     const data = (await getClub(clubId)) as ApiClub;
     const vm = toClubViewModel(data);
     setClub(vm);
+    try {
+      setClubStatsLoading(true);
+      const s = (await getClubStats(clubId)) as ClubStats;
+      setClubStats(s);
+    } finally {
+      setClubStatsLoading(false);
+    }
   }
 
   React.useEffect(() => {
@@ -232,17 +265,20 @@ export default function ClubDetailsPage() {
         setMembersLoading(true);
         setTournamentsLoading(true);
         setRegistrationsLoading(true);
+        setClubStatsLoading(true);
 
-        const [membersRes, tournamentsRes, registrationsRes] = await Promise.all([
+        const [membersRes, tournamentsRes, registrationsRes, statsRes] = await Promise.all([
           getMembers({ clubId, take: 500 }),
           getTournaments({ clubId }),
           getRegistrations({ clubId, take: 500 }),
+          getClubStats(clubId),
         ]);
 
         setMembers((membersRes?.items ?? []) as ApiMember[]);
         setMembersTotal(membersRes?.total ?? 0);
         setTournaments((Array.isArray(tournamentsRes) ? tournamentsRes : []) as ApiTournament[]);
         setRegistrations((registrationsRes?.items ?? []) as ApiRegistration[]);
+        setClubStats((statsRes ?? null) as ClubStats | null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load club");
       } finally {
@@ -250,6 +286,7 @@ export default function ClubDetailsPage() {
         setMembersLoading(false);
         setTournamentsLoading(false);
         setRegistrationsLoading(false);
+        setClubStatsLoading(false);
       }
     }
     fetchClubData();
@@ -293,26 +330,6 @@ export default function ClubDetailsPage() {
   }
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
   if (!club) return <div className="p-8 text-center">Club not found</div>;
-
-  const activeTournaments = tournaments.filter((t) =>
-    t.status === "ONGOING" || t.status === "REGISTRATION_OPEN"
-  ).length;
-
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  const monthlyRevenue = registrations.reduce((sum, r) => {
-    if (r.paymentStatus !== "PAID") return sum;
-    const d = new Date(r.registeredAt);
-    if (d.getFullYear() !== year || d.getMonth() !== month) return sum;
-    return sum + (r.tournament.entryFee || 0);
-  }, 0);
-
-  const totalPaidPayments = registrations.filter((r) => r.paymentStatus === "PAID").length;
-  const totalRevenueAllTime = registrations.reduce((sum, r) => {
-    if (r.paymentStatus !== "PAID") return sum;
-    return sum + (r.tournament.entryFee || 0);
-  }, 0);
 
   const activeStatusBadge = club.status === "Active" ? "bg-emerald-50 text-emerald-600" :
     club.status === "Suspended" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600";
@@ -487,26 +504,14 @@ export default function ClubDetailsPage() {
   );
   const paymentsPageItems = registrations.slice((paymentsPageSafe - 1) * PAGE_SIZE, paymentsPageSafe * PAGE_SIZE);
 
-  const membersThisMonth = members.filter((m) => {
-    const d = new Date(m.createdAt);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }).length;
-  const ongoingCount = tournaments.filter((t) => t.status === "ONGOING").length;
-  const pendingAmount = registrations.reduce((sum, r) => {
-    if (r.paymentStatus !== "UNPAID") return sum;
-    return sum + (r.tournament.entryFee || 0);
-  }, 0);
-  const lastMonthRevenue = registrations.reduce((sum, r) => {
-    if (r.paymentStatus !== "PAID") return sum;
-    const d = new Date(r.registeredAt);
-    const lastMonth = (month + 11) % 12;
-    const lastYear = month === 0 ? year - 1 : year;
-    if (d.getFullYear() !== lastYear || d.getMonth() !== lastMonth) return sum;
-    return sum + (r.tournament.entryFee || 0);
-  }, 0);
   const revenueGrowthPct =
-    lastMonthRevenue > 0 ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : null;
+    clubStats && clubStats.revenueLastMonth > 0
+      ? ((clubStats.revenueThisMonth - clubStats.revenueLastMonth) / clubStats.revenueLastMonth) * 100
+      : null;
 
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
   const memberYear = topRange === "This Year" ? year : year - 1;
   const revenueYear = revenueRange === "This Year" ? year : year - 1;
   const memberGrowthData = (() => {
@@ -696,13 +701,6 @@ export default function ClubDetailsPage() {
 
         <div className="flex items-center gap-3 py-3">
           <Button
-            onClick={() => toast.success("Logging in as club admin")}
-            className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
-          >
-            <LogIn className="w-4 h-4" />
-            Login as Club Admin
-          </Button>
-          <Button
             onClick={openEdit}
             variant="outline"
             className="h-10 border-gray-200 text-gray-700 gap-2 rounded-lg px-4 text-[14px] font-bold"
@@ -713,17 +711,33 @@ export default function ClubDetailsPage() {
           <div className="relative">
             <Button
               variant="outline"
-              onClick={() => setActiveDropdown((v) => !v)}
+              onClick={(e) => {
+                if (activeDropdown) {
+                  closeMoreMenu();
+                } else {
+                  if (closeTimeoutRef.current != null) {
+                    window.clearTimeout(closeTimeoutRef.current);
+                    closeTimeoutRef.current = null;
+                  }
+                  setActiveDropdown(true);
+                  setMoreMenuAnchorEl(e.currentTarget);
+                }
+              }}
               className="h-10 border-gray-200 text-gray-700 gap-2 rounded-lg px-4 text-[14px] font-bold"
             >
               More Actions <MoreHorizontal className="w-4 h-4 text-gray-400" />
             </Button>
-            {activeDropdown && (
-              <div className="absolute right-0 top-12 w-60 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-40">
+            <FloatingMenu
+              open={activeDropdown}
+              anchorEl={moreMenuAnchorEl}
+              onClose={closeMoreMenu}
+              placement="bottom-end"
+              className="w-60 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden"
+            >
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
                   onClick={() => {
-                    setActiveDropdown(false);
+                    closeMoreMenu();
                     toast.success("Opening analytics");
                   }}
                 >
@@ -733,7 +747,7 @@ export default function ClubDetailsPage() {
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
                   onClick={() => {
-                    setActiveDropdown(false);
+                    closeMoreMenu();
                     const email = club?.email;
                     if (!email || email === "—") {
                       toast.error("No admin email found for this club");
@@ -750,7 +764,7 @@ export default function ClubDetailsPage() {
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
                   onClick={() => {
-                    setActiveDropdown(false);
+                    closeMoreMenu();
                     const action = club.status === "Suspended" ? "activate" : "suspend";
                     setStatusAction(action);
                     setIsStatusModalOpen(true);
@@ -771,7 +785,7 @@ export default function ClubDetailsPage() {
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
                   onClick={() => {
-                    setActiveDropdown(false);
+                    closeMoreMenu();
                     const blob = new Blob([JSON.stringify(club, null, 2)], { type: "application/json" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -790,7 +804,7 @@ export default function ClubDetailsPage() {
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-red-600 hover:bg-red-50"
                   onClick={() => {
-                    setActiveDropdown(false);
+                    closeMoreMenu();
                     setDeleteConfirmText("");
                     setIsDeleteModalOpen(true);
                   }}
@@ -798,8 +812,7 @@ export default function ClubDetailsPage() {
                   <Trash2 className="w-4 h-4 text-red-600" />
                   Delete Club
                 </button>
-              </div>
-            )}
+            </FloatingMenu>
           </div>
         </div>
       </div>
@@ -817,13 +830,13 @@ export default function ClubDetailsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-xl font-bold text-gray-900 truncate">{club.name}</p>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600">
-                          Active
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg", activeStatusBadge)}>
+                          {club.status}
                         </span>
                       </div>
                       <p className="text-[13px] text-gray-400 font-medium mt-1 flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5" />
-                        Lagos, Nigeria
+                        {club.location}
                       </p>
                       <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
                         <div className="text-gray-400 font-medium">
@@ -834,15 +847,15 @@ export default function ClubDetailsPage() {
                         </div>
                         <div className="text-gray-400 font-medium flex items-center gap-2 col-span-2">
                           <Phone className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-bold">+234 801 234 5678</span>
+                          <span className="text-gray-700 font-bold">{club.phone}</span>
                         </div>
                         <div className="text-gray-400 font-medium flex items-center gap-2 col-span-2">
                           <Mail className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-bold">info@ikoyigc.com</span>
+                          <span className="text-gray-700 font-bold">{club.email}</span>
                         </div>
                         <div className="text-gray-400 font-medium flex items-center gap-2 col-span-2">
                           <Globe className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-bold">www.ikoyigc.com</span>
+                          <span className="text-gray-700 font-bold">{club.website}</span>
                         </div>
                       </div>
                     </div>
@@ -862,12 +875,12 @@ export default function ClubDetailsPage() {
                       />
                     </div>
                     <div className="mt-3">
-                      <p className="text-[15px] font-bold text-gray-900">John Adeniyi</p>
-                      <p className="text-[13px] text-gray-400 font-medium mt-0.5">admin@ikoyigc.com</p>
+                      <p className="text-[15px] font-bold text-gray-900">{club.admin}</p>
+                      <p className="text-[13px] text-gray-400 font-medium mt-0.5">{club.email}</p>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-[13px] text-gray-400 font-medium">
                       <Phone className="w-3.5 h-3.5" />
-                      <span className="text-gray-700 font-bold">+234 803 111 2233</span>
+                      <span className="text-gray-700 font-bold">{club.phone}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -881,9 +894,11 @@ export default function ClubDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Members</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">320</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                    {clubStatsLoading ? "…" : String(clubStats?.totalMembers ?? membersTotal ?? 0)}
+                  </p>
                   <p className="text-[11px] text-emerald-600 font-bold mt-4 flex items-center gap-1">
-                    + 12 this month
+                    + {clubStatsLoading ? "…" : String(clubStats?.membersThisMonth ?? 0)} this month
                   </p>
                 </CardContent>
               </Card>
@@ -896,8 +911,12 @@ export default function ClubDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Active Tournaments</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">8</p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-4">2 ongoing</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                    {clubStatsLoading ? "…" : String(clubStats?.activeTournaments ?? 0)}
+                  </p>
+                  <p className="text-[11px] text-gray-400 font-medium mt-4">
+                    {clubStatsLoading ? "…" : String(clubStats?.ongoingTournaments ?? 0)} ongoing
+                  </p>
                 </CardContent>
               </Card>
 
@@ -909,10 +928,19 @@ export default function ClubDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">{formatNumber(4250000)}</p>
-                  <p className="text-[11px] text-emerald-600 font-bold mt-4 flex items-center gap-1">
+                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                    {clubStatsLoading ? "…" : formatNumber(`₦${clubStats?.totalRevenue ?? 0}`)}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-[11px] font-bold mt-4 flex items-center gap-1",
+                      revenueGrowthPct == null ? "text-gray-400" : revenueGrowthPct >= 0 ? "text-emerald-600" : "text-red-600",
+                    )}
+                  >
                     <ArrowUpRight className="w-3 h-3" />
-                    15.6% this month
+                    {revenueGrowthPct == null
+                      ? `₦${formatWithCommas(clubStats?.revenueThisMonth ?? 0)} this month`
+                      : `${Math.abs(revenueGrowthPct).toFixed(1).replace(/\\.0$/, "")}% this month`}
                   </p>
                 </CardContent>
               </Card>
@@ -925,8 +953,12 @@ export default function ClubDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Payments</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">156</p>
-                  <p className="text-[11px] text-red-600 font-bold mt-4">₦620,000 pending</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                    {clubStatsLoading ? "…" : String(clubStats?.paidRegistrations ?? 0)}
+                  </p>
+                  <p className="text-[11px] text-red-600 font-bold mt-4">
+                    ₦{formatWithCommas(clubStats?.unpaidAmount ?? 0)} pending
+                  </p>
                 </CardContent>
               </Card>
             </div>

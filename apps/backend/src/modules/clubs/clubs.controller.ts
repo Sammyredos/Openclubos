@@ -3,7 +3,7 @@ import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { ClubsService } from './clubs.service.js';
+import { ClubsService } from './clubs.service';
 import { UpdateClubDto } from './dto/update-club.dto';
 
 @Controller('clubs')
@@ -15,6 +15,11 @@ export class ClubsController {
   @Get()
   findAll(@Query('search') search?: string) {
     return this.clubsService.findAll({ search });
+  }
+
+  @Get(':id/stats')
+  stats(@Param('id') id: string) {
+    return this.clubsService.stats(id);
   }
 
   @Get(':id')

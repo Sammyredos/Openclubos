@@ -51,6 +51,7 @@ export async function handleAuthFailure(res: Response) {
   const url = new URL('/login', window.location.origin);
   if (message === 'ACCOUNT_SUSPENDED') url.searchParams.set('reason', 'suspended');
   if (message === 'ACCOUNT_EXPIRED') url.searchParams.set('reason', 'expired');
+  if (message === 'TOKEN_REVOKED') url.searchParams.set('reason', 'revoked');
 
   clearAuthSession();
   window.location.href = url.toString();
@@ -67,10 +68,10 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
     const error = await res.json().catch(() => ({}));
     const msg = error.message || 'Invalid email or password';
     if (msg === 'ACCOUNT_SUSPENDED') {
-      throw new Error('Your account has been suspended. Contact Club Admin.');
+      throw new Error('Your account has been suspended. Please contact support.');
     }
     if (msg === 'ACCOUNT_EXPIRED') {
-      throw new Error('Your account has expired. Contact Club Admin.');
+      throw new Error('Your account has expired. Please contact support.');
     }
     throw new Error(msg);
   }

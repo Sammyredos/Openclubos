@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -17,11 +17,13 @@ import {
   Target,
   AlertTriangle,
   BarChart3,
-  UserCog,
   KeyRound,
   Ban,
   CheckCircle2,
   Trash2,
+  Mail,
+  Clipboard,
+  Check,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,10 +34,12 @@ import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 import Link from "next/link";
 import { toast } from "sonner";
 import { activateClub, deleteClub, getClubs, suspendClub, updateClub } from "@/lib/api/clubs";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
+import { updateMember } from "@/lib/api/members";
 
 type ApiClub = {
   id: string;
@@ -53,7 +57,7 @@ type ClubRow = {
   name: string;
   location: string;
   members: number;
-  admin: { name: string; email: string; avatar: string };
+  admin: { id: string | null; name: string; email: string; avatar: string };
   plan: string;
   status: "Active" | "Suspended" | "Expired";
   joinedDate: string;
@@ -73,6 +77,21 @@ function fullName(firstName: string | null, lastName: string | null) {
   return name || "—";
 }
 
+function generatePassword(length = 12) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+  const bytes = new Uint32Array(length);
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < length; i += 1) bytes[i] = Math.floor(Math.random() * 2 ** 32);
+  }
+  let out = "";
+  for (let i = 0; i < length; i += 1) {
+    out += alphabet[bytes[i] % alphabet.length];
+  }
+  return out;
+}
+
 function toClubRow(c: ApiClub): ClubRow {
   const adminUser = c.users?.[0] || null;
   const adminName = adminUser ? fullName(adminUser.firstName, adminUser.lastName) : "—";
@@ -86,6 +105,7 @@ function toClubRow(c: ApiClub): ClubRow {
     location: c.address || "—",
     members: c._count?.users ?? 0,
     admin: {
+      id: adminUser?.id ?? null,
       name: adminName,
       email: adminEmail,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || c.id)}`,
@@ -133,9 +153,27 @@ export default function ClubsPage() {
   const [editAdminName, setEditAdminName] = useState("");
   const [editAdminEmail, setEditAdminEmail] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [resetTab, setResetTab] = useState<"link" | "generate">("link");
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [dropdownClub, setDropdownClub] = useState<ClubRow | null>(null);
   const [mutating, setMutating] = useState(false);
   const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
+
+  const closeTimeoutRef = useRef<number | null>(null);
+  const closeDropdown = () => {
+    setActiveDropdown(null);
+    if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setDropdownAnchorEl(null);
+      setDropdownClub(null);
+      closeTimeoutRef.current = null;
+    }, 160);
+  };
+
 
   async function reloadClubs() {
     setLoading(true);
@@ -226,42 +264,89 @@ export default function ClubsPage() {
     setEditAdminName(club.admin?.name || "");
     setEditAdminEmail(club.admin?.email || "");
     setIsEditModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const handleDelete = (club: ClubRow) => {
     setSelectedClub(club);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const handleStatusChange = (club: ClubRow) => {
     setSelectedClub(club);
     setStatusAction(club.status === "Suspended" ? "activate" : "suspend");
     setIsStatusModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
+  };
+
+  const openResetPasswordModal = (club: ClubRow) => {
+    setSelectedClub(club);
+    setResetTab("link");
+    setGeneratedPassword(null);
+    setCopiedPassword(false);
+    setIsResetPasswordModalOpen(true);
+    closeDropdown();
+  };
+
+  const sendResetLink = async () => {
+    const email = selectedClub?.admin?.email;
+    if (!email || email === "—") {
+      toast.error("No admin email found for this club");
+      return;
+    }
+    setMutating(true);
+    try {
+      const r = await forgotPasswordRequest(email);
+      toast.success(r?.message || "Reset link sent");
+      setIsResetPasswordModalOpen(false);
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to send reset email");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const generateAndSetPassword = async () => {
+    const adminId = selectedClub?.admin?.id;
+    if (!adminId) {
+      toast.error("No admin user found for this club");
+      return;
+    }
+    const pw = generatePassword(12);
+    setMutating(true);
+    try {
+      await updateMember(adminId, { password: pw });
+      setGeneratedPassword(pw);
+      setCopiedPassword(false);
+      toast.success("Password generated");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to update password");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const copyGeneratedPassword = async () => {
+    if (!generatedPassword) return;
+    try {
+      await navigator.clipboard.writeText(generatedPassword);
+      setCopiedPassword(true);
+      window.setTimeout(() => setCopiedPassword(false), 1200);
+    } catch {
+      toast.error("Failed to copy password");
+    }
   };
 
   const handleMoreAction = (action: string, club: ClubRow) => {
-    setActiveDropdown(null);
+    closeDropdown();
     if (action === "view-analytics") {
       router.push(`/super-admin/clubs/${club.id}`);
       return;
     }
-    if (action === "impersonate") {
-      toast.success(`Impersonation started for ${club.admin?.email ?? "admin"}`);
-      return;
-    }
     if (action === "reset-password") {
-      const email = club.admin?.email;
-      if (!email || email === "—") {
-        toast.error("No admin email found for this club");
-        return;
-      }
-      forgotPasswordRequest(email)
-        .then((r) => toast.success(r?.message || "Reset link sent"))
-        .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to send reset email"));
+      openResetPasswordModal(club);
       return;
     }
     if (action === "audit-logs") {
@@ -521,7 +606,7 @@ export default function ClubsPage() {
                     </tr>
                   ))
                 ) : paginatedClubs.length > 0 ? (
-                  paginatedClubs.map((club, i) => {
+                  paginatedClubs.map((club) => {
                     const canToggleStatus = club.status !== "Expired";
                     const isSuspended = club.status === "Suspended";
                     const statusTitle = !canToggleStatus
@@ -605,65 +690,23 @@ export default function ClubsPage() {
                           </button>
                           <div className="relative">
                             <button 
-                              onClick={() => setActiveDropdown(activeDropdown === i ? null : i)}
+                              onClick={(e) => {
+                                if (activeDropdown === club.id) {
+                                  closeDropdown();
+                                } else {
+                                  if (closeTimeoutRef.current != null) {
+                                    window.clearTimeout(closeTimeoutRef.current);
+                                    closeTimeoutRef.current = null;
+                                  }
+                                  setActiveDropdown(club.id);
+                                  setDropdownAnchorEl(e.currentTarget);
+                                  setDropdownClub(club);
+                                }
+                              }}
                               className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                             >
                               <MoreHorizontal className="w-4.5 h-4.5" />
                             </button>
-                            
-                            {activeDropdown === i && (
-                              <>
-                                <div 
-                                  className="fixed inset-0 z-10" 
-                                  onClick={() => setActiveDropdown(null)} 
-                                />
-                                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
-                                  <button
-                                    onClick={() => handleMoreAction("view-analytics", club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <BarChart3 className="w-4 h-4 text-gray-400" />
-                                    View Analytics
-                                  </button>
-                                  <button
-                                    onClick={() => handleMoreAction("impersonate", club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <UserCog className="w-4 h-4 text-gray-400" />
-                                    Impersonate Admin
-                                  </button>
-                                  <button
-                                    onClick={() => handleMoreAction("reset-password", club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <KeyRound className="w-4 h-4 text-gray-400" />
-                                    Reset Admin Password
-                                  </button>
-                                  <button
-                                    onClick={() => handleMoreAction("audit-logs", club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <Clock className="w-4 h-4 text-gray-400" />
-                                    Audit Logs
-                                  </button>
-                                  <button
-                                    onClick={() => handleMoreAction("export", club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <Download className="w-4 h-4 text-gray-400" />
-                                    Export Club Data
-                                  </button>
-                                  <div className="h-px bg-gray-50 my-1" />
-                                  <button 
-                                    onClick={() => handleDelete(club)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                    Delete Club
-                                  </button>
-                                </div>
-                              </>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -694,6 +737,49 @@ export default function ClubsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2">
+        {dropdownClub ? (
+          <>
+            <button
+              onClick={() => handleMoreAction("view-analytics", dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <BarChart3 className="w-4 h-4 text-gray-400" />
+              View Analytics
+            </button>
+            <button
+              onClick={() => handleMoreAction("reset-password", dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <KeyRound className="w-4 h-4 text-gray-400" />
+              Reset Admin Password
+            </button>
+            <button
+              onClick={() => handleMoreAction("audit-logs", dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Clock className="w-4 h-4 text-gray-400" />
+              Audit Logs
+            </button>
+            <button
+              onClick={() => handleMoreAction("export", dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Download className="w-4 h-4 text-gray-400" />
+              Export Club Data
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
+            <button
+              onClick={() => handleDelete(dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+              Delete Club
+            </button>
+          </>
+        ) : null}
+      </FloatingMenu>
 
       {/* Edit Modal */}
       <Modal
@@ -761,6 +847,117 @@ export default function ClubsPage() {
               />
             </div>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isResetPasswordModalOpen}
+        onClose={() => setIsResetPasswordModalOpen(false)}
+        title="Reset Password"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setIsResetPasswordModalOpen(false)}
+              className="rounded-lg font-bold"
+            >
+              Cancel
+            </Button>
+            {resetTab === "link" ? (
+              <Button
+                onClick={sendResetLink}
+                disabled={mutating}
+                className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+              >
+                Send Reset Link
+              </Button>
+            ) : (
+              <Button
+                onClick={generateAndSetPassword}
+                disabled={mutating}
+                className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+              >
+                Generate Password
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setResetTab("link")}
+              className={cn(
+                "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
+                resetTab === "link"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50",
+              )}
+            >
+              Send Reset Link
+            </button>
+            <button
+              type="button"
+              onClick={() => setResetTab("generate")}
+              className={cn(
+                "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
+                resetTab === "generate"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50",
+              )}
+            >
+              Generate Password
+            </button>
+          </div>
+
+          {resetTab === "link" ? (
+            <div className="flex flex-col items-center text-center py-2">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
+                <Mail className="h-10 w-10" />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 mb-2">Send password reset link to</h4>
+              <p className="text-gray-500 max-w-sm">
+                <span className="font-bold text-gray-800">{selectedClub?.admin?.email || "—"}</span>
+              </p>
+              <p className="text-gray-500 max-w-sm mt-2">
+                Admin will receive an email with instructions to reset their password.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="flex flex-col items-center text-center py-2">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
+                  <KeyRound className="h-10 w-10" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Generate a new password</h4>
+                <p className="text-gray-500 max-w-sm">
+                  This will immediately set a new password for the club admin.
+                </p>
+              </div>
+
+              {generatedPassword && (
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Generated Password</p>
+                    <p className="text-[15px] font-bold text-gray-900 break-all">{generatedPassword}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyGeneratedPassword}
+                    className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                    title="Copy password"
+                  >
+                    {copiedPassword ? (
+                      <Check className="h-5 w-5 text-[#10b981]" />
+                    ) : (
+                      <Clipboard className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
 

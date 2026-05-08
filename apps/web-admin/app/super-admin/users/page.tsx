@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users,
   UserPlus,
   ShieldCheck,
   Ban,
   Crown,
-  UserCog,
   KeyRound,
   CreditCard,
   Trophy,
@@ -36,6 +35,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
 import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
 import { getClubs } from "@/lib/api/clubs";
@@ -144,7 +144,9 @@ export default function SuperAdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [dropdownUser, setDropdownUser] = useState<AdminUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -159,6 +161,7 @@ export default function SuperAdminUsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editRole, setEditRole] = useState<AdminUser["role"]>("PLAYER");
   const [editClubId, setEditClubId] = useState<string>("");
   const [editStatus, setEditStatus] = useState<AdminUser["status"]>("ACTIVE");
@@ -167,6 +170,18 @@ export default function SuperAdminUsersPage() {
   const [viewTab, setViewTab] = useState<"overview" | "permissions" | "activity" | "payments" | "tournaments" | "settings">(
     "overview",
   );
+
+  const closeTimeoutRef = useRef<number | null>(null);
+  const closeDropdown = () => {
+    setActiveDropdown(null);
+    if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setDropdownAnchorEl(null);
+      setDropdownUser(null);
+      closeTimeoutRef.current = null;
+    }, 160);
+  };
+
 
   useEffect(() => {
     let cancelled = false;
@@ -322,7 +337,7 @@ export default function SuperAdminUsersPage() {
     setStatusAction(u.status === "SUSPENDED" ? "activate" : "suspend");
     setSuspendReason("");
     setIsStatusModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const openDeleteModal = (u: AdminUser) => {
@@ -333,7 +348,7 @@ export default function SuperAdminUsersPage() {
     setSelectedUser(u);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
@@ -342,18 +357,19 @@ export default function SuperAdminUsersPage() {
     setSelectedUser(u);
     setViewTab("overview");
     setIsViewDrawerOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const openEditModal = (u: AdminUser) => {
     setSelectedUser(u);
     setEditFullName(fullName(u.firstName, u.lastName));
     setEditEmail(u.email || "");
+    setEditPhone(u.phone || "");
     setEditRole(u.role);
     setEditStatus(u.status);
     setEditClubId(u.club?.id ?? u.clubId ?? "");
     setIsEditModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -362,15 +378,11 @@ export default function SuperAdminUsersPage() {
     setGeneratedPassword(null);
     setCopiedPassword(false);
     setIsResetPasswordModalOpen(true);
-    setActiveDropdown(null);
+    closeDropdown();
   };
 
   const handleMoreAction = (action: string, u: AdminUser) => {
-    setActiveDropdown(null);
-    if (action === "impersonate") {
-      toast.success(`Impersonation started for ${u.email || "user"}`);
-      return;
-    }
+    closeDropdown();
     if (action === "force-logout") {
       if (!canManageUser(u)) {
         toast.error("You can't force logout this account");
@@ -415,6 +427,7 @@ export default function SuperAdminUsersPage() {
       email: editEmail.trim(),
       firstName,
       lastName,
+      phone: editPhone.trim(),
       status: editStatus,
       role: editRole,
     };
@@ -698,7 +711,7 @@ export default function SuperAdminUsersPage() {
                     </tr>
                   ))
                 ) : paginatedUsers.length > 0 ? (
-                  paginatedUsers.map((u, i) => (
+                  paginatedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 min-w-[260px]">
@@ -775,56 +788,24 @@ export default function SuperAdminUsersPage() {
                           </button>
                           <div className="relative">
                             <button
-                              onClick={() => setActiveDropdown(activeDropdown === i ? null : i)}
+                              onClick={(e) => {
+                                if (activeDropdown === u.id) {
+                                  closeDropdown();
+                                } else {
+                                  if (closeTimeoutRef.current != null) {
+                                    window.clearTimeout(closeTimeoutRef.current);
+                                    closeTimeoutRef.current = null;
+                                  }
+                                  setActiveDropdown(u.id);
+                                  setDropdownAnchorEl(e.currentTarget);
+                                  setDropdownUser(u);
+                                }
+                              }}
                               className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                               title="More Actions"
                             >
                               <MoreHorizontal className="w-4.5 h-4.5" />
                             </button>
-                            {activeDropdown === i && (
-                              <>
-                                <div className="fixed inset-0 z-10" onClick={() => setActiveDropdown(null)} />
-                                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
-                                  <button
-                                    onClick={() => handleMoreAction("impersonate", u)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <UserCog className="w-4 h-4 text-gray-400" />
-                                    Impersonate User
-                                  </button>
-                                  <button
-                                    disabled={!canManageUser(u) || mutating}
-                                    onClick={() => handleMoreAction("force-logout", u)}
-                                    className={cn(
-                                      "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
-                                      !canManageUser(u) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-                                    )}
-                                  >
-                                    <LogOut className="w-4 h-4 text-gray-400" />
-                                    Force Logout
-                                  </button>
-                                  <button
-                                    onClick={() => handleMoreAction("export", u)}
-                                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                  >
-                                    <Download className="w-4 h-4 text-gray-400" />
-                                    Export User
-                                  </button>
-                                  <div className="h-px bg-gray-50 my-1" />
-                                  <button
-                                    disabled={!canManageUser(u)}
-                                    onClick={() => handleMoreAction("delete", u)}
-                                    className={cn(
-                                      "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
-                                      !canManageUser(u) ? "text-gray-300 cursor-not-allowed" : "text-red-600",
-                                    )}
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                    Delete User
-                                  </button>
-                                </div>
-                              </>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -911,6 +892,49 @@ export default function SuperAdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <FloatingMenu
+        open={activeDropdown != null}
+        anchorEl={dropdownAnchorEl}
+        onClose={closeDropdown}
+        placement="top-end"
+        className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+      >
+        {dropdownUser ? (
+          <>
+            <button
+              disabled={!canManageUser(dropdownUser) || mutating}
+              onClick={() => handleMoreAction("force-logout", dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+              )}
+            >
+              <LogOut className="w-4 h-4 text-gray-400" />
+              Force Logout
+            </button>
+            <button
+              onClick={() => handleMoreAction("export", dropdownUser)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Download className="w-4 h-4 text-gray-400" />
+              Export User
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => handleMoreAction("delete", dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-red-600",
+              )}
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+              Delete User
+            </button>
+          </>
+        ) : null}
+      </FloatingMenu>
 
       <Modal
         isOpen={isStatusModalOpen}
@@ -1059,7 +1083,7 @@ export default function SuperAdminUsersPage() {
           </div>
           <div className="space-y-2">
             <Label className="font-bold text-gray-700">Phone Number</Label>
-            <Input value="—" disabled className="rounded-xl h-12 bg-gray-50 text-gray-400" />
+            <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="rounded-xl h-12" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

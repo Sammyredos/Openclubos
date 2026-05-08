@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Trophy,
   Users,
@@ -37,6 +37,7 @@ import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 
 type TournamentStatus = "DRAFT" | "REGISTRATION_OPEN" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
@@ -155,6 +156,8 @@ export default function TournamentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<ApiTournament[]>([]);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [dropdownTournament, setDropdownTournament] = useState<TournamentRow | null>(null);
   const [mutating, setMutating] = useState(false);
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -171,6 +174,18 @@ export default function TournamentsPage() {
   const [editEntryFee, setEditEntryFee] = useState("");
   const [editMaxPlayers, setEditMaxPlayers] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  const closeTimeoutRef = useRef<number | null>(null);
+  const closeDropdown = () => {
+    setActiveDropdown(null);
+    if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setDropdownAnchorEl(null);
+      setDropdownTournament(null);
+      closeTimeoutRef.current = null;
+    }, 160);
+  };
+
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -345,11 +360,13 @@ export default function TournamentsPage() {
     });
 
   const openView = (tournament: TournamentRow) => {
+    closeDropdown();
     setSelectedTournament(tournament);
     setIsViewModalOpen(true);
   };
 
   const openEdit = (tournament: TournamentRow) => {
+    closeDropdown();
     setSelectedTournament(tournament);
     setEditName(tournament?.name || "");
     const status = tournament?.statusKey as TournamentStatus | undefined;
@@ -368,18 +385,20 @@ export default function TournamentsPage() {
   };
 
   const openCancel = (tournament: TournamentRow) => {
+    closeDropdown();
     setSelectedTournament(tournament);
     setIsCancelModalOpen(true);
   };
 
   const openDelete = (tournament: TournamentRow) => {
+    closeDropdown();
     setSelectedTournament(tournament);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
   };
 
   const handleMoreAction = (action: string, tournament: TournamentRow) => {
-    setActiveDropdown(null);
+    closeDropdown();
     if (action === "export") {
       const blob = new Blob([JSON.stringify(tournament, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -683,57 +702,23 @@ export default function TournamentsPage() {
                               </button>
                               <div className="relative">
                                 <button
-                                  onClick={() => setActiveDropdown(activeDropdown === t.id ? null : t.id)}
+                                  onClick={(e) => {
+                                    if (activeDropdown === t.id) {
+                                      closeDropdown();
+                                    } else {
+                                      if (closeTimeoutRef.current != null) {
+                                        window.clearTimeout(closeTimeoutRef.current);
+                                        closeTimeoutRef.current = null;
+                                      }
+                                      setActiveDropdown(t.id);
+                                      setDropdownAnchorEl(e.currentTarget);
+                                      setDropdownTournament(t);
+                                    }
+                                  }}
                                   className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                                 >
                                   <MoreHorizontal className="w-4.5 h-4.5" />
                                 </button>
-
-                                {activeDropdown === t.id && (
-                                  <>
-                                    <div
-                                      className="fixed inset-0 z-10"
-                                      onClick={() => setActiveDropdown(null)}
-                                    />
-                                    <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
-                                      <button
-                                        onClick={() => handleMoreAction("export", t)}
-                                        className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                      >
-                                        <Download className="w-4 h-4 text-gray-400" />
-                                        Export Tournament Data
-                                      </button>
-                                      <div className="h-px bg-gray-50 my-1" />
-                                      <button
-                                        onClick={() => handleMoreAction("cancel", t)}
-                                        className={cn(
-                                          "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
-                                          t.statusKey === "COMPLETED" || t.statusKey === "CANCELLED"
-                                            ? "text-gray-300 cursor-not-allowed"
-                                            : "text-red-600",
-                                        )}
-                                        disabled={t.statusKey === "COMPLETED" || t.statusKey === "CANCELLED"}
-                                      >
-                                        <Ban
-                                          className={cn(
-                                            "w-4 h-4",
-                                            t.statusKey === "COMPLETED" || t.statusKey === "CANCELLED"
-                                              ? "text-gray-300"
-                                              : "text-red-500",
-                                          )}
-                                        />
-                                        {t.statusKey === "CANCELLED" ? "Cancelled" : "Cancel Tournament"}
-                                      </button>
-                                      <button
-                                        onClick={() => handleMoreAction("delete", t)}
-                                        className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
-                                      >
-                                        <Trash2 className="w-4 h-4 text-red-500" />
-                                        Delete Tournament
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
                               </div>
                             </div>
                           </td>
@@ -883,6 +868,48 @@ export default function TournamentsPage() {
           </Card>
         </div>
       </div>
+
+      <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2">
+        {dropdownTournament ? (
+          <>
+            <button
+              onClick={() => handleMoreAction("export", dropdownTournament)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Download className="w-4 h-4 text-gray-400" />
+              Export Tournament Data
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
+            <button
+              onClick={() => handleMoreAction("cancel", dropdownTournament)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
+                dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-red-600",
+              )}
+              disabled={dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"}
+            >
+              <Ban
+                className={cn(
+                  "w-4 h-4",
+                  dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"
+                    ? "text-gray-300"
+                    : "text-red-500",
+                )}
+              />
+              {dropdownTournament.statusKey === "CANCELLED" ? "Cancelled" : "Cancel Tournament"}
+            </button>
+            <button
+              onClick={() => handleMoreAction("delete", dropdownTournament)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+              Delete Tournament
+            </button>
+          </>
+        ) : null}
+      </FloatingMenu>
 
       <Modal
         isOpen={isViewModalOpen}

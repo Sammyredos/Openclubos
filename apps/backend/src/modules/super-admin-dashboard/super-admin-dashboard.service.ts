@@ -32,7 +32,11 @@ export class SuperAdminDashboardService {
 
   private async revenueForRange(start: Date, end: Date, paymentStatus: PaymentStatus) {
     const regs = await this.prisma.registration.findMany({
-      where: { registeredAt: { gte: start, lt: end }, paymentStatus },
+      where: {
+        registeredAt: { gte: start, lt: end },
+        paymentStatus,
+        tournament: { deletedAt: null, club: { deletedAt: null } },
+      },
       select: { tournament: { select: { entryFee: true } } },
     });
     return regs.reduce((sum, r) => sum + (r.tournament.entryFee || 0), 0);
@@ -72,7 +76,9 @@ export class SuperAdminDashboardService {
     ]);
 
     const [pendingPayments, pendingAmount] = await Promise.all([
-      this.prisma.registration.count({ where: { paymentStatus: PaymentStatus.UNPAID } }),
+      this.prisma.registration.count({
+        where: { paymentStatus: PaymentStatus.UNPAID, tournament: { deletedAt: null, club: { deletedAt: null } } },
+      }),
       this.revenueForRange(new Date(0), new Date('9999-12-31T00:00:00.000Z'), PaymentStatus.UNPAID),
     ]);
 
@@ -99,7 +105,11 @@ export class SuperAdminDashboardService {
     const start = new Date(year, 0, 1);
     const end = new Date(year + 1, 0, 1);
     const regs = await this.prisma.registration.findMany({
-      where: { registeredAt: { gte: start, lt: end }, paymentStatus: PaymentStatus.PAID },
+      where: {
+        registeredAt: { gte: start, lt: end },
+        paymentStatus: PaymentStatus.PAID,
+        tournament: { deletedAt: null, club: { deletedAt: null } },
+      },
       select: { registeredAt: true, tournament: { select: { entryFee: true } } },
     });
 
@@ -130,39 +140,45 @@ export class SuperAdminDashboardService {
     return labels.map((month, idx) => ({ month, count: buckets[idx] }));
   }
 
-  async topClubs() {
+  async topClubs(range?: string) {
     const now = new Date();
     const startThisMonth = this.startOfMonth(now);
     const startNextMonth = this.startOfNextMonth(now);
+    const startLastMonth = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const start3Months = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+    const start6Months = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 5, 1));
+
+    const normalized = (range || 'This Month').trim().toLowerCase();
+    const isAllTime = normalized === 'all time' || normalized === 'all-time' || normalized === 'all_time';
+
+    const bounds = (() => {
+      if (isAllTime) return null;
+      if (normalized === 'this month') return { start: startThisMonth, end: startNextMonth };
+      if (normalized === 'last month') return { start: startLastMonth, end: startThisMonth };
+      if (normalized === '3 months' || normalized === 'last 3 months') return { start: start3Months, end: startNextMonth };
+      if (normalized === '6 months' || normalized === 'last 6 months') return { start: start6Months, end: startNextMonth };
+      return { start: startThisMonth, end: startNextMonth };
+    })();
+
+    const where: any = {
+      deletedAt: null,
+      status: { not: TournamentStatus.CANCELLED },
+      club: { deletedAt: null },
+    };
+    if (bounds) {
+      where.startDate = { gte: bounds.start, lt: bounds.end };
+    }
 
     const tournamentsThisMonth = await this.prisma.tournament.findMany({
-      where: {
-        deletedAt: null,
-        startDate: { gte: startThisMonth, lt: startNextMonth },
-        club: { deletedAt: null },
-      },
+      where,
       select: {
         id: true,
         entryFee: true,
         clubId: true,
         club: { select: { name: true, status: true } },
+        _count: { select: { registrations: true } },
       },
     });
-
-    const tournamentIds = tournamentsThisMonth.map((t) => t.id);
-    const paidRegs = tournamentIds.length
-      ? await this.prisma.registration.findMany({
-          where: {
-            paymentStatus: PaymentStatus.PAID,
-            tournamentId: { in: tournamentIds },
-            tournament: { deletedAt: null, club: { deletedAt: null } },
-          },
-          select: {
-            tournamentId: true,
-            tournament: { select: { entryFee: true, clubId: true } },
-          },
-        })
-      : [];
 
     const clubAgg = new Map<
       string,
@@ -170,7 +186,7 @@ export class SuperAdminDashboardService {
         name: string;
         clubStatus: ClubStatus;
         revenue: number;
-        paidRegistrations: number;
+        registrations: number;
         tournamentIdsThisMonth: Set<string>;
       }
     >();
@@ -178,26 +194,22 @@ export class SuperAdminDashboardService {
     for (const t of tournamentsThisMonth) {
       const name = t.club?.name || '—';
       const clubStatus = t.club?.status ?? ClubStatus.ACTIVE;
+      const registrations = t._count?.registrations ?? 0;
+      const entryFee = t.entryFee || 0;
       const prev = clubAgg.get(t.clubId);
       if (!prev) {
         clubAgg.set(t.clubId, {
           name,
           clubStatus,
-          revenue: 0,
-          paidRegistrations: 0,
+          revenue: entryFee * registrations,
+          registrations,
           tournamentIdsThisMonth: new Set([t.id]),
         });
       } else {
+        prev.revenue += entryFee * registrations;
+        prev.registrations += registrations;
         prev.tournamentIdsThisMonth.add(t.id);
       }
-    }
-
-    for (const r of paidRegs) {
-      const clubId = r.tournament.clubId;
-      const prev = clubAgg.get(clubId);
-      if (!prev) continue;
-      prev.paidRegistrations += 1;
-      prev.revenue += r.tournament.entryFee || 0;
     }
 
     const rows = Array.from(clubAgg.entries())
@@ -206,10 +218,10 @@ export class SuperAdminDashboardService {
         name: v.name,
         clubStatus: v.clubStatus,
         revenue: v.revenue,
-        paidRegistrations: v.paidRegistrations,
+        registrations: v.registrations,
         tournaments: v.tournamentIdsThisMonth.size,
       }))
-      .sort((a, b) => b.revenue - a.revenue || b.paidRegistrations - a.paidRegistrations || b.tournaments - a.tournaments)
+      .sort((a, b) => b.revenue - a.revenue || b.registrations - a.registrations || b.tournaments - a.tournaments)
       .slice(0, 5);
 
     const topRevenue = rows[0]?.revenue || 0;
@@ -223,7 +235,7 @@ export class SuperAdminDashboardService {
         clubId: r.clubId,
         name: r.name,
         revenue: Math.round(r.revenue),
-        paidRegistrations: r.paidRegistrations,
+        registrations: r.registrations,
         tournaments: r.tournaments,
         progress,
         status,

@@ -25,6 +25,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (!Number.isFinite(tokenUat)) throw new UnauthorizedException();
       const currentUat = user.updatedAt.getTime();
       if (tokenUat !== currentUat) throw new UnauthorizedException('TOKEN_REVOKED');
+    } else if (payload?.iat != null) {
+      const tokenIatSeconds = Number(payload.iat);
+      if (!Number.isFinite(tokenIatSeconds)) throw new UnauthorizedException();
+      const tokenIatMs = tokenIatSeconds * 1000;
+      const currentUat = user.updatedAt.getTime();
+      if (tokenIatMs < currentUat) throw new UnauthorizedException('TOKEN_REVOKED');
     }
     return {
       userId: payload.sub,

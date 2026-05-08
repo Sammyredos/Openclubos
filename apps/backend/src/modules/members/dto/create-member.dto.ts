@@ -16,6 +16,10 @@ export class CreateMemberDto {
   lastName: string;
 
   @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
   @IsEnum(MemberStatus)
   status?: MemberStatus;
 

@@ -29,8 +29,8 @@ export class SuperAdminDashboardController {
   }
 
   @Get('top-clubs')
-  topClubs() {
-    return this.dashboard.topClubs();
+  topClubs(@Query('range') range?: string) {
+    return this.dashboard.topClubs(range);
   }
 
   @Get('activity')
@@ -43,4 +43,3 @@ export class SuperAdminDashboardController {
     return this.dashboard.alerts();
   }
 }
-

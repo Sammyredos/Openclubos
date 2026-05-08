@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore, type ElementType } from "react";
+import { useState, useEffect, useSyncExternalStore, useCallback, type ElementType } from "react";
 import {
   Building2,
   Users,
@@ -41,7 +41,15 @@ function timeAgo(iso: string) {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return "—";
   const diffMinutes = Math.floor((Date.now() - ts) / 60000);
-  if (diffMinutes < 0) return "just now";
+  if (diffMinutes < 0) {
+    const m = Math.abs(diffMinutes);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    return `${d}d ago`;
+  }
 
   const absMinutes = diffMinutes;
   if (absMinutes < 1) return "just now";
@@ -88,7 +96,7 @@ type PerformingClub = {
   statusType: "success" | "warning" | "danger";
   progress: number;
   revenue?: number;
-  paidRegistrations?: number;
+  registrations?: number;
   tournaments?: number;
 };
 
@@ -115,106 +123,145 @@ export default function SuperAdminDashboard() {
   const [topClubsRange, setTopClubsRange] = useState("This Month");
   const [topSubsRange, setTopSubsRange] = useState("All Time");
 
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      if (!token) {
+        setAuthError("Not authenticated. Please login again.");
+        setStats(null);
+        setRecentActivity([]);
+        setSubscriptionClubs([]);
+        setPerformingClubs([]);
+        setRevenueData([]);
+        setGrowthData([]);
+        return;
+      }
+
+      setAuthError(null);
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const now = new Date();
+      const revenueYear = revenueRange === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
+      const growthYear = growthRange === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
+      const topClubsUrl = `${API_BASE}/super-admin/dashboard/top-clubs?range=${encodeURIComponent(topClubsRange)}`;
+
+      const [statsRes, activityRes, clubsRes, revenueRes, growthRes, clubsListRes] = await Promise.all([
+        fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
+        fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
+        fetch(topClubsUrl, { headers }),
+        fetch(`${API_BASE}/super-admin/dashboard/revenue-trend?year=${revenueYear}`, { headers }),
+        fetch(`${API_BASE}/super-admin/dashboard/club-growth?year=${growthYear}`, { headers }),
+        fetch(`${API_BASE}/super-admin/clubs`, { headers }),
+      ]);
+
+      if (statsRes.status === 401 || statsRes.status === 403) {
+        setAuthError("Session expired. Please login again.");
+        setStats(null);
+        return;
+      }
+      if (!statsRes.ok) {
+        const error = await statsRes.json().catch(() => ({}));
+        setAuthError(error.message || "Failed to load dashboard stats");
+        setStats(null);
+        return;
+      }
+      setStats((await statsRes.json()) as DashboardStats);
+
+      if (activityRes.ok) setRecentActivity((await activityRes.json()) as ActivityRecord[]);
+      if (clubsRes.ok) setPerformingClubs((await clubsRes.json()) as PerformingClub[]);
+      if (revenueRes.ok) setRevenueData((await revenueRes.json()) as RevenuePoint[]);
+      if (growthRes.ok) setGrowthData((await growthRes.json()) as GrowthPoint[]);
+
+      if (clubsListRes.ok) {
+        type ClubListItem = {
+          id: string;
+          name: string;
+          plan?: string | null;
+          status?: string | null;
+          createdAt?: string | null;
+        };
+        const clubsData: unknown = await clubsListRes.json();
+        const items: ClubListItem[] = Array.isArray(clubsData)
+          ? (clubsData as ClubListItem[])
+          : clubsData && typeof clubsData === "object" && "items" in clubsData && Array.isArray((clubsData as { items?: unknown }).items)
+            ? ((clubsData as { items: unknown }).items as ClubListItem[])
+            : [];
+
+        const rangeBounds = (() => {
+          const normalized = topSubsRange.trim().toLowerCase();
+          if (normalized === "all time" || normalized === "all-time" || normalized === "all_time") return null;
+          const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+          const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+          const start3Months = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
+          const start6Months = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
+          if (normalized === "this month") return { start: startThisMonth, end: startNextMonth };
+          if (normalized === "last month") return { start: startLastMonth, end: startThisMonth };
+          if (normalized === "3 months" || normalized === "last 3 months") return { start: start3Months, end: startNextMonth };
+          if (normalized === "6 months" || normalized === "last 6 months") return { start: start6Months, end: startNextMonth };
+          return null;
+        })();
+
+        const filtered = rangeBounds
+          ? items.filter((c) => {
+              if (!c.createdAt) return true;
+              const ts = new Date(c.createdAt).getTime();
+              if (Number.isNaN(ts)) return true;
+              return ts >= rangeBounds.start && ts < rangeBounds.end;
+            })
+          : items;
+
+        const topSubs: SubscriptionClub[] = filtered
+          .sort((a, b) => {
+            if (a.plan === "PRO" && b.plan !== "PRO") return -1;
+            if (a.plan !== "PRO" && b.plan === "PRO") return 1;
+            return 0;
+          })
+          .slice(0, 5)
+          .map((c) => {
+            const status: SubscriptionClub["status"] = c.status === "ACTIVE" ? "Active" : "Inactive";
+            return {
+              id: String(c.id),
+              name: String(c.name),
+              logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(c.name))}`,
+              plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
+              status,
+              yearlyFee: c.plan === "PRO" ? 150000 : 50000,
+            };
+          });
+        setSubscriptionClubs(topSubs);
+      }
+    } catch {
+      setAuthError("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, [growthRange, revenueRange, topClubsRange, topSubsRange]);
+
   useEffect(() => {
     let cancelled = false;
-    async function fetchDashboardData() {
-      try {
-        setLoading(true);
-        const token = getAuthToken();
-        if (!token) {
-          setAuthError("Not authenticated. Please login again.");
-          setStats(null);
-          setRecentActivity([]);
-          setSubscriptionClubs([]);
-          setPerformingClubs([]);
-          setRevenueData([]);
-          setGrowthData([]);
-          return;
-        }
-
-        setAuthError(null);
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const [statsRes, activityRes, clubsRes, revenueRes, growthRes, clubsListRes] = await Promise.all([
-          fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
-          fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
-          fetch(`${API_BASE}/super-admin/dashboard/top-clubs`, { headers }),
-          fetch(`${API_BASE}/super-admin/dashboard/revenue-trend`, { headers }),
-          fetch(`${API_BASE}/super-admin/dashboard/club-growth`, { headers }),
-          fetch(`${API_BASE}/super-admin/clubs`, { headers }), // Fetching clubs to derive subscription info
-        ]);
-
-        if (cancelled) return;
-        if (statsRes.status === 401 || statsRes.status === 403) {
-          setAuthError("Session expired. Please login again.");
-          setStats(null);
-          return;
-        }
-        if (!statsRes.ok) {
-          const error = await statsRes.json().catch(() => ({}));
-          setAuthError(error.message || "Failed to load dashboard stats");
-          setStats(null);
-          return;
-        }
-        setStats((await statsRes.json()) as DashboardStats);
-
-        if (activityRes.ok) setRecentActivity((await activityRes.json()) as ActivityRecord[]);
-        if (clubsRes.ok) setPerformingClubs((await clubsRes.json()) as PerformingClub[]);
-        if (revenueRes.ok) setRevenueData((await revenueRes.json()) as RevenuePoint[]);
-        if (growthRes.ok) setGrowthData((await growthRes.json()) as GrowthPoint[]);
-        
-        if (clubsListRes.ok) {
-          type ClubListItem = { id: string; name: string; plan?: string | null; status?: string | null };
-          const clubsData: unknown = await clubsListRes.json();
-          const items: ClubListItem[] = Array.isArray(clubsData)
-            ? (clubsData as ClubListItem[])
-            : clubsData && typeof clubsData === "object" && "items" in clubsData && Array.isArray((clubsData as { items?: unknown }).items)
-              ? ((clubsData as { items: unknown }).items as ClubListItem[])
-              : [];
-          // Sort by plan and status to simulate "top" subscription clubs
-          const topSubs: SubscriptionClub[] = items
-            .sort((a, b) => {
-              if (a.plan === "PRO" && b.plan !== "PRO") return -1;
-              if (a.plan !== "PRO" && b.plan === "PRO") return 1;
-              return 0;
-            })
-            .slice(0, 5)
-            .map((c) => {
-              const status: SubscriptionClub["status"] = c.status === "ACTIVE" ? "Active" : "Inactive";
-              return {
-                id: String(c.id),
-                name: String(c.name),
-                logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(c.name))}`,
-                plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
-                status,
-                yearlyFee: c.plan === "PRO" ? 150000 : 50000,
-              };
-            });
-          setSubscriptionClubs(topSubs);
-        }
-      } catch (err) {
-        console.error("Dashboard data fetch error:", err);
-        setAuthError("Failed to load dashboard data");
-      } finally {
-        if (cancelled) return;
-        setLoading(false);
-      }
-    }
-    fetchDashboardData();
+    const id = window.setTimeout(() => {
+      if (cancelled) return;
+      fetchDashboardData();
+    }, 0);
     const unsubscribe = subscribeAdminEvents((evt) => {
       if (evt.type !== "clubs-changed") return;
+      if (cancelled) return;
       fetchDashboardData();
     });
     function onFocus() {
+      if (cancelled) return;
       fetchDashboardData();
     }
     window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
       unsubscribe();
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [fetchDashboardData]);
 
   if (!isMounted) return null;
 
@@ -406,9 +453,8 @@ export default function SuperAdminDashboard() {
             <SearchableSelect
               value={topSubsRange}
               onValueChange={setTopSubsRange}
-              options={[{ value: "All Time", label: "All Time" }]}
+              options={["All Time", "This Month", "Last Month", "3 Months", "6 Months"].map((v) => ({ value: v, label: v }))}
               triggerClassName="h-10 bg-white text-[13px]"
-              disabled
             />
           </CardHeader>
           <CardContent className="space-y-7 p-3 pt-4">
@@ -454,9 +500,8 @@ export default function SuperAdminDashboard() {
             <SearchableSelect
               value={topClubsRange}
               onValueChange={setTopClubsRange}
-              options={[{ value: "This Month", label: "This Month" }]}
+              options={["This Month", "Last Month", "3 Months", "6 Months", "All Time"].map((v) => ({ value: v, label: v }))}
               triggerClassName="h-10 bg-white text-[13px]"
-              disabled
             />
           </CardHeader>
           <CardContent className="space-y-7 p-3 pt-4">
@@ -477,11 +522,11 @@ export default function SuperAdminDashboard() {
                         <StatusBadge type={club.statusType} label={club.status} />
                       </div>
                       <div className="flex flex-col items-end"
-                        title={`Revenue is the sum of paid registrations (entry fee per registration) this month: ${formatWithCommas(club.paidRegistrations ?? 0)} paid registrations across ${formatWithCommas(club.tournaments ?? 0)} tournaments`}
+                        title={`Revenue is total entry fees ${topClubsRange === "All Time" ? "all time" : topClubsRange.toLowerCase()} (entry fee × registrations): ${formatWithCommas(club.registrations ?? 0)} registrations across ${formatWithCommas(club.tournaments ?? 0)} tournaments`}
                       >
                         <p className="text-[16px] font-bold text-gray-900">{`₦${formatWithCommas(club.revenue ?? 0)}`}</p>
                         <p className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
-                          {formatWithCommas(club.paidRegistrations ?? 0)} regs • {formatWithCommas(club.tournaments ?? 0)} tourns
+                          {formatWithCommas(club.registrations ?? 0)} regs • {formatWithCommas(club.tournaments ?? 0)} tourns
                         </p>
                       </div>
                     </div>

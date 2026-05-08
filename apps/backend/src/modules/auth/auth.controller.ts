@@ -1,19 +1,29 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { IsEmail } from 'class-validator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@Request() req: any) {
+    return req.user;
+  }
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
