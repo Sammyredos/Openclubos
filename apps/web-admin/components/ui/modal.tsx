@@ -12,6 +12,7 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  size?: "md" | "lg" | "xl";
 }
 
 export function Modal({
@@ -21,6 +22,7 @@ export function Modal({
   children,
   footer,
   className,
+  size = "md",
 }: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -42,7 +44,8 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className={cn(
-          "bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200",
+          "bg-white rounded-3xl shadow-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200",
+          size === "md" ? "max-w-lg" : size === "lg" ? "max-w-2xl" : "max-w-4xl",
           className
         )}
       >
@@ -56,7 +59,7 @@ export function Modal({
           </button>
         </div>
         
-        <div className="px-8 py-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <div className="px-8 py-6 overflow-y-auto scrollbar-hide max-h-[calc(100vh-200px)]">
           {children}
         </div>
 

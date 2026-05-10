@@ -38,6 +38,10 @@ export class RegistrationsController {
     @Request() req: any,
     @Query('clubId') clubId?: string,
     @Query('organizerId') organizerId?: string,
+    @Query('tournamentId') tournamentId?: string,
+    @Query('q') q?: string,
+    @Query('status') status?: RegistrationStatus,
+    @Query('disqualified') disqualified?: string,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
@@ -48,6 +52,15 @@ export class RegistrationsController {
       role === UserRole.CLUB_ADMIN ? userClubId : (clubId ?? organizerId);
     return this.registrationsService.findAll({
       clubId: effectiveClubId,
+      tournamentId,
+      q,
+      status,
+      disqualified:
+        disqualified === 'true'
+          ? true
+          : disqualified === 'false'
+            ? false
+            : undefined,
       paymentStatus,
       skip,
       take,
@@ -60,6 +73,16 @@ export class RegistrationsController {
     @Body('status') status: RegistrationStatus,
   ) {
     return this.registrationsService.updateStatus(id, status);
+  }
+
+  @Patch(':id/strokes')
+  addStrokes(@Param('id') id: string, @Body('delta') delta: number) {
+    return this.registrationsService.addStrokes(id, Number(delta));
+  }
+
+  @Patch(':id/strokes/clear')
+  clearStrokes(@Param('id') id: string) {
+    return this.registrationsService.clearStrokes(id);
   }
 
   @Patch(':id/payment')

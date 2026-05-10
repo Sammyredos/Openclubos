@@ -478,7 +478,7 @@ export default function SuperAdminDashboard() {
 
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
-            <CardTitle className="text-xl font-bold">Club Growth</CardTitle>
+            <CardTitle className="text-xl font-bold">Organizer Growth</CardTitle>
             <SearchableSelect
               value={growthRange}
               onValueChange={setGrowthRange}
@@ -639,7 +639,7 @@ export default function SuperAdminDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-[13px] text-gray-400 font-medium">No club performance data</p>
+              <p className="text-[13px] text-gray-400 font-medium">No organizer performance data</p>
             )}
           </CardContent>
         </Card>

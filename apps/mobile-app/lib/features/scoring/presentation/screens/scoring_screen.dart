@@ -36,6 +36,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
   void _decrementStrokes() => setState(() {
     if (_strokes > 1) _strokes--;
   });
+  void _addStrokes(int delta) => setState(() => _strokes += delta);
 
   Future<void> _saveScore() async {
     final currentHole = _mockHoles[_currentHoleIndex];
@@ -191,7 +192,45 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                       _buildScoreButton(Icons.add_rounded, _incrementStrokes),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
+                  PopupMenuButton<int>(
+                    onSelected: _addStrokes,
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 1, child: Text('+1')),
+                      const PopupMenuItem(value: 2, child: Text('+2')),
+                      const PopupMenuItem(value: 3, child: Text('+3')),
+                      const PopupMenuItem(value: 4, child: Text('+4')),
+                    ],
+                    child: Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.12)),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add_rounded, color: Colors.white),
+                          const SizedBox(width: 10),
+                          Text(
+                            'ADD STROKES',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.arrow_drop_down_rounded, color: Colors.white70),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _saveScore,
                     style: ElevatedButton.styleFrom(

@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   ArrowUpRight,
   Ban,
+  CheckCircle2,
   Trash2,
   AlertTriangle,
 } from "lucide-react";
@@ -35,6 +36,13 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
+import {
+  addRegistrationStrokes,
+  clearRegistrationStrokes,
+  getRegistrations,
+  updateRegistrationStatus,
+  type RegistrationListItem,
+} from "@/lib/api/registrations";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FloatingMenu } from "@/components/ui/floating-menu";
@@ -123,6 +131,8 @@ function pad2(n: number) {
   return n < 10 ? `0${n}` : String(n);
 }
 
+const CLIENT_REGISTRATIONS_MAX = 250;
+
 function getDaysUntil(dateISO: string) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -149,9 +159,8 @@ export default function TournamentsPage() {
     () => false,
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [clubFilter, setClubFilter] = useState("All Clubs");
+  const [clubFilter, setClubFilter] = useState("All Organizers");
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [formatFilter, setFormatFilter] = useState("All Types");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<ApiTournament[]>([]);
@@ -165,6 +174,28 @@ export default function TournamentsPage() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
+
+  const [registrationsLoading, setRegistrationsLoading] = useState(false);
+  const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
+  const [registrationsMode, setRegistrationsMode] = useState<"client" | "server">("server");
+  const [registrationsInitialized, setRegistrationsInitialized] = useState(false);
+  const [registrationsAll, setRegistrationsAll] = useState<RegistrationListItem[]>([]);
+  const [registrationsTotal, setRegistrationsTotal] = useState(0);
+  const [registrationsTournamentTotal, setRegistrationsTournamentTotal] = useState(0);
+  const [registrationsPage, setRegistrationsPage] = useState(1);
+  const registrationsPerPage = 10;
+  const [registrationsSearch, setRegistrationsSearch] = useState("");
+  const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
+  const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
+    "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
+  >("All Status");
+  const [registrationsPaymentFilter, setRegistrationsPaymentFilter] = useState<"All Payments" | "PAID" | "UNPAID" | "REFUNDED">("All Payments");
+  const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
+    "All Players" | "Enabled Players" | "Disqualified Players"
+  >("All Players");
+  const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
+  const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
+  const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(false);
   const [editName, setEditName] = useState("");
@@ -258,12 +289,9 @@ export default function TournamentsPage() {
       t.name.toLowerCase().includes(q) ||
       t.clubName.toLowerCase().includes(q);
 
-    const matchesClub = clubFilter === "All Clubs" || t.clubName === clubFilter;
+    const matchesClub = clubFilter === "All Organizers" || t.clubName === clubFilter;
     const matchesStatus = statusFilter === "All Status" || t.status === statusFilter;
-    const matchesFormat =
-      formatFilter === "All Types" || t.types.includes(formatFilter);
-
-    return matchesSearch && matchesClub && matchesStatus && matchesFormat;
+    return matchesSearch && matchesClub && matchesStatus;
   });
 
   // Paginated data
@@ -275,7 +303,6 @@ export default function TournamentsPage() {
 
   const uniqueClubs = Array.from(new Set(rows.map((t) => t.clubName))).filter((c) => c !== "—");
   const uniqueStatuses = Array.from(new Set(rows.map((t) => t.status)));
-  const uniqueFormats = Array.from(new Set(rows.flatMap((t) => t.types)));
 
   const totalTournaments = rows.length;
   const activeTournaments = rows.filter(
@@ -362,7 +389,225 @@ export default function TournamentsPage() {
   const openView = (tournament: TournamentRow) => {
     closeDropdown();
     setSelectedTournament(tournament);
+    setStrokesMenuRegistration(null);
+    setStrokesMenuAnchorEl(null);
+    setRegistrationsLoading(true);
+    setRegistrationsPage(1);
+    setRegistrationsSearch("");
+    setRegistrationsDebouncedSearch("");
+    setRegistrationsStatusFilter("All Status");
+    setRegistrationsPaymentFilter("All Payments");
+    setRegistrationsDisqualifiedFilter("All Players");
+    setRegistrationsMode("server");
+    setRegistrationsInitialized(false);
+    setRegistrations([]);
+    setRegistrationsAll([]);
+    setRegistrationsTotal(0);
+    setRegistrationsTournamentTotal(0);
     setIsViewModalOpen(true);
+  };
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setRegistrationsDebouncedSearch(registrationsSearch.trim()), 250);
+    return () => window.clearTimeout(handle);
+  }, [registrationsSearch]);
+
+  useEffect(() => {
+    if (!isViewModalOpen || !selectedTournament?.id) return;
+    let cancelled = false;
+    getRegistrations({
+      tournamentId: selectedTournament.id,
+      skip: 0,
+      take: 1,
+    })
+      .then(async ({ total }) => {
+        if (cancelled) return;
+        const tournamentTotal = typeof total === "number" ? total : 0;
+        setRegistrationsTournamentTotal(tournamentTotal);
+
+        if (tournamentTotal > 0 && tournamentTotal <= CLIENT_REGISTRATIONS_MAX) {
+          setRegistrationsMode("client");
+          const { items: allItems } = await getRegistrations({
+            tournamentId: selectedTournament.id,
+            skip: 0,
+            take: tournamentTotal,
+          });
+          if (cancelled) return;
+          setRegistrationsAll(Array.isArray(allItems) ? allItems : []);
+          setRegistrationsTotal(tournamentTotal);
+          setRegistrations([]);
+        } else {
+          setRegistrationsMode("server");
+          setRegistrations([]);
+          setRegistrationsTotal(0);
+          setRegistrationsAll([]);
+        }
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setRegistrations([]);
+        setRegistrationsAll([]);
+        setRegistrationsTotal(0);
+        setRegistrationsTournamentTotal(0);
+        toast.error(getErrorMessage(e) || "Failed to fetch registrations");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setRegistrationsLoading(false);
+        setRegistrationsInitialized(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isViewModalOpen, selectedTournament?.id, registrationsPerPage]);
+
+  useEffect(() => {
+    if (!isViewModalOpen || !selectedTournament?.id) return;
+    if (!registrationsInitialized) return;
+    if (registrationsMode !== "server") return;
+    let cancelled = false;
+    const skip = (registrationsPage - 1) * registrationsPerPage;
+    getRegistrations({
+      tournamentId: selectedTournament.id,
+      q: registrationsDebouncedSearch || undefined,
+      status: registrationsStatusFilter === "All Status" ? undefined : registrationsStatusFilter,
+      disqualified:
+        registrationsStatusFilter === "All Status"
+          ? registrationsDisqualifiedFilter === "Disqualified Players"
+            ? true
+            : registrationsDisqualifiedFilter === "Enabled Players"
+              ? false
+              : undefined
+          : undefined,
+      paymentStatus: registrationsPaymentFilter === "All Payments" ? undefined : registrationsPaymentFilter,
+      skip,
+      take: registrationsPerPage,
+    })
+      .then(({ items, total }) => {
+        if (cancelled) return;
+        setRegistrations(Array.isArray(items) ? items : []);
+        setRegistrationsTotal(typeof total === "number" ? total : 0);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setRegistrations([]);
+        setRegistrationsTotal(0);
+        toast.error(getErrorMessage(e) || "Failed to fetch registrations");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setRegistrationsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isViewModalOpen,
+    selectedTournament?.id,
+    registrationsInitialized,
+    registrationsMode,
+    registrationsPage,
+    registrationsPerPage,
+    registrationsDebouncedSearch,
+    registrationsStatusFilter,
+    registrationsDisqualifiedFilter,
+    registrationsPaymentFilter,
+  ]);
+
+  const registrationsQuery = registrationsSearch.trim().toLowerCase();
+  const filteredRegistrationsAll =
+    registrationsMode === "client"
+      ? registrationsAll.filter((r) => {
+          const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim().toLowerCase();
+          const email = (r.user?.email ?? "").toLowerCase();
+          const matchesSearch =
+            registrationsQuery.length === 0 || fullName.includes(registrationsQuery) || email.includes(registrationsQuery);
+          const matchesStatus = registrationsStatusFilter === "All Status" || r.status === registrationsStatusFilter;
+          const matchesPayment =
+            registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
+          const matchesDisqualified =
+            registrationsDisqualifiedFilter === "All Players" ||
+            (registrationsDisqualifiedFilter === "Disqualified Players"
+              ? r.status === "DISQUALIFIED"
+              : r.status !== "DISQUALIFIED");
+          return matchesSearch && matchesStatus && matchesPayment && matchesDisqualified;
+        })
+      : [];
+
+  const registrationsFilteredTotal = registrationsMode === "client" ? filteredRegistrationsAll.length : registrationsTotal;
+  const registrationsPageItems =
+    registrationsMode === "client"
+      ? filteredRegistrationsAll.slice(
+          (registrationsPage - 1) * registrationsPerPage,
+          registrationsPage * registrationsPerPage,
+        )
+      : registrations;
+
+  const updateTournamentRegistrationStatus = async (
+    registrationId: string,
+    nextStatus: RegistrationListItem["status"],
+  ) => {
+    setRegistrationActionId(registrationId);
+    try {
+      const updated = await updateRegistrationStatus(registrationId, nextStatus);
+      const message =
+        nextStatus === "DISQUALIFIED" || updated.status === "DISQUALIFIED"
+          ? "Player has been disqualified"
+          : nextStatus === "APPROVED" || updated.status === "APPROVED"
+            ? "Player has been enabled"
+            : "Player updated";
+      toast.success(message);
+      setRegistrationsAll((prev) =>
+        prev.map((r) => (r.id === registrationId ? { ...r, status: updated.status } : r)),
+      );
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === registrationId ? { ...r, status: updated.status } : r)),
+      );
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to update registration");
+    } finally {
+      setRegistrationActionId(null);
+    }
+  };
+
+  const addTournamentRegistrationStrokes = async (registration: RegistrationListItem, delta: number) => {
+    setRegistrationActionId(registration.id);
+    try {
+      const updated = await addRegistrationStrokes(registration.id, delta);
+      toast.success(`Added +${delta} strokes`);
+      const nextExtraStrokes =
+        typeof updated.extraStrokes === "number"
+          ? updated.extraStrokes
+          : (typeof registration.extraStrokes === "number" ? registration.extraStrokes : 0) + delta;
+      setRegistrationsAll((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: nextExtraStrokes } : r)),
+      );
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: nextExtraStrokes } : r)),
+      );
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to add strokes");
+    } finally {
+      setRegistrationActionId(null);
+    }
+  };
+
+  const clearTournamentRegistrationStrokes = async (registration: RegistrationListItem) => {
+    setRegistrationActionId(registration.id);
+    try {
+      await clearRegistrationStrokes(registration.id);
+      toast.success("Strokes cleared");
+      setRegistrationsAll((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: 0 } : r)),
+      );
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: 0 } : r)),
+      );
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to clear strokes");
+    } finally {
+      setRegistrationActionId(null);
+    }
   };
 
   const openEdit = (tournament: TournamentRow) => {
@@ -499,7 +744,7 @@ export default function TournamentsPage() {
         <StatCard
           title="Active Tournaments"
           value={formatWithCommas(activeTournaments.length)}
-          subValue={loading ? undefined : `Across ${formatWithCommas(activeClubs)} clubs`}
+          subValue={loading ? undefined : `Across ${formatWithCommas(activeClubs)} organizers`}
           icon={Calendar}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
@@ -553,7 +798,7 @@ export default function TournamentsPage() {
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input 
-                    placeholder="Search tournament name, club..." 
+                    placeholder="Search tournament name, organizer..." 
                     className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -562,10 +807,10 @@ export default function TournamentsPage() {
                 <SearchableSelect
                   value={clubFilter}
                   onValueChange={setClubFilter}
-                  options={["All Clubs", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
+                  options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
                   triggerClassName="h-11 bg-white"
-                  placeholder="All Clubs"
+                  placeholder="All Organizers"
                 />
                 <SearchableSelect
                   value={statusFilter}
@@ -574,14 +819,6 @@ export default function TournamentsPage() {
                   className="min-w-[160px]"
                   triggerClassName="h-11 bg-white"
                   placeholder="All Status"
-                />
-                <SearchableSelect
-                  value={formatFilter}
-                  onValueChange={setFormatFilter}
-                  options={["All Types", ...uniqueFormats].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white"
-                  placeholder="All Types"
                 />
                 <SearchableSelect
                   value={"All Dates"}
@@ -603,8 +840,7 @@ export default function TournamentsPage() {
                   <thead>
                     <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                       <th className="px-6 py-4">Tournament Name</th>
-                      <th className="px-6 py-4">Club</th>
-                      <th className="px-6 py-4">Player Types</th>
+                      <th className="px-6 py-4">Organizer</th>
                       <th className="px-6 py-4">Dates</th>
                       <th className="px-6 py-4">Players</th>
                       <th className="px-6 py-4">Status</th>
@@ -615,7 +851,7 @@ export default function TournamentsPage() {
                   <tbody className="divide-y divide-gray-50">
                     {error ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center text-red-500 font-bold text-[13px]">
+                        <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-bold text-[13px]">
                           {error}
                         </td>
                       </tr>
@@ -630,9 +866,6 @@ export default function TournamentsPage() {
                           </td>
                           <td className="px-6 py-4">
                             <Skeleton className="h-4 w-24 rounded-md" />
-                          </td>
-                          <td className="px-6 py-4">
-                            <Skeleton className="h-4 w-20 rounded-md" />
                           </td>
                           <td className="px-6 py-4">
                             <Skeleton className="h-4 w-28 rounded-md" />
@@ -667,9 +900,6 @@ export default function TournamentsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{t.clubName}</td>
-                          <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">
-                            {t.types.length ? t.types.join(", ") : "—"}
-                          </td>
                           <td className="px-6 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{t.dates}</td>
                           <td className="px-6 py-4 text-[13px] text-gray-900 font-bold">{t.players}</td>
                           <td className="px-6 py-4">
@@ -726,7 +956,7 @@ export default function TournamentsPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                           No tournaments found matching your filters.
                         </td>
                       </tr>
@@ -911,12 +1141,55 @@ export default function TournamentsPage() {
         ) : null}
       </FloatingMenu>
 
+      <FloatingMenu
+        open={strokesMenuRegistration != null}
+        anchorEl={strokesMenuAnchorEl}
+        onClose={() => {
+          setStrokesMenuRegistration(null);
+          setStrokesMenuAnchorEl(null);
+        }}
+        placement="bottom-end"
+        className="w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+      >
+        {strokesMenuRegistration ? (
+          <>
+            {[1, 2, 3, 4].map((delta) => (
+              <button
+                key={delta}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                onClick={() => {
+                  const reg = strokesMenuRegistration;
+                  setStrokesMenuRegistration(null);
+                  setStrokesMenuAnchorEl(null);
+                  addTournamentRegistrationStrokes(reg, delta);
+                }}
+              >
+                <Plus className="w-4 h-4 text-gray-400" /> +{delta} {delta === 1 ? "stroke" : "strokes"}
+              </button>
+            ))}
+          </>
+        ) : null}
+      </FloatingMenu>
+
       <Modal
         isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
+        onClose={() => {
+          setStrokesMenuRegistration(null);
+          setStrokesMenuAnchorEl(null);
+          setIsViewModalOpen(false);
+        }}
         title="Tournament Details"
+        size="xl"
         footer={
-          <Button variant="outline" onClick={() => setIsViewModalOpen(false)} className="rounded-lg font-bold">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setStrokesMenuRegistration(null);
+              setStrokesMenuAnchorEl(null);
+              setIsViewModalOpen(false);
+            }}
+            className="rounded-lg font-bold"
+          >
             Close
           </Button>
         }
@@ -928,7 +1201,7 @@ export default function TournamentsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Club</p>
+              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Organizer</p>
               <p className="text-[14px] font-bold text-gray-900">{selectedTournament?.clubName || "—"}</p>
             </div>
             <div className="space-y-1">
@@ -943,6 +1216,244 @@ export default function TournamentsPage() {
               <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Entry Fee</p>
               <p className="text-[14px] font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
             </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Registrations</p>
+              <p className="text-[12px] text-gray-400 font-medium">{formatWithCommas(registrationsTournamentTotal)} total</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  value={registrationsSearch}
+                  onChange={(e) => {
+                    setRegistrationsPage(1);
+                    if (registrationsMode === "server") setRegistrationsLoading(true);
+                    setRegistrationsSearch(e.target.value);
+                  }}
+                  placeholder="Search name or email..."
+                  className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg"
+                />
+              </div>
+              <SearchableSelect
+                value={registrationsStatusFilter === "All Status" ? "All Status" : registrationsStatusFilter}
+                onValueChange={(v) => {
+                  const next =
+                    v === "All Status" ||
+                    v === "PENDING" ||
+                    v === "APPROVED" ||
+                    v === "REJECTED" ||
+                    v === "WAITLISTED" ||
+                    v === "DISQUALIFIED"
+                      ? v
+                      : "All Status";
+                  setRegistrationsPage(1);
+                  if (registrationsMode === "server") setRegistrationsLoading(true);
+                  setRegistrationsStatusFilter(next);
+                }}
+                options={[
+                  { value: "All Status", label: "All Status" },
+                  { value: "PENDING", label: "Pending" },
+                  { value: "APPROVED", label: "Approved" },
+                  { value: "REJECTED", label: "Rejected" },
+                  { value: "WAITLISTED", label: "Waitlisted" },
+                  { value: "DISQUALIFIED", label: "Disqualified" },
+                ]}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-white"
+                placeholder="All Status"
+              />
+              <SearchableSelect
+                value={registrationsPaymentFilter === "All Payments" ? "All Payments" : registrationsPaymentFilter}
+                onValueChange={(v) => {
+                  const next = v === "All Payments" || v === "PAID" || v === "UNPAID" || v === "REFUNDED" ? v : "All Payments";
+                  setRegistrationsPage(1);
+                  if (registrationsMode === "server") setRegistrationsLoading(true);
+                  setRegistrationsPaymentFilter(next);
+                }}
+                options={[
+                  { value: "All Payments", label: "All Payments" },
+                  { value: "PAID", label: "Paid" },
+                  { value: "UNPAID", label: "Unpaid" },
+                  { value: "REFUNDED", label: "Refunded" },
+                ]}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-white"
+                placeholder="All Payments"
+              />
+              <SearchableSelect
+                value={registrationsDisqualifiedFilter}
+                onValueChange={(v) => {
+                  const next =
+                    v === "All Players" || v === "Enabled Players" || v === "Disqualified Players"
+                      ? v
+                      : "All Players";
+                  setRegistrationsPage(1);
+                  if (registrationsMode === "server") setRegistrationsLoading(true);
+                  setRegistrationsDisqualifiedFilter(next);
+                }}
+                options={[
+                  { value: "All Players", label: "All Players" },
+                  { value: "Enabled Players", label: "Enabled Players" },
+                  { value: "Disqualified Players", label: "Disqualified Players" },
+                ]}
+                className="min-w-[200px]"
+                triggerClassName="h-11 bg-white"
+                placeholder="All Players"
+              />
+            </div>
+
+            {registrationsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-40 rounded-md" />
+                      <Skeleton className="h-3 w-56 rounded-md" />
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            ) : registrationsPageItems.length > 0 ? (
+              <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+                {registrationsPageItems.map((r) => {
+                  const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim();
+                  const statusBadge =
+                    r.status === "DISQUALIFIED"
+                      ? "bg-gray-100 text-gray-800"
+                      : r.status === "APPROVED"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : r.status === "REJECTED"
+                        ? "bg-red-50 text-red-700"
+                        : r.status === "WAITLISTED"
+                          ? "bg-blue-50 text-blue-700"
+                          : "bg-amber-50 text-amber-700";
+                  const paymentBadge =
+                    r.paymentStatus === "PAID"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : r.paymentStatus === "REFUNDED"
+                        ? "bg-violet-50 text-violet-700"
+                        : "bg-gray-50 text-gray-700";
+                  return (
+                    <div key={r.id} className="px-4 py-3 hover:bg-gray-50/40 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <p className="text-[13px] text-gray-900 font-bold truncate">{fullName || "—"}</p>
+                            <span className={cn("text-[11px] font-bold px-2 py-1 rounded-lg", statusBadge)}>
+                              {r.status}
+                            </span>
+                            <span className={cn("text-[11px] font-bold px-2 py-1 rounded-lg", paymentBadge)}>
+                              {r.paymentStatus}
+                            </span>
+                            {typeof r.extraStrokes === "number" && r.extraStrokes > 0 ? (
+                              <span className="text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700">
+                                +{r.extraStrokes} strokes
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[12px] text-gray-500 font-medium break-all">{r.user?.email ?? "—"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {r.status === "DISQUALIFIED" ? (
+                            <button
+                              className={cn(
+                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                registrationActionId === r.id
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-emerald-600 hover:bg-emerald-50",
+                              )}
+                              title="Enable Player"
+                              disabled={registrationActionId === r.id}
+                              onClick={() => updateTournamentRegistrationStatus(r.id, "APPROVED")}
+                            >
+                              <CheckCircle2 className="w-4.5 h-4.5" />
+                            </button>
+                          ) : (
+                            <button
+                              className={cn(
+                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                registrationActionId === r.id
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-red-600 hover:bg-red-50",
+                              )}
+                              title="Disqualify Player"
+                              disabled={registrationActionId === r.id}
+                              onClick={() => updateTournamentRegistrationStatus(r.id, "DISQUALIFIED")}
+                            >
+                              <Ban className="w-4.5 h-4.5" />
+                            </button>
+                          )}
+                          <button
+                            className={cn(
+                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                              registrationActionId === r.id
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-600 hover:bg-gray-50",
+                            )}
+                            title="Add Strokes"
+                            disabled={registrationActionId === r.id}
+                            onClick={(e) => {
+                              if (registrationActionId === r.id) return;
+                              if (strokesMenuRegistration?.id === r.id) {
+                                setStrokesMenuRegistration(null);
+                                setStrokesMenuAnchorEl(null);
+                                return;
+                              }
+                              setStrokesMenuRegistration(r);
+                              setStrokesMenuAnchorEl(e.currentTarget);
+                            }}
+                          >
+                            <Plus className="w-4.5 h-4.5" />
+                          </button>
+                          <button
+                            className={cn(
+                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                              registrationActionId === r.id || (typeof r.extraStrokes === "number" && r.extraStrokes <= 0)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-600 hover:bg-gray-50",
+                            )}
+                            title="Clear Strokes"
+                            disabled={
+                              registrationActionId === r.id || (typeof r.extraStrokes === "number" ? r.extraStrokes <= 0 : true)
+                            }
+                            onClick={() => clearTournamentRegistrationStrokes(r)}
+                          >
+                            <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
+                No registrations yet for this tournament.
+              </div>
+            )}
+
+            {!registrationsLoading && registrationsFilteredTotal > 0 && (
+              <div className="pt-2 flex items-center justify-between gap-4">
+                <p className="text-[13px] text-gray-500 font-medium">
+                  Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
+                  {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
+                  {formatWithCommas(registrationsFilteredTotal)} registrations
+                </p>
+                <Pagination
+                  currentPage={registrationsPage}
+                  totalPages={Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage))}
+                  onPageChange={(p) => {
+                    if (registrationsMode === "server") setRegistrationsLoading(true);
+                    setRegistrationsPage(p);
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </Modal>

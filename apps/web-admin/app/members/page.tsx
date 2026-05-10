@@ -102,7 +102,7 @@ export default function MembersPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-nexa-bold text-gray-900 tracking-tight">Members Management</h1>
-          <p className="text-gray-500 mt-1">Manage club members, handicaps, and statuses.</p>
+          <p className="text-gray-500 mt-1">Manage organizer members, handicaps, and statuses.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white border border-primary/60 gap-2 h-11 px-6 rounded-lg">
           <UserPlus className="w-5 h-5" />
@@ -191,7 +191,7 @@ export default function MembersPage() {
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Member</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest text-center">Handicap</th>
-                <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Club</th>
+                <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Organizer</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
@@ -219,7 +219,7 @@ export default function MembersPage() {
                   </td>
                   <td className="px-6 py-5">
                     <span className="text-[14px] text-gray-600 italic">
-                      {member.club?.name || 'No Club'}
+                      {member.club?.name || 'No Organizer'}
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right">

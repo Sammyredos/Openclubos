@@ -1273,7 +1273,7 @@ export default function SuperAdminUsersPage() {
                   </div>
                   <p className="text-[12px] text-gray-400 font-medium truncate mt-1">{selectedUser?.email || "—"}</p>
                   <p className="text-[12px] text-gray-500 font-medium truncate mt-1">
-                    {selectedUser?.role?.replaceAll("_", " ") ?? "—"} • {selectedUser?.club?.name || "—"}
+                    {selectedUser?.role?.replaceAll("_", " ") ?? "—"} • Organizer: {selectedUser?.club?.name || "—"}
                   </p>
                 </div>
               </div>

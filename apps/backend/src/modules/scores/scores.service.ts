@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { CreateScoreDto } from './dto/create-score.dto';
-import { ScoreStatus, UserRole } from '@prisma/client';
+import { RegistrationStatus, ScoreStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ScoresService {
@@ -23,6 +23,30 @@ export class ScoresService {
       currentUser.role !== UserRole.CLUB_ADMIN
     ) {
       throw new ForbiddenException('You can only enter your own scores');
+    }
+
+    if (groupId) {
+      const group = await this.prisma.group.findUnique({
+        where: { id: groupId },
+        select: { tournamentId: true },
+      });
+      if (!group) throw new NotFoundException('Group not found');
+
+      const registration = await this.prisma.registration.findUnique({
+        where: {
+          userId_tournamentId: {
+            userId: targetUserId,
+            tournamentId: group.tournamentId,
+          },
+        },
+        select: { status: true },
+      });
+
+      if (registration?.status === RegistrationStatus.DISQUALIFIED) {
+        throw new ForbiddenException(
+          'Player is disqualified for this tournament',
+        );
+      }
     }
 
     // Check if score already exists and its status

@@ -119,13 +119,33 @@ export class RegistrationsService {
 
   async findAll(query: {
     clubId?: string;
+    tournamentId?: string;
+    q?: string;
+    status?: RegistrationStatus;
+    disqualified?: boolean;
     paymentStatus?: PaymentStatus;
     skip?: number;
     take?: number;
   }) {
     const where: any = {};
+    if (query.status) {
+      where.status = query.status;
+    } else if (typeof query.disqualified === 'boolean') {
+      where.status = query.disqualified
+        ? RegistrationStatus.DISQUALIFIED
+        : { not: RegistrationStatus.DISQUALIFIED };
+    }
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.clubId) where.tournament = { clubId: query.clubId };
+    if (query.tournamentId) where.tournamentId = query.tournamentId;
+    if (query.q?.trim()) {
+      const q = query.q.trim();
+      where.OR = [
+        { user: { email: { contains: q, mode: 'insensitive' } } },
+        { user: { firstName: { contains: q, mode: 'insensitive' } } },
+        { user: { lastName: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.registration.findMany({
@@ -155,9 +175,44 @@ export class RegistrationsService {
   }
 
   async updateStatus(registrationId: string, status: RegistrationStatus) {
+    try {
+      return await this.prisma.registration.update({
+        where: { id: registrationId },
+        data: { status },
+      });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (
+        status === RegistrationStatus.DISQUALIFIED &&
+        message.toLowerCase().includes('invalid input value for enum') &&
+        message.includes('RegistrationStatus')
+      ) {
+        throw new BadRequestException(
+          'Database is missing DISQUALIFIED status. Apply the latest Prisma migrations and try again.',
+        );
+      }
+      throw e;
+    }
+  }
+
+  async addStrokes(registrationId: string, delta: number) {
+    if (!Number.isFinite(delta) || !Number.isInteger(delta)) {
+      throw new BadRequestException('Delta must be an integer');
+    }
+    if (delta < 1 || delta > 4) {
+      throw new BadRequestException('Delta must be between 1 and 4');
+    }
+
     return this.prisma.registration.update({
       where: { id: registrationId },
-      data: { status },
+      data: { extraStrokes: { increment: delta } },
+    });
+  }
+
+  async clearStrokes(registrationId: string) {
+    return this.prisma.registration.update({
+      where: { id: registrationId },
+      data: { extraStrokes: 0 },
     });
   }
 

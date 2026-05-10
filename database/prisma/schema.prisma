@@ -146,6 +146,7 @@ model Registration {
   paymentStatus    PaymentStatus @default(UNPAID)
   playerType       String?   // MEMBER, EXTERNAL, GUEST
   paymentReference String?
+  extraStrokes     Int       @default(0)
 
   // Relations
   user          User      @relation(fields: [userId], references: [id])
@@ -161,6 +162,7 @@ enum RegistrationStatus {
   APPROVED
   REJECTED
   WAITLISTED
+  DISQUALIFIED
 }
 
 enum PaymentStatus {
