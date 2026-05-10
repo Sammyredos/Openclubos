@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const ROLE_REDIRECT: Record<string, string> = {
   SUPER_ADMIN: '/super-admin/dashboard',
-  CLUB_ADMIN: '/club-admin/dashboard',
+  CLUB_ADMIN: '/organizer-admin/dashboard',
   PLAYER: '/app/home',
   MARKER: '/app/scoring',
 };

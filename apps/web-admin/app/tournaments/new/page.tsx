@@ -6,7 +6,7 @@ import { Controller, useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { createTournament } from "@/lib/api/tournaments"
-import { getClubs } from "@/lib/api/clubs"
+import { getOrganizers } from "@/lib/api/organizers"
 import { getCourses } from "@/lib/api/courses"
 import { Button } from "@/components/ui/button"
 import { Input, SearchableSelect } from "@/components/ui/input"
@@ -31,7 +31,7 @@ const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().optional(),
-  clubId: z.string().min(1, "Please select a club"),
+  clubId: z.string().min(1, "Please select an organizer"),
   courseId: z.string().min(1, "Please select a course"),
   entryFee: z
     .union([z.literal(""), z.coerce.number().min(0)])
@@ -55,7 +55,7 @@ const tournamentSchema = z.object({
 
 type TournamentFormValues = z.infer<typeof tournamentSchema>
 
-type ClubItem = { id: string; name: string }
+type OrganizerItem = { id: string; name: string }
 type CourseItem = { id: string; name: string; holesCount?: number | null }
 
 function getErrorMessage(e: unknown) {
@@ -70,9 +70,9 @@ function getErrorMessage(e: unknown) {
 export default function NewTournamentPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
-  const [clubs, setClubs] = React.useState<ClubItem[]>([])
+  const [organizers, setOrganizers] = React.useState<OrganizerItem[]>([])
   const [courses, setCourses] = React.useState<CourseItem[]>([])
-  const [selectedClub, setSelectedClub] = React.useState("")
+  const [selectedOrganizer, setSelectedOrganizer] = React.useState("")
 
   const resolver = zodResolver(tournamentSchema) as unknown as Resolver<TournamentFormValues>
   const form = useForm<TournamentFormValues>({
@@ -91,16 +91,16 @@ export default function NewTournamentPage() {
   const tomorrowYMD = getTomorrowYMD()
 
   React.useEffect(() => {
-    getClubs().then((data) => setClubs((Array.isArray(data) ? data : []) as ClubItem[]))
+    getOrganizers().then((data) => setOrganizers((Array.isArray(data) ? data : []) as OrganizerItem[]))
   }, [])
 
   React.useEffect(() => {
-    if (selectedClub) {
-      getCourses(selectedClub).then((data) => setCourses((Array.isArray(data) ? data : []) as CourseItem[]))
+    if (selectedOrganizer) {
+      getCourses(selectedOrganizer).then((data) => setCourses((Array.isArray(data) ? data : []) as CourseItem[]))
     } else {
       setCourses([])
     }
-  }, [selectedClub])
+  }, [selectedOrganizer])
 
   React.useEffect(() => {
     if (startDate && endDate && endDate < startDate) {
@@ -122,9 +122,9 @@ export default function NewTournamentPage() {
     }
   }, [startDate, endDate, tomorrowYMD, form])
 
-  const clubOptions = React.useMemo(
-    () => clubs.map((c) => ({ value: String(c.id), label: String(c.name) })),
-    [clubs]
+  const organizerOptions = React.useMemo(
+    () => organizers.map((o) => ({ value: String(o.id), label: String(o.name) })),
+    [organizers]
   )
 
   const courseOptions = React.useMemo(
@@ -205,16 +205,16 @@ export default function NewTournamentPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-nexa-bold text-gray-700 ml-1">Club Location</label>
+                <label className="text-sm font-nexa-bold text-gray-700 ml-1">Organizer</label>
                 <SearchableSelect
                   value={form.watch("clubId")}
                   onValueChange={(v) => {
                     form.setValue("clubId", v, { shouldDirty: true, shouldValidate: true })
-                    setSelectedClub(v)
+                    setSelectedOrganizer(v)
                     form.setValue("courseId", "", { shouldDirty: true, shouldValidate: true })
                   }}
-                  options={clubOptions}
-                  placeholder="Select a club..."
+                  options={organizerOptions}
+                  placeholder="Select an organizer..."
                 />
                 {form.formState.errors.clubId && <p className="text-xs text-red-500 font-nexa-bold ml-1">{form.formState.errors.clubId.message}</p>}
               </div>
@@ -226,7 +226,7 @@ export default function NewTournamentPage() {
                   onValueChange={(v) => form.setValue("courseId", v, { shouldDirty: true, shouldValidate: true })}
                   options={courseOptions}
                   placeholder="Select a course..."
-                  disabled={!selectedClub}
+                  disabled={!selectedOrganizer}
                 />
                 {form.formState.errors.courseId && <p className="text-xs text-red-500 font-nexa-bold ml-1">{form.formState.errors.courseId.message}</p>}
               </div>

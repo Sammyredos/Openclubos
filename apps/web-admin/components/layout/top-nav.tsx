@@ -31,7 +31,7 @@ export function TopNav() {
     );
   }
 
-  const isClubAdmin = user?.role === 'CLUB_ADMIN';
+  const isOrganizerAdmin = user?.role === 'CLUB_ADMIN';
 
   return (
     <header className="h-20 border-b bg-white flex items-center justify-between px-8 sticky top-0 z-10">
@@ -40,12 +40,12 @@ export function TopNav() {
           <Menu className="h-5 w-5 text-gray-500" />
         </button>
         <h1 className="text-2xl font-bold text-gray-800 hidden md:block tracking-tight">
-          {isClubAdmin ? "Club Dashboard" : "Super Admin Dashboard"}
+          {isOrganizerAdmin ? "Organizer Dashboard" : "Super Admin Dashboard"}
         </h1>
         <div className="relative max-w-md w-full ml-12 hidden sm:block">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
           <Input
-            placeholder={isClubAdmin ? "Search members, tournaments, payments..." : "Search clubs, users, tournaments..."}
+            placeholder={isOrganizerAdmin ? "Search members, tournaments, payments..." : "Search organizers, users, tournaments..."}
             className="pl-12 h-12 bg-gray-50/50 border-gray-100 focus:bg-white transition-all rounded-xl text-[15px]"
           />
         </div>
@@ -68,7 +68,7 @@ export function TopNav() {
           </div>
           <div className="text-left hidden sm:block">
             <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "John Admin"}</p>
-            <p className="text-[12px] text-gray-400 font-medium mt-1.5">{isClubAdmin ? "Club Admin" : "Super Admin"}</p>
+            <p className="text-[12px] text-gray-400 font-medium mt-1.5">{isOrganizerAdmin ? "Organizer Admin" : "Super Admin"}</p>
           </div>
           <ChevronDown className="h-4.5 w-4.5 text-gray-400 ml-1" />
         </div>

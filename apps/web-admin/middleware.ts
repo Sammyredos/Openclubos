@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 // Route → allowed roles
 const PROTECTED_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/super-admin', roles: ['SUPER_ADMIN'] },
-  { prefix: '/club-admin', roles: ['SUPER_ADMIN', 'CLUB_ADMIN'] },
+  { prefix: '/organizer-admin', roles: ['SUPER_ADMIN', 'CLUB_ADMIN'] },
   { prefix: '/app', roles: ['PLAYER', 'MARKER'] },
 ];
 
@@ -75,7 +75,7 @@ export function middleware(request: NextRequest) {
 function getFallback(role: string): string {
   const map: Record<string, string> = {
     SUPER_ADMIN: '/super-admin/dashboard',
-    CLUB_ADMIN: '/club-admin/dashboard',
+    CLUB_ADMIN: '/organizer-admin/dashboard',
     PLAYER: '/app/home',
     MARKER: '/app/scoring',
   };

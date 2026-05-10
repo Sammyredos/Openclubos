@@ -32,8 +32,21 @@ export class SuperAdminDashboardController {
     );
   }
 
+  @Get('organizer-growth')
+  organizerGrowth(@Query('year') year?: string) {
+    const y = year ? Number(year) : new Date().getFullYear();
+    return this.dashboard.clubGrowth(
+      Number.isFinite(y) ? y : new Date().getFullYear(),
+    );
+  }
+
   @Get('top-clubs')
   topClubs(@Query('range') range?: string) {
+    return this.dashboard.topClubs(range);
+  }
+
+  @Get('top-organizers')
+  topOrganizers(@Query('range') range?: string) {
     return this.dashboard.topClubs(range);
   }
 

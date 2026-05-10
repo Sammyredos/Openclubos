@@ -68,6 +68,7 @@ export async function getMyRegistrations(): Promise<Registration[]> {
 
 export async function getRegistrations(params?: {
   clubId?: string;
+  organizerId?: string;
   paymentStatus?: string;
   skip?: number;
   take?: number;
@@ -75,6 +76,7 @@ export async function getRegistrations(params?: {
   const token = getAuthToken();
   const searchParams = new URLSearchParams();
   if (params?.clubId) searchParams.append('clubId', params.clubId);
+  if (params?.organizerId) searchParams.append('organizerId', params.organizerId);
   if (params?.paymentStatus) searchParams.append('paymentStatus', params.paymentStatus);
   if (params?.skip != null) searchParams.append('skip', String(params.skip));
   if (params?.take != null) searchParams.append('take', String(params.take));

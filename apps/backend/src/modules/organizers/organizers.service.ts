@@ -1,25 +1,25 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  ClubStatus,
+  ClubStatus as OrganizerStatus,
   MemberStatus,
   TournamentStatus,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
-import { UpdateClubDto } from './dto/update-club.dto';
+import { UpdateOrganizerDto } from './dto/update-organizer.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 
 @Injectable()
-export class ClubsService {
+export class OrganizersService {
   constructor(private prisma: PrismaService) {}
 
   async stats(id: string) {
-    const club = await this.prisma.club.findFirst({
+    const organizer = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       select: { id: true },
     });
-    if (!club) throw new NotFoundException('Club not found');
+    if (!organizer) throw new NotFoundException('Organizer not found');
 
     const now = new Date();
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -152,7 +152,7 @@ export class ClubsService {
   }
 
   async findOne(id: string) {
-    const club = await this.prisma.club.findFirst({
+    const organizer = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       include: {
         _count: { select: { tournaments: true, courses: true } },
@@ -164,11 +164,11 @@ export class ClubsService {
         },
       },
     });
-    if (!club) throw new NotFoundException('Club not found');
-    return club;
+    if (!organizer) throw new NotFoundException('Organizer not found');
+    return organizer;
   }
 
-  async update(id: string, dto: UpdateClubDto) {
+  async update(id: string, dto: UpdateOrganizerDto) {
     const existing = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -180,7 +180,7 @@ export class ClubsService {
         },
       },
     });
-    if (!existing) throw new NotFoundException('Club not found');
+    if (!existing) throw new NotFoundException('Organizer not found');
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
@@ -256,15 +256,15 @@ export class ClubsService {
   }
 
   async suspend(id: string) {
-    const club = await this.prisma.club.findFirst({
+    const organizer = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
     });
-    if (!club) throw new NotFoundException('Club not found');
+    if (!organizer) throw new NotFoundException('Organizer not found');
 
     await this.prisma.$transaction(async (tx) => {
       await tx.club.update({
         where: { id },
-        data: { status: ClubStatus.SUSPENDED },
+        data: { status: OrganizerStatus.SUSPENDED },
       });
       await tx.user.updateMany({
         where: {
@@ -291,15 +291,15 @@ export class ClubsService {
   }
 
   async activate(id: string) {
-    const club = await this.prisma.club.findFirst({
+    const organizer = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
     });
-    if (!club) throw new NotFoundException('Club not found');
+    if (!organizer) throw new NotFoundException('Organizer not found');
 
     await this.prisma.$transaction(async (tx) => {
       await tx.club.update({
         where: { id },
-        data: { status: ClubStatus.ACTIVE },
+        data: { status: OrganizerStatus.ACTIVE },
       });
       await tx.user.updateMany({
         where: {
@@ -316,11 +316,11 @@ export class ClubsService {
   }
 
   async forceLogout(id: string) {
-    const club = await this.prisma.club.findFirst({
+    const organizer = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       select: { id: true },
     });
-    if (!club) throw new NotFoundException('Club not found');
+    if (!organizer) throw new NotFoundException('Organizer not found');
 
     const nextUat = new Date(Date.now() + 1);
     const r = await this.prisma.user.updateMany({
@@ -332,8 +332,8 @@ export class ClubsService {
   }
 
   async remove(id: string) {
-    const club = await this.prisma.club.findUnique({ where: { id } });
-    if (!club) throw new NotFoundException('Club not found');
+    const organizer = await this.prisma.club.findUnique({ where: { id } });
+    if (!organizer) throw new NotFoundException('Organizer not found');
 
     await this.prisma.$transaction(async (tx) => {
       const tournaments = await tx.tournament.findMany({

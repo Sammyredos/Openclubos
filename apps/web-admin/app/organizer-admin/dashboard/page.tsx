@@ -1,19 +1,15 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore, type ElementType } from "react";
+import { useState, useSyncExternalStore, type ElementType } from "react";
 import {
   Users,
   Trophy,
   CheckSquare,
   TrendingUp,
   Wallet,
-  Calendar,
-  Clock,
   ArrowUpRight,
-  ChevronRight,
   User,
   CreditCard,
-  AlertCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -33,7 +29,6 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/input";
-
 import { Skeleton } from "@/components/ui/skeleton";
 
 const registrationData = [
@@ -98,7 +93,7 @@ interface ActivityItemProps {
   amount?: string;
 }
 
-export default function ClubAdminDashboard() {
+export default function OrganizerAdminDashboard() {
   const isMounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -109,7 +104,6 @@ export default function ClubAdminDashboard() {
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title="Total Members"
@@ -154,7 +148,6 @@ export default function ClubAdminDashboard() {
         />
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -174,15 +167,13 @@ export default function ClubAdminDashboard() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="#10b981" 
-                      strokeWidth={3} 
-                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }} 
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, strokeWidth: 0 }}
                     />
                   </LineChart>
@@ -211,21 +202,16 @@ export default function ClubAdminDashboard() {
                   <BarChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} dy={10} />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
                       tick={{ fontSize: 12, fill: "#9ca3af" }}
-                      tickFormatter={(value) => `₦${value/1000000}M`}
+                      tickFormatter={(value) => `₦${value / 1000000}M`}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       formatter={(value) => {
-                        const n =
-                          typeof value === "number"
-                            ? value
-                            : typeof value === "string"
-                              ? Number(value)
-                              : 0;
+                        const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
                         const safe = Number.isFinite(n) ? n : 0;
                         return [`₦${safe.toLocaleString()}`, "Revenue"];
                       }}
@@ -241,136 +227,83 @@ export default function ClubAdminDashboard() {
         </Card>
       </div>
 
-      {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upcoming Tournaments */}
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Upcoming Tournaments</CardTitle>
-            <Button 
-              variant="link" 
-              className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold"
-            >
+            <Button variant="link" className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold">
               View All Upcoming <ArrowUpRight className="w-4 h-4" />
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             {upcomingTournaments.map((t) => (
               <div key={t.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <Trophy className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-bold text-gray-800">{t.name}</p>
-                    <p className="text-[12px] text-gray-500">{t.date}</p>
-                  </div>
+                <div className="flex flex-col">
+                  <p className="text-[14px] font-bold text-gray-800">{t.name}</p>
+                  <p className="text-[12px] text-gray-500 font-medium mt-1">{t.date}</p>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${t.statusColor}`}>
-                  {t.status}
-                </span>
+                <span className={`text-[11px] font-bold px-3 py-1 rounded-xl ${t.statusColor}`}>{t.status}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
         <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
-            <Button 
-              variant="link" 
-              className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold"
-            >
-              View All Upcoming <ArrowUpRight className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {recentActivity.map((activity: ActivityItemProps, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className={`p-2 rounded-xl ${activity.iconBg} ${activity.iconColor}`}>
-                  <activity.icon className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-bold text-gray-800 leading-tight">{activity.title}</p>
-                  <p className="text-[12px] text-gray-500 mt-0.5">{activity.subtitle}</p>
-                  {activity.amount && <p className="text-[12px] font-bold text-gray-700 mt-1">{activity.amount}</p>}
-                </div>
-                <span className="text-[11px] text-gray-400 whitespace-nowrap">{activity.time}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Payment Status */}
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-0">
+          <CardHeader>
             <CardTitle className="text-lg font-bold">Payment Status</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <div className="h-[240px] w-full relative">
-              {isMounted && (
+          <CardContent className="flex items-center justify-center">
+            <div className="h-[220px] w-full max-w-[240px]">
+              {isMounted ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <RePieChart>
-                    <Pie
-                      data={paymentStatusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {paymentStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Pie data={paymentStatusData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={4}>
+                      {paymentStatusData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />
                   </RePieChart>
                 </ResponsiveContainer>
+              ) : (
+                <Skeleton className="h-full w-full rounded-xl" />
               )}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-[12px] text-gray-400 font-medium">Total</p>
-                <p className="text-2xl font-bold text-gray-800">24</p>
-              </div>
             </div>
-            
-            <div className="w-full space-y-3 mt-4">
-              {paymentStatusData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-[13px]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-gray-500 font-medium">{item.name}</span>
-                  </div>
-                  <span className="font-bold text-gray-800">
-                    {item.value} ({Math.round((item.value / 152) * 100)}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <Button variant="outline" className="w-full mt-6 border-gray-200 text-emerald-600 font-bold hover:bg-emerald-50 hover:border-emerald-200 rounded-lg flex items-center justify-center gap-2">
-              View All Upcoming <ArrowUpRight className="w-4 h-4" />
-            </Button>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Subscription Banner */}
-      <div className="bg-emerald-50/50 border border-emerald-100 rounded-[24px] p-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[15px] font-bold text-gray-800">Your next payment of ₦150,000 is due on May 15, 2026</p>
-            <p className="text-[13px] text-gray-500 font-medium">Subscription: Pro Plan (Monthly)</p>
-          </div>
-        </div>
-        <Button className="bg-white hover:bg-gray-50 text-emerald-600 border border-emerald-100 font-bold rounded-lg px-6 h-11">
-          Manage Subscription
-        </Button>
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {recentActivity.map((a) => (
+              <ActivityItem key={`${a.title}-${a.time}`} {...(a as ActivityItemProps)} />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
+
+function ActivityItem({ title, subtitle, time, icon: Icon, iconBg, iconColor, amount }: ActivityItemProps) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg} ${iconColor}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[13px] font-bold text-gray-900 truncate">{title}</p>
+          <p className="text-[12px] text-gray-400 font-medium truncate">{subtitle}</p>
+        </div>
+      </div>
+      <div className="text-right flex flex-col items-end gap-1">
+        {amount ? <p className="text-[12px] font-bold text-emerald-600">{amount}</p> : null}
+        <p className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</p>
+      </div>
+    </div>
+  );
+}
+

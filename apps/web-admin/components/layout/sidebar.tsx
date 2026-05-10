@@ -31,7 +31,7 @@ const SUPER_ADMIN_GROUPS = [
   {
     items: [
       { name: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
-      { name: "Clubs", href: "/super-admin/clubs", icon: Building2 },
+      { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
       { name: "Subscriptions", href: "/super-admin/subscriptions", icon: ShieldCheck },
       { name: "Users", href: "/super-admin/users", icon: Users },
     ],
@@ -58,29 +58,29 @@ const SUPER_ADMIN_GROUPS = [
 const CLUB_ADMIN_GROUPS = [
   {
     items: [
-      { name: "Dashboard", href: "/club-admin/dashboard", icon: LayoutDashboard },
-      { name: "Members", href: "/club-admin/members", icon: Users },
+      { name: "Dashboard", href: "/organizer-admin/dashboard", icon: LayoutDashboard },
+      { name: "Members", href: "/organizer-admin/members", icon: Users },
     ],
   },
   {
     items: [
-      { name: "Tournaments", href: "/club-admin/tournaments", icon: Trophy },
-      { name: "Registrations", href: "/club-admin/registrations", icon: CheckSquare },
-      { name: "Scoring", href: "/club-admin/scoring", icon: Activity },
+      { name: "Tournaments", href: "/organizer-admin/tournaments", icon: Trophy },
+      { name: "Registrations", href: "/organizer-admin/registrations", icon: CheckSquare },
+      { name: "Scoring", href: "/organizer-admin/scoring", icon: Activity },
     ],
   },
   {
     items: [
-      { name: "Leaderboard", href: "/club-admin/leaderboard", icon: BarChart3 },
-      { name: "Payments", href: "/club-admin/payments", icon: CreditCard },
-      { name: "Reports", href: "/club-admin/reports", icon: FileText },
+      { name: "Leaderboard", href: "/organizer-admin/leaderboard", icon: BarChart3 },
+      { name: "Payments", href: "/organizer-admin/payments", icon: CreditCard },
+      { name: "Reports", href: "/organizer-admin/reports", icon: FileText },
     ],
   },
   {
     items: [
-      { name: "Handicaps", href: "/club-admin/handicaps", icon: ShieldCheck },
-      { name: "Notifications", href: "/club-admin/notifications", icon: Bell },
-      { name: "Settings", href: "/club-admin/settings", icon: Settings },
+      { name: "Handicaps", href: "/organizer-admin/handicaps", icon: ShieldCheck },
+      { name: "Notifications", href: "/organizer-admin/notifications", icon: Bell },
+      { name: "Settings", href: "/organizer-admin/settings", icon: Settings },
     ],
   },
 ];
@@ -132,7 +132,7 @@ export function Sidebar() {
                 <Icons.logo className="h-7 w-7 text-white" />
               </div>
               <span className="text-2xl font-bold text-white tracking-tight truncate max-w-[160px]">
-                {user?.clubId ? "Oakwood Country Club" : "Select Club"}
+                {user?.clubId ? "Oakwood Organizer" : "Select Organizer"}
               </span>
             </div>
             <ChevronDown className="h-4.5 w-4.5 text-gray-400 group-hover:text-white transition-colors" />
@@ -189,7 +189,7 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[16px] font-bold text-white truncate">{user?.name || "Admin User"}</p>
-            <p className="text-[13px] text-gray-500 truncate">{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Club Admin'}</p>
+            <p className="text-[13px] text-gray-500 truncate">{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Organizer Admin'}</p>
           </div>
         </div>
         <div className="px-4 border-t border-white/5 pt-4">

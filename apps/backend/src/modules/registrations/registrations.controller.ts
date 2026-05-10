@@ -37,13 +37,15 @@ export class RegistrationsController {
   findAll(
     @Request() req: any,
     @Query('clubId') clubId?: string,
+    @Query('organizerId') organizerId?: string,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
-    const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    const effectiveClubId =
+      role === UserRole.CLUB_ADMIN ? userClubId : (clubId ?? organizerId);
     return this.registrationsService.findAll({
       clubId: effectiveClubId,
       paymentStatus,

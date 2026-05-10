@@ -204,7 +204,7 @@ export default function SuperAdminDashboard() {
       const [statsRes, activityRes, clubsListRes] = await Promise.all([
         fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
         fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
-        fetch(`${API_BASE}/super-admin/clubs`, { headers }),
+        fetch(`${API_BASE}/organizers`, { headers }),
       ]);
 
       if (statsRes.status === 401 || statsRes.status === 403) {
@@ -265,7 +265,7 @@ export default function SuperAdminDashboard() {
     try {
       const now = new Date();
       const growthYear = range === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
-      const res = await fetch(`${API_BASE}/super-admin/dashboard/club-growth?year=${growthYear}`, { headers });
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/organizer-growth?year=${growthYear}`, { headers });
       if (res.ok) setGrowthData((await res.json()) as GrowthPoint[]);
     } finally {
       setGrowthLoading(false);
@@ -277,7 +277,7 @@ export default function SuperAdminDashboard() {
     if (!headers) return;
     setTopClubsLoading(true);
     try {
-      const url = `${API_BASE}/super-admin/dashboard/top-clubs?range=${encodeURIComponent(range)}`;
+      const url = `${API_BASE}/super-admin/dashboard/top-organizers?range=${encodeURIComponent(range)}`;
       const res = await fetch(url, { headers });
       if (res.ok) setPerformingClubs((await res.json()) as PerformingClub[]);
     } finally {
@@ -304,7 +304,7 @@ export default function SuperAdminDashboard() {
       })();
     }, 0);
     const unsubscribe = subscribeAdminEvents((evt) => {
-      if (evt.type !== "clubs-changed") return;
+      if (evt.type !== "organizers-changed") return;
       if (cancelled) return;
       fetchStatsAndActivityAndClubsList();
       fetchTopClubs(topClubsRange);
@@ -325,25 +325,37 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     if (!isMounted) return;
     if (loading) return;
-    fetchRevenueTrend(revenueRange);
+    const id = window.setTimeout(() => {
+      fetchRevenueTrend(revenueRange);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [fetchRevenueTrend, isMounted, loading, revenueRange]);
 
   useEffect(() => {
     if (!isMounted) return;
     if (loading) return;
-    fetchClubGrowth(growthRange);
+    const id = window.setTimeout(() => {
+      fetchClubGrowth(growthRange);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [fetchClubGrowth, growthRange, isMounted, loading]);
 
   useEffect(() => {
     if (!isMounted) return;
     if (loading) return;
-    fetchTopClubs(topClubsRange);
+    const id = window.setTimeout(() => {
+      fetchTopClubs(topClubsRange);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [fetchTopClubs, isMounted, loading, topClubsRange]);
 
   useEffect(() => {
     if (!isMounted) return;
     if (loading) return;
-    setSubscriptionClubs(computeTopSubs(clubsList, topSubsRange));
+    const id = window.setTimeout(() => {
+      setSubscriptionClubs(computeTopSubs(clubsList, topSubsRange));
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [clubsList, computeTopSubs, isMounted, loading, topSubsRange]);
 
   if (!isMounted) return null;
@@ -358,7 +370,7 @@ export default function SuperAdminDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <StatCard
-          title="Total Clubs"
+          title="Total Organizers"
           value={stats?.totalClubs?.toString() || "0"}
           change={stats?.clubsGrowth}
           icon={Building2}
@@ -367,7 +379,7 @@ export default function SuperAdminDashboard() {
           loading={loading || statsLoading}
         />
         <StatCard
-          title="Active Clubs"
+          title="Active Organizers"
           value={stats?.activeClubs?.toString() || "0"}
           subValue={stats?.activeClubsPercent || undefined}
           subIcon={Users2}
@@ -496,7 +508,7 @@ export default function SuperAdminDashboard() {
         </Card>
       </div>
 
-      {/* Activity, Alerts, Top Clubs Section */}
+      {/* Activity, Alerts, Top Organizers Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
         <Card className="border-none shadow-sm">
@@ -529,10 +541,10 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Top Clubs by Subscription */}
+        {/* Top Organizers by Subscription */}
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-xl font-bold">Top Clubs by Subscription</CardTitle>
+            <CardTitle className="text-xl font-bold">Top Organizers by Subscription</CardTitle>
             <SearchableSelect
               value={topSubsRange}
               onValueChange={setTopSubsRange}
@@ -576,10 +588,10 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Top Clubs by Tournament */}
+        {/* Top Organizers by Tournament */}
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-xl font-bold">Top Clubs by Tournament</CardTitle>
+            <CardTitle className="text-xl font-bold">Top Organizers by Tournament</CardTitle>
             <SearchableSelect
               value={topClubsRange}
               onValueChange={setTopClubsRange}

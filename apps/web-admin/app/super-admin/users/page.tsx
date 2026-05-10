@@ -253,7 +253,12 @@ export default function SuperAdminUsersPage() {
     () =>
       ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
         value: v,
-        label: v === "All Roles" ? "All Roles" : v.replaceAll("_", " "),
+        label:
+          v === "All Roles"
+            ? "All Roles"
+            : v === "CLUB_ADMIN"
+              ? "ORGANIZER ADMIN"
+              : v.replaceAll("_", " "),
       })),
     [],
   );
@@ -272,7 +277,7 @@ export default function SuperAdminUsersPage() {
   const rolesOverview = useMemo(() => {
     const map = stats?.roles ?? {};
     const rows = [
-      { key: "CLUB_ADMIN", label: "Club Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
+      { key: "CLUB_ADMIN", label: "Organizer Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
       { key: "PLAYER", label: "Players", color: "bg-emerald-500", value: map.PLAYER ?? 0 },
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];

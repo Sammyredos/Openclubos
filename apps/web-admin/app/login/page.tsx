@@ -21,6 +21,14 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginPageInner />
+    </React.Suspense>
+  )
+}
+
+function LoginPageInner() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
   const { login } = useAuth()

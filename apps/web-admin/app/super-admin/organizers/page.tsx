@@ -38,11 +38,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import Link from "next/link";
 import { toast } from "sonner";
-import { activateClub, deleteClub, forceLogoutClub, getClubs, suspendClub, updateClub } from "@/lib/api/clubs";
+import {
+  activateOrganizer,
+  deleteOrganizer,
+  forceLogoutOrganizer,
+  getOrganizers,
+  suspendOrganizer,
+  updateOrganizer,
+} from "@/lib/api/organizers";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { updateMember } from "@/lib/api/members";
 
-type ApiClub = {
+type ApiOrganizer = {
   id: string;
   name: string;
   address: string | null;
@@ -53,7 +60,7 @@ type ApiClub = {
   users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
 };
 
-type ClubRow = {
+type OrganizerRow = {
   id: string;
   name: string;
   location: string;
@@ -92,28 +99,27 @@ function generatePassword(length = 12) {
   return out;
 }
 
-function toClubRow(c: ApiClub): ClubRow {
-  const adminUser = c.users?.[0] || null;
+function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
+  const adminUser = o.users?.[0] || null;
   const adminName = adminUser ? fullName(adminUser.firstName, adminUser.lastName) : "—";
   const adminEmail = adminUser?.email || "—";
-  const plan = c.plan === "PRO" ? "Pro" : c.plan === "BASIC" ? "Basic" : "—";
-  const status =
-    c.status === "SUSPENDED" ? "Suspended" : c.status === "EXPIRED" ? "Expired" : "Active";
+  const plan = o.plan === "PRO" ? "Pro" : o.plan === "BASIC" ? "Basic" : "—";
+  const status = o.status === "SUSPENDED" ? "Suspended" : o.status === "EXPIRED" ? "Expired" : "Active";
   return {
-    id: c.id,
-    name: c.name,
-    location: c.address || "—",
+    id: o.id,
+    name: o.name,
+    location: o.address || "—",
     admin: {
       id: adminUser?.id ?? null,
       name: adminName,
       email: adminEmail,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || c.id)}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`,
     },
     plan,
     status,
-    joinedDate: formatJoinedDate(c.createdAt),
-    createdAtISO: c.createdAt,
-    logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`,
+    joinedDate: formatJoinedDate(o.createdAt),
+    createdAtISO: o.createdAt,
+    logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}`,
   };
 }
 
@@ -126,26 +132,24 @@ function getErrorMessage(e: unknown) {
   return null;
 }
 
-export default function ClubsPage() {
+export default function OrganizersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clubsData, setClubsData] = useState<ClubRow[]>([]);
+  const [organizersData, setOrganizersData] = useState<OrganizerRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [planFilter, setPlanFilter] = useState("All Plans");
   const [locationFilter, setLocationFilter] = useState("All Locations");
-  
-  // Pagination State
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
-  const [selectedClub, setSelectedClub] = useState<ClubRow | null>(null);
+  const [selectedOrganizer, setSelectedOrganizer] = useState<OrganizerRow | null>(null);
   const [editPlan, setEditPlan] = useState("Pro");
   const [editName, setEditName] = useState("");
   const [editLocation, setEditLocation] = useState("");
@@ -158,7 +162,7 @@ export default function ClubsPage() {
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const [dropdownClub, setDropdownClub] = useState<ClubRow | null>(null);
+  const [dropdownOrganizer, setDropdownOrganizer] = useState<OrganizerRow | null>(null);
   const [mutating, setMutating] = useState(false);
   const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
 
@@ -168,22 +172,21 @@ export default function ClubsPage() {
     if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
     closeTimeoutRef.current = window.setTimeout(() => {
       setDropdownAnchorEl(null);
-      setDropdownClub(null);
+      setDropdownOrganizer(null);
       closeTimeoutRef.current = null;
     }, 160);
   };
 
-
-  async function reloadClubs() {
+  async function reloadOrganizers() {
     setLoading(true);
     setError(null);
     try {
-      const data = (await getClubs()) as ApiClub[];
-      const rows = Array.isArray(data) ? data.map(toClubRow) : [];
-      setClubsData(rows);
+      const data = (await getOrganizers()) as ApiOrganizer[];
+      const rows = Array.isArray(data) ? data.map(toOrganizerRow) : [];
+      setOrganizersData(rows);
     } catch (e: unknown) {
-      setError(getErrorMessage(e) || "Failed to fetch clubs");
-      setClubsData([]);
+      setError(getErrorMessage(e) || "Failed to fetch organizers");
+      setOrganizersData([]);
     } finally {
       setLoading(false);
     }
@@ -196,20 +199,20 @@ export default function ClubsPage() {
         const token = getAuthToken();
         if (!token) {
           setError("Not authenticated. Please login again.");
-          setClubsData([]);
+          setOrganizersData([]);
           setLoading(false);
           return;
         }
         setLoading(true);
         setError(null);
-        const data = (await getClubs()) as ApiClub[];
+        const data = (await getOrganizers()) as ApiOrganizer[];
         if (cancelled) return;
-        const rows = Array.isArray(data) ? data.map(toClubRow) : [];
-        setClubsData(rows);
+        const rows = Array.isArray(data) ? data.map(toOrganizerRow) : [];
+        setOrganizersData(rows);
       } catch (e: unknown) {
         if (cancelled) return;
-        setError(getErrorMessage(e) || "Failed to fetch clubs");
-        setClubsData([]);
+        setError(getErrorMessage(e) || "Failed to fetch organizers");
+        setOrganizersData([]);
       } finally {
         if (cancelled) return;
         setLoading(false);
@@ -224,9 +227,9 @@ export default function ClubsPage() {
   useEffect(() => {
     let cancelled = false;
     const unsubscribe = subscribeAdminEvents((evt) => {
-      if (evt.type !== "clubs-changed") return;
+      if (evt.type !== "organizers-changed") return;
       if (cancelled) return;
-      reloadClubs();
+      reloadOrganizers();
     });
     return () => {
       cancelled = true;
@@ -234,72 +237,67 @@ export default function ClubsPage() {
     };
   }, []);
 
-  const filteredClubs = clubsData.filter((club) => {
-    const matchesSearch = 
-      club.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      club.admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      club.admin.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === "All Status" || club.status === statusFilter;
-    const matchesPlan = planFilter === "All Plans" || club.plan === planFilter;
-    const matchesLocation = locationFilter === "All Locations" || club.location.includes(locationFilter);
+  const filteredOrganizers = organizersData.filter((organizer) => {
+    const matchesSearch =
+      organizer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      organizer.admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      organizer.admin.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = statusFilter === "All Status" || organizer.status === statusFilter;
+    const matchesPlan = planFilter === "All Plans" || organizer.plan === planFilter;
+    const matchesLocation = locationFilter === "All Locations" || organizer.location.includes(locationFilter);
 
     return matchesSearch && matchesStatus && matchesPlan && matchesLocation;
   });
 
-  // Paginated data
-  const totalPages = Math.max(1, Math.ceil(filteredClubs.length / itemsPerPage));
-  const paginatedClubs = filteredClubs.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredOrganizers.length / itemsPerPage));
+  const paginatedOrganizers = filteredOrganizers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const uniqueLocations = Array.from(new Set(clubsData.map((c) => c.location))).filter((v) => v !== "—");
+  const uniqueLocations = Array.from(new Set(organizersData.map((o) => o.location))).filter((v) => v !== "—");
 
-  const totalClubs = clubsData.length;
-  const activeClubs = clubsData.filter((c) => c.status === "Active").length;
-  const suspendedClubs = clubsData.filter((c) => c.status === "Suspended").length;
-  const expiredClubs = clubsData.filter((c) => c.status === "Expired").length;
+  const totalOrganizers = organizersData.length;
+  const activeOrganizers = organizersData.filter((o) => o.status === "Active").length;
+  const suspendedOrganizers = organizersData.filter((o) => o.status === "Suspended").length;
+  const expiredOrganizers = organizersData.filter((o) => o.status === "Expired").length;
   const now = new Date();
-  const newThisMonth = clubsData.filter((c) => {
-    const d = new Date(c.createdAtISO);
+  const newThisMonth = organizersData.filter((o) => {
+    const d = new Date(o.createdAtISO);
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
 
-  // Handlers
-  const handleEdit = (club: ClubRow) => {
-    setSelectedClub(club);
-    setEditPlan(club.plan || "Pro");
-    setEditName(club.name || "");
-    setEditLocation(club.location || "");
-    setEditAdminName(club.admin?.name || "");
-    setEditAdminEmail(club.admin?.email || "");
+  const handleEdit = (organizer: OrganizerRow) => {
+    setSelectedOrganizer(organizer);
+    setEditPlan(organizer.plan || "Pro");
+    setEditName(organizer.name || "");
+    setEditLocation(organizer.location || "");
+    setEditAdminName(organizer.admin?.name || "");
+    setEditAdminEmail(organizer.admin?.email || "");
     setIsEditModalOpen(true);
     closeDropdown();
   };
 
-  const handleDelete = (club: ClubRow) => {
-    setSelectedClub(club);
+  const handleDelete = (organizer: OrganizerRow) => {
+    setSelectedOrganizer(organizer);
     setDeleteConfirmText("");
     setIsDeleteModalOpen(true);
     closeDropdown();
   };
 
-  const handleStatusChange = (club: ClubRow) => {
-    setSelectedClub(club);
-    setStatusAction(club.status === "Suspended" ? "activate" : "suspend");
+  const handleStatusChange = (organizer: OrganizerRow) => {
+    setSelectedOrganizer(organizer);
+    setStatusAction(organizer.status === "Suspended" ? "activate" : "suspend");
     setIsStatusModalOpen(true);
     closeDropdown();
   };
 
-  const openForceLogoutModal = (club: ClubRow) => {
-    setSelectedClub(club);
+  const openForceLogoutModal = (organizer: OrganizerRow) => {
+    setSelectedOrganizer(organizer);
     setIsForceLogoutModalOpen(true);
     closeDropdown();
   };
 
-  const openResetPasswordModal = (club: ClubRow) => {
-    setSelectedClub(club);
+  const openResetPasswordModal = (organizer: OrganizerRow) => {
+    setSelectedOrganizer(organizer);
     setResetTab("link");
     setGeneratedPassword(null);
     setCopiedPassword(false);
@@ -308,9 +306,9 @@ export default function ClubsPage() {
   };
 
   const sendResetLink = async () => {
-    const email = selectedClub?.admin?.email;
+    const email = selectedOrganizer?.admin?.email;
     if (!email || email === "—") {
-      toast.error("No admin email found for this club");
+      toast.error("No admin email found for this organizer");
       return;
     }
     setMutating(true);
@@ -326,9 +324,9 @@ export default function ClubsPage() {
   };
 
   const generateAndSetPassword = async () => {
-    const adminId = selectedClub?.admin?.id;
+    const adminId = selectedOrganizer?.admin?.id;
     if (!adminId) {
-      toast.error("No admin user found for this club");
+      toast.error("No admin user found for this organizer");
       return;
     }
     const pw = generatePassword(12);
@@ -356,18 +354,18 @@ export default function ClubsPage() {
     }
   };
 
-  const handleMoreAction = (action: string, club: ClubRow) => {
+  const handleMoreAction = (action: string, organizer: OrganizerRow) => {
     closeDropdown();
     if (action === "view-analytics") {
-      router.push(`/super-admin/clubs/${club.id}`);
+      router.push(`/super-admin/organizers/${organizer.id}`);
       return;
     }
     if (action === "edit") {
-      handleEdit(club);
+      handleEdit(organizer);
       return;
     }
     if (action === "reset-password") {
-      openResetPasswordModal(club);
+      openResetPasswordModal(organizer);
       return;
     }
     if (action === "audit-logs") {
@@ -375,83 +373,83 @@ export default function ClubsPage() {
       return;
     }
     if (action === "export") {
-      const blob = new Blob([JSON.stringify(club, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(organizer, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(club?.name || "club").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
+      a.download = `${(organizer?.name || "organizer").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Club data exported");
+      toast.success("Organizer data exported");
     }
   };
 
   const confirmDelete = () => {
-    if (deleteConfirmText.trim().toUpperCase() !== "DELETE" || !selectedClub?.id) return;
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE" || !selectedOrganizer?.id) return;
     setMutating(true);
-    deleteClub(selectedClub.id)
+    deleteOrganizer(selectedOrganizer.id)
       .then(() => {
-        toast.success(`${selectedClub?.name} has been deleted`);
+        toast.success(`${selectedOrganizer?.name} has been deleted`);
         setIsDeleteModalOpen(false);
-        broadcastAdminEvent("clubs-changed");
-        return reloadClubs();
+        broadcastAdminEvent("organizers-changed");
+        return reloadOrganizers();
       })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete organizer"))
       .finally(() => setMutating(false));
   };
 
   const confirmStatusChange = () => {
-    if (!selectedClub?.id) return;
+    if (!selectedOrganizer?.id) return;
     setMutating(true);
-    const op = statusAction === "activate" ? activateClub : suspendClub;
-    op(selectedClub.id)
+    const op = statusAction === "activate" ? activateOrganizer : suspendOrganizer;
+    op(selectedOrganizer.id)
       .then(() => {
         toast.success(
           statusAction === "activate"
-            ? `${selectedClub?.name} has been activated`
-            : `${selectedClub?.name} has been suspended`,
+            ? `${selectedOrganizer?.name} has been activated`
+            : `${selectedOrganizer?.name} has been suspended`,
         );
         setIsStatusModalOpen(false);
-        broadcastAdminEvent("clubs-changed");
-        return reloadClubs();
+        broadcastAdminEvent("organizers-changed");
+        return reloadOrganizers();
       })
       .catch((e: unknown) =>
         toast.error(
-          getErrorMessage(e) || (statusAction === "activate" ? "Failed to activate club" : "Failed to suspend club"),
+          getErrorMessage(e) ||
+            (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
         ),
       )
       .finally(() => setMutating(false));
   };
 
   const confirmForceLogout = () => {
-    if (!selectedClub?.id) return;
+    if (!selectedOrganizer?.id) return;
     setMutating(true);
-    forceLogoutClub(selectedClub.id)
+    forceLogoutOrganizer(selectedOrganizer.id)
       .then(() => {
-        toast.success("Club users have been logged out");
+        toast.success("Organizer users have been logged out");
         setIsForceLogoutModalOpen(false);
-        broadcastAdminEvent("clubs-changed");
-        return reloadClubs();
+        broadcastAdminEvent("organizers-changed");
+        return reloadOrganizers();
       })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout organizer"))
       .finally(() => setMutating(false));
   };
 
   const saveEdit = () => {
-    if (!selectedClub?.id) return;
+    if (!selectedOrganizer?.id) return;
     const plan = editPlan === "Pro" ? "PRO" : editPlan === "Basic" ? "BASIC" : undefined;
     const name = editName.trim();
     const address = editLocation.trim();
     const adminName = editAdminName.trim();
     const adminEmail = editAdminEmail.trim();
     const adminPairValid =
-      (adminName.length === 0 && adminEmail.length === 0) ||
-      (adminName.length > 0 && adminEmail.length > 0);
+      (adminName.length === 0 && adminEmail.length === 0) || (adminName.length > 0 && adminEmail.length > 0);
 
     if (name.length === 0) {
-      toast.error("Club name is required");
+      toast.error("Organizer name is required");
       return;
     }
     if (address.length === 0) {
@@ -464,7 +462,7 @@ export default function ClubsPage() {
     }
 
     setMutating(true);
-    updateClub(selectedClub.id, {
+    updateOrganizer(selectedOrganizer.id, {
       name: name || undefined,
       address: address || undefined,
       plan,
@@ -472,12 +470,12 @@ export default function ClubsPage() {
       adminEmail: adminEmail || undefined,
     })
       .then(() => {
-        toast.success("Club updated");
+        toast.success("Organizer updated");
         setIsEditModalOpen(false);
-        broadcastAdminEvent("clubs-changed");
-        return reloadClubs();
+        broadcastAdminEvent("organizers-changed");
+        return reloadOrganizers();
       })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update club"))
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update organizer"))
       .finally(() => setMutating(false));
   };
 
@@ -485,35 +483,34 @@ export default function ClubsPage() {
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
-          title="Total Clubs"
-          value={String(totalClubs)}
+          title="Total Organizers"
+          value={String(totalOrganizers)}
           icon={Building2}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
           loading={loading}
         />
         <StatCard
-          title="Active Clubs"
-          value={String(activeClubs)}
+          title="Active Organizers"
+          value={String(activeOrganizers)}
           icon={Users}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
           loading={loading}
         />
         <StatCard
-          title="Suspended Clubs"
-          value={String(suspendedClubs)}
+          title="Suspended Organizers"
+          value={String(suspendedOrganizers)}
           icon={ShieldAlert}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
           loading={loading}
         />
         <StatCard
-          title="Expired Clubs"
-          value={String(expiredClubs)}
+          title="Expired Organizers"
+          value={String(expiredOrganizers)}
           icon={Clock}
           iconBg="bg-red-50"
           iconColor="text-red-600"
@@ -531,23 +528,22 @@ export default function ClubsPage() {
 
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-xl font-bold">All Clubs</CardTitle>
+          <CardTitle className="text-xl font-bold">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
-              <Plus className="w-4 h-4" /> Add Club
+              <Plus className="w-4 h-4" /> Add Organizer
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Filters */}
           <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
             <div className="relative flex-1 min-w-[280px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search club name, location or admin..." 
+              <Input
+                placeholder="Search organizer name, location or admin..."
                 className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => {
@@ -594,12 +590,11 @@ export default function ClubsPage() {
             </Button>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">Club Name</th>
+                  <th className="px-6 py-4">Organizer Name</th>
                   <th className="px-6 py-4">Location</th>
                   <th className="px-6 py-4">Admin</th>
                   <th className="px-6 py-4">Plan</th>
@@ -655,104 +650,114 @@ export default function ClubsPage() {
                       </td>
                     </tr>
                   ))
-                ) : paginatedClubs.length > 0 ? (
-                  paginatedClubs.map((club) => {
+                ) : paginatedOrganizers.length > 0 ? (
+                  paginatedOrganizers.map((organizer) => {
                     return (
-                    <tr key={club.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
-                            <img src={club.logo} alt={club.name} className="w-full h-full object-cover" />
+                      <tr key={organizer.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
+                              <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[15px] font-bold text-gray-800">{organizer.name}</span>
                           </div>
-                          <span className="text-[15px] font-bold text-gray-800">{club.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{club.location}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={club.admin.avatar} alt={club.admin.name} className="w-8 h-8 rounded-full border border-gray-100" />
-                          <div className="flex flex-col">
-                            <span className="text-[14px] font-bold text-gray-800 leading-tight">{club.admin.name}</span>
-                            <span className="text-[12px] text-gray-400 font-medium">{club.admin.email}</span>
+                        </td>
+                        <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{organizer.location}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={organizer.admin.avatar}
+                              alt={organizer.admin.name}
+                              className="w-8 h-8 rounded-full border border-gray-100"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-[14px] font-bold text-gray-800 leading-tight">{organizer.admin.name}</span>
+                              <span className="text-[12px] text-gray-400 font-medium">{organizer.admin.email}</span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "text-[11px] font-bold px-2.5 py-1 rounded-lg",
-                          club.plan === 'Pro' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                        )}>
-                          {club.plan}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "text-[11px] font-bold px-2.5 py-1 rounded-lg",
-                          club.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 
-                          club.status === 'Suspended' ? 'bg-amber-50 text-amber-600' : 
-                          'bg-red-50 text-red-600'
-                        )}>
-                          {club.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{club.joinedDate}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <Link 
-                            href={`/super-admin/clubs/${club.id}`}
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
-                            title="View Club Details"
-                          >
-                            <Eye className="w-4.5 h-4.5" />
-                          </Link>
-                          <button 
-                            disabled={club.status === "Expired"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
                             className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              club.status === "Expired"
-                                ? "text-gray-300 cursor-not-allowed"
-                                : club.status === "Suspended"
-                                  ? "text-emerald-600 hover:bg-emerald-50"
-                                  : "text-red-600 hover:bg-red-50",
+                              "text-[11px] font-bold px-2.5 py-1 rounded-lg",
+                              organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600",
                             )}
-                            title={club.status === "Suspended" ? "Activate Club" : "Suspend Club"}
-                            onClick={() => handleStatusChange(club)}
                           >
-                            {club.status === "Suspended" ? (
-                              <CheckCircle2 className="w-4.5 h-4.5" />
-                            ) : (
-                              <Ban className="w-4.5 h-4.5" />
+                            {organizer.plan}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={cn(
+                              "text-[11px] font-bold px-2.5 py-1 rounded-lg",
+                              organizer.status === "Active"
+                                ? "bg-emerald-50 text-emerald-600"
+                                : organizer.status === "Suspended"
+                                  ? "bg-amber-50 text-amber-600"
+                                  : "bg-red-50 text-red-600",
                             )}
-                          </button>
-                          <div className="relative">
-                            <button 
-                              onClick={(e) => {
-                                if (activeDropdown === club.id) {
-                                  closeDropdown();
-                                } else {
-                                  if (closeTimeoutRef.current != null) {
-                                    window.clearTimeout(closeTimeoutRef.current);
-                                    closeTimeoutRef.current = null;
-                                  }
-                                  setActiveDropdown(club.id);
-                                  setDropdownAnchorEl(e.currentTarget);
-                                  setDropdownClub(club);
-                                }
-                              }}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                          >
+                            {organizer.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{organizer.joinedDate}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={`/super-admin/organizers/${organizer.id}`}
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                              title="View Organizer Details"
                             >
-                              <MoreHorizontal className="w-4.5 h-4.5" />
+                              <Eye className="w-4.5 h-4.5" />
+                            </Link>
+                            <button
+                              disabled={organizer.status === "Expired"}
+                              className={cn(
+                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                organizer.status === "Expired"
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : organizer.status === "Suspended"
+                                    ? "text-emerald-600 hover:bg-emerald-50"
+                                    : "text-red-600 hover:bg-red-50",
+                              )}
+                              title={organizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
+                              onClick={() => handleStatusChange(organizer)}
+                            >
+                              {organizer.status === "Suspended" ? (
+                                <CheckCircle2 className="w-4.5 h-4.5" />
+                              ) : (
+                                <Ban className="w-4.5 h-4.5" />
+                              )}
                             </button>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  if (activeDropdown === organizer.id) {
+                                    closeDropdown();
+                                  } else {
+                                    if (closeTimeoutRef.current != null) {
+                                      window.clearTimeout(closeTimeoutRef.current);
+                                      closeTimeoutRef.current = null;
+                                    }
+                                    setActiveDropdown(organizer.id);
+                                    setDropdownAnchorEl(e.currentTarget);
+                                    setDropdownOrganizer(organizer);
+                                  }
+                                }}
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                              >
+                                <MoreHorizontal className="w-4.5 h-4.5" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                      );
+                        </td>
+                      </tr>
+                    );
                   })
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">
-                      No clubs found matching your filters.
+                      No organizers found matching your filters.
                     </td>
                   </tr>
                 )}
@@ -760,83 +765,84 @@ export default function ClubsPage() {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
             <p className="text-[13px] text-gray-500 font-medium">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredClubs.length)} of {filteredClubs.length} clubs
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, filteredOrganizers.length)} of {filteredOrganizers.length} organizers
             </p>
-            <Pagination 
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         </CardContent>
       </Card>
 
-      <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2">
-        {dropdownClub ? (
+      <FloatingMenu
+        open={activeDropdown != null}
+        anchorEl={dropdownAnchorEl}
+        onClose={closeDropdown}
+        placement="top-end"
+        className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+      >
+        {dropdownOrganizer ? (
           <>
             <button
-              onClick={() => handleMoreAction("view-analytics", dropdownClub)}
+              onClick={() => handleMoreAction("view-analytics", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <BarChart3 className="w-4 h-4 text-gray-400" />
               View Analytics
             </button>
             <button
-              onClick={() => handleMoreAction("edit", dropdownClub)}
+              onClick={() => handleMoreAction("edit", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit Club
+              Edit Organizer
             </button>
             <button
               disabled={mutating}
-              onClick={() => openForceLogoutModal(dropdownClub)}
+              onClick={() => openForceLogoutModal(dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <LogOut className="w-4 h-4 text-gray-400" />
               Force Logout
             </button>
             <button
-              onClick={() => handleMoreAction("reset-password", dropdownClub)}
+              onClick={() => handleMoreAction("reset-password", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <KeyRound className="w-4 h-4 text-gray-400" />
               Reset Admin Password
             </button>
             <button
-              onClick={() => handleMoreAction("audit-logs", dropdownClub)}
+              onClick={() => handleMoreAction("audit-logs", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Clock className="w-4 h-4 text-gray-400" />
               Audit Logs
             </button>
             <button
-              onClick={() => handleMoreAction("export", dropdownClub)}
+              onClick={() => handleMoreAction("export", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
-              Export Club Data
+              Export Organizer Data
             </button>
             <div className="h-px bg-gray-50 my-1" />
             <button
-              onClick={() => handleDelete(dropdownClub)}
+              onClick={() => handleDelete(dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
-              Delete Club
+              Delete Organizer
             </button>
           </>
         ) : null}
       </FloatingMenu>
 
-      {/* Edit Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Edit Club"
+        title="Edit Organizer"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="rounded-lg font-bold">
@@ -863,7 +869,7 @@ export default function ClubsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Club Name</Label>
+              <Label className="font-bold text-gray-700">Organizer Name</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
             </div>
             <div className="space-y-2">
@@ -878,7 +884,12 @@ export default function ClubsPage() {
             </div>
             <div className="space-y-2">
               <Label className="font-bold text-gray-700">Admin Email</Label>
-              <Input type="email" value={editAdminEmail} onChange={(e) => setEditAdminEmail(e.target.value)} className="rounded-xl h-12" />
+              <Input
+                type="email"
+                value={editAdminEmail}
+                onChange={(e) => setEditAdminEmail(e.target.value)}
+                className="rounded-xl h-12"
+              />
             </div>
           </div>
           <div className="space-y-2">
@@ -897,11 +908,10 @@ export default function ClubsPage() {
         </div>
       </Modal>
 
-      {/* Status Modal */}
       <Modal
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
-        title={statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
+        title={statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
@@ -929,15 +939,17 @@ export default function ClubsPage() {
               statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-amber-50 text-amber-500",
             )}
           >
-            {statusAction === "activate" ? <CheckCircle2 className="h-10 w-10" /> : <AlertTriangle className="h-10 w-10" />}
+            {statusAction === "activate" ? (
+              <CheckCircle2 className="h-10 w-10" />
+            ) : (
+              <AlertTriangle className="h-10 w-10" />
+            )}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">
-            {statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
-          </h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             {statusAction === "activate"
-              ? `Are you sure you want to activate ${selectedClub?.name}?`
-              : `Are you sure you want to suspend ${selectedClub?.name}?`}
+              ? `Are you sure you want to activate ${selectedOrganizer?.name}?`
+              : `Are you sure you want to suspend ${selectedOrganizer?.name}?`}
           </p>
         </div>
       </Modal>
@@ -945,7 +957,7 @@ export default function ClubsPage() {
       <Modal
         isOpen={isForceLogoutModalOpen}
         onClose={() => setIsForceLogoutModalOpen(false)}
-        title="Force Logout Club?"
+        title="Force Logout Organizer?"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-bold">
@@ -965,9 +977,10 @@ export default function ClubsPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
             <LogOut className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this club user?</h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
-            This will immediately log out this user <br></br><span className="font-bold text-gray-800">{selectedClub?.name ?? "this club"}</span>.
+            This will immediately log out this user <br />
+            <span className="font-bold text-gray-800">{selectedOrganizer?.name ?? "this organizer"}</span>.
           </p>
         </div>
       </Modal>
@@ -978,11 +991,7 @@ export default function ClubsPage() {
         title="Reset Password"
         footer={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setIsResetPasswordModalOpen(false)}
-              className="rounded-lg font-bold"
-            >
+            <Button variant="outline" onClick={() => setIsResetPasswordModalOpen(false)} className="rounded-lg font-bold">
               Cancel
             </Button>
             {resetTab === "link" ? (
@@ -1040,7 +1049,7 @@ export default function ClubsPage() {
               </div>
               <h4 className="text-xl font-bold text-gray-900 mb-2">Send password reset link to</h4>
               <p className="text-gray-500 max-w-sm">
-                <span className="font-bold text-gray-800">{selectedClub?.admin?.email || "—"}</span>
+                <span className="font-bold text-gray-800">{selectedOrganizer?.admin?.email || "—"}</span>
               </p>
               <p className="text-gray-500 max-w-sm mt-2">
                 Admin will receive an email with instructions to reset their password.
@@ -1053,9 +1062,7 @@ export default function ClubsPage() {
                   <KeyRound className="h-10 w-10" />
                 </div>
                 <h4 className="text-xl font-bold text-gray-900 mb-2">Generate a new password</h4>
-                <p className="text-gray-500 max-w-sm">
-                  This will immediately set a new password for the club admin.
-                </p>
+                <p className="text-gray-500 max-w-sm">This will immediately set a new password for the organizer admin.</p>
               </div>
 
               {generatedPassword && (
@@ -1070,11 +1077,7 @@ export default function ClubsPage() {
                     className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                     title="Copy password"
                   >
-                    {copiedPassword ? (
-                      <Check className="h-5 w-5 text-[#10b981]" />
-                    ) : (
-                      <Clipboard className="h-5 w-5" />
-                    )}
+                    {copiedPassword ? <Check className="h-5 w-5 text-[#10b981]" /> : <Clipboard className="h-5 w-5" />}
                   </button>
                 </div>
               )}
@@ -1083,22 +1086,21 @@ export default function ClubsPage() {
         </div>
       </Modal>
 
-      {/* Delete Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete Club Permanently?"
+        title="Delete Organizer Permanently?"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
               Cancel
             </Button>
-            <Button 
+            <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE"}
               className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
               onClick={confirmDelete}
             >
-              Delete Club
+              Delete Organizer
             </Button>
           </>
         }
@@ -1108,19 +1110,19 @@ export default function ClubsPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Club Permanently?</h4>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Organizer Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               This action cannot be undone.
               <br />
-              All club data will be permanently deleted.
+              All organizer data will be permanently deleted.
             </p>
           </div>
-          
+
           <div className="space-y-3">
             <Label className="font-bold text-gray-700">
               Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
-            <Input 
+            <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
@@ -1132,3 +1134,4 @@ export default function ClubsPage() {
     </div>
   );
 }
+

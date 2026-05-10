@@ -25,18 +25,30 @@ export class TournamentsController {
   }
 
   @Get()
-  findAll(@Query('clubId') clubId?: string, @Query('status') status?: string) {
-    return this.tournamentsService.findAll({ clubId, status });
+  findAll(
+    @Query('clubId') clubId?: string,
+    @Query('organizerId') organizerId?: string,
+    @Query('status') status?: string,
+  ) {
+    const effectiveClubId = clubId ?? organizerId;
+    return this.tournamentsService.findAll({ clubId: effectiveClubId, status });
   }
 
   @Get('paged')
   findAllPaged(
     @Query('clubId') clubId?: string,
+    @Query('organizerId') organizerId?: string,
     @Query('status') status?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
-    return this.tournamentsService.findAllPaged({ clubId, status, skip, take });
+    const effectiveClubId = clubId ?? organizerId;
+    return this.tournamentsService.findAllPaged({
+      clubId: effectiveClubId,
+      status,
+      skip,
+      take,
+    });
   }
 
   @Get(':id')
