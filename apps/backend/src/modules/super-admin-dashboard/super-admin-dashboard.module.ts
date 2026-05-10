@@ -8,4 +8,3 @@ import { SuperAdminDashboardService } from './super-admin-dashboard.service';
   exports: [SuperAdminDashboardService],
 })
 export class SuperAdminDashboardModule {}
-

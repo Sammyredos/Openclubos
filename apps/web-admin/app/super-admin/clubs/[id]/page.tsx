@@ -14,7 +14,6 @@ import {
   ArrowUpRight,
   MoreHorizontal,
   Edit2,
-  Ban,
   CheckCircle2,
   Trash2,
   KeyRound,
@@ -23,15 +22,15 @@ import {
   ChevronRight,
   ChevronLeft,
   ArrowLeft,
-  DollarSign
+  DollarSign,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { Pagination } from "@/components/ui/pagination";
-import { broadcastAdminEvent, cn, formatWithCommas, formatNumber } from "@/lib/utils";
-import { activateClub, deleteClub, getClub, getClubStats, suspendClub, updateClub } from "@/lib/api/clubs";
-import { getMembers } from "@/lib/api/members";
+import { broadcastAdminEvent, cn, formatWithCommas, formatNumber, subscribeAdminEvents } from "@/lib/utils";
+import { deleteClub, forceLogoutClub, getClub, getClubStats, updateClub } from "@/lib/api/clubs";
 import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,8 +41,6 @@ import { toast } from "sonner";
 import { forgotPasswordRequest } from "@/lib/api/auth";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -54,7 +51,6 @@ import {
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "members", label: "Members" },
   { id: "tournaments", label: "Tournaments" },
   { id: "payments", label: "Payments" },
   { id: "subscription", label: "Subscription" },
@@ -71,18 +67,8 @@ type ApiClub = {
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
   createdAt: string;
-  _count?: { users: number; tournaments: number; courses: number };
+  _count?: { tournaments: number; courses: number };
   users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
-};
-
-type ApiMember = {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  handicap: number;
-  createdAt: string;
 };
 
 type ApiTournament = {
@@ -114,7 +100,6 @@ type ClubViewModel = {
   logo: string;
   status: "Active" | "Suspended" | "Expired";
   plan: "Pro" | "Basic" | "—";
-  members: number;
   tournaments: number;
   email: string;
   phone: string;
@@ -162,7 +147,6 @@ function toClubViewModel(c: ApiClub): ClubViewModel {
     logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`,
     status,
     plan,
-    members: c._count?.users ?? 0,
     tournaments: c._count?.tournaments ?? 0,
     email: adminEmail,
     phone: "—",
@@ -191,10 +175,6 @@ export default function ClubDetailsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [members, setMembers] = React.useState<ApiMember[]>([]);
-  const [membersTotal, setMembersTotal] = React.useState(0);
-  const [membersLoading, setMembersLoading] = React.useState(true);
-
   const [tournaments, setTournaments] = React.useState<ApiTournament[]>([]);
   const [tournamentsLoading, setTournamentsLoading] = React.useState(true);
 
@@ -204,11 +184,9 @@ export default function ClubDetailsPage() {
   const [clubStatsLoading, setClubStatsLoading] = React.useState(true);
 
   const PAGE_SIZE = 10;
-  const [membersPage, setMembersPage] = React.useState(1);
   const [tournamentsPage, setTournamentsPage] = React.useState(1);
   const [paymentsPage, setPaymentsPage] = React.useState(1);
 
-  const [topRange, setTopRange] = useState("This Year");
   const [revenueRange, setRevenueRange] = useState("This Year");
   const [activeDropdown, setActiveDropdown] = useState(false);
   const [mutating, setMutating] = useState(false);
@@ -224,13 +202,11 @@ export default function ClubDetailsPage() {
   };
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
 
   const [editPlan, setEditPlan] = useState("Pro");
-  const [editStatus, setEditStatus] = useState<"Active" | "Suspended" | "Expired">("Active");
   const [editName, setEditName] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editAdminName, setEditAdminName] = useState("");
@@ -261,21 +237,16 @@ export default function ClubDetailsPage() {
         const data = (await getClub(clubId)) as ApiClub;
         const vm = toClubViewModel(data);
         setClub(vm);
-
-        setMembersLoading(true);
         setTournamentsLoading(true);
         setRegistrationsLoading(true);
         setClubStatsLoading(true);
 
-        const [membersRes, tournamentsRes, registrationsRes, statsRes] = await Promise.all([
-          getMembers({ clubId, take: 500 }),
+        const [tournamentsRes, registrationsRes, statsRes] = await Promise.all([
           getTournaments({ clubId }),
           getRegistrations({ clubId, take: 500 }),
           getClubStats(clubId),
         ]);
 
-        setMembers((membersRes?.items ?? []) as ApiMember[]);
-        setMembersTotal(membersRes?.total ?? 0);
         setTournaments((Array.isArray(tournamentsRes) ? tournamentsRes : []) as ApiTournament[]);
         setRegistrations((registrationsRes?.items ?? []) as ApiRegistration[]);
         setClubStats((statsRes ?? null) as ClubStats | null);
@@ -283,13 +254,25 @@ export default function ClubDetailsPage() {
         setError(err instanceof Error ? err.message : "Failed to load club");
       } finally {
         setLoading(false);
-        setMembersLoading(false);
         setTournamentsLoading(false);
         setRegistrationsLoading(false);
         setClubStatsLoading(false);
       }
     }
     fetchClubData();
+  }, [clubId]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const unsubscribe = subscribeAdminEvents((evt) => {
+      if (evt.type !== "clubs-changed") return;
+      if (cancelled) return;
+      reloadClubData();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [clubId]);
 
   if (loading) {
@@ -380,19 +363,13 @@ export default function ClubDetailsPage() {
   })();
 
   const activityFeed = (() => {
-    const items: Array<{ key: string; title: string; subtitle: string; time: string; kind: "member" | "payment" | "tournament" }> = [];
-    for (const m of members
-      .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)) {
-      items.push({
-        key: `m-${m.id}`,
-        title: "New member registered",
-        subtitle: `${m.firstName} ${m.lastName}`.trim() || m.email,
-        time: m.createdAt,
-        kind: "member",
-      });
-    }
+    const items: Array<{
+      key: string;
+      title: string;
+      subtitle: string;
+      time: string;
+      kind: 'payment' | 'tournament';
+    }> = [];
     for (const r of recentPayments) {
       items.push({
         key: `p-${r.id}`,
@@ -428,27 +405,11 @@ export default function ClubDetailsPage() {
   const openEdit = () => {
     if (!club) return;
     setEditPlan(club.plan || "Pro");
-    setEditStatus(club.status || "Active");
     setEditName(club.name || "");
     setEditLocation(club.location || "");
     setEditAdminName(club.admin || "");
     setEditAdminEmail(club.email || "");
     setIsEditModalOpen(true);
-  };
-
-  const confirmStatusChange = () => {
-    if (!clubId) return;
-    setMutating(true);
-    const op = statusAction === "activate" ? activateClub : suspendClub;
-    op(clubId)
-      .then(() => {
-        toast.success(statusAction === "activate" ? "Club activated" : "Club suspended");
-        setIsStatusModalOpen(false);
-        broadcastAdminEvent("clubs-changed");
-        return reloadClubData();
-      })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update club status"))
-      .finally(() => setMutating(false));
   };
 
   const confirmDelete = () => {
@@ -466,18 +427,51 @@ export default function ClubDetailsPage() {
       .finally(() => setMutating(false));
   };
 
+  const confirmForceLogout = () => {
+    if (!clubId) return;
+    setMutating(true);
+    forceLogoutClub(clubId)
+      .then(() => {
+        toast.success("Club users have been logged out");
+        setIsForceLogoutModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
+        return reloadClubData();
+      })
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout club"))
+      .finally(() => setMutating(false));
+  };
+
   const saveEdit = () => {
     if (!clubId) return;
     const plan = editPlan === "Pro" ? "PRO" : editPlan === "Basic" ? "BASIC" : undefined;
-    const status = editStatus.toUpperCase() as "ACTIVE" | "SUSPENDED" | "EXPIRED";
+    const name = editName.trim();
+    const address = editLocation.trim();
+    const adminName = editAdminName.trim();
+    const adminEmail = editAdminEmail.trim();
+    const adminPairValid =
+      (adminName.length === 0 && adminEmail.length === 0) ||
+      (adminName.length > 0 && adminEmail.length > 0);
+
+    if (name.length === 0) {
+      toast.error("Club name is required");
+      return;
+    }
+    if (address.length === 0) {
+      toast.error("Address is required");
+      return;
+    }
+    if (!adminPairValid) {
+      toast.error("Please enter both Admin Name and Admin Email");
+      return;
+    }
+
     setMutating(true);
     updateClub(clubId, {
-      name: editName.trim() || undefined,
-      address: editLocation.trim() || undefined,
+      name: name || undefined,
+      address: address || undefined,
       plan,
-      status,
-      adminName: editAdminName.trim() || undefined,
-      adminEmail: editAdminEmail.trim() || undefined,
+      adminName: adminName || undefined,
+      adminEmail: adminEmail || undefined,
     })
       .then(() => {
         toast.success("Club updated");
@@ -489,15 +483,12 @@ export default function ClubDetailsPage() {
       .finally(() => setMutating(false));
   };
 
-  const membersTotalPages = Math.max(1, Math.ceil(members.length / PAGE_SIZE));
   const tournamentsTotalPages = Math.max(1, Math.ceil(tournaments.length / PAGE_SIZE));
   const paymentsTotalPages = Math.max(1, Math.ceil(registrations.length / PAGE_SIZE));
 
-  const membersPageSafe = Math.min(membersPage, membersTotalPages);
   const tournamentsPageSafe = Math.min(tournamentsPage, tournamentsTotalPages);
   const paymentsPageSafe = Math.min(paymentsPage, paymentsTotalPages);
 
-  const membersPageItems = members.slice((membersPageSafe - 1) * PAGE_SIZE, membersPageSafe * PAGE_SIZE);
   const tournamentsPageItems = tournaments.slice(
     (tournamentsPageSafe - 1) * PAGE_SIZE,
     tournamentsPageSafe * PAGE_SIZE
@@ -512,22 +503,7 @@ export default function ClubDetailsPage() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const memberYear = topRange === "This Year" ? year : year - 1;
   const revenueYear = revenueRange === "This Year" ? year : year - 1;
-  const memberGrowthData = (() => {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const counts = months.map((m) => ({ month: m, value: 0 }));
-    for (const m of members) {
-      const d = new Date(m.createdAt);
-      if (d.getFullYear() !== memberYear) continue;
-      counts[d.getMonth()].value += 1;
-    }
-    let running = 0;
-    return counts.map((c) => {
-      running += c.value;
-      return { month: c.month, value: running };
-    });
-  })();
 
   const revenueOverviewData = (() => {
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -565,7 +541,15 @@ export default function ClubDetailsPage() {
             </Button>
             <Button
               onClick={saveEdit}
-              disabled={mutating}
+              disabled={
+                mutating ||
+                editName.trim().length === 0 ||
+                editLocation.trim().length === 0 ||
+                !(
+                  (editAdminName.trim().length === 0 && editAdminEmail.trim().length === 0) ||
+                  (editAdminName.trim().length > 0 && editAdminEmail.trim().length > 0)
+                )
+              }
               className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
             >
               Save Changes
@@ -582,30 +566,15 @@ export default function ClubDetailsPage() {
             <Label className="font-bold text-gray-700">Address</Label>
             <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="rounded-xl h-12" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Subscription Plan</Label>
-              <SearchableSelect
-                value={editPlan}
-                onValueChange={setEditPlan}
-                options={["Pro", "Basic"].map((v) => ({ value: v, label: v }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select plan..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Status</Label>
-              <SearchableSelect
-                value={editStatus}
-                onValueChange={(v) => {
-                  const next = v === "Active" || v === "Suspended" || v === "Expired" ? v : "Active";
-                  setEditStatus(next);
-                }}
-                options={["Active", "Suspended", "Expired"].map((v) => ({ value: v, label: v }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select status..."
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="font-bold text-gray-700">Subscription Plan</Label>
+            <SearchableSelect
+              value={editPlan}
+              onValueChange={setEditPlan}
+              options={["Pro", "Basic"].map((v) => ({ value: v, label: v }))}
+              triggerClassName="h-12 bg-white font-medium rounded-xl"
+              placeholder="Select plan..."
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -614,40 +583,39 @@ export default function ClubDetailsPage() {
             </div>
             <div className="space-y-2">
               <Label className="font-bold text-gray-700">Admin Email</Label>
-              <Input value={editAdminEmail} onChange={(e) => setEditAdminEmail(e.target.value)} className="rounded-xl h-12" />
+              <Input type="email" value={editAdminEmail} onChange={(e) => setEditAdminEmail(e.target.value)} className="rounded-xl h-12" />
             </div>
           </div>
         </div>
       </Modal>
 
       <Modal
-        isOpen={isStatusModalOpen}
-        onClose={() => setIsStatusModalOpen(false)}
-        title={statusAction === "activate" ? "Activate Club" : "Suspend Club"}
+        isOpen={isForceLogoutModalOpen}
+        onClose={() => setIsForceLogoutModalOpen(false)}
+        title="Force Logout Club?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-bold">
               Cancel
             </Button>
             <Button
-              onClick={confirmStatusChange}
+              onClick={confirmForceLogout}
               disabled={mutating}
-              className={cn(
-                "rounded-lg font-bold px-8 text-white",
-                statusAction === "activate"
-                  ? "bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30"
-                  : "bg-red-600 hover:bg-red-700 border border-red-600/30",
-              )}
+              className="bg-red-600 hover:bg-red-700 border border-red-600/30 text-white rounded-lg font-bold px-8"
             >
-              {statusAction === "activate" ? "Activate Club" : "Suspend Club"}
+              Force Logout
             </Button>
           </>
         }
       >
-        <div className="space-y-3 text-[14px] text-gray-600 font-medium">
-          {statusAction === "activate"
-            ? "This will restore access for the club and its members."
-            : "This will disable access for the club and may suspend associated users."}
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <LogOut className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this club user?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will immediately log out this user <br></br><span className="font-bold text-gray-800">{club?.name ?? "this club"}</span>.
+          </p>
         </div>
       </Modal>
 
@@ -765,22 +733,11 @@ export default function ClubDetailsPage() {
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
                   onClick={() => {
                     closeMoreMenu();
-                    const action = club.status === "Suspended" ? "activate" : "suspend";
-                    setStatusAction(action);
-                    setIsStatusModalOpen(true);
+                    setIsForceLogoutModalOpen(true);
                   }}
                 >
-                  {club.status === "Suspended" ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      Activate Club
-                    </>
-                  ) : (
-                    <>
-                      <Ban className="w-4 h-4 text-red-600" />
-                      Suspend Club
-                    </>
-                  )}
+                  <LogOut className="w-4 h-4 text-gray-500" />
+                  Force Logout
                 </button>
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
@@ -889,23 +846,6 @@ export default function ClubDetailsPage() {
               <Card className="border-none shadow-sm">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <Users className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Members</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
-                    {clubStatsLoading ? "…" : String(clubStats?.totalMembers ?? membersTotal ?? 0)}
-                  </p>
-                  <p className="text-[11px] text-emerald-600 font-bold mt-4 flex items-center gap-1">
-                    + {clubStatsLoading ? "…" : String(clubStats?.membersThisMonth ?? 0)} this month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center">
                       <Trophy className="w-5 h-5" />
                     </div>
@@ -964,33 +904,6 @@ export default function ClubDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="border-none shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-                  <CardTitle className="text-[16px] font-bold">Member Growth</CardTitle>
-                  <SearchableSelect
-                    value={topRange}
-                    onValueChange={setTopRange}
-                    options={["This Year", "Last Year"].map((v) => ({ value: v, label: v }))}
-                    triggerClassName="h-9 bg-white text-[13px]"
-                  />
-                </CardHeader>
-                <CardContent className="p-6 pt-2">
-                  <div className="h-[240px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={memberGrowthData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                        <Tooltip
-                          contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}
-                        />
-                        <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
               <Card className="border-none shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
@@ -1203,96 +1116,6 @@ export default function ClubDetailsPage() {
               </Card>
             </div>
           </div>
-        )}
-
-        {activeTab === "members" && (
-          <Card className="border-none shadow-sm overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-bold">Members</CardTitle>
-              <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg px-4 font-bold">
-                Add Member
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              {membersLoading ? (
-                <div className="p-6 space-y-3">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full rounded-xl" />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                          <th className="px-6 py-4">Name</th>
-                          <th className="px-6 py-4">Email</th>
-                          <th className="px-6 py-4">Status</th>
-                          <th className="px-6 py-4">Payment</th>
-                          <th className="px-6 py-4">Handicap</th>
-                          <th className="px-6 py-4">Joined</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {members.length > 0 ? (
-                            membersPageItems.map((m) => {
-                              const memberRegs = registrations.filter(r => r.user.email === m.email);
-                              const isPaid = memberRegs.some(r => r.paymentStatus === "PAID");
-                              
-                              return (
-                                <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                                  <td className="px-6 py-4 text-[14px] font-bold text-gray-800">
-                                    {m.firstName} {m.lastName}
-                                  </td>
-                                  <td className="px-6 py-4 text-[14px] text-gray-500">{m.email}</td>
-                                  <td className="px-6 py-4">
-                                    <span className={cn(
-                                      "text-[11px] font-bold px-2.5 py-1 rounded-lg",
-                                      m.status === "ACTIVE" ? "bg-emerald-50 text-emerald-600" :
-                                      m.status === "SUSPENDED" ? "bg-amber-50 text-amber-600" :
-                                      "bg-red-50 text-red-600"
-                                    )}>
-                                      {m.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg",
-                                      isPaid ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                                    )}>
-                                      {isPaid ? "PAID" : "UNPAID"}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-[14px] text-gray-500">{m.handicap}</td>
-                                  <td className="px-6 py-4 text-[14px] text-gray-500 whitespace-nowrap">{formatJoinedDate(m.createdAt)}</td>
-                                </tr>
-                              );
-                            })
-                        ) : (
-                          <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-medium">
-                              No members found
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {members.length > 0 && membersTotalPages > 1 && (
-                    <div className="p-4 border-t border-gray-100 bg-white">
-                      <Pagination
-                        currentPage={membersPageSafe}
-                        totalPages={membersTotalPages}
-                        onPageChange={setMembersPage}
-                        className="justify-center"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
         )}
 
         {activeTab === "tournaments" && (

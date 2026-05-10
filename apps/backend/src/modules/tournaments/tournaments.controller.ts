@@ -25,10 +25,7 @@ export class TournamentsController {
   }
 
   @Get()
-  findAll(
-    @Query('clubId') clubId?: string,
-    @Query('status') status?: string,
-  ) {
+  findAll(@Query('clubId') clubId?: string, @Query('status') status?: string) {
     return this.tournamentsService.findAll({ clubId, status });
   }
 
@@ -48,7 +45,10 @@ export class TournamentsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTournamentDto: UpdateTournamentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateTournamentDto: UpdateTournamentDto,
+  ) {
     return this.tournamentsService.update(id, updateTournamentDto);
   }
 

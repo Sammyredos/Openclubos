@@ -12,9 +12,11 @@ export class TournamentsService {
       data: {
         ...createTournamentDto,
         startDate: new Date(createTournamentDto.startDate),
-        endDate: createTournamentDto.endDate ? new Date(createTournamentDto.endDate) : null,
-        registrationDeadline: createTournamentDto.registrationDeadline 
-          ? new Date(createTournamentDto.registrationDeadline) 
+        endDate: createTournamentDto.endDate
+          ? new Date(createTournamentDto.endDate)
+          : null,
+        registrationDeadline: createTournamentDto.registrationDeadline
+          ? new Date(createTournamentDto.registrationDeadline)
           : null,
       },
       include: { club: true, course: true },
@@ -85,10 +87,7 @@ export class TournamentsService {
       where: {
         status: { notIn: ['CANCELLED', 'COMPLETED'] },
         startDate: { lte: now },
-        OR: [
-          { endDate: { gte: now } },
-          { endDate: null },
-        ],
+        OR: [{ endDate: { gte: now } }, { endDate: null }],
       },
       data: { status: 'ONGOING' },
     });
@@ -118,10 +117,11 @@ export class TournamentsService {
 
   async update(id: string, updateTournamentDto: UpdateTournamentDto) {
     const data: any = { ...updateTournamentDto };
-    
+
     if (data.startDate) data.startDate = new Date(data.startDate);
     if (data.endDate) data.endDate = new Date(data.endDate);
-    if (data.registrationDeadline) data.registrationDeadline = new Date(data.registrationDeadline);
+    if (data.registrationDeadline)
+      data.registrationDeadline = new Date(data.registrationDeadline);
 
     try {
       return await this.prisma.tournament.update({

@@ -19,13 +19,17 @@ export class SuperAdminDashboardController {
   @Get('revenue-trend')
   revenueTrend(@Query('year') year?: string) {
     const y = year ? Number(year) : new Date().getFullYear();
-    return this.dashboard.revenueTrend(Number.isFinite(y) ? y : new Date().getFullYear());
+    return this.dashboard.revenueTrend(
+      Number.isFinite(y) ? y : new Date().getFullYear(),
+    );
   }
 
   @Get('club-growth')
   clubGrowth(@Query('year') year?: string) {
     const y = year ? Number(year) : new Date().getFullYear();
-    return this.dashboard.clubGrowth(Number.isFinite(y) ? y : new Date().getFullYear());
+    return this.dashboard.clubGrowth(
+      Number.isFinite(y) ? y : new Date().getFullYear(),
+    );
   }
 
   @Get('top-clubs')

@@ -1,9 +1,14 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma.service';
 import { RegisterDto } from './dto/register.dto';
-import { MemberStatus } from '@prisma/client';
+import { MemberStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -13,8 +18,12 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerDto.email },
+    registerDto.email = registerDto.email?.trim().toLowerCase();
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: registerDto.email, mode: 'insensitive' },
+        deletedAt: null,
+      },
     });
 
     if (existingUser) {
@@ -35,9 +44,18 @@ export class AuthService {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.prisma.user.findFirst({
-      where: { email, deletedAt: null },
-    });
+    let user: any;
+    const normalizedEmail = email?.trim().toLowerCase();
+    try {
+      user = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+    } catch {
+      throw new ServiceUnavailableException('DATABASE_UNAVAILABLE');
+    }
     if (user && user.status === MemberStatus.SUSPENDED) {
       throw new UnauthorizedException('ACCOUNT_SUSPENDED');
     }
@@ -52,10 +70,12 @@ export class AuthService {
   }
 
   async login(user: any) {
+    const effectiveRole =
+      user.role === UserRole.STAFF ? UserRole.PLAYER : user.role;
     const payload = {
       email: user.email,
       sub: user.id,
-      role: user.role,
+      role: effectiveRole,
       clubId: user.clubId,
       uat: user.updatedAt ? new Date(user.updatedAt).getTime() : undefined,
     };
@@ -63,7 +83,7 @@ export class AuthService {
       accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
-        role: user.role,
+        role: effectiveRole,
         clubId: user.clubId,
       },
     };

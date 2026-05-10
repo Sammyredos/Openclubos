@@ -1,6 +1,6 @@
 import { getAuthToken, handleAuthFailure } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 async function fetchWithSuperAdminFallback(path: string, init: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, init);
@@ -97,6 +97,16 @@ export async function activateClub(id: string) {
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to activate club');
+  }
+  return res.json();
+}
+
+export async function forceLogoutClub(id: string) {
+  const res = await authedFetch(`/clubs/${id}/force-logout`, { method: 'POST' });
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to force logout club');
   }
   return res.json();
 }

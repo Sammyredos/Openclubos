@@ -1,13 +1,13 @@
-import { 
-  IsString, 
-  IsDateString, 
-  IsOptional, 
-  IsEnum, 
-  IsNumber, 
-  IsArray, 
-  Min, 
-  Max, 
-  IsUUID 
+import {
+  IsString,
+  IsDateString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsArray,
+  Min,
+  Max,
+  IsUUID,
 } from 'class-validator';
 import { TournamentStatus } from '@openclubos/types';
 

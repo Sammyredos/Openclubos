@@ -49,6 +49,8 @@ export class AuthController {
     // Always return success to prevent email enumeration
     // In production: trigger password reset email via email service
     await this.authService.initiatePasswordReset(body.email).catch(() => null);
-    return { message: 'If this email is registered, a reset link has been sent.' };
+    return {
+      message: 'If this email is registered, a reset link has been sent.',
+    };
   }
 }

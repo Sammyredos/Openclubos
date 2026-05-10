@@ -41,9 +41,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           case 'CLUB_ADMIN':
             route = '/admin/dashboard';
             break;
-          case 'STAFF':
-            route = '/staff/dashboard';
-            break;
           case 'PLAYER':
             route = '/app/home';
             break;

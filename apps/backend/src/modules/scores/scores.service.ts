@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoreStatus, UserRole } from '@prisma/client';
@@ -12,7 +17,11 @@ export class ScoresService {
     const targetUserId = userId || currentUser.userId;
 
     // Validation: Only admin can enter score for another player
-    if (targetUserId !== currentUser.userId && currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.CLUB_ADMIN) {
+    if (
+      targetUserId !== currentUser.userId &&
+      currentUser.role !== UserRole.SUPER_ADMIN &&
+      currentUser.role !== UserRole.CLUB_ADMIN
+    ) {
       throw new ForbiddenException('You can only enter your own scores');
     }
 
@@ -25,11 +34,16 @@ export class ScoresService {
       },
     });
 
-
     if (existingScore) {
       // If confirmed or locked, only admin can edit
-      if (existingScore.status !== ScoreStatus.ENTERED && currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.CLUB_ADMIN) {
-        throw new ForbiddenException('This score is locked and cannot be modified');
+      if (
+        existingScore.status !== ScoreStatus.ENTERED &&
+        currentUser.role !== UserRole.SUPER_ADMIN &&
+        currentUser.role !== UserRole.CLUB_ADMIN
+      ) {
+        throw new ForbiddenException(
+          'This score is locked and cannot be modified',
+        );
       }
 
       return this.prisma.score.update({
@@ -62,7 +76,10 @@ export class ScoresService {
     }
 
     // Validation: Marker must not be the player themselves
-    if (score.userId === markerUser.userId && markerUser.role !== UserRole.SUPER_ADMIN) {
+    if (
+      score.userId === markerUser.userId &&
+      markerUser.role !== UserRole.SUPER_ADMIN
+    ) {
       throw new BadRequestException('You cannot confirm your own score');
     }
 

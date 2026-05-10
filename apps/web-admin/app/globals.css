@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-apercu), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-nexa), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -88,6 +88,43 @@
 }
 
 @layer utilities {
+  .font-nexa-light {
+    font-family: var(--font-nexa-light);
+    font-weight: 400 !important;
+  }
+
+  .font-nexa-regular,
+  .font-nexa-medium {
+    font-family: var(--font-nexa);
+    font-weight: 400 !important;
+  }
+
+  .font-nexa-bold {
+    font-family: var(--font-nexa-bold);
+    font-weight: 400 !important;
+  }
+
+  .font-thin,
+  .font-extralight,
+  .font-light {
+    font-family: var(--font-nexa-light);
+    font-weight: 400 !important;
+  }
+
+  .font-normal,
+  .font-medium {
+    font-family: var(--font-nexa);
+    font-weight: 400 !important;
+  }
+
+  .font-semibold,
+  .font-bold,
+  .font-extrabold,
+  .font-black {
+    font-family: var(--font-nexa-bold);
+    font-weight: 400 !important;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -101,7 +138,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  b,
+  strong {
+    font-family: var(--font-nexa-bold);
+    font-weight: 400;
+  }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans tracking-[0.01em];
   }
 }

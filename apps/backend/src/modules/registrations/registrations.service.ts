@@ -1,12 +1,16 @@
-import { 
-  Injectable, 
-  BadRequestException, 
-  NotFoundException, 
-  ConflictException 
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { RegisterTournamentDto } from './dto/register-tournament.dto';
-import { RegistrationStatus, PaymentStatus, TournamentStatus } from '@prisma/client';
+import {
+  RegistrationStatus,
+  PaymentStatus,
+  TournamentStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class RegistrationsService {
@@ -29,11 +33,16 @@ export class RegistrationsService {
 
     // 2. Validate Tournament Status
     if (tournament.status !== TournamentStatus.REGISTRATION_OPEN) {
-      throw new BadRequestException('Registration is currently closed for this tournament');
+      throw new BadRequestException(
+        'Registration is currently closed for this tournament',
+      );
     }
 
     // 3. Validate Deadline
-    if (tournament.registrationDeadline && new Date() > new Date(tournament.registrationDeadline)) {
+    if (
+      tournament.registrationDeadline &&
+      new Date() > new Date(tournament.registrationDeadline)
+    ) {
       throw new BadRequestException('Registration deadline has passed');
     }
 
@@ -41,30 +50,47 @@ export class RegistrationsService {
     const existing = await this.prisma.registration.findUnique({
       where: { userId_tournamentId: { userId, tournamentId } },
     });
-    if (existing) throw new ConflictException('You are already registered for this tournament');
+    if (existing)
+      throw new ConflictException(
+        'You are already registered for this tournament',
+      );
 
     // 5. Validate Eligibility (Player Type)
     const effectivePlayerType = playerType || user.role; // Default to user role if not provided
     if (tournament.playerTypes && tournament.playerTypes.length > 0) {
       if (!tournament.playerTypes.includes(effectivePlayerType)) {
-        throw new BadRequestException(`This tournament is not open to ${effectivePlayerType} players`);
+        throw new BadRequestException(
+          `This tournament is not open to ${effectivePlayerType} players`,
+        );
       }
     }
 
     // 6. Validate Eligibility (Handicap)
     if (user.handicap !== null) {
-      if (tournament.minHandicap !== null && user.handicap < tournament.minHandicap) {
-        throw new BadRequestException(`Your handicap (${user.handicap}) is below the minimum required (${tournament.minHandicap})`);
+      if (
+        tournament.minHandicap !== null &&
+        user.handicap < tournament.minHandicap
+      ) {
+        throw new BadRequestException(
+          `Your handicap (${user.handicap}) is below the minimum required (${tournament.minHandicap})`,
+        );
       }
-      if (tournament.maxHandicap !== null && user.handicap > tournament.maxHandicap) {
-        throw new BadRequestException(`Your handicap (${user.handicap}) exceeds the maximum allowed (${tournament.maxHandicap})`);
+      if (
+        tournament.maxHandicap !== null &&
+        user.handicap > tournament.maxHandicap
+      ) {
+        throw new BadRequestException(
+          `Your handicap (${user.handicap}) exceeds the maximum allowed (${tournament.maxHandicap})`,
+        );
       }
     }
 
     // 7. Check Capacity & Waitlist
-    const approvedCount = tournament.registrations.filter(r => r.status === RegistrationStatus.APPROVED).length;
+    const approvedCount = tournament.registrations.filter(
+      (r) => r.status === RegistrationStatus.APPROVED,
+    ).length;
     let status: RegistrationStatus = RegistrationStatus.PENDING;
-    
+
     if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
       status = RegistrationStatus.WAITLISTED;
     }
@@ -76,7 +102,9 @@ export class RegistrationsService {
         tournamentId,
         playerType: effectivePlayerType,
         status,
-        paymentStatus: paymentReference ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+        paymentStatus: paymentReference
+          ? PaymentStatus.PAID
+          : PaymentStatus.UNPAID,
         paymentReference,
       },
     });
@@ -106,7 +134,9 @@ export class RegistrationsService {
         take: query.take ? +query.take : 10,
         orderBy: { registeredAt: 'desc' },
         include: {
-          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true },
+          },
           tournament: {
             select: {
               id: true,
@@ -134,9 +164,9 @@ export class RegistrationsService {
   async confirmPayment(registrationId: string, paymentReference: string) {
     return this.prisma.registration.update({
       where: { id: registrationId },
-      data: { 
+      data: {
         paymentStatus: PaymentStatus.PAID,
-        paymentReference 
+        paymentReference,
       },
     });
   }

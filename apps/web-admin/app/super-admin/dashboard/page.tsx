@@ -35,7 +35,7 @@ import { SearchableSelect } from "@/components/ui/input";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function timeAgo(iso: string) {
   const ts = new Date(iso).getTime();
@@ -102,6 +102,13 @@ type PerformingClub = {
 
 type RevenuePoint = { month: string; amount: number };
 type GrowthPoint = { month: string; count: number };
+type ClubListItem = {
+  id: string;
+  name: string;
+  plan?: string | null;
+  status?: string | null;
+  createdAt?: string | null;
+};
 
 export default function SuperAdminDashboard() {
   const isMounted = useSyncExternalStore(
@@ -116,42 +123,87 @@ export default function SuperAdminDashboard() {
   const [subscriptionClubs, setSubscriptionClubs] = useState<SubscriptionClub[]>([]);
   const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
   const [growthData, setGrowthData] = useState<GrowthPoint[]>([]);
+  const [clubsList, setClubsList] = useState<ClubListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [topClubsLoading, setTopClubsLoading] = useState(false);
+  const [revenueLoading, setRevenueLoading] = useState(false);
+  const [growthLoading, setGrowthLoading] = useState(false);
+  const [subsLoading, setSubsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [revenueRange, setRevenueRange] = useState("This Year");
   const [growthRange, setGrowthRange] = useState("This Year");
   const [topClubsRange, setTopClubsRange] = useState("This Month");
   const [topSubsRange, setTopSubsRange] = useState("All Time");
 
-  const fetchDashboardData = useCallback(async () => {
+  const getHeaders = useCallback(() => {
+    const token = getAuthToken();
+    if (!token) {
+      setAuthError("Not authenticated. Please login again.");
+      return null;
+    }
+    setAuthError(null);
+    return { Authorization: `Bearer ${token}` };
+  }, []);
+
+  const computeTopSubs = useCallback((items: ClubListItem[], range: string) => {
+    const now = new Date();
+    const rangeBounds = (() => {
+      const normalized = range.trim().toLowerCase();
+      if (normalized === "all time" || normalized === "all-time" || normalized === "all_time") return null;
+      const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+      const start3Months = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
+      const start6Months = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
+      if (normalized === "this month") return { start: startThisMonth, end: startNextMonth };
+      if (normalized === "last month") return { start: startLastMonth, end: startThisMonth };
+      if (normalized === "3 months" || normalized === "last 3 months") return { start: start3Months, end: startNextMonth };
+      if (normalized === "6 months" || normalized === "last 6 months") return { start: start6Months, end: startNextMonth };
+      return null;
+    })();
+
+    const filtered = rangeBounds
+      ? items.filter((c) => {
+          if (!c.createdAt) return true;
+          const ts = new Date(c.createdAt).getTime();
+          if (Number.isNaN(ts)) return true;
+          return ts >= rangeBounds.start && ts < rangeBounds.end;
+        })
+      : items;
+
+    return filtered
+      .slice()
+      .sort((a, b) => {
+        if (a.plan === "PRO" && b.plan !== "PRO") return -1;
+        if (a.plan !== "PRO" && b.plan === "PRO") return 1;
+        return 0;
+      })
+      .slice(0, 5)
+      .map((c) => {
+        const status: SubscriptionClub["status"] = c.status === "ACTIVE" ? "Active" : "Inactive";
+        return {
+          id: String(c.id),
+          name: String(c.name),
+          logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(c.name))}`,
+          plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
+          status,
+          yearlyFee: c.plan === "PRO" ? 150000 : 50000,
+        };
+      });
+  }, []);
+
+  const fetchStatsAndActivityAndClubsList = useCallback(async () => {
+    const headers = getHeaders();
+    if (!headers) return;
+    setStatsLoading(true);
+    setActivityLoading(true);
+    setSubsLoading(true);
     try {
-      setLoading(true);
-      const token = getAuthToken();
-      if (!token) {
-        setAuthError("Not authenticated. Please login again.");
-        setStats(null);
-        setRecentActivity([]);
-        setSubscriptionClubs([]);
-        setPerformingClubs([]);
-        setRevenueData([]);
-        setGrowthData([]);
-        return;
-      }
-
-      setAuthError(null);
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const now = new Date();
-      const revenueYear = revenueRange === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
-      const growthYear = growthRange === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
-      const topClubsUrl = `${API_BASE}/super-admin/dashboard/top-clubs?range=${encodeURIComponent(topClubsRange)}`;
-
-      const [statsRes, activityRes, clubsRes, revenueRes, growthRes, clubsListRes] = await Promise.all([
+      const [statsRes, activityRes, clubsListRes] = await Promise.all([
         fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
         fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
-        fetch(topClubsUrl, { headers }),
-        fetch(`${API_BASE}/super-admin/dashboard/revenue-trend?year=${revenueYear}`, { headers }),
-        fetch(`${API_BASE}/super-admin/dashboard/club-growth?year=${growthYear}`, { headers }),
         fetch(`${API_BASE}/super-admin/clubs`, { headers }),
       ]);
 
@@ -169,90 +221,97 @@ export default function SuperAdminDashboard() {
       setStats((await statsRes.json()) as DashboardStats);
 
       if (activityRes.ok) setRecentActivity((await activityRes.json()) as ActivityRecord[]);
-      if (clubsRes.ok) setPerformingClubs((await clubsRes.json()) as PerformingClub[]);
-      if (revenueRes.ok) setRevenueData((await revenueRes.json()) as RevenuePoint[]);
-      if (growthRes.ok) setGrowthData((await growthRes.json()) as GrowthPoint[]);
 
       if (clubsListRes.ok) {
-        type ClubListItem = {
-          id: string;
-          name: string;
-          plan?: string | null;
-          status?: string | null;
-          createdAt?: string | null;
-        };
         const clubsData: unknown = await clubsListRes.json();
         const items: ClubListItem[] = Array.isArray(clubsData)
           ? (clubsData as ClubListItem[])
-          : clubsData && typeof clubsData === "object" && "items" in clubsData && Array.isArray((clubsData as { items?: unknown }).items)
+          : clubsData &&
+              typeof clubsData === "object" &&
+              "items" in clubsData &&
+              Array.isArray((clubsData as { items?: unknown }).items)
             ? ((clubsData as { items: unknown }).items as ClubListItem[])
             : [];
-
-        const rangeBounds = (() => {
-          const normalized = topSubsRange.trim().toLowerCase();
-          if (normalized === "all time" || normalized === "all-time" || normalized === "all_time") return null;
-          const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-          const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-          const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-          const start3Months = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
-          const start6Months = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
-          if (normalized === "this month") return { start: startThisMonth, end: startNextMonth };
-          if (normalized === "last month") return { start: startLastMonth, end: startThisMonth };
-          if (normalized === "3 months" || normalized === "last 3 months") return { start: start3Months, end: startNextMonth };
-          if (normalized === "6 months" || normalized === "last 6 months") return { start: start6Months, end: startNextMonth };
-          return null;
-        })();
-
-        const filtered = rangeBounds
-          ? items.filter((c) => {
-              if (!c.createdAt) return true;
-              const ts = new Date(c.createdAt).getTime();
-              if (Number.isNaN(ts)) return true;
-              return ts >= rangeBounds.start && ts < rangeBounds.end;
-            })
-          : items;
-
-        const topSubs: SubscriptionClub[] = filtered
-          .sort((a, b) => {
-            if (a.plan === "PRO" && b.plan !== "PRO") return -1;
-            if (a.plan !== "PRO" && b.plan === "PRO") return 1;
-            return 0;
-          })
-          .slice(0, 5)
-          .map((c) => {
-            const status: SubscriptionClub["status"] = c.status === "ACTIVE" ? "Active" : "Inactive";
-            return {
-              id: String(c.id),
-              name: String(c.name),
-              logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(c.name))}`,
-              plan: c.plan === "PRO" ? "Pro Plan" : "Basic Plan",
-              status,
-              yearlyFee: c.plan === "PRO" ? 150000 : 50000,
-            };
-          });
-        setSubscriptionClubs(topSubs);
+        setClubsList(items);
+        setSubscriptionClubs(computeTopSubs(items, topSubsRange));
       }
     } catch {
       setAuthError("Failed to load dashboard data");
     } finally {
-      setLoading(false);
+      setStatsLoading(false);
+      setActivityLoading(false);
+      setSubsLoading(false);
     }
-  }, [growthRange, revenueRange, topClubsRange, topSubsRange]);
+  }, [computeTopSubs, getHeaders, topSubsRange]);
+
+  const fetchRevenueTrend = useCallback(async (range: string) => {
+    const headers = getHeaders();
+    if (!headers) return;
+    setRevenueLoading(true);
+    try {
+      const now = new Date();
+      const revenueYear = range === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/revenue-trend?year=${revenueYear}`, { headers });
+      if (res.ok) setRevenueData((await res.json()) as RevenuePoint[]);
+    } finally {
+      setRevenueLoading(false);
+    }
+  }, [getHeaders]);
+
+  const fetchClubGrowth = useCallback(async (range: string) => {
+    const headers = getHeaders();
+    if (!headers) return;
+    setGrowthLoading(true);
+    try {
+      const now = new Date();
+      const growthYear = range === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/club-growth?year=${growthYear}`, { headers });
+      if (res.ok) setGrowthData((await res.json()) as GrowthPoint[]);
+    } finally {
+      setGrowthLoading(false);
+    }
+  }, [getHeaders]);
+
+  const fetchTopClubs = useCallback(async (range: string) => {
+    const headers = getHeaders();
+    if (!headers) return;
+    setTopClubsLoading(true);
+    try {
+      const url = `${API_BASE}/super-admin/dashboard/top-clubs?range=${encodeURIComponent(range)}`;
+      const res = await fetch(url, { headers });
+      if (res.ok) setPerformingClubs((await res.json()) as PerformingClub[]);
+    } finally {
+      setTopClubsLoading(false);
+    }
+  }, [getHeaders]);
 
   useEffect(() => {
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (cancelled) return;
-      fetchDashboardData();
+      (async () => {
+        setLoading(true);
+        try {
+          await Promise.all([
+            fetchStatsAndActivityAndClubsList(),
+            fetchRevenueTrend(revenueRange),
+            fetchClubGrowth(growthRange),
+            fetchTopClubs(topClubsRange),
+          ]);
+        } finally {
+          setLoading(false);
+        }
+      })();
     }, 0);
     const unsubscribe = subscribeAdminEvents((evt) => {
       if (evt.type !== "clubs-changed") return;
       if (cancelled) return;
-      fetchDashboardData();
+      fetchStatsAndActivityAndClubsList();
+      fetchTopClubs(topClubsRange);
     });
     function onFocus() {
       if (cancelled) return;
-      fetchDashboardData();
+      fetchStatsAndActivityAndClubsList();
     }
     window.addEventListener("focus", onFocus);
     return () => {
@@ -261,7 +320,31 @@ export default function SuperAdminDashboard() {
       unsubscribe();
       window.removeEventListener("focus", onFocus);
     };
-  }, [fetchDashboardData]);
+  }, [fetchClubGrowth, fetchRevenueTrend, fetchStatsAndActivityAndClubsList, fetchTopClubs, growthRange, revenueRange, topClubsRange]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (loading) return;
+    fetchRevenueTrend(revenueRange);
+  }, [fetchRevenueTrend, isMounted, loading, revenueRange]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (loading) return;
+    fetchClubGrowth(growthRange);
+  }, [fetchClubGrowth, growthRange, isMounted, loading]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (loading) return;
+    fetchTopClubs(topClubsRange);
+  }, [fetchTopClubs, isMounted, loading, topClubsRange]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (loading) return;
+    setSubscriptionClubs(computeTopSubs(clubsList, topSubsRange));
+  }, [clubsList, computeTopSubs, isMounted, loading, topSubsRange]);
 
   if (!isMounted) return null;
 
@@ -281,7 +364,7 @@ export default function SuperAdminDashboard() {
           icon={Building2}
           iconBg="bg-green-50"
           iconColor="text-green-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
         <StatCard
           title="Active Clubs"
@@ -291,7 +374,7 @@ export default function SuperAdminDashboard() {
           icon={CheckCircle2}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
         <StatCard
           title="Total Members"
@@ -300,7 +383,7 @@ export default function SuperAdminDashboard() {
           icon={Users}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
         <StatCard
           title="Active Tournaments"
@@ -309,7 +392,7 @@ export default function SuperAdminDashboard() {
           icon={Trophy}
           iconBg="bg-orange-50"
           iconColor="text-orange-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
         <StatCard
           title="Total Revenue"
@@ -318,7 +401,7 @@ export default function SuperAdminDashboard() {
           icon={TrendingUp}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
         <StatCard
           title="Pending Payments"
@@ -328,7 +411,7 @@ export default function SuperAdminDashboard() {
           icon={Wallet}
           iconBg="bg-red-50"
           iconColor="text-red-600"
-          loading={loading}
+          loading={loading || statsLoading}
         />
       </div>
 
@@ -346,7 +429,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent className="p-6 pt-2">
             <div className="h-[320px] w-full">
-              {!isMounted || loading ? (
+              {!isMounted || loading || revenueLoading ? (
                 <TrendChartSkeleton variant="line" />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -393,7 +476,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent className="p-6 pt-2">
             <div className="h-[320px] w-full">
-              {!isMounted || loading ? (
+              {!isMounted || loading || growthLoading ? (
                 <TrendChartSkeleton variant="bar" />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -424,7 +507,7 @@ export default function SuperAdminDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-7 p-6 pt-4">
-            {loading ? (
+            {loading || activityLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
               </div>
@@ -458,7 +541,7 @@ export default function SuperAdminDashboard() {
             />
           </CardHeader>
           <CardContent className="space-y-7 p-3 pt-4">
-            {loading ? (
+            {loading || subsLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
               </div>
@@ -505,7 +588,7 @@ export default function SuperAdminDashboard() {
             />
           </CardHeader>
           <CardContent className="space-y-7 p-3 pt-4">
-            {loading ? (
+            {loading || topClubsLoading ? (
               <div className="space-y-6">
                 {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
               </div>

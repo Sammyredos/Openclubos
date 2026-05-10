@@ -1,14 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ClubStatus, MemberStatus, TournamentStatus, UserRole } from '@prisma/client';
+import {
+  ClubStatus,
+  MemberStatus,
+  TournamentStatus,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { UpdateClubDto } from './dto/update-club.dto';
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ClubsService {
   constructor(private prisma: PrismaService) {}
 
   async stats(id: string) {
-    const club = await this.prisma.club.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
     if (!club) throw new NotFoundException('Club not found');
 
     const now = new Date();
@@ -17,32 +27,46 @@ export class ClubsService {
     const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     const [
-      totalMembers,
-      membersThisMonth,
       totalTournaments,
       activeTournaments,
       ongoingTournaments,
       paidRegistrations,
       unpaidRegistrations,
     ] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null, clubId: id, role: UserRole.PLAYER } }),
-      this.prisma.user.count({
-        where: { deletedAt: null, clubId: id, role: UserRole.PLAYER, createdAt: { gte: startThisMonth, lt: startNextMonth } },
-      }),
       this.prisma.tournament.count({ where: { deletedAt: null, clubId: id } }),
       this.prisma.tournament.count({
-        where: { deletedAt: null, clubId: id, status: { in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN] } },
+        where: {
+          deletedAt: null,
+          clubId: id,
+          status: {
+            in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN],
+          },
+        },
       }),
-      this.prisma.tournament.count({ where: { deletedAt: null, clubId: id, status: TournamentStatus.ONGOING } }),
-      this.prisma.registration.count({
-        where: { paymentStatus: 'PAID', tournament: { deletedAt: null, clubId: id } },
+      this.prisma.tournament.count({
+        where: {
+          deletedAt: null,
+          clubId: id,
+          status: TournamentStatus.ONGOING,
+        },
       }),
       this.prisma.registration.count({
-        where: { paymentStatus: 'UNPAID', tournament: { deletedAt: null, clubId: id } },
+        where: {
+          paymentStatus: 'PAID',
+          tournament: { deletedAt: null, clubId: id },
+        },
+      }),
+      this.prisma.registration.count({
+        where: {
+          paymentStatus: 'UNPAID',
+          tournament: { deletedAt: null, clubId: id },
+        },
       }),
     ]);
 
-    const totalRevenueRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+    const totalRevenueRow = await this.prisma.$queryRaw<
+      Array<{ amount: number | null }>
+    >`
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
@@ -50,7 +74,9 @@ export class ClubsService {
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
     `;
-    const revenueThisMonthRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+    const revenueThisMonthRow = await this.prisma.$queryRaw<
+      Array<{ amount: number | null }>
+    >`
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
@@ -60,7 +86,9 @@ export class ClubsService {
         AND r."registeredAt" >= ${startThisMonth}
         AND r."registeredAt" < ${startNextMonth}
     `;
-    const revenueLastMonthRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+    const revenueLastMonthRow = await this.prisma.$queryRaw<
+      Array<{ amount: number | null }>
+    >`
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
@@ -70,7 +98,9 @@ export class ClubsService {
         AND r."registeredAt" >= ${startLastMonth}
         AND r."registeredAt" < ${startThisMonth}
     `;
-    const unpaidAmountRow = await this.prisma.$queryRaw<Array<{ amount: number | null }>>`
+    const unpaidAmountRow = await this.prisma.$queryRaw<
+      Array<{ amount: number | null }>
+    >`
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
@@ -85,8 +115,8 @@ export class ClubsService {
     const unpaidAmount = Number(unpaidAmountRow?.[0]?.amount ?? 0);
 
     return {
-      totalMembers,
-      membersThisMonth,
+      totalMembers: 0,
+      membersThisMonth: 0,
       totalTournaments,
       activeTournaments,
       ongoingTournaments,
@@ -109,10 +139,11 @@ export class ClubsService {
           : undefined),
       },
       include: {
-        _count: { select: { users: true, tournaments: true, courses: true } },
+        _count: { select: { tournaments: true, courses: true } },
         users: {
-          where: { role: UserRole.CLUB_ADMIN },
+          where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
           select: { id: true, email: true, firstName: true, lastName: true },
+          orderBy: { createdAt: 'asc' },
           take: 1,
         },
       },
@@ -124,10 +155,11 @@ export class ClubsService {
     const club = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       include: {
-        _count: { select: { users: true, tournaments: true, courses: true } },
+        _count: { select: { tournaments: true, courses: true } },
         users: {
-          where: { role: UserRole.CLUB_ADMIN },
+          where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
           select: { id: true, email: true, firstName: true, lastName: true },
+          orderBy: { createdAt: 'asc' },
           take: 1,
         },
       },
@@ -141,8 +173,9 @@ export class ClubsService {
       where: { id, deletedAt: null },
       include: {
         users: {
-          where: { role: UserRole.CLUB_ADMIN },
+          where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
           select: { id: true, email: true, firstName: true, lastName: true },
+          orderBy: { createdAt: 'asc' },
           take: 1,
         },
       },
@@ -155,7 +188,10 @@ export class ClubsService {
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.plan !== undefined) data.plan = dto.plan;
 
-    const [firstName, ...rest] = (dto.adminName || '').trim().split(/\s+/).filter(Boolean);
+    const [firstName, ...rest] = (dto.adminName || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
     const lastName = rest.join(' ');
 
     await this.prisma.$transaction(async (tx) => {
@@ -164,15 +200,54 @@ export class ClubsService {
       }
 
       const admin = existing.users?.[0];
-      if (admin && (dto.adminEmail !== undefined || dto.adminName !== undefined)) {
+      if (dto.adminEmail !== undefined || dto.adminName !== undefined) {
         const userData: any = {};
-        if (dto.adminEmail !== undefined) userData.email = dto.adminEmail;
+        if (dto.adminEmail !== undefined) {
+          const normalizedEmail = dto.adminEmail?.trim().toLowerCase();
+          if (normalizedEmail) userData.email = normalizedEmail;
+        }
         if (dto.adminName !== undefined) {
           userData.firstName = firstName || null;
           userData.lastName = lastName || null;
         }
-        if (Object.keys(userData).length > 0) {
-          await tx.user.update({ where: { id: admin.id }, data: userData });
+        if (admin) {
+          if (Object.keys(userData).length > 0) {
+            await tx.user.update({ where: { id: admin.id }, data: userData });
+          }
+        } else if (userData.email) {
+          const email = String(userData.email);
+          const existingUser = await tx.user.findFirst({
+            where: {
+              email: { equals: email, mode: 'insensitive' },
+              deletedAt: null,
+            },
+            select: { id: true },
+          });
+
+          if (existingUser) {
+            await tx.user.update({
+              where: { id: existingUser.id },
+              data: {
+                ...userData,
+                role: UserRole.CLUB_ADMIN,
+                clubId: id,
+              },
+            });
+          } else {
+            const passwordPlain = randomBytes(18).toString('hex');
+            const hashedPassword = await bcrypt.hash(passwordPlain, 10);
+            await tx.user.create({
+              data: {
+                email,
+                password: hashedPassword,
+                firstName: userData.firstName ?? null,
+                lastName: userData.lastName ?? null,
+                role: UserRole.CLUB_ADMIN,
+                status: MemberStatus.ACTIVE,
+                clubId: id,
+              },
+            });
+          }
         }
       }
     });
@@ -181,17 +256,33 @@ export class ClubsService {
   }
 
   async suspend(id: string) {
-    const club = await this.prisma.club.findFirst({ where: { id, deletedAt: null } });
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!club) throw new NotFoundException('Club not found');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.club.update({ where: { id }, data: { status: ClubStatus.SUSPENDED } });
+      await tx.club.update({
+        where: { id },
+        data: { status: ClubStatus.SUSPENDED },
+      });
       await tx.user.updateMany({
-        where: { clubId: id, deletedAt: null, status: { not: MemberStatus.EXPIRED } },
+        where: {
+          clubId: id,
+          deletedAt: null,
+          status: { not: MemberStatus.EXPIRED },
+          role: UserRole.CLUB_ADMIN,
+        },
         data: { status: MemberStatus.SUSPENDED },
       });
       await tx.tournament.updateMany({
-        where: { clubId: id, deletedAt: null, status: { in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN] } },
+        where: {
+          clubId: id,
+          deletedAt: null,
+          status: {
+            in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN],
+          },
+        },
         data: { status: TournamentStatus.CANCELLED },
       });
     });
@@ -200,13 +291,23 @@ export class ClubsService {
   }
 
   async activate(id: string) {
-    const club = await this.prisma.club.findFirst({ where: { id, deletedAt: null } });
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!club) throw new NotFoundException('Club not found');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.club.update({ where: { id }, data: { status: ClubStatus.ACTIVE } });
+      await tx.club.update({
+        where: { id },
+        data: { status: ClubStatus.ACTIVE },
+      });
       await tx.user.updateMany({
-        where: { clubId: id, deletedAt: null, status: MemberStatus.SUSPENDED },
+        where: {
+          clubId: id,
+          deletedAt: null,
+          status: MemberStatus.SUSPENDED,
+          role: UserRole.CLUB_ADMIN,
+        },
         data: { status: MemberStatus.ACTIVE },
       });
     });
@@ -214,15 +315,92 @@ export class ClubsService {
     return this.findOne(id);
   }
 
-  async remove(id: string) {
-    const club = await this.prisma.club.findFirst({ where: { id, deletedAt: null } });
+  async forceLogout(id: string) {
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
     if (!club) throw new NotFoundException('Club not found');
 
-    await this.prisma.club.update({
-      where: { id },
-      data: { deletedAt: new Date(), status: ClubStatus.EXPIRED },
+    const nextUat = new Date(Date.now() + 1);
+    const r = await this.prisma.user.updateMany({
+      where: { clubId: id, deletedAt: null },
+      data: { updatedAt: nextUat },
     });
 
-    return { id, deletedAt: true };
+    return { success: true, affected: r.count };
+  }
+
+  async remove(id: string) {
+    const club = await this.prisma.club.findUnique({ where: { id } });
+    if (!club) throw new NotFoundException('Club not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      const tournaments = await tx.tournament.findMany({
+        where: { clubId: id },
+        select: { id: true },
+      });
+      const tournamentIds = tournaments.map((t) => t.id);
+
+      const groups = tournamentIds.length
+        ? await tx.group.findMany({
+            where: { tournamentId: { in: tournamentIds } },
+            select: { id: true },
+          })
+        : [];
+      const groupIds = groups.map((g) => g.id);
+
+      const courses = await tx.course.findMany({
+        where: { clubId: id },
+        select: { id: true },
+      });
+      const courseIds = courses.map((c) => c.id);
+
+      const holes = courseIds.length
+        ? await tx.hole.findMany({
+            where: { courseId: { in: courseIds } },
+            select: { id: true },
+          })
+        : [];
+      const holeIds = holes.map((h) => h.id);
+
+      if (groupIds.length || holeIds.length) {
+        await tx.score.deleteMany({
+          where: {
+            OR: [
+              ...(groupIds.length ? [{ groupId: { in: groupIds } }] : []),
+              ...(holeIds.length ? [{ holeId: { in: holeIds } }] : []),
+            ],
+          },
+        });
+      }
+
+      if (tournamentIds.length) {
+        await tx.registration.deleteMany({
+          where: { tournamentId: { in: tournamentIds } },
+        });
+        await tx.group.deleteMany({ where: { tournamentId: { in: tournamentIds } } });
+        await tx.tournament.deleteMany({ where: { id: { in: tournamentIds } } });
+      }
+
+      if (holeIds.length) {
+        await tx.hole.deleteMany({ where: { id: { in: holeIds } } });
+      }
+      if (courseIds.length) {
+        await tx.course.deleteMany({ where: { id: { in: courseIds } } });
+      }
+
+      await tx.user.updateMany({
+        where: { clubId: id, role: { not: UserRole.CLUB_ADMIN } },
+        data: { clubId: null },
+      });
+      await tx.user.deleteMany({
+        where: { clubId: id, role: UserRole.CLUB_ADMIN },
+      });
+
+      await tx.club.delete({ where: { id } });
+    });
+
+    return { id, deleted: true };
   }
 }

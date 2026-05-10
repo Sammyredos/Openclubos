@@ -1,6 +1,6 @@
 import { getAuthToken, handleAuthFailure } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface Member {
   id: string;
@@ -25,7 +25,7 @@ export interface AdminUser {
   firstName: string | null;
   lastName: string | null;
   phone?: string | null;
-  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'STAFF' | 'PLAYER' | 'MARKER';
+  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
   clubId?: string | null;
   club?: { id: string; name: string } | null;

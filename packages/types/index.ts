@@ -11,7 +11,6 @@ export interface User {
 export const UserRole = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   CLUB_ADMIN: 'CLUB_ADMIN',
-  STAFF: 'STAFF',
   PLAYER: 'PLAYER',
   MARKER: 'MARKER',
 } as const;

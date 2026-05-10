@@ -30,7 +30,11 @@ export class SuperAdminDashboardService {
     return `${sign}${pct.toFixed(1).replace(/\\.0$/, '')}%`;
   }
 
-  private async revenueForRange(start: Date, end: Date, paymentStatus: PaymentStatus) {
+  private async revenueForRange(
+    start: Date,
+    end: Date,
+    paymentStatus: PaymentStatus,
+  ) {
     const regs = await this.prisma.registration.findMany({
       where: {
         registeredAt: { gte: start, lt: end },
@@ -46,28 +50,58 @@ export class SuperAdminDashboardService {
     const now = new Date();
     const startThisMonth = this.startOfMonth(now);
     const startNextMonth = this.startOfNextMonth(now);
-    const startLastMonth = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const startLastMonth = this.startOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 1, 1),
+    );
 
-    const [totalClubs, activeClubs, totalMembers, activeTournaments] = await Promise.all([
-      this.prisma.club.count({ where: { deletedAt: null } }),
-      this.prisma.club.count({ where: { deletedAt: null, status: ClubStatus.ACTIVE } }),
-      this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.tournament.count({
+    const [totalClubs, activeClubs, totalMembers, activeTournaments] =
+      await Promise.all([
+        this.prisma.club.count({ where: { deletedAt: null } }),
+        this.prisma.club.count({
+          where: { deletedAt: null, status: ClubStatus.ACTIVE },
+        }),
+        this.prisma.user.count({ where: { deletedAt: null } }),
+        this.prisma.tournament.count({
+          where: {
+            deletedAt: null,
+            status: {
+              in: [
+                TournamentStatus.ONGOING,
+                TournamentStatus.REGISTRATION_OPEN,
+              ],
+            },
+          },
+        }),
+      ]);
+
+    const [clubsThisMonth, clubsLastMonth] = await Promise.all([
+      this.prisma.club.count({
         where: {
           deletedAt: null,
-          status: { in: [TournamentStatus.ONGOING, TournamentStatus.REGISTRATION_OPEN] },
+          createdAt: { gte: startThisMonth, lt: startNextMonth },
+        },
+      }),
+      this.prisma.club.count({
+        where: {
+          deletedAt: null,
+          createdAt: { gte: startLastMonth, lt: startThisMonth },
         },
       }),
     ]);
 
-    const [clubsThisMonth, clubsLastMonth] = await Promise.all([
-      this.prisma.club.count({ where: { deletedAt: null, createdAt: { gte: startThisMonth, lt: startNextMonth } } }),
-      this.prisma.club.count({ where: { deletedAt: null, createdAt: { gte: startLastMonth, lt: startThisMonth } } }),
-    ]);
-
     const [membersThisMonth, membersLastMonth] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: startThisMonth, lt: startNextMonth } } }),
-      this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: startLastMonth, lt: startThisMonth } } }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          createdAt: { gte: startThisMonth, lt: startNextMonth },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          createdAt: { gte: startLastMonth, lt: startThisMonth },
+        },
+      }),
     ]);
 
     const [revenueThisMonth, revenueLastMonth] = await Promise.all([
@@ -77,13 +111,22 @@ export class SuperAdminDashboardService {
 
     const [pendingPayments, pendingAmount] = await Promise.all([
       this.prisma.registration.count({
-        where: { paymentStatus: PaymentStatus.UNPAID, tournament: { deletedAt: null, club: { deletedAt: null } } },
+        where: {
+          paymentStatus: PaymentStatus.UNPAID,
+          tournament: { deletedAt: null, club: { deletedAt: null } },
+        },
       }),
-      this.revenueForRange(new Date(0), new Date('9999-12-31T00:00:00.000Z'), PaymentStatus.UNPAID),
+      this.revenueForRange(
+        new Date(0),
+        new Date('9999-12-31T00:00:00.000Z'),
+        PaymentStatus.UNPAID,
+      ),
     ]);
 
     const activeClubsPercent =
-      totalClubs === 0 ? '0% of total' : `${Math.round((activeClubs / totalClubs) * 100)}% of total`;
+      totalClubs === 0
+        ? '0% of total'
+        : `${Math.round((activeClubs / totalClubs) * 100)}% of total`;
 
     return {
       totalClubs,
@@ -95,7 +138,10 @@ export class SuperAdminDashboardService {
       activeTournaments,
       tournamentsGrowth: '0',
       totalRevenue: Math.round(revenueThisMonth),
-      revenueGrowth: this.formatPercentChange(revenueThisMonth, revenueLastMonth),
+      revenueGrowth: this.formatPercentChange(
+        revenueThisMonth,
+        revenueLastMonth,
+      ),
       pendingPayments,
       pendingAmount: Math.round(pendingAmount),
     };
@@ -110,7 +156,10 @@ export class SuperAdminDashboardService {
         paymentStatus: PaymentStatus.PAID,
         tournament: { deletedAt: null, club: { deletedAt: null } },
       },
-      select: { registeredAt: true, tournament: { select: { entryFee: true } } },
+      select: {
+        registeredAt: true,
+        tournament: { select: { entryFee: true } },
+      },
     });
 
     const buckets = new Array(12).fill(0) as number[];
@@ -119,8 +168,24 @@ export class SuperAdminDashboardService {
       buckets[month] += r.tournament.entryFee || 0;
     }
 
-    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return labels.map((month, idx) => ({ month, amount: Math.round(buckets[idx]) }));
+    const labels = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return labels.map((month, idx) => ({
+      month,
+      amount: Math.round(buckets[idx]),
+    }));
   }
 
   async clubGrowth(year: number) {
@@ -136,7 +201,20 @@ export class SuperAdminDashboardService {
       buckets[c.createdAt.getMonth()] += 1;
     }
 
-    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const labels = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return labels.map((month, idx) => ({ month, count: buckets[idx] }));
   }
 
@@ -144,19 +222,32 @@ export class SuperAdminDashboardService {
     const now = new Date();
     const startThisMonth = this.startOfMonth(now);
     const startNextMonth = this.startOfNextMonth(now);
-    const startLastMonth = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-    const start3Months = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 2, 1));
-    const start6Months = this.startOfMonth(new Date(now.getFullYear(), now.getMonth() - 5, 1));
+    const startLastMonth = this.startOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 1, 1),
+    );
+    const start3Months = this.startOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 2, 1),
+    );
+    const start6Months = this.startOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 5, 1),
+    );
 
     const normalized = (range || 'This Month').trim().toLowerCase();
-    const isAllTime = normalized === 'all time' || normalized === 'all-time' || normalized === 'all_time';
+    const isAllTime =
+      normalized === 'all time' ||
+      normalized === 'all-time' ||
+      normalized === 'all_time';
 
     const bounds = (() => {
       if (isAllTime) return null;
-      if (normalized === 'this month') return { start: startThisMonth, end: startNextMonth };
-      if (normalized === 'last month') return { start: startLastMonth, end: startThisMonth };
-      if (normalized === '3 months' || normalized === 'last 3 months') return { start: start3Months, end: startNextMonth };
-      if (normalized === '6 months' || normalized === 'last 6 months') return { start: start6Months, end: startNextMonth };
+      if (normalized === 'this month')
+        return { start: startThisMonth, end: startNextMonth };
+      if (normalized === 'last month')
+        return { start: startLastMonth, end: startThisMonth };
+      if (normalized === '3 months' || normalized === 'last 3 months')
+        return { start: start3Months, end: startNextMonth };
+      if (normalized === '6 months' || normalized === 'last 6 months')
+        return { start: start6Months, end: startNextMonth };
       return { start: startThisMonth, end: startNextMonth };
     })();
 
@@ -221,16 +312,30 @@ export class SuperAdminDashboardService {
         registrations: v.registrations,
         tournaments: v.tournamentIdsThisMonth.size,
       }))
-      .sort((a, b) => b.revenue - a.revenue || b.registrations - a.registrations || b.tournaments - a.tournaments)
+      .sort(
+        (a, b) =>
+          b.revenue - a.revenue ||
+          b.registrations - a.registrations ||
+          b.tournaments - a.tournaments,
+      )
       .slice(0, 5);
 
     const topRevenue = rows[0]?.revenue || 0;
     return rows.map((r) => {
-      const progress = topRevenue === 0 ? 0 : Math.round((r.revenue / topRevenue) * 100);
+      const progress =
+        topRevenue === 0 ? 0 : Math.round((r.revenue / topRevenue) * 100);
       const status =
-        r.clubStatus === ClubStatus.SUSPENDED ? 'Suspended' : r.clubStatus === ClubStatus.EXPIRED ? 'Expired' : 'Active';
+        r.clubStatus === ClubStatus.SUSPENDED
+          ? 'Suspended'
+          : r.clubStatus === ClubStatus.EXPIRED
+            ? 'Expired'
+            : 'Active';
       const statusType =
-        r.clubStatus === ClubStatus.SUSPENDED ? 'warning' : r.clubStatus === ClubStatus.EXPIRED ? 'danger' : 'success';
+        r.clubStatus === ClubStatus.SUSPENDED
+          ? 'warning'
+          : r.clubStatus === ClubStatus.EXPIRED
+            ? 'danger'
+            : 'success';
       return {
         clubId: r.clubId,
         name: r.name,
@@ -253,7 +358,9 @@ export class SuperAdminDashboardService {
       select: {
         registeredAt: true,
         user: { select: { email: true, firstName: true, lastName: true } },
-        tournament: { select: { name: true, club: { select: { name: true } } } },
+        tournament: {
+          select: { name: true, club: { select: { name: true } } },
+        },
       },
     });
 
@@ -275,36 +382,52 @@ export class SuperAdminDashboardService {
     const now = new Date();
     const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const [unpaidRegs, suspendedClubs, lowRegTournaments, overdueOngoing] = await Promise.all([
-      this.prisma.registration.findMany({
-        where: { paymentStatus: PaymentStatus.UNPAID, tournament: { deletedAt: null, club: { deletedAt: null } } },
-        select: { tournament: { select: { entryFee: true } } },
-      }),
-      this.prisma.club.count({ where: { deletedAt: null, status: ClubStatus.SUSPENDED } }),
-      this.prisma.tournament.findMany({
-        where: {
-          deletedAt: null,
-          status: TournamentStatus.REGISTRATION_OPEN,
-          startDate: { gte: now, lt: inSevenDays },
-        },
-        include: { _count: { select: { registrations: true } } },
-        orderBy: { startDate: 'asc' },
-        take: 20,
-      }),
-      this.prisma.tournament.count({
-        where: {
-          deletedAt: null,
-          status: TournamentStatus.ONGOING,
-          endDate: { not: null, lt: now },
-        },
-      }),
-    ]);
+    const [unpaidRegs, suspendedClubs, lowRegTournaments, overdueOngoing] =
+      await Promise.all([
+        this.prisma.registration.findMany({
+          where: {
+            paymentStatus: PaymentStatus.UNPAID,
+            tournament: { deletedAt: null, club: { deletedAt: null } },
+          },
+          select: { tournament: { select: { entryFee: true } } },
+        }),
+        this.prisma.club.count({
+          where: { deletedAt: null, status: ClubStatus.SUSPENDED },
+        }),
+        this.prisma.tournament.findMany({
+          where: {
+            deletedAt: null,
+            status: TournamentStatus.REGISTRATION_OPEN,
+            startDate: { gte: now, lt: inSevenDays },
+          },
+          include: { _count: { select: { registrations: true } } },
+          orderBy: { startDate: 'asc' },
+          take: 20,
+        }),
+        this.prisma.tournament.count({
+          where: {
+            deletedAt: null,
+            status: TournamentStatus.ONGOING,
+            endDate: { not: null, lt: now },
+          },
+        }),
+      ]);
 
     const unpaidCount = unpaidRegs.length;
-    const unpaidAmount = unpaidRegs.reduce((sum, r) => sum + (r.tournament.entryFee || 0), 0);
-    const lowRegCount = lowRegTournaments.filter((t) => (t._count?.registrations ?? 0) < 5).length;
+    const unpaidAmount = unpaidRegs.reduce(
+      (sum, r) => sum + (r.tournament.entryFee || 0),
+      0,
+    );
+    const lowRegCount = lowRegTournaments.filter(
+      (t) => (t._count?.registrations ?? 0) < 5,
+    ).length;
 
-    const items: Array<{ type: 'danger' | 'warning' | 'success'; title: string; subtitle: string; time: string }> = [];
+    const items: Array<{
+      type: 'danger' | 'warning' | 'success';
+      title: string;
+      subtitle: string;
+      time: string;
+    }> = [];
     const time = now.toISOString();
 
     if (unpaidCount > 0) {

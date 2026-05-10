@@ -1,6 +1,6 @@
 import { getAuthToken } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function getCourses(clubId?: string) {
   const token = getAuthToken();

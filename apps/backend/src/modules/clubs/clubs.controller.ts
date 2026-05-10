@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
@@ -40,6 +50,11 @@ export class ClubsController {
   @Post(':id/activate')
   activate(@Param('id') id: string) {
     return this.clubsService.activate(id);
+  }
+
+  @Post(':id/force-logout')
+  forceLogout(@Param('id') id: string) {
+    return this.clubsService.forceLogout(id);
   }
 
   @Delete(':id')

@@ -15,11 +15,12 @@ import {
   Clock,
   ShieldAlert,
   Target,
-  AlertTriangle,
   BarChart3,
   KeyRound,
   Ban,
   CheckCircle2,
+  AlertTriangle,
+  LogOut,
   Trash2,
   Mail,
   Clipboard,
@@ -29,7 +30,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { broadcastAdminEvent, cn } from "@/lib/utils";
+import { broadcastAdminEvent, cn, subscribeAdminEvents } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import Link from "next/link";
 import { toast } from "sonner";
-import { activateClub, deleteClub, getClubs, suspendClub, updateClub } from "@/lib/api/clubs";
+import { activateClub, deleteClub, forceLogoutClub, getClubs, suspendClub, updateClub } from "@/lib/api/clubs";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { updateMember } from "@/lib/api/members";
 
@@ -48,7 +49,7 @@ type ApiClub = {
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
   createdAt: string;
-  _count?: { users: number; tournaments: number; courses: number };
+  _count?: { tournaments: number; courses: number };
   users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
 };
 
@@ -56,7 +57,6 @@ type ClubRow = {
   id: string;
   name: string;
   location: string;
-  members: number;
   admin: { id: string | null; name: string; email: string; avatar: string };
   plan: string;
   status: "Active" | "Suspended" | "Expired";
@@ -103,7 +103,6 @@ function toClubRow(c: ApiClub): ClubRow {
     id: c.id,
     name: c.name,
     location: c.address || "—",
-    members: c._count?.users ?? 0,
     admin: {
       id: adminUser?.id ?? null,
       name: adminName,
@@ -145,9 +144,9 @@ export default function ClubsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [selectedClub, setSelectedClub] = useState<ClubRow | null>(null);
   const [editPlan, setEditPlan] = useState("Pro");
-  const [editStatus, setEditStatus] = useState<ClubRow["status"]>("Active");
   const [editName, setEditName] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editAdminName, setEditAdminName] = useState("");
@@ -222,6 +221,19 @@ export default function ClubsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const unsubscribe = subscribeAdminEvents((evt) => {
+      if (evt.type !== "clubs-changed") return;
+      if (cancelled) return;
+      reloadClubs();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
   const filteredClubs = clubsData.filter((club) => {
     const matchesSearch = 
       club.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -258,7 +270,6 @@ export default function ClubsPage() {
   const handleEdit = (club: ClubRow) => {
     setSelectedClub(club);
     setEditPlan(club.plan || "Pro");
-    setEditStatus(club.status || "Active");
     setEditName(club.name || "");
     setEditLocation(club.location || "");
     setEditAdminName(club.admin?.name || "");
@@ -278,6 +289,12 @@ export default function ClubsPage() {
     setSelectedClub(club);
     setStatusAction(club.status === "Suspended" ? "activate" : "suspend");
     setIsStatusModalOpen(true);
+    closeDropdown();
+  };
+
+  const openForceLogoutModal = (club: ClubRow) => {
+    setSelectedClub(club);
+    setIsForceLogoutModalOpen(true);
     closeDropdown();
   };
 
@@ -345,6 +362,10 @@ export default function ClubsPage() {
       router.push(`/super-admin/clubs/${club.id}`);
       return;
     }
+    if (action === "edit") {
+      handleEdit(club);
+      return;
+    }
     if (action === "reset-password") {
       openResetPasswordModal(club);
       return;
@@ -404,18 +425,51 @@ export default function ClubsPage() {
       .finally(() => setMutating(false));
   };
 
+  const confirmForceLogout = () => {
+    if (!selectedClub?.id) return;
+    setMutating(true);
+    forceLogoutClub(selectedClub.id)
+      .then(() => {
+        toast.success("Club users have been logged out");
+        setIsForceLogoutModalOpen(false);
+        broadcastAdminEvent("clubs-changed");
+        return reloadClubs();
+      })
+      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout club"))
+      .finally(() => setMutating(false));
+  };
+
   const saveEdit = () => {
     if (!selectedClub?.id) return;
     const plan = editPlan === "Pro" ? "PRO" : editPlan === "Basic" ? "BASIC" : undefined;
-    const status = editStatus.toUpperCase() as "ACTIVE" | "SUSPENDED" | "EXPIRED";
+    const name = editName.trim();
+    const address = editLocation.trim();
+    const adminName = editAdminName.trim();
+    const adminEmail = editAdminEmail.trim();
+    const adminPairValid =
+      (adminName.length === 0 && adminEmail.length === 0) ||
+      (adminName.length > 0 && adminEmail.length > 0);
+
+    if (name.length === 0) {
+      toast.error("Club name is required");
+      return;
+    }
+    if (address.length === 0) {
+      toast.error("Location is required");
+      return;
+    }
+    if (!adminPairValid) {
+      toast.error("Please enter both Admin Name and Admin Email");
+      return;
+    }
+
     setMutating(true);
     updateClub(selectedClub.id, {
-      name: editName.trim() || undefined,
-      address: editLocation.trim() || undefined,
+      name: name || undefined,
+      address: address || undefined,
       plan,
-      status,
-      adminName: editAdminName.trim() || undefined,
-      adminEmail: editAdminEmail.trim() || undefined,
+      adminName: adminName || undefined,
+      adminEmail: adminEmail || undefined,
     })
       .then(() => {
         toast.success("Club updated");
@@ -547,7 +601,6 @@ export default function ClubsPage() {
                 <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="px-6 py-4">Club Name</th>
                   <th className="px-6 py-4">Location</th>
-                  <th className="px-6 py-4">Members</th>
                   <th className="px-6 py-4">Admin</th>
                   <th className="px-6 py-4">Plan</th>
                   <th className="px-6 py-4">Status</th>
@@ -558,7 +611,7 @@ export default function ClubsPage() {
               <tbody className="divide-y divide-gray-50">
                 {error ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-red-500 font-medium">
+                    <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-medium">
                       {error}
                     </td>
                   </tr>
@@ -573,9 +626,6 @@ export default function ClubsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Skeleton className="h-4 w-32 rounded-md" />
-                      </td>
-                      <td className="px-6 py-4">
-                        <Skeleton className="h-4 w-12 rounded-md" />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -607,23 +657,6 @@ export default function ClubsPage() {
                   ))
                 ) : paginatedClubs.length > 0 ? (
                   paginatedClubs.map((club) => {
-                    const canToggleStatus = club.status !== "Expired";
-                    const isSuspended = club.status === "Suspended";
-                    const statusTitle = !canToggleStatus
-                      ? "Club Expired"
-                      : isSuspended
-                        ? "Activate Club"
-                        : "Suspend Club";
-                    const statusClassName = cn(
-                      "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                      !canToggleStatus
-                        ? "text-gray-300 cursor-not-allowed"
-                        : isSuspended
-                          ? "text-[#10b981] hover:bg-[#10b981]/10"
-                          : "text-red-600 hover:bg-red-50",
-                    );
-                    const StatusIcon = isSuspended ? CheckCircle2 : Ban;
-
                     return (
                     <tr key={club.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4">
@@ -635,7 +668,6 @@ export default function ClubsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{club.location}</td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-bold">{club.members}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img src={club.admin.avatar} alt={club.admin.name} className="w-8 h-8 rounded-full border border-gray-100" />
@@ -674,19 +706,23 @@ export default function ClubsPage() {
                             <Eye className="w-4.5 h-4.5" />
                           </Link>
                           <button 
-                            onClick={() => handleEdit(club)}
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Edit Club"
-                          >
-                            <Edit2 className="w-4.5 h-4.5" />
-                          </button>
-                          <button
+                            disabled={club.status === "Expired"}
+                            className={cn(
+                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                              club.status === "Expired"
+                                ? "text-gray-300 cursor-not-allowed"
+                                : club.status === "Suspended"
+                                  ? "text-emerald-600 hover:bg-emerald-50"
+                                  : "text-red-600 hover:bg-red-50",
+                            )}
+                            title={club.status === "Suspended" ? "Activate Club" : "Suspend Club"}
                             onClick={() => handleStatusChange(club)}
-                            className={statusClassName}
-                            title={statusTitle}
-                            disabled={!canToggleStatus}
                           >
-                            <StatusIcon className="w-4.5 h-4.5" />
+                            {club.status === "Suspended" ? (
+                              <CheckCircle2 className="w-4.5 h-4.5" />
+                            ) : (
+                              <Ban className="w-4.5 h-4.5" />
+                            )}
                           </button>
                           <div className="relative">
                             <button 
@@ -715,7 +751,7 @@ export default function ClubsPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 font-medium">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">
                       No clubs found matching your filters.
                     </td>
                   </tr>
@@ -747,6 +783,21 @@ export default function ClubsPage() {
             >
               <BarChart3 className="w-4 h-4 text-gray-400" />
               View Analytics
+            </button>
+            <button
+              onClick={() => handleMoreAction("edit", dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Edit2 className="w-4 h-4 text-gray-400" />
+              Edit Club
+            </button>
+            <button
+              disabled={mutating}
+              onClick={() => openForceLogoutModal(dropdownClub)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <LogOut className="w-4 h-4 text-gray-400" />
+              Force Logout
             </button>
             <button
               onClick={() => handleMoreAction("reset-password", dropdownClub)}
@@ -793,7 +844,15 @@ export default function ClubsPage() {
             </Button>
             <Button
               onClick={saveEdit}
-              disabled={mutating}
+              disabled={
+                mutating ||
+                editName.trim().length === 0 ||
+                editLocation.trim().length === 0 ||
+                !(
+                  (editAdminName.trim().length === 0 && editAdminEmail.trim().length === 0) ||
+                  (editAdminName.trim().length > 0 && editAdminEmail.trim().length > 0)
+                )
+              }
               className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
             >
               Save Changes
@@ -819,34 +878,97 @@ export default function ClubsPage() {
             </div>
             <div className="space-y-2">
               <Label className="font-bold text-gray-700">Admin Email</Label>
-              <Input value={editAdminEmail} onChange={(e) => setEditAdminEmail(e.target.value)} className="rounded-xl h-12" />
+              <Input type="email" value={editAdminEmail} onChange={(e) => setEditAdminEmail(e.target.value)} className="rounded-xl h-12" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Subscription Plan</Label>
-              <SearchableSelect
-                value={editPlan}
-                onValueChange={setEditPlan}
-                options={[
-                  { value: "Pro", label: "Pro Plan" },
-                  { value: "Basic", label: "Basic Plan" },
-                ]}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select a plan..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Status</Label>
-              <SearchableSelect
-                value={editStatus}
-                onValueChange={(v) => setEditStatus(v as ClubRow["status"])}
-                options={["Active", "Suspended", "Expired"].map((v) => ({ value: v, label: v }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Active"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="font-bold text-gray-700">Subscription Plan</Label>
+            <SearchableSelect
+              value={editPlan}
+              onValueChange={setEditPlan}
+              options={[
+                { value: "Pro", label: "Pro Plan" },
+                { value: "Basic", label: "Basic Plan" },
+              ]}
+              triggerClassName="h-12 bg-white font-medium rounded-xl"
+              placeholder="Select a plan..."
+            />
           </div>
+        </div>
+      </Modal>
+
+      {/* Status Modal */}
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        title={statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className={cn(
+                "rounded-lg font-bold px-8 text-white border",
+                statusAction === "activate"
+                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
+                  : "bg-red-500 hover:bg-red-600 border-red-600/30",
+              )}
+              onClick={confirmStatusChange}
+              disabled={mutating}
+            >
+              {statusAction === "activate" ? "Yes, Activate" : "Yes, Suspend"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div
+            className={cn(
+              "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+              statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-amber-50 text-amber-500",
+            )}
+          >
+            {statusAction === "activate" ? <CheckCircle2 className="h-10 w-10" /> : <AlertTriangle className="h-10 w-10" />}
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            {statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
+          </h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            {statusAction === "activate"
+              ? `Are you sure you want to activate ${selectedClub?.name}?`
+              : `Are you sure you want to suspend ${selectedClub?.name}?`}
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isForceLogoutModalOpen}
+        onClose={() => setIsForceLogoutModalOpen(false)}
+        title="Force Logout Club?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              onClick={confirmForceLogout}
+              disabled={mutating}
+            >
+              Force Logout
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <LogOut className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this club user?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will immediately log out this user <br></br><span className="font-bold text-gray-800">{selectedClub?.name ?? "this club"}</span>.
+          </p>
         </div>
       </Modal>
 
@@ -958,80 +1080,6 @@ export default function ClubsPage() {
               )}
             </div>
           )}
-        </div>
-      </Modal>
-
-      {/* Status Modal */}
-      <Modal
-        isOpen={isStatusModalOpen}
-        onClose={() => setIsStatusModalOpen(false)}
-        title={statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button 
-              className={cn(
-                "rounded-lg font-bold px-8 text-white border",
-                statusAction === "activate"
-                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
-                  : "bg-red-500 hover:bg-red-600 border-red-600/30",
-              )}
-              onClick={confirmStatusChange}
-              disabled={mutating}
-            >
-              {statusAction === "activate" ? "Yes, Activate" : "Yes, Suspend"}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col items-center text-center py-4">
-          <div
-            className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center mb-6",
-              statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-amber-50 text-amber-500",
-            )}
-          >
-            {statusAction === "activate" ? <CheckCircle2 className="h-10 w-10" /> : <AlertTriangle className="h-10 w-10" />}
-          </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">
-            {statusAction === "activate" ? "Activate Club?" : "Suspend Club?"}
-          </h4>
-          <p className="text-gray-500 max-w-sm">
-            This will:
-          </p>
-          <div className="mt-5 w-full max-w-sm text-left text-[14px] text-gray-600 space-y-2">
-            <div className="flex items-start gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-gray-300" />
-              <span>
-                {statusAction === "activate"
-                  ? "Re-enable login for all club users"
-                  : "Disable login for all club users"}
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-gray-300" />
-              <span>
-                {statusAction === "activate"
-                  ? "Restore access to club features"
-                  : "Stop all ongoing tournaments"}
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-gray-300" />
-              <span>
-                {statusAction === "activate"
-                  ? "Unsuspend previously suspended users"
-                  : "Restrict access to club data"}
-              </span>
-            </div>
-          </div>
-          <p className="text-gray-500 max-w-sm mt-6">
-            {statusAction === "activate"
-              ? `Are you sure you want to activate ${selectedClub?.name}?`
-              : `Are you sure you want to suspend ${selectedClub?.name}?`}
-          </p>
         </div>
       </Modal>
 

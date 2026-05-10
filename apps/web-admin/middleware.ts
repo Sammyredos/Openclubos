@@ -5,7 +5,6 @@ import type { NextRequest } from 'next/server';
 const PROTECTED_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/super-admin', roles: ['SUPER_ADMIN'] },
   { prefix: '/club-admin', roles: ['SUPER_ADMIN', 'CLUB_ADMIN'] },
-  { prefix: '/staff', roles: ['SUPER_ADMIN', 'CLUB_ADMIN', 'STAFF'] },
   { prefix: '/app', roles: ['PLAYER', 'MARKER'] },
 ];
 
@@ -13,22 +12,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('accessToken')?.value;
 
-  // Handle /login access for authenticated users
-  if (pathname === '/login' && token) {
-    try {
-      const payload = decodeJwtPayload(token);
-      if (!payload) throw new Error('Invalid token');
-      if (!payload.role) throw new Error('Missing role');
-      const fallback = getFallback(payload.role);
-      if (fallback === '/login') throw new Error('Unknown role');
-      return NextResponse.redirect(new URL(fallback, request.url));
-    } catch {
-      // Malformed token — allow /login and clear cookie
-      const response = NextResponse.next();
-      response.cookies.delete('accessToken');
-      return response;
-    }
-  }
+  const clearToken = () => {
+    const res = NextResponse.next();
+    res.cookies.delete('accessToken');
+    return res;
+  };
 
   // Public routes — always allow
   if (
@@ -40,6 +28,18 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname.startsWith('/static')
   ) {
+    // If a token exists on /login, validate it against the backend.
+    // This prevents "deleted users can still login" behavior caused by stale cookies.
+    if (pathname === '/login' && token) {
+      return verifyAccessToken(request, token)
+        .then((payload) => {
+          if (!payload?.role) return clearToken();
+          const fallback = getFallback(payload.role);
+          if (fallback === '/login') return clearToken();
+          return NextResponse.redirect(new URL(fallback, request.url));
+        })
+        .catch(() => clearToken());
+    }
     return NextResponse.next();
   }
 
@@ -50,53 +50,62 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Decode JWT payload (no verification — verification happens on the backend)
-  try {
-    const payload = decodeJwtPayload(token);
-    if (!payload) throw new Error('Invalid token');
-    const userRole: string | undefined = payload.role;
-    if (!userRole) throw new Error('Missing role');
+  // Validate token against backend (signature + user still exists).
+  // If invalid, clear cookie and redirect to /login.
+  return verifyAccessToken(request, token)
+    .then((payload) => {
+      const userRole: string | undefined = payload?.role;
+      if (!userRole) throw new Error('Missing role');
 
-    const matched = PROTECTED_ROUTES.find((r) => pathname.startsWith(r.prefix));
-    if (matched && !matched.roles.includes(userRole)) {
-      // Redirect to their correct dashboard
-      const fallback = getFallback(userRole);
-      return NextResponse.redirect(new URL(fallback, request.url));
-    }
-  } catch {
-    // Malformed token — force logout
-    const loginUrl = new URL('/login', request.url);
-    const response = NextResponse.redirect(loginUrl);
-    response.cookies.delete('accessToken');
-    return response;
-  }
-
-  return NextResponse.next();
+      const matched = PROTECTED_ROUTES.find((r) => pathname.startsWith(r.prefix));
+      if (matched && !matched.roles.includes(userRole)) {
+        const fallback = getFallback(userRole);
+        return NextResponse.redirect(new URL(fallback, request.url));
+      }
+      return NextResponse.next();
+    })
+    .catch(() => {
+      const loginUrl = new URL('/login', request.url);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete('accessToken');
+      return response;
+    });
 }
 
 function getFallback(role: string): string {
   const map: Record<string, string> = {
     SUPER_ADMIN: '/super-admin/dashboard',
     CLUB_ADMIN: '/club-admin/dashboard',
-    STAFF: '/staff/dashboard',
     PLAYER: '/app/home',
     MARKER: '/app/scoring',
   };
   return map[role] ?? '/login';
 }
 
-function decodeJwtPayload(token: string): { role?: string } | null {
-  try {
-    const payloadBase64Url = token.split('.')[1];
-    if (!payloadBase64Url) return null;
+async function verifyAccessToken(
+  request: NextRequest,
+  token: string,
+): Promise<{ role?: string } | null> {
+  const backendBase =
+    process.env.API_PROXY_TARGET?.replace(/\/+$/, '') ||
+    (typeof process.env.NEXT_PUBLIC_API_URL === 'string' &&
+    process.env.NEXT_PUBLIC_API_URL.startsWith('http')
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+      : 'http://localhost:3001');
 
-    const base64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-    const json = atob(padded);
-    return JSON.parse(json);
-  } catch {
-    return null;
+  const url = `${backendBase}/api/auth/me`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const json: unknown = await res.json().catch(() => null);
+  if (json && typeof json === 'object' && 'role' in json) {
+    const role = (json as { role?: unknown }).role;
+    if (typeof role === 'string') return { role };
   }
+  return null;
 }
 
 export const config = {

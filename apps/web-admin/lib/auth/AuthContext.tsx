@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { AuthUser } from '@/lib/api/auth';
 import { getAuthToken, handleAuthFailure } from '@/lib/api/auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -20,7 +20,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ROLE_REDIRECT: Record<string, string> = {
   SUPER_ADMIN: '/super-admin/dashboard',
   CLUB_ADMIN: '/club-admin/dashboard',
-  STAFF: '/staff/dashboard',
   PLAYER: '/app/home',
   MARKER: '/app/scoring',
 };

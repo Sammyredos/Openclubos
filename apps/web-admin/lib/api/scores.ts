@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const getGroupScores = async (groupId: string) => {
   const response = await axios.get(`${API_URL}/scores/group/${groupId}`);

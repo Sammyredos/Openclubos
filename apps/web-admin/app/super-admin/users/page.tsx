@@ -30,7 +30,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { broadcastAdminEvent, cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
@@ -38,7 +38,6 @@ import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
 import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
-import { getClubs } from "@/lib/api/clubs";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 
 function fullName(firstName: string | null, lastName: string | null) {
@@ -84,8 +83,6 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
         return { label: "SUPER_ADMIN", className: "bg-purple-50 text-purple-700 border-purple-100" };
       case "CLUB_ADMIN":
         return { label: "CLUB_ADMIN", className: "bg-blue-50 text-blue-700 border-blue-100" };
-      case "STAFF":
-        return { label: "STAFF", className: "bg-amber-50 text-amber-700 border-amber-100" };
       case "MARKER":
         return { label: "MARKER", className: "bg-indigo-50 text-indigo-700 border-indigo-100" };
       default:
@@ -136,10 +133,7 @@ export default function SuperAdminUsersPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
-  const [clubFilter, setClubFilter] = useState("All Clubs");
   const [statusFilter, setStatusFilter] = useState("All Status");
-
-  const [clubOptions, setClubOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -154,6 +148,7 @@ export default function SuperAdminUsersPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -163,7 +158,6 @@ export default function SuperAdminUsersPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editRole, setEditRole] = useState<AdminUser["role"]>("PLAYER");
-  const [editClubId, setEditClubId] = useState<string>("");
   const [editStatus, setEditStatus] = useState<AdminUser["status"]>("ACTIVE");
 
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
@@ -183,40 +177,6 @@ export default function SuperAdminUsersPage() {
   };
 
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadClubs() {
-      try {
-        const token = getAuthToken();
-        if (!token) return;
-        const clubs = (await getClubs()) as Array<{ id: string; name: string }>;
-        if (cancelled) return;
-        const opts = Array.isArray(clubs)
-          ? clubs.map((c) => ({ value: c.id, label: c.name }))
-          : [];
-        setClubOptions(opts);
-      } catch {
-        if (cancelled) return;
-        setClubOptions([]);
-      }
-    }
-    loadClubs();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const clubNameById = useMemo(() => new Map(clubOptions.map((o) => [o.value, o.label])), [clubOptions]);
-
-  const editClubSelectOptions = useMemo(() => {
-    const base = [{ value: "", label: "No Club" }, ...clubOptions];
-    if (editClubId && !base.some((o) => o.value === editClubId)) {
-      const label = selectedUser?.club?.name || clubNameById.get(editClubId) || "Selected Club";
-      return [...base, { value: editClubId, label }];
-    }
-    return base;
-  }, [clubOptions, editClubId, selectedUser, clubNameById]);
-
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return allUsers.filter((u) => {
@@ -225,11 +185,9 @@ export default function SuperAdminUsersPage() {
       const matchesSearch = q.length === 0 || name.includes(q) || email.includes(q);
       const matchesRole = roleFilter === "All Roles" || u.role === roleFilter;
       const matchesStatus = statusFilter === "All Status" || u.status === statusFilter;
-      const userClubId = u.club?.id ?? u.clubId ?? "";
-      const matchesClub = clubFilter === "All Clubs" || userClubId === clubFilter;
-      return matchesSearch && matchesRole && matchesStatus && matchesClub;
+      return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [allUsers, searchQuery, roleFilter, statusFilter, clubFilter]);
+  }, [allUsers, searchQuery, roleFilter, statusFilter]);
 
   const total = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
@@ -293,7 +251,7 @@ export default function SuperAdminUsersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "STAFF", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
         value: v,
         label: v === "All Roles" ? "All Roles" : v.replaceAll("_", " "),
       })),
@@ -309,18 +267,12 @@ export default function SuperAdminUsersPage() {
     [],
   );
 
-  const clubSelectOptions = useMemo(
-    () => [{ value: "All Clubs", label: "All Clubs" }, ...clubOptions],
-    [clubOptions],
-  );
-
   const skeletonRows = Array.from({ length: itemsPerPage }, (_, idx) => idx);
 
   const rolesOverview = useMemo(() => {
     const map = stats?.roles ?? {};
     const rows = [
       { key: "CLUB_ADMIN", label: "Club Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
-      { key: "STAFF", label: "Staff", color: "bg-amber-500", value: map.STAFF ?? 0 },
       { key: "PLAYER", label: "Players", color: "bg-emerald-500", value: map.PLAYER ?? 0 },
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
@@ -367,7 +319,6 @@ export default function SuperAdminUsersPage() {
     setEditPhone(u.phone || "");
     setEditRole(u.role);
     setEditStatus(u.status);
-    setEditClubId(u.club?.id ?? u.clubId ?? "");
     setIsEditModalOpen(true);
     closeDropdown();
   };
@@ -388,11 +339,8 @@ export default function SuperAdminUsersPage() {
         toast.error("You can't force logout this account");
         return;
       }
-      setMutating(true);
-      forceLogoutUser(u.id)
-        .then(() => toast.success("User has been logged out"))
-        .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout user"))
-        .finally(() => setMutating(false));
+      setSelectedUser(u);
+      setIsForceLogoutModalOpen(true);
       return;
     }
     if (action === "export") {
@@ -431,7 +379,6 @@ export default function SuperAdminUsersPage() {
       status: editStatus,
       role: editRole,
     };
-    payload.clubId = editClubId === "" ? null : editClubId;
     setMutating(true);
     try {
       await updateMember(selectedUser.id, payload);
@@ -456,6 +403,21 @@ export default function SuperAdminUsersPage() {
       await reload();
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to update user status");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const confirmForceLogout = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await forceLogoutUser(selectedUser.id);
+      toast.success("User has been logged out");
+      setIsForceLogoutModalOpen(false);
+      await reload();
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to force logout user");
     } finally {
       setMutating(false);
     }
@@ -515,6 +477,8 @@ export default function SuperAdminUsersPage() {
       await deleteMember(selectedUser.id);
       toast.success("User deleted");
       setIsDeleteModalOpen(false);
+      broadcastAdminEvent("users-changed");
+      broadcastAdminEvent("clubs-changed");
       await reload();
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to delete user");
@@ -526,7 +490,6 @@ export default function SuperAdminUsersPage() {
   const clearFilters = () => {
     setSearchQuery("");
     setRoleFilter("All Roles");
-    setClubFilter("All Clubs");
     setStatusFilter("All Status");
     setCurrentPage(1);
   };
@@ -634,17 +597,6 @@ export default function SuperAdminUsersPage() {
               placeholder="All Roles"
             />
             <SearchableSelect
-              value={clubFilter}
-              onValueChange={(v) => {
-                setClubFilter(v);
-                setCurrentPage(1);
-              }}
-              options={clubSelectOptions}
-              className="min-w-[180px]"
-              triggerClassName="h-11 bg-white font-medium"
-              placeholder="All Clubs"
-            />
-            <SearchableSelect
               value={statusFilter}
               onValueChange={(v) => {
                 setStatusFilter(v);
@@ -670,7 +622,6 @@ export default function SuperAdminUsersPage() {
                 <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Club</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Actions</th>
@@ -691,9 +642,6 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Skeleton className="h-5 w-20 rounded-lg" />
-                      </td>
-                      <td className="px-6 py-4">
-                        <Skeleton className="h-4 w-32 rounded-md" />
                       </td>
                       <td className="px-6 py-4">
                         <Skeleton className="h-5 w-24 rounded-lg" />
@@ -729,9 +677,6 @@ export default function SuperAdminUsersPage() {
                       <td className="px-6 py-4">
                         <RoleBadge role={u.role} />
                       </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">
-                        {u.club?.name || clubNameById.get(u.clubId ?? "") || "—"}
-                      </td>
                       <td className="px-6 py-4">
                         <StatusPill status={u.status} />
                       </td>
@@ -746,13 +691,6 @@ export default function SuperAdminUsersPage() {
                             onClick={() => openViewDrawer(u)}
                           >
                             <Eye className="w-4.5 h-4.5" />
-                          </button>
-                          <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Edit User"
-                            onClick={() => openEditModal(u)}
-                          >
-                            <Edit2 className="w-4.5 h-4.5" />
                           </button>
                           <button
                             disabled={!canManageUser(u)}
@@ -772,19 +710,6 @@ export default function SuperAdminUsersPage() {
                             ) : (
                               <Ban className="w-4.5 h-4.5" />
                             )}
-                          </button>
-                          <button
-                            disabled={!canManageUser(u)}
-                            className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              !canManageUser(u)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-500 hover:bg-gray-50",
-                            )}
-                            title="Reset Password"
-                            onClick={() => handleMoreAction("reset-password", u)}
-                          >
-                            <KeyRound className="w-4.5 h-4.5" />
                           </button>
                           <div className="relative">
                             <button
@@ -879,7 +804,7 @@ export default function SuperAdminUsersPage() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
                       <p className="text-[12px] text-gray-400 font-medium truncate">
-                        {u.role.replaceAll("_", " ")} • {u.club?.name || clubNameById.get(u.clubId ?? "") || "—"}
+                        {u.role.replaceAll("_", " ")}
                       </p>
                     </div>
                   </div>
@@ -902,6 +827,28 @@ export default function SuperAdminUsersPage() {
       >
         {dropdownUser ? (
           <>
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => openEditModal(dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+              )}
+            >
+              <Edit2 className="w-4 h-4 text-gray-400" />
+              Edit User
+            </button>
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => openResetPasswordModal(dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+              )}
+            >
+              <KeyRound className="w-4 h-4 text-gray-400" />
+              Reset Password
+            </button>
             <button
               disabled={!canManageUser(dropdownUser) || mutating}
               onClick={() => handleMoreAction("force-logout", dropdownUser)}
@@ -935,6 +882,36 @@ export default function SuperAdminUsersPage() {
           </>
         ) : null}
       </FloatingMenu>
+
+      <Modal
+        isOpen={isForceLogoutModalOpen}
+        onClose={() => setIsForceLogoutModalOpen(false)}
+        title="Force Logout User?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              onClick={confirmForceLogout}
+              disabled={mutating}
+            >
+              Force Logout
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <LogOut className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this user?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will immediately log out <span className="font-bold text-gray-800">{selectedUser?.email ?? "this user"}</span>.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isStatusModalOpen}
@@ -1091,7 +1068,7 @@ export default function SuperAdminUsersPage() {
               <SearchableSelect
                 value={editRole}
                 onValueChange={(v) => setEditRole(v as AdminUser["role"])}
-                options={["SUPER_ADMIN", "CLUB_ADMIN", "STAFF", "PLAYER", "MARKER"].map((v) => ({
+                options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
                   value: v,
                   label: v.replaceAll("_", " "),
                 }))}
@@ -1100,28 +1077,18 @@ export default function SuperAdminUsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Club</Label>
+              <Label className="font-bold text-gray-700">Status</Label>
               <SearchableSelect
-                value={editClubId}
-                onValueChange={setEditClubId}
-                options={editClubSelectOptions}
+                value={editStatus}
+                onValueChange={(v) => setEditStatus(v as AdminUser["status"])}
+                options={["ACTIVE", "SUSPENDED", "EXPIRED"].map((v) => ({
+                  value: v,
+                  label: v[0] + v.slice(1).toLowerCase(),
+                }))}
                 triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select club..."
+                placeholder="Active"
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Status</Label>
-            <SearchableSelect
-              value={editStatus}
-              onValueChange={(v) => setEditStatus(v as AdminUser["status"])}
-              options={["ACTIVE", "SUSPENDED", "EXPIRED"].map((v) => ({
-                value: v,
-                label: v[0] + v.slice(1).toLowerCase(),
-              }))}
-              triggerClassName="h-12 bg-white font-medium rounded-xl"
-              placeholder="Active"
-            />
           </div>
         </div>
       </Modal>
@@ -1348,10 +1315,6 @@ export default function SuperAdminUsersPage() {
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-[13px] text-gray-500 font-medium">Role</span>
                           <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.role || "—"}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[13px] text-gray-500 font-medium">Club</span>
-                          <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.club?.name || "—"}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-[13px] text-gray-500 font-medium">Status</span>

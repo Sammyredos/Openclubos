@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -10,8 +14,12 @@ export class MembersService {
   constructor(private prisma: PrismaService) {}
 
   async create(createMemberDto: CreateMemberDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: createMemberDto.email },
+    createMemberDto.email = createMemberDto.email?.trim().toLowerCase();
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: createMemberDto.email, mode: 'insensitive' },
+        deletedAt: null,
+      },
     });
 
     if (existing) {
@@ -21,13 +29,20 @@ export class MembersService {
     const hashedPassword = await bcrypt.hash(createMemberDto.password, 10);
 
     const phone =
-      typeof createMemberDto.phone === 'string' ? createMemberDto.phone.trim() || null : undefined;
+      typeof createMemberDto.phone === 'string'
+        ? createMemberDto.phone.trim() || null
+        : undefined;
 
     return this.prisma.user.create({
       data: {
-        ...createMemberDto,
+        email: createMemberDto.email,
+        firstName: createMemberDto.firstName,
+        lastName: createMemberDto.lastName,
+        status: createMemberDto.status,
+        handicap: createMemberDto.handicap,
         password: hashedPassword,
         ...(phone !== undefined ? { phone } : undefined),
+        clubId: null,
         role: UserRole.PLAYER, // Default role for members
       },
     });
@@ -40,7 +55,7 @@ export class MembersService {
     status?: MemberStatus;
     clubId?: string;
   }) {
-    const { skip, take, search, status, clubId } = query;
+    const { skip, take, search, status } = query;
 
     const where: any = { role: UserRole.PLAYER };
 
@@ -56,17 +71,12 @@ export class MembersService {
       where.status = status;
     }
 
-    if (clubId) {
-      where.clubId = clubId;
-    }
-
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
         where: { ...where, deletedAt: null },
         skip: skip ? +skip : 0,
         take: take ? +take : 10,
         orderBy: { createdAt: 'desc' },
-        include: { club: true },
       }),
       this.prisma.user.count({ where: { ...where, deletedAt: null } }),
     ]);
@@ -101,27 +111,46 @@ export class MembersService {
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    const [items, total, totalUsers, activeUsers, suspendedUsers, newThisMonth, superAdmins, roleCounts] =
-      await Promise.all([
-        this.prisma.user.findMany({
-          where,
-          skip: skip ? +skip : 0,
-          take: take ? +take : 10,
-          orderBy: { createdAt: 'desc' },
-          include: { club: { select: { id: true, name: true } } },
-        }),
-        this.prisma.user.count({ where }),
-        this.prisma.user.count({ where: { deletedAt: null } }),
-        this.prisma.user.count({ where: { deletedAt: null, status: MemberStatus.ACTIVE } }),
-        this.prisma.user.count({ where: { deletedAt: null, status: MemberStatus.SUSPENDED } }),
-        this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: startThisMonth, lt: startNextMonth } } }),
-        this.prisma.user.count({ where: { deletedAt: null, role: UserRole.SUPER_ADMIN } }),
-        this.prisma.user.groupBy({
-          by: ['role'],
-          where: { deletedAt: null },
-          _count: { role: true },
-        }),
-      ]);
+    const [
+      items,
+      total,
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      newThisMonth,
+      superAdmins,
+      roleCounts,
+    ] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip: skip ? +skip : 0,
+        take: take ? +take : 10,
+        orderBy: { createdAt: 'desc' },
+        include: { club: { select: { id: true, name: true } } },
+      }),
+      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({
+        where: { deletedAt: null, status: MemberStatus.ACTIVE },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, status: MemberStatus.SUSPENDED },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          createdAt: { gte: startThisMonth, lt: startNextMonth },
+        },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, role: UserRole.SUPER_ADMIN },
+      }),
+      this.prisma.user.groupBy({
+        by: ['role'],
+        where: { deletedAt: null },
+        _count: { role: true },
+      }),
+    ]);
 
     const roles: Record<string, number> = {};
     for (const r of roleCounts) {
@@ -145,7 +174,6 @@ export class MembersService {
   async findOne(id: string) {
     const member = await this.prisma.user.findUnique({
       where: { id },
-      include: { club: true },
     });
 
     if (!member) {
@@ -174,17 +202,23 @@ export class MembersService {
 
   async update(id: string, updateMemberDto: UpdateMemberDto) {
     if (updateMemberDto.password) {
-      updateMemberDto.password = await bcrypt.hash(updateMemberDto.password, 10);
+      updateMemberDto.password = await bcrypt.hash(
+        updateMemberDto.password,
+        10,
+      );
     }
-
-    const data: any = { ...updateMemberDto };
-    if (typeof data.phone === 'string') data.phone = data.phone.trim() || null;
 
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, role: true, clubId: true },
     });
     if (!existing) throw new NotFoundException('Member not found');
+
+    const nextRole = updateMemberDto.role ?? existing.role;
+
+    const data: any = { ...updateMemberDto };
+    if (typeof data.phone === 'string') data.phone = data.phone.trim() || null;
+    if (nextRole !== UserRole.CLUB_ADMIN) data.clubId = null;
 
     try {
       return await this.prisma.user.update({
@@ -197,15 +231,25 @@ export class MembersService {
   }
 
   async remove(id: string) {
-    const existing = await this.prisma.user.findFirst({
-      where: { id, deletedAt: null },
-      select: { id: true },
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true },
     });
     if (!existing) throw new NotFoundException('Member not found');
 
-    return this.prisma.user.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    const email = existing.email?.trim().toLowerCase();
+    const toDelete = await this.prisma.user.findMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
     });
+    const ids = toDelete.map((u) => u.id);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.score.deleteMany({ where: { userId: { in: ids } } });
+      await tx.registration.deleteMany({ where: { userId: { in: ids } } });
+      await tx.user.deleteMany({ where: { id: { in: ids } } });
+    });
+
+    return { id, deleted: true, deletedCount: ids.length };
   }
 }

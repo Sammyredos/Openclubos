@@ -211,7 +211,7 @@ async function main() {
         password: passwordHash,
         firstName: pick(firstNames),
         lastName: pick(lastNames),
-        role: UserRole.STAFF,
+        role: UserRole.PLAYER,
         clubId: club.id,
       };
     });

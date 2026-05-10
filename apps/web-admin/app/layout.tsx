@@ -4,25 +4,19 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
 
-const apercu = localFont({
-  src: [
-    {
-      path: "../public/apercu_regular_pro.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../public/apercu_medium_pro.otf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../public/apercu_bold_pro.otf",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-apercu",
+const nexa = localFont({
+  src: [{ path: "../public/nexa-Regular.ttf", weight: "400", style: "normal" }],
+  variable: "--font-nexa",
+});
+
+const nexaLight = localFont({
+  src: [{ path: "../public/Nexa-Light.otf", weight: "400", style: "normal" }],
+  variable: "--font-nexa-light",
+});
+
+const nexaBold = localFont({
+  src: [{ path: "../public/Nexa-Bold.otf", weight: "400", style: "normal" }],
+  variable: "--font-nexa-bold",
 });
 
 export const metadata: Metadata = {
@@ -38,7 +32,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${apercu.variable}`}
+      className={`h-full antialiased ${nexa.variable} ${nexaLight.variable} ${nexaBold.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
@@ -47,7 +41,7 @@ export default function RootLayout({
           richColors 
           position="top-center" 
           toastOptions={{
-            className: `${apercu.className} text-[15px] font-semibold leading-snug`,
+            className: `${nexa.className} text-[15px] font-medium leading-snug`,
           }}
         />
       </body>

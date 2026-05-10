@@ -50,7 +50,14 @@ export class MembersController {
     @Query('clubId') clubId?: string,
     @Query('role') role?: UserRole,
   ) {
-    return this.membersService.findAllUsers({ skip, take, search, status, clubId, role });
+    return this.membersService.findAllUsers({
+      skip,
+      take,
+      search,
+      status,
+      clubId,
+      role,
+    });
   }
 
   @Get(':id')
@@ -71,6 +78,8 @@ export class MembersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);
   }

@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface LoginPayload {
   email: string;
@@ -9,7 +9,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
-  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'STAFF' | 'PLAYER' | 'MARKER';
+  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   clubId?: string;
 }
 
@@ -72,6 +72,9 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
     }
     if (msg === 'ACCOUNT_EXPIRED') {
       throw new Error('Your account has expired. Please contact support.');
+    }
+    if (msg === 'DATABASE_UNAVAILABLE') {
+      throw new Error('Backend database is not running. Start Postgres (docker compose) and try again.');
     }
     throw new Error(msg);
   }

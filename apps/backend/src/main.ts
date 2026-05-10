@@ -9,10 +9,8 @@ import type { INestApplication } from '@nestjs/common';
 
 // Load .env from root
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
-console.log('🚀 DATABASE_URL in main.ts:', process.env.DATABASE_URL);
 
 async function bootstrap() {
-  console.log('🚀 DATABASE_URL in bootstrap:', process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule);
 
   // Global prefix
@@ -65,7 +63,10 @@ async function bootstrap() {
 }
 bootstrap();
 
-async function listenWithFallback(app: INestApplication, preferredPort: number) {
+async function listenWithFallback(
+  app: INestApplication,
+  preferredPort: number,
+) {
   const maxAttempts = 20;
   const startPort = Number.isFinite(preferredPort) ? preferredPort : 3001;
 
@@ -79,5 +80,7 @@ async function listenWithFallback(app: INestApplication, preferredPort: number) 
     }
   }
 
-  throw new Error(`No available port found in range ${startPort}-${startPort + maxAttempts - 1}`);
+  throw new Error(
+    `No available port found in range ${startPort}-${startPort + maxAttempts - 1}`,
+  );
 }
