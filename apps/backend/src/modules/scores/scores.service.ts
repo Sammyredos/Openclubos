@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { CreateScoreDto } from './dto/create-score.dto';
-import { RegistrationStatus, ScoreStatus, UserRole } from '@prisma/client';
+import { ScoreStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ScoresService {
@@ -42,7 +42,7 @@ export class ScoresService {
         select: { status: true },
       });
 
-      if (registration?.status === RegistrationStatus.DISQUALIFIED) {
+      if (registration && String(registration.status) === 'DISQUALIFIED') {
         throw new ForbiddenException(
           'Player is disqualified for this tournament',
         );
