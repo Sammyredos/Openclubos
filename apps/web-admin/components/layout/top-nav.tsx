@@ -4,9 +4,11 @@ import { Bell, Menu, Search, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePathname } from "next/navigation";
 
 export function TopNav() {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
   
   if (isLoading) {
     return (
@@ -32,6 +34,18 @@ export function TopNav() {
   }
 
   const isOrganizerAdmin = user?.role === 'CLUB_ADMIN';
+  const pageTitle = (() => {
+    if (isOrganizerAdmin) {
+      if (pathname === "/organizer-admin/dashboard") return "Organizer";
+      return "Organizer";
+    }
+    if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview";
+    if (pathname === "/super-admin/users") return "Users";
+    if (pathname === "/super-admin/organizers") return "Organizers";
+    if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
+    if (pathname === "/super-admin/tournaments") return "Tournaments";
+    return "Overview";
+  })();
 
   return (
     <header className="h-20 border-b bg-white flex items-center justify-between px-8 sticky top-0 z-10">
@@ -40,7 +54,7 @@ export function TopNav() {
           <Menu className="h-5 w-5 text-gray-500" />
         </button>
         <h1 className="text-2xl font-bold text-gray-800 hidden md:block tracking-tight">
-          {isOrganizerAdmin ? "Organizer Dashboard" : "Super Admin Dashboard"}
+          {pageTitle}
         </h1>
         <div className="relative max-w-md w-full ml-12 hidden sm:block">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />

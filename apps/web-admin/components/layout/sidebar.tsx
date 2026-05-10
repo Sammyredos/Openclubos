@@ -30,7 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SUPER_ADMIN_GROUPS = [
   {
     items: [
-      { name: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
+      { name: "Overview", href: "/super-admin/dashboard", icon: LayoutDashboard },
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
       { name: "Subscriptions", href: "/super-admin/subscriptions", icon: ShieldCheck },
       { name: "Users", href: "/super-admin/users", icon: Users },

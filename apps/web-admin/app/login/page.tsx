@@ -69,6 +69,7 @@ function LoginPageInner() {
   })
 
   async function onSubmit(data: LoginFormValues) {
+    if (isLoading) return
     setIsLoading(true)
     try {
       const response = await loginRequest(data);
@@ -182,7 +183,7 @@ function LoginPageInner() {
             {/* Sign In Button */}
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || form.formState.isSubmitting}
               className="w-full h-12 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold text-[15px] transition-colors flex items-center justify-center gap-3"
             >
               {isLoading ? (

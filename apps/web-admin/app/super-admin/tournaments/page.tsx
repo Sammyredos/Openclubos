@@ -539,10 +539,10 @@ export default function TournamentsPage() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Tournaments <span className="text-gray-400 font-normal ml-2 text-sm">({formatWithCommas(totalTournaments)})</span></CardTitle>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4">
+                <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Download className="w-4 h-4" /> Export
                 </Button>
-                <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4">
+                <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Plus className="w-4 h-4" /> Add Tournament
                 </Button>
               </div>

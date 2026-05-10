@@ -711,6 +711,13 @@ export default function OrganizersPage() {
                               <Eye className="w-4.5 h-4.5" />
                             </Link>
                             <button
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                              title="Edit Organizer"
+                              onClick={() => handleEdit(organizer)}
+                            >
+                              <Edit2 className="w-4.5 h-4.5" />
+                            </button>
+                            <button
                               disabled={organizer.status === "Expired"}
                               className={cn(
                                 "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
@@ -790,13 +797,6 @@ export default function OrganizersPage() {
             >
               <BarChart3 className="w-4 h-4 text-gray-400" />
               View Analytics
-            </button>
-            <button
-              onClick={() => handleMoreAction("edit", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-            >
-              <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit Organizer
             </button>
             <button
               disabled={mutating}
@@ -1134,4 +1134,3 @@ export default function OrganizersPage() {
     </div>
   );
 }
-

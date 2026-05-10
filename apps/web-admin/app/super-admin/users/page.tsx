@@ -18,7 +18,6 @@ import {
   LogOut,
   Search,
   Download,
-  Filter,
   Eye,
   Edit2,
   MoreHorizontal,
@@ -134,6 +133,7 @@ export default function SuperAdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [handicapFilter, setHandicapFilter] = useState("All Handicaps");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -159,6 +159,7 @@ export default function SuperAdminUsersPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editRole, setEditRole] = useState<AdminUser["role"]>("PLAYER");
   const [editStatus, setEditStatus] = useState<AdminUser["status"]>("ACTIVE");
+  const [editHandicap, setEditHandicap] = useState("");
 
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [viewTab, setViewTab] = useState<"overview" | "permissions" | "activity" | "payments" | "tournaments" | "settings">(
@@ -185,9 +186,20 @@ export default function SuperAdminUsersPage() {
       const matchesSearch = q.length === 0 || name.includes(q) || email.includes(q);
       const matchesRole = roleFilter === "All Roles" || u.role === roleFilter;
       const matchesStatus = statusFilter === "All Status" || u.status === statusFilter;
-      return matchesSearch && matchesRole && matchesStatus;
+      const matchesHandicap = (() => {
+        if (handicapFilter === "All Handicaps") return true;
+        if (u.role !== "PLAYER") return false;
+        const h = typeof u.handicap === "number" ? u.handicap : null;
+        if (h == null) return false;
+        if (handicapFilter === "0 - 9.9") return h >= 0 && h < 10;
+        if (handicapFilter === "10 - 19.9") return h >= 10 && h < 20;
+        if (handicapFilter === "20 - 29.9") return h >= 20 && h < 30;
+        if (handicapFilter === "30+") return h >= 30;
+        return true;
+      })();
+      return matchesSearch && matchesRole && matchesStatus && matchesHandicap;
     });
-  }, [allUsers, searchQuery, roleFilter, statusFilter]);
+  }, [allUsers, handicapFilter, searchQuery, roleFilter, statusFilter]);
 
   const total = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
@@ -324,6 +336,7 @@ export default function SuperAdminUsersPage() {
     setEditPhone(u.phone || "");
     setEditRole(u.role);
     setEditStatus(u.status);
+    setEditHandicap(u.role === "PLAYER" && typeof u.handicap === "number" ? String(u.handicap) : "");
     setIsEditModalOpen(true);
     closeDropdown();
   };
@@ -384,6 +397,19 @@ export default function SuperAdminUsersPage() {
       status: editStatus,
       role: editRole,
     };
+    if (editRole === "PLAYER") {
+      const raw = editHandicap.trim();
+      if (raw.length === 0) {
+        toast.error("Playing handicap is required for players");
+        return;
+      }
+      const nextHandicap = Number(raw);
+      if (!Number.isFinite(nextHandicap)) {
+        toast.error("Handicap must be a valid number");
+        return;
+      }
+      payload.handicap = nextHandicap;
+    }
     setMutating(true);
     try {
       await updateMember(selectedUser.id, payload);
@@ -492,29 +518,8 @@ export default function SuperAdminUsersPage() {
     }
   };
 
-  const clearFilters = () => {
-    setSearchQuery("");
-    setRoleFilter("All Roles");
-    setStatusFilter("All Status");
-    setCurrentPage(1);
-  };
-
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Users</h1>
-          <p className="text-[13px] text-gray-500 font-medium">Manage all users across the platform</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
-            <Download className="w-4 h-4" /> Export
-          </Button>
-          <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
-            <UserPlus className="w-4 h-4" /> Add User
-          </Button>
-        </div>
-      </div>
 
       {error && (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
@@ -572,7 +577,10 @@ export default function SuperAdminUsersPage() {
           <CardTitle className="text-xl font-bold">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
-              <Filter className="w-4 h-4" /> Filters
+              <Download className="w-4 h-4" /> Export
+            </Button>
+            <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+              <UserPlus className="w-4 h-4" /> Add User
             </Button>
           </div>
         </CardHeader>
@@ -612,13 +620,20 @@ export default function SuperAdminUsersPage() {
               triggerClassName="h-11 bg-white font-medium"
               placeholder="All Status"
             />
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="h-11 border-gray-100 text-gray-500 gap-2 rounded-lg px-4 text-[14px] font-bold"
-            >
-              Clear Filters
-            </Button>
+            <SearchableSelect
+              value={handicapFilter}
+              onValueChange={(v) => {
+                setHandicapFilter(v);
+                setCurrentPage(1);
+              }}
+              options={["All Handicaps", "0 - 9.9", "10 - 19.9", "20 - 29.9", "30+"].map((v) => ({
+                value: v,
+                label: v,
+              }))}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-white font-medium"
+              placeholder="All Handicaps"
+            />
           </div>
 
           <div className="overflow-x-auto relative">
@@ -627,6 +642,7 @@ export default function SuperAdminUsersPage() {
                 <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Role</th>
+                  <th className="px-6 py-4">Handicap</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Actions</th>
@@ -647,6 +663,9 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Skeleton className="h-5 w-20 rounded-lg" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-14 rounded-md" />
                       </td>
                       <td className="px-6 py-4">
                         <Skeleton className="h-5 w-24 rounded-lg" />
@@ -681,6 +700,13 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <RoleBadge role={u.role} />
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">
+                        {u.role === "PLAYER"
+                          ? typeof u.handicap === "number"
+                            ? u.handicap.toFixed(1)
+                            : "—"
+                          : "—"}
                       </td>
                       <td className="px-6 py-4">
                         <StatusPill status={u.status} />
@@ -1067,6 +1093,18 @@ export default function SuperAdminUsersPage() {
             <Label className="font-bold text-gray-700">Phone Number</Label>
             <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="rounded-xl h-12" />
           </div>
+          {editRole === "PLAYER" ? (
+            <div className="space-y-2">
+              <Label className="font-bold text-gray-700">Playing Handicap</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={editHandicap}
+                onChange={(e) => setEditHandicap(e.target.value)}
+                className="rounded-xl h-12"
+              />
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="font-bold text-gray-700">Role</Label>
@@ -1075,7 +1113,7 @@ export default function SuperAdminUsersPage() {
                 onValueChange={(v) => setEditRole(v as AdminUser["role"])}
                 options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
                   value: v,
-                  label: v.replaceAll("_", " "),
+                  label: v === "CLUB_ADMIN" ? "ORGANIZER ADMIN" : v.replaceAll("_", " "),
                 }))}
                 triggerClassName="h-12 bg-white font-medium rounded-xl"
                 placeholder="Select role..."

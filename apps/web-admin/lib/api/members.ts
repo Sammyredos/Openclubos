@@ -27,6 +27,7 @@ export interface AdminUser {
   phone?: string | null;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
+  handicap?: number | null;
   clubId?: string | null;
   club?: { id: string; name: string } | null;
   createdAt: string;

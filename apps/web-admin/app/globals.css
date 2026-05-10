@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-nexa), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dmsans), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -89,40 +89,44 @@
 
 @layer utilities {
   .font-nexa-light {
-    font-family: var(--font-nexa-light);
+    font-family: var(--font-dmsans);
     font-weight: 400 !important;
   }
 
   .font-nexa-regular,
   .font-nexa-medium {
-    font-family: var(--font-nexa);
+    font-family: var(--font-dmsans);
     font-weight: 400 !important;
   }
 
   .font-nexa-bold {
-    font-family: var(--font-nexa-bold);
-    font-weight: 400 !important;
+    font-family: var(--font-dmsans);
+    font-weight: 600 !important;
   }
 
   .font-thin,
   .font-extralight,
   .font-light {
-    font-family: var(--font-nexa-light);
+    font-family: var(--font-dmsans);
     font-weight: 400 !important;
   }
 
-  .font-normal,
-  .font-medium {
-    font-family: var(--font-nexa);
+  .font-normal {
+    font-family: var(--font-dmsans);
     font-weight: 400 !important;
+  }
+
+  .font-medium {
+    font-family: var(--font-dmsans);
+    font-weight: 500 !important;
   }
 
   .font-semibold,
   .font-bold,
   .font-extrabold,
   .font-black {
-    font-family: var(--font-nexa-bold);
-    font-weight: 400 !important;
+    font-family: var(--font-dmsans);
+    font-weight: 600 !important;
   }
 
   .scrollbar-hide {
@@ -140,8 +144,8 @@
   }
   b,
   strong {
-    font-family: var(--font-nexa-bold);
-    font-weight: 400;
+    font-family: inherit;
+    font-weight: inherit;
   }
   body {
     @apply bg-background text-foreground font-sans tracking-[0.01em];

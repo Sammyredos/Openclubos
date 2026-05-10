@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { DM_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
 
-const nexa = localFont({
-  src: [{ path: "../public/nexa-Regular.ttf", weight: "400", style: "normal" }],
-  variable: "--font-nexa",
-});
-
-const nexaLight = localFont({
-  src: [{ path: "../public/Nexa-Light.otf", weight: "400", style: "normal" }],
-  variable: "--font-nexa-light",
-});
-
-const nexaBold = localFont({
-  src: [{ path: "../public/Nexa-Bold.otf", weight: "400", style: "normal" }],
-  variable: "--font-nexa-bold",
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-dmsans",
 });
 
 export const metadata: Metadata = {
@@ -32,7 +23,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${nexa.variable} ${nexaLight.variable} ${nexaBold.variable}`}
+      className={`h-full antialiased ${dmSans.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
@@ -41,7 +32,7 @@ export default function RootLayout({
           richColors 
           position="top-center" 
           toastOptions={{
-            className: `${nexa.className} text-[15px] font-medium leading-snug`,
+            className: `${dmSans.className} text-[15px] font-medium leading-snug`,
           }}
         />
       </body>
