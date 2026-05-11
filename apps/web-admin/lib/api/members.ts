@@ -73,7 +73,7 @@ export async function getMembers(params: {
 
   if (!res.ok) {
     await handleAuthFailure(res);
-    throw new Error('Failed to fetch members');
+    throw new Error('Failed to fetch users');
   }
   return res.json();
 }
@@ -124,7 +124,7 @@ export async function createMember(data: JsonObject) {
   if (!res.ok) {
     await handleAuthFailure(res);
     const error = await res.json();
-    throw new Error(error.message || 'Failed to create member');
+    throw new Error(error.message || 'Failed to create user');
   }
   return res.json();
 }
@@ -144,7 +144,7 @@ export async function updateMember(id: string, data: JsonObject) {
   if (!res.ok) {
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
-    throw new Error(error?.message || 'Failed to update member');
+    throw new Error(error?.message || 'Failed to update user');
   }
   return res.json();
 }
@@ -162,7 +162,7 @@ export async function deleteMember(id: string) {
   if (!res.ok) {
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
-    throw new Error(error?.message || 'Failed to delete member');
+    throw new Error(error?.message || 'Failed to delete user');
   }
   return res.json();
 }

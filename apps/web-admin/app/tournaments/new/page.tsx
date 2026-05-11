@@ -370,7 +370,7 @@ export default function NewTournamentPage() {
                 <label className="text-sm font-nexa-bold text-gray-700 ml-1">Eligibility: Player Types</label>
                 <div className="flex flex-wrap gap-3">
                   {[
-                    { id: 'MEMBER', label: 'Members', icon: <ShieldCheck className="w-4 h-4" /> },
+                    { id: 'MEMBER', label: 'Users', icon: <ShieldCheck className="w-4 h-4" /> },
                     { id: 'EXTERNAL', label: 'External Players', icon: <Globe className="w-4 h-4" /> },
                     { id: 'GUEST', label: 'Guests', icon: <Users className="w-4 h-4" /> },
                   ].map((type) => (

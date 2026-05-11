@@ -59,7 +59,7 @@ const CLUB_ADMIN_GROUPS = [
   {
     items: [
       { name: "Dashboard", href: "/organizer-admin/dashboard", icon: LayoutDashboard },
-      { name: "Members", href: "/organizer-admin/members", icon: Users },
+      { name: "Users", href: "/organizer-admin/members", icon: Users },
     ],
   },
   {

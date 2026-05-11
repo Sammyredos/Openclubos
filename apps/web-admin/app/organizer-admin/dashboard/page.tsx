@@ -106,7 +106,7 @@ export default function OrganizerAdminDashboard() {
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
-          title="Total Members"
+          title="Total Users"
           value="320"
           change="+12"
           icon={Users}
@@ -306,4 +306,3 @@ function ActivityItem({ title, subtitle, time, icon: Icon, iconBg, iconColor, am
     </div>
   );
 }
-

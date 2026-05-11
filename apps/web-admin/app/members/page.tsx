@@ -54,7 +54,7 @@ export default function MembersPage() {
         setTotal(data.total)
       } catch (error) {
         if (cancelled) return
-        toast.error("Failed to load members")
+        toast.error("Failed to load users")
       } finally {
         if (cancelled) return
         setIsLoading(false)
@@ -66,13 +66,13 @@ export default function MembersPage() {
   }, [page, search, statusFilter, reloadSeq])
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this member?")) return
+    if (!confirm("Are you sure you want to delete this user?")) return
     try {
       await deleteMember(id)
-      toast.success("Member deleted")
+      toast.success("User deleted")
       setReloadSeq((v) => v + 1)
     } catch (error) {
-      toast.error("Failed to delete member")
+      toast.error("Failed to delete user")
     }
   }
 
@@ -101,12 +101,12 @@ export default function MembersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-nexa-bold text-gray-900 tracking-tight">Members Management</h1>
-          <p className="text-gray-500 mt-1">Manage organizer members, handicaps, and statuses.</p>
+          <h1 className="text-3xl font-nexa-bold text-gray-900 tracking-tight">Users Management</h1>
+          <p className="text-gray-500 mt-1">Manage organizer users, handicaps, and statuses.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white border border-primary/60 gap-2 h-11 px-6 rounded-lg">
           <UserPlus className="w-5 h-5" />
-          Add New Member
+          Add New User
         </Button>
       </div>
 
@@ -117,7 +117,7 @@ export default function MembersPage() {
             <UserPlus className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-nexa-bold uppercase tracking-wider">Total Members</p>
+            <p className="text-sm text-gray-500 font-nexa-bold uppercase tracking-wider">Total Users</p>
             <p className="text-2xl font-nexa-bold text-gray-900">{total}</p>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function MembersPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Member</th>
+                <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">User</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest text-center">Handicap</th>
                 <th className="px-6 py-5 text-[12px] font-nexa-bold text-gray-500 uppercase tracking-widest">Organizer</th>
@@ -241,7 +241,7 @@ export default function MembersPage() {
               )) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center text-gray-400 font-nexa-bold">
-                    No members found matching your criteria.
+                    No users found matching your criteria.
                   </td>
                 </tr>
               )}
@@ -252,7 +252,7 @@ export default function MembersPage() {
         {/* Pagination */}
         <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            Showing <span className="font-nexa-bold text-gray-900">{(page - 1) * take + 1}</span> to <span className="font-nexa-bold text-gray-900">{Math.min(page * take, total)}</span> of <span className="font-nexa-bold text-gray-900">{total}</span> members
+            Showing <span className="font-nexa-bold text-gray-900">{(page - 1) * take + 1}</span> to <span className="font-nexa-bold text-gray-900">{Math.min(page * take, total)}</span> of <span className="font-nexa-bold text-gray-900">{total}</span> users
           </p>
           <Pagination 
             currentPage={page}

@@ -389,7 +389,7 @@ export default function SuperAdminDashboard() {
           loading={loading || statsLoading}
         />
         <StatCard
-          title="Total Members"
+          title="Total Users"
           value={stats?.totalMembers?.toString() || "0"}
           change={stats?.membersGrowth}
           icon={Users}
