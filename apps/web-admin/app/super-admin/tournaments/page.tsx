@@ -683,7 +683,6 @@ export default function TournamentsPage() {
     setMutating(true);
     updateTournament(selectedTournament.id, {
       name: editName.trim() || undefined,
-      status: editStatus,
       startDate: editStartDate ? new Date(editStartDate).toISOString() : undefined,
       endDate: editEndDate ? new Date(editEndDate).toISOString() : null,
       entryFee: entryFeeNumber,
@@ -1478,6 +1477,11 @@ export default function TournamentsPage() {
         }
       >
         <div className="space-y-6">
+          <div className="space-y-2">
+            <Label className="font-bold text-gray-700">Tournament Name</Label>
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
+          </div>
+
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex-1">
               <p className="text-[14px] font-bold text-gray-900">One-day event?</p>
@@ -1501,11 +1505,6 @@ export default function TournamentsPage() {
                 )}
               />
             </button>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Tournament Name</Label>
-            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
           </div>
 
           <div className={cn("grid gap-4", isOneDayEvent ? "grid-cols-1" : "grid-cols-2")}>
@@ -1547,27 +1546,6 @@ export default function TournamentsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Status</Label>
-              <SearchableSelect
-                value={STATUS_META[editStatus]?.label ?? editStatus}
-                onValueChange={(v) => {
-                  const map: Record<string, Exclude<TournamentStatus, "DRAFT">> = {
-                    Upcoming: "REGISTRATION_OPEN",
-                    Ongoing: "ONGOING",
-                    Completed: "COMPLETED",
-                    Cancelled: "CANCELLED",
-                  };
-                  setEditStatus(map[v] ?? (v as Exclude<TournamentStatus, "DRAFT">));
-                }}
-                options={(Object.keys(STATUS_META) as Array<Exclude<TournamentStatus, "DRAFT">>).map((k) => ({
-                  value: STATUS_META[k].label,
-                  label: STATUS_META[k].label,
-                }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select status..."
-              />
-            </div>
-            <div className="space-y-2">
               <Label className="font-bold text-gray-700">Entry Fee (₦)</Label>
               <Input
                 value={editEntryFee}
@@ -1576,16 +1554,15 @@ export default function TournamentsPage() {
                 className="rounded-xl h-12"
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Max Players</Label>
-            <Input
-              value={editMaxPlayers}
-              onChange={(e) => setEditMaxPlayers(formatThousandsInput(e.target.value))}
-              placeholder="100"
-              className="rounded-xl h-12"
-            />
+            <div className="space-y-2">
+              <Label className="font-bold text-gray-700">Max Players</Label>
+              <Input
+                value={editMaxPlayers}
+                onChange={(e) => setEditMaxPlayers(formatThousandsInput(e.target.value))}
+                placeholder="100"
+                className="rounded-xl h-12"
+              />
+            </div>
           </div>
         </div>
       </Modal>
