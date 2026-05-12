@@ -139,12 +139,32 @@ export class TournamentsService {
   }
 
   async remove(id: string) {
-    try {
-      return await this.prisma.tournament.delete({
-        where: { id },
-      });
-    } catch (error) {
+    // Check tournament exists first
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
       throw new NotFoundException('Tournament not found');
     }
+
+    // Permanently delete all related records to avoid foreign key constraint violations,
+    // then delete the tournament itself (hard/permanent delete).
+    await this.prisma.$transaction(async (tx) => {
+      // Delete scores linked to groups of this tournament
+      const groups = await tx.group.findMany({ where: { tournamentId: id }, select: { id: true } });
+      const groupIds = groups.map((g) => g.id);
+      if (groupIds.length > 0) {
+        await tx.score.deleteMany({ where: { groupId: { in: groupIds } } });
+      }
+
+      // Delete registrations
+      await tx.registration.deleteMany({ where: { tournamentId: id } });
+
+      // Delete groups
+      await tx.group.deleteMany({ where: { tournamentId: id } });
+
+      // Finally delete the tournament
+      await tx.tournament.delete({ where: { id } });
+    });
+
+    return { id, deleted: true };
   }
 }

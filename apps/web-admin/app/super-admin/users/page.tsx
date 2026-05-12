@@ -394,7 +394,6 @@ export default function SuperAdminUsersPage() {
       firstName,
       lastName,
       phone: editPhone.trim(),
-      status: editStatus,
       role: editRole,
     };
     if (editRole === "PLAYER") {
@@ -1105,33 +1104,18 @@ export default function SuperAdminUsersPage() {
               />
             </div>
           ) : null}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Role</Label>
-              <SearchableSelect
-                value={editRole}
-                onValueChange={(v) => setEditRole(v as AdminUser["role"])}
-                options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
-                  value: v,
-                  label: v === "CLUB_ADMIN" ? "ORGANIZER ADMIN" : v.replaceAll("_", " "),
-                }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Select role..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Status</Label>
-              <SearchableSelect
-                value={editStatus}
-                onValueChange={(v) => setEditStatus(v as AdminUser["status"])}
-                options={["ACTIVE", "SUSPENDED", "EXPIRED"].map((v) => ({
-                  value: v,
-                  label: v[0] + v.slice(1).toLowerCase(),
-                }))}
-                triggerClassName="h-12 bg-white font-medium rounded-xl"
-                placeholder="Active"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="font-bold text-gray-700">Role</Label>
+            <SearchableSelect
+              value={editRole}
+              onValueChange={(v) => setEditRole(v as AdminUser["role"])}
+              options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
+                value: v,
+                label: v === "CLUB_ADMIN" ? "ORGANIZER ADMIN" : v.replaceAll("_", " "),
+              }))}
+              triggerClassName="h-12 bg-white font-medium rounded-xl"
+              placeholder="Select role..."
+            />
           </div>
         </div>
       </Modal>

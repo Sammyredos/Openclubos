@@ -7,7 +7,7 @@ export interface Tournament {
   name: string;
   startDate: string;
   endDate?: string;
-  status: 'DRAFT' | 'REGISTRATION_OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+  status: 'REGISTRATION_OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
   entryFee?: number;
   minHandicap?: number;
   maxHandicap?: number;
@@ -139,5 +139,7 @@ export async function deleteTournament(id: string) {
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to delete tournament');
   }
-  return res.json();
+  // DELETE may return 204 No Content — safely parse JSON only if body is present
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }

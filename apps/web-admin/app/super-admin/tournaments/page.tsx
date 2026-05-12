@@ -612,6 +612,10 @@ export default function TournamentsPage() {
 
   const openEdit = (tournament: TournamentRow) => {
     closeDropdown();
+    if (tournament.statusKey === "ONGOING") {
+      toast.error("Ongoing tournaments cannot be edited");
+      return;
+    }
     setSelectedTournament(tournament);
     setEditName(tournament?.name || "");
     const status = tournament?.statusKey as TournamentStatus | undefined;
@@ -920,12 +924,17 @@ export default function TournamentsPage() {
                                 onClick={() => openEdit(t)}
                                 className={cn(
                                   "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
+                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"
                                     ? "text-gray-300 cursor-not-allowed"
                                     : "text-blue-600 hover:bg-blue-50"
                                 )}
-                                title={t.statusKey === "CANCELLED" ? "Cancelled tournaments cannot be edited" : t.statusKey === "COMPLETED" ? "Completed tournaments cannot be edited" : "Edit Tournament"}
-                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
+                                title={
+                                  t.statusKey === "CANCELLED" ? "Cancelled tournaments cannot be edited" 
+                                  : t.statusKey === "COMPLETED" ? "Completed tournaments cannot be edited"
+                                  : t.statusKey === "ONGOING" ? "Ongoing tournaments cannot be edited"
+                                  : "Edit Tournament"
+                                }
+                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"}
                               >
                                 <Edit2 className="w-4.5 h-4.5" />
                               </button>
@@ -1477,11 +1486,6 @@ export default function TournamentsPage() {
         }
       >
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Tournament Name</Label>
-            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
-          </div>
-
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex-1">
               <p className="text-[14px] font-bold text-gray-900">One-day event?</p>
@@ -1505,6 +1509,11 @@ export default function TournamentsPage() {
                 )}
               />
             </button>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-bold text-gray-700">Tournament Name</Label>
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
           </div>
 
           <div className={cn("grid gap-4", isOneDayEvent ? "grid-cols-1" : "grid-cols-2")}>

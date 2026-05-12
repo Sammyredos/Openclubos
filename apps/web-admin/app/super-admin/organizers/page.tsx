@@ -143,7 +143,7 @@ export default function OrganizersPage() {
   const [locationFilter, setLocationFilter] = useState("All Locations");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
