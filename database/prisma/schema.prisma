@@ -31,6 +31,10 @@ model User {
   clubId        String?
   scores        Score[]
   registrations Registration[]
+
+  @@index([clubId])
+  @@index([role])
+  @@index([firstName, lastName])
 }
 
 enum MemberStatus {
@@ -110,13 +114,58 @@ model Tournament {
   endDate     DateTime?
   status      TournamentStatus @default(DRAFT)
   
-  // Configuration
-  entryFee             Float?
+  // Step 1: Basic Details
+  description          String?
+  bannerUrl            String?
+  venue                String?
+  location             String?
+
+  // Step 2: Schedule (startDate and endDate exist)
+  registrationOpenAt   DateTime?
+  registrationCloseAt  DateTime? // Replaces registrationDeadline
+
+  // Step 3: Format
+  format               TournamentFormat @default(STROKE_PLAY)
+  scoringType          ScoringType      @default(GROSS)
+  holes                Int              @default(18)
+
+  // Step 4: Eligibility
+  allowRegisteredPlayers Boolean        @default(true)
+  allowGuests          Boolean          @default(false)
+  allowExternalPlayers Boolean          @default(false)
+  hasHandicapRestriction Boolean        @default(false)
   minHandicap          Float?
   maxHandicap          Float?
   playerTypes          String[]         @default(["MEMBER"])
+
+  // Step 5: Player Limits
   maxPlayers           Int?
-  registrationDeadline DateTime?
+  maxPlayersPerGroup   Int              @default(4)
+  enableWaitlist       Boolean          @default(false)
+
+  // Step 6: Payments
+  requiresPayment      Boolean          @default(false)
+  entryFee             Float?
+  currency             String           @default("NGN")
+  paymentDeadline      DateTime?
+  isRefundable         Boolean          @default(false)
+
+  // Step 7: Divisions
+  divisions            String[]         @default([])
+
+  // Step 8: Grouping Settings
+  autoGrouping         Boolean          @default(false)
+  teeStartTime         String?
+  teeIntervalMinutes   Int              @default(10)
+
+  // Step 9: Scoring Settings
+  enableLiveScoring    Boolean          @default(false)
+  requireMarkerVerification Boolean     @default(false)
+  enableHoleScoring    Boolean          @default(true)
+
+  // Step 10: Publication Settings
+  publishImmediately   Boolean          @default(false)
+  visibility           TournamentVisibility @default(PUBLIC)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -129,6 +178,10 @@ model Tournament {
   courseId    String
   registrations Registration[]
   groups      Group[]
+
+  @@index([clubId])
+  @@index([status])
+  @@index([name])
 }
 
 enum TournamentStatus {
@@ -137,6 +190,25 @@ enum TournamentStatus {
   ONGOING
   COMPLETED
   CANCELLED
+}
+
+enum TournamentFormat {
+  STROKE_PLAY
+  MATCH_PLAY
+  STABLEFORD
+  SCRAMBLE
+  BEST_BALL
+}
+
+enum ScoringType {
+  GROSS
+  NET
+}
+
+enum TournamentVisibility {
+  PUBLIC
+  PRIVATE
+  INVITE_ONLY
 }
 
 model Registration {
@@ -155,6 +227,8 @@ model Registration {
   tournamentId  String
 
   @@unique([userId, tournamentId])
+  @@index([userId])
+  @@index([tournamentId])
 }
 
 enum RegistrationStatus {
@@ -202,6 +276,9 @@ model Score {
   groupId       String?
 
   @@unique([userId, holeId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@index([holeId])
 }
 
 enum ScoreStatus {

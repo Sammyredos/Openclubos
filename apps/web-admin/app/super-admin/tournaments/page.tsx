@@ -46,6 +46,7 @@ import {
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FloatingMenu } from "@/components/ui/floating-menu";
+import { CreateTournamentWizard } from "@/components/tournaments/CreateTournamentWizard";
 
 type TournamentStatus = "DRAFT" | "REGISTRATION_OPEN" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
@@ -169,6 +170,7 @@ export default function TournamentsPage() {
   const [dropdownTournament, setDropdownTournament] = useState<TournamentRow | null>(null);
   const [mutating, setMutating] = useState(false);
 
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -183,7 +185,7 @@ export default function TournamentsPage() {
   const [registrationsTotal, setRegistrationsTotal] = useState(0);
   const [registrationsTournamentTotal, setRegistrationsTournamentTotal] = useState(0);
   const [registrationsPage, setRegistrationsPage] = useState(1);
-  const registrationsPerPage = 10;
+  const registrationsPerPage = 5;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
@@ -790,7 +792,10 @@ export default function TournamentsPage() {
                 <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Download className="w-4 h-4" /> Export
                 </Button>
-                <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+                <Button 
+                  onClick={() => setIsWizardOpen(true)}
+                  className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
+                >
                   <Plus className="w-4 h-4" /> Add Tournament
                 </Button>
               </div>
@@ -1652,6 +1657,12 @@ export default function TournamentsPage() {
           </div>
         </div>
       </Modal>
+
+      <CreateTournamentWizard 
+        isOpen={isWizardOpen} 
+        onClose={() => setIsWizardOpen(false)} 
+        onSuccess={() => reloadTournaments()} 
+      />
     </div>
   );
 }

@@ -161,7 +161,7 @@ export default function SuperAdminUsersPage() {
   const [editStatus, setEditStatus] = useState<AdminUser["status"]>("ACTIVE");
   const [editHandicap, setEditHandicap] = useState("");
 
-  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewTab, setViewTab] = useState<"overview" | "permissions" | "activity" | "payments" | "tournaments" | "settings">(
     "overview",
   );
@@ -248,18 +248,18 @@ export default function SuperAdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    if (!isViewDrawerOpen) return;
+    if (!isViewModalOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setIsViewDrawerOpen(false);
+      if (e.key === "Escape") setIsViewModalOpen(false);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isViewDrawerOpen]);
+  }, [isViewModalOpen]);
 
   const roleSelectOptions = useMemo(
     () =>
@@ -322,10 +322,10 @@ export default function SuperAdminUsersPage() {
 
   const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
 
-  const openViewDrawer = (u: AdminUser) => {
+  const openViewModal = (u: AdminUser) => {
     setSelectedUser(u);
     setViewTab("overview");
-    setIsViewDrawerOpen(true);
+    setIsViewModalOpen(true);
     closeDropdown();
   };
 
@@ -718,7 +718,7 @@ export default function SuperAdminUsersPage() {
                           <button
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
                             title="View User"
-                            onClick={() => openViewDrawer(u)}
+                            onClick={() => openViewModal(u)}
                           >
                             <Eye className="w-4.5 h-4.5" />
                           </button>
@@ -1223,152 +1223,134 @@ export default function SuperAdminUsersPage() {
         </div>
       </Modal>
 
-      {isViewDrawerOpen && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={() => setIsViewDrawerOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl border-l border-gray-100 animate-in slide-in-from-right duration-200 flex flex-col">
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <p className="text-[16px] font-bold text-gray-900">View User</p>
-                <p className="text-[12px] text-gray-400 font-medium">Profile Drawer</p>
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="View User Details"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="flex items-start gap-4 pb-6 border-b border-gray-50">
+            <img
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
+              alt={selectedUser?.email || "User"}
+              className="h-16 w-16 rounded-2xl border border-gray-100 bg-gray-50"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xl font-bold text-gray-900 truncate">
+                  {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
+                </p>
+                {selectedUser ? <StatusPill status={selectedUser.status} /> : null}
               </div>
+              <p className="text-sm text-gray-400 font-medium truncate mt-1">{selectedUser?.email || "—"}</p>
+              <p className="text-sm text-gray-500 font-medium truncate mt-1">
+                {selectedUser?.role?.replaceAll("_", " ") ?? "—"} • {selectedUser?.club?.name ? `Organizer: ${selectedUser.club.name}` : "No Organizer Assigned"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-2xl overflow-x-auto scrollbar-hide">
+            {[
+              { id: "overview", label: "Overview", icon: Users },
+              { id: "activity", label: "Activity", icon: Clock },
+              { id: "payments", label: "Payments", icon: CreditCard },
+              { id: "tournaments", label: "Tournaments", icon: Trophy },
+            ].map((tab) => (
               <button
-                onClick={() => setIsViewDrawerOpen(false)}
-                className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-                title="Close"
+                key={tab.id}
+                type="button"
+                onClick={() => setViewTab(tab.id as any)}
+                className={cn(
+                  "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all whitespace-nowrap",
+                  viewTab === tab.id
+                    ? "bg-white text-blue-600 shadow-sm border border-blue-50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                )}
               >
-                <span className="text-[18px] leading-none">×</span>
+                <tab.icon className="h-4 w-4 shrink-0" />
+                <span>{tab.label}</span>
               </button>
-            </div>
+            ))}
+          </div>
 
-            <div className="px-6 py-5 border-b border-gray-100">
-              <div className="flex items-start gap-4">
-                <img
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
-                  alt={selectedUser?.email || "User"}
-                  className="h-14 w-14 rounded-2xl border border-gray-100 bg-gray-50"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[16px] font-bold text-gray-900 truncate">
-                      {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
-                    </p>
-                    {selectedUser ? <StatusPill status={selectedUser.status} /> : null}
+          <div className="min-h-[300px]">
+            {viewTab === "overview" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
+                  <h5 className="text-sm font-bold text-gray-900">Personal Information</h5>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Full Name</span>
+                      <span className="text-[13px] text-gray-900 font-bold">{fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Email</span>
+                      <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.email || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Phone</span>
+                      <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.phone || "—"}</span>
+                    </div>
                   </div>
-                  <p className="text-[12px] text-gray-400 font-medium truncate mt-1">{selectedUser?.email || "—"}</p>
-                  <p className="text-[12px] text-gray-500 font-medium truncate mt-1">
-                    {selectedUser?.role?.replaceAll("_", " ") ?? "—"} • Organizer: {selectedUser?.club?.name || "—"}
-                  </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="flex-1 overflow-hidden flex">
-              <div className="w-44 border-r border-gray-100 p-3 space-y-1 overflow-y-auto">
-                <button
-                  type="button"
-                  onClick={() => setViewTab("overview")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "overview" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <Users className="h-4 w-4" />
-                  Overview
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("permissions")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "permissions" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Permissions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("activity")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "activity" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <Clock className="h-4 w-4" />
-                  Activity Logs
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("payments")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "payments" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Payments
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("tournaments")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "tournaments" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <Trophy className="h-4 w-4" />
-                  Tournaments
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("settings")}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-xl text-left text-[13px] font-bold flex items-center gap-2 transition-colors",
-                    viewTab === "settings" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
-              </div>
+                <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
+                  <h5 className="text-sm font-bold text-gray-900">Account Details</h5>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Role</span>
+                      <RoleBadge role={selectedUser?.role || "PLAYER"} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Status</span>
+                      <StatusPill status={selectedUser?.status || "ACTIVE"} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-500 font-medium">Joined Date</span>
+                      <span className="text-[13px] text-gray-900 font-bold">{formatJoinedDate(selectedUser?.createdAt || "")}</span>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex-1 overflow-y-auto p-5">
-                {viewTab === "overview" ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                      <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Overview</p>
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[13px] text-gray-500 font-medium">Role</span>
-                          <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.role || "—"}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[13px] text-gray-500 font-medium">Status</span>
-                          <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.status || "—"}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[13px] text-gray-500 font-medium">Joined</span>
-                          <span className="text-[13px] text-gray-900 font-bold">
-                            {formatJoinedDate(selectedUser?.createdAt || "")}
-                          </span>
-                        </div>
+                {selectedUser?.role === "PLAYER" && (
+                  <div className="rounded-2xl border border-gray-100 p-5 col-span-full">
+                    <h5 className="text-sm font-bold text-gray-900 mb-4">Player Statistics</h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Handicap</p>
+                        <p className="text-lg font-bold text-emerald-700">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Tournaments</p>
+                        <p className="text-lg font-bold text-blue-700">0</p>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
+                        <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Wins</p>
+                        <p className="text-lg font-bold text-purple-700">0</p>
+                      </div>
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Rank</p>
+                        <p className="text-lg font-bold text-amber-700">—</p>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Coming Soon</p>
-                    <p className="text-[13px] text-gray-500 font-medium mt-2">
-                      This section will be available in a later update.
-                    </p>
-                  </div>
                 )}
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                  <Clock className="h-8 w-8 text-gray-300" />
+                </div>
+                <h5 className="text-lg font-bold text-gray-900">Coming Soon</h5>
+                <p className="text-sm text-gray-500 max-w-xs mt-1">
+                  This section is currently under development and will be available in a future update.
+                </p>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </Modal>
 
     </div>
   );

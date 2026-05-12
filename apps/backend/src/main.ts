@@ -5,6 +5,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { json, urlencoded } from 'express';
 import type { INestApplication } from '@nestjs/common';
 
 // Load .env from root
@@ -18,6 +19,10 @@ async function bootstrap() {
 
   // Security — helmet without CSP to avoid blocking API calls
   app.use(helmet({ contentSecurityPolicy: false }));
+
+  // Increase JSON payload limit to handle Base64 image uploads safely
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   // CORS — allow the web-admin front end (dev & production)
   app.enableCors({

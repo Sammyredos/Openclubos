@@ -58,3 +58,25 @@ export interface SystemStatus {
   version: string;
   timestamp: string;
 }
+
+export const TournamentFormat = {
+  STROKE_PLAY: 'STROKE_PLAY',
+  MATCH_PLAY: 'MATCH_PLAY',
+  STABLEFORD: 'STABLEFORD',
+  SCRAMBLE: 'SCRAMBLE',
+  BEST_BALL: 'BEST_BALL',
+} as const;
+export type TournamentFormat = (typeof TournamentFormat)[keyof typeof TournamentFormat];
+
+export const ScoringType = {
+  GROSS: 'GROSS',
+  NET: 'NET',
+} as const;
+export type ScoringType = (typeof ScoringType)[keyof typeof ScoringType];
+
+export const TournamentVisibility = {
+  PUBLIC: 'PUBLIC',
+  PRIVATE: 'PRIVATE',
+  INVITE_ONLY: 'INVITE_ONLY',
+} as const;
+export type TournamentVisibility = (typeof TournamentVisibility)[keyof typeof TournamentVisibility];

@@ -13,7 +13,9 @@ export interface Tournament {
   maxHandicap?: number;
   playerTypes: string[];
   maxPlayers?: number;
-  registrationDeadline?: string;
+  registrationOpenAt?: string;
+  registrationCloseAt?: string;
+  paymentDeadline?: string;
   clubId: string;
   courseId: string;
   club?: { id: string; name: string } | null;
@@ -31,7 +33,9 @@ export type UpdateTournamentPayload = {
   maxHandicap?: number;
   playerTypes?: string[];
   maxPlayers?: number;
-  registrationDeadline?: string | null;
+  registrationOpenAt?: string | null;
+  registrationCloseAt?: string | null;
+  paymentDeadline?: string | null;
   clubId?: string;
   courseId?: string;
 };

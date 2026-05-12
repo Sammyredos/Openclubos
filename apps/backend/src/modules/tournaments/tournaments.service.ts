@@ -7,22 +7,67 @@ import { UpdateTournamentDto } from './dto/update-tournament.dto';
 export class TournamentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createTournamentDto: CreateTournamentDto) {
+  async create(dto: CreateTournamentDto) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {
+      // Basic
+      name: dto.name,
+      description: dto.description ?? null,
+      bannerUrl: dto.bannerUrl ?? null,
+      venue: dto.venue ?? null,
+      location: dto.location ?? null,
+      // Club / Course
+      clubId: dto.clubId,
+      courseId: dto.courseId,
+      // Dates
+      startDate: new Date(dto.startDate),
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
+      registrationOpenAt: dto.registrationOpenAt ? new Date(dto.registrationOpenAt) : null,
+      registrationCloseAt: dto.registrationCloseAt ? new Date(dto.registrationCloseAt) : null,
+      // Format
+      format: dto.format ?? 'STROKE_PLAY',
+      scoringType: dto.scoringType ?? 'GROSS',
+      holes: dto.holes ?? 18,
+      // Eligibility
+      allowRegisteredPlayers: dto.allowRegisteredPlayers ?? true,
+      allowGuests: dto.allowGuests ?? false,
+      allowExternalPlayers: dto.allowExternalPlayers ?? false,
+      hasHandicapRestriction: dto.hasHandicapRestriction ?? false,
+      minHandicap: dto.minHandicap ?? null,
+      maxHandicap: dto.maxHandicap ?? null,
+      playerTypes: dto.playerTypes ?? ['MEMBER'],
+      // Limits
+      maxPlayers: dto.maxPlayers ?? null,
+      maxPlayersPerGroup: dto.maxPlayersPerGroup ?? 4,
+      enableWaitlist: dto.enableWaitlist ?? false,
+      // Payments
+      requiresPayment: dto.requiresPayment ?? false,
+      entryFee: dto.entryFee ?? null,
+      currency: dto.currency ?? 'NGN',
+      paymentDeadline: dto.paymentDeadline ? new Date(dto.paymentDeadline) : null,
+      isRefundable: dto.isRefundable ?? false,
+      // Divisions
+      divisions: dto.divisions ?? [],
+      // Grouping
+      autoGrouping: dto.autoGrouping ?? false,
+      teeStartTime: dto.teeStartTime ?? null,
+      teeIntervalMinutes: dto.teeIntervalMinutes ?? 10,
+      // Scoring
+      enableLiveScoring: dto.enableLiveScoring ?? false,
+      requireMarkerVerification: dto.requireMarkerVerification ?? false,
+      enableHoleScoring: dto.enableHoleScoring ?? true,
+      // Publish
+      publishImmediately: dto.publishImmediately ?? false,
+      visibility: dto.visibility ?? 'PUBLIC',
+      status: dto.status ?? (dto.publishImmediately ? 'REGISTRATION_OPEN' : 'DRAFT'),
+    } as any;
     return this.prisma.tournament.create({
-      data: {
-        ...createTournamentDto,
-        startDate: new Date(createTournamentDto.startDate),
-        endDate: createTournamentDto.endDate
-          ? new Date(createTournamentDto.endDate)
-          : null,
-        registrationDeadline: createTournamentDto.registrationDeadline
-          ? new Date(createTournamentDto.registrationDeadline)
-          : null,
-      },
+      data,
       include: { club: true, course: true },
     });
   }
 
+  // Get all tournaments with optimized select to avoid over-fetching
   async findAll(query: { clubId?: string; status?: string }) {
     await this.autoUpdateStatuses();
     const where: any = {};
@@ -31,9 +76,18 @@ export class TournamentsService {
 
     return this.prisma.tournament.findMany({
       where,
-      include: {
-        club: true,
-        course: true,
+      select: {
+        id: true,
+        name: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        entryFee: true,
+        currency: true,
+        maxPlayers: true,
+        playerTypes: true,
+        club: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
         _count: { select: { registrations: true } },
       },
       orderBy: { startDate: 'desc' },
@@ -56,9 +110,18 @@ export class TournamentsService {
         where,
         skip: query.skip ? +query.skip : 0,
         take: query.take ? +query.take : 10,
-        include: {
-          club: true,
-          course: true,
+        select: {
+          id: true,
+          name: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          entryFee: true,
+          currency: true,
+          maxPlayers: true,
+          playerTypes: true,
+          club: { select: { id: true, name: true } },
+          course: { select: { id: true, name: true } },
           _count: { select: { registrations: true } },
         },
         orderBy: { startDate: 'desc' },
@@ -120,8 +183,9 @@ export class TournamentsService {
 
     if (data.startDate) data.startDate = new Date(data.startDate);
     if (data.endDate) data.endDate = new Date(data.endDate);
-    if (data.registrationDeadline)
-      data.registrationDeadline = new Date(data.registrationDeadline);
+    if (data.registrationOpenAt) data.registrationOpenAt = new Date(data.registrationOpenAt);
+    if (data.registrationCloseAt) data.registrationCloseAt = new Date(data.registrationCloseAt);
+    if (data.paymentDeadline) data.paymentDeadline = new Date(data.paymentDeadline);
 
     try {
       return await this.prisma.tournament.update({

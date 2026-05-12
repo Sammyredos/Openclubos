@@ -40,8 +40,8 @@ export class RegistrationsService {
 
     // 3. Validate Deadline
     if (
-      tournament.registrationDeadline &&
-      new Date() > new Date(tournament.registrationDeadline)
+      tournament.registrationCloseAt &&
+      new Date() > new Date(tournament.registrationCloseAt)
     ) {
       throw new BadRequestException('Registration deadline has passed');
     }
