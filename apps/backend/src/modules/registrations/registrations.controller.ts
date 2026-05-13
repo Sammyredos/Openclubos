@@ -43,6 +43,7 @@ export class RegistrationsController {
     @Query('status') status?: RegistrationStatus,
     @Query('disqualified') disqualified?: string,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
+    @Query('userId') userId?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
@@ -62,6 +63,7 @@ export class RegistrationsController {
             ? false
             : undefined,
       paymentStatus,
+      userId,
       skip,
       take,
     });

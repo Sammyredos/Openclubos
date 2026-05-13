@@ -71,6 +71,7 @@ export async function getRegistrations(params?: {
   clubId?: string;
   organizerId?: string;
   tournamentId?: string;
+  userId?: string;
   q?: string;
   status?: string;
   disqualified?: boolean;
@@ -83,6 +84,7 @@ export async function getRegistrations(params?: {
   if (params?.clubId) searchParams.append('clubId', params.clubId);
   if (params?.organizerId) searchParams.append('organizerId', params.organizerId);
   if (params?.tournamentId) searchParams.append('tournamentId', params.tournamentId);
+  if (params?.userId) searchParams.append('userId', params.userId);
   if (params?.q) searchParams.append('q', params.q);
   if (params?.status) searchParams.append('status', params.status);
   if (typeof params?.disqualified === 'boolean') searchParams.append('disqualified', String(params.disqualified));

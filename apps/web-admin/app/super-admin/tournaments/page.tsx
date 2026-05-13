@@ -171,8 +171,8 @@ export default function TournamentsPage() {
   const [mutating, setMutating] = useState(false);
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardTournamentId, setWizardTournamentId] = useState<string | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
@@ -618,21 +618,8 @@ export default function TournamentsPage() {
       toast.error("Ongoing tournaments cannot be edited");
       return;
     }
-    setSelectedTournament(tournament);
-    setEditName(tournament?.name || "");
-    const status = tournament?.statusKey as TournamentStatus | undefined;
-    setEditStatus(status && status !== "DRAFT" ? status : "REGISTRATION_OPEN");
-    setEditStartDate(toDateInputValue(tournament?.startDate || ""));
-    const endDate = tournament?.endDate ? toDateInputValue(tournament.endDate) : "";
-    setEditEndDate(endDate);
-    setIsOneDayEvent(!endDate || endDate === toDateInputValue(tournament?.startDate || ""));
-    setEditEntryFee(
-      tournament?.entryFee == null ? "" : formatThousandsInput(String(tournament.entryFee)),
-    );
-    setEditMaxPlayers(
-      tournament?.maxPlayers == null ? "" : formatThousandsInput(String(tournament.maxPlayers)),
-    );
-    setIsEditModalOpen(true);
+    setWizardTournamentId(tournament.id);
+    setIsWizardOpen(true);
   };
 
   const openCancel = (tournament: TournamentRow) => {
@@ -672,41 +659,6 @@ export default function TournamentsPage() {
     }
   };
 
-  const saveEdit = () => {
-    if (!selectedTournament?.id) return;
-    const entryFee = editEntryFee.trim();
-    const maxPlayers = editMaxPlayers.trim();
-    const entryFeeNumber = entryFee.length ? Number(entryFee.replace(/,/g, "")) : undefined;
-    const maxPlayersNumber = maxPlayers.length ? Number(maxPlayers.replace(/,/g, "")) : undefined;
-    if (entryFeeNumber !== undefined && !Number.isFinite(entryFeeNumber)) {
-      toast.error("Entry fee must be a number");
-      return;
-    }
-    if (maxPlayersNumber !== undefined && (!Number.isFinite(maxPlayersNumber) || maxPlayersNumber <= 0)) {
-      toast.error("Max players must be a positive number");
-      return;
-    }
-    setMutating(true);
-    updateTournament(selectedTournament.id, {
-      name: editName.trim() || undefined,
-      startDate: editStartDate ? new Date(editStartDate).toISOString() : undefined,
-      endDate: editEndDate ? new Date(editEndDate).toISOString() : null,
-      entryFee: entryFeeNumber,
-      maxPlayers: maxPlayersNumber,
-    })
-      .then((updated) => {
-        // Update local state immediately with the updated tournament data
-        setTournaments((prev) =>
-          prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
-        );
-        toast.success("Tournament updated");
-        setIsEditModalOpen(false);
-        // Still reload in background to ensure everything is perfectly synced
-        reloadTournaments();
-      })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update tournament"))
-      .finally(() => setMutating(false));
-  };
 
   const confirmCancel = () => {
     if (!selectedTournament?.id) return;
@@ -1471,115 +1423,6 @@ export default function TournamentsPage() {
         </div>
       </Modal>
 
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Tournament"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              onClick={saveEdit}
-              disabled={mutating}
-              className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
-            >
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <div className="flex-1">
-              <p className="text-[14px] font-bold text-gray-900">One-day event?</p>
-              <p className="text-[12px] text-gray-500">Tournament starts and ends on the same day</p>
-            </div>
-            <button
-              onClick={() => {
-                const next = !isOneDayEvent;
-                setIsOneDayEvent(next);
-                if (next) setEditEndDate("");
-              }}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
-                isOneDayEvent ? "bg-[#10b981]" : "bg-gray-200"
-              )}
-            >
-              <span
-                className={cn(
-                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                  isOneDayEvent ? "translate-x-6" : "translate-x-1"
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Tournament Name</Label>
-            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
-          </div>
-
-          <div className={cn("grid gap-4", isOneDayEvent ? "grid-cols-1" : "grid-cols-2")}>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">{isOneDayEvent ? "Tournament Date" : "Start Date"}</Label>
-              <DatePicker
-                value={editStartDate}
-                onValueChange={(v) => {
-                  setEditStartDate(v);
-                  if (!isOneDayEvent && editEndDate && v && editEndDate < v) setEditEndDate("");
-                }}
-                placeholder="Select date"
-                minDate={tomorrowYMD}
-                onInvalidSelect={() => toast.error("Date must be from tomorrow onwards")}
-                buttonClassName="rounded-xl h-12"
-              />
-            </div>
-            {!isOneDayEvent && (
-              <div className="space-y-2">
-                <Label className="font-bold text-gray-700">End Date</Label>
-                <DatePicker
-                  value={editEndDate}
-                  onValueChange={setEditEndDate}
-                  placeholder="Select end date"
-                  minDate={(editStartDate && editStartDate > tomorrowYMD ? editStartDate : tomorrowYMD) || undefined}
-                  onInvalidSelect={({ reason }) => {
-                    if (reason === "minDate") {
-                      toast.error(editStartDate ? "End date cannot be before start date" : "End date must be from tomorrow onwards");
-                      return;
-                    }
-                    toast.error("End date must be from tomorrow onwards");
-                  }}
-                  allowClear
-                  buttonClassName="rounded-xl h-12"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Entry Fee (₦)</Label>
-              <Input
-                value={editEntryFee}
-                onChange={(e) => setEditEntryFee(formatThousandsInput(e.target.value))}
-                placeholder="17,845"
-                className="rounded-xl h-12"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Max Players</Label>
-              <Input
-                value={editMaxPlayers}
-                onChange={(e) => setEditMaxPlayers(formatThousandsInput(e.target.value))}
-                placeholder="100"
-                className="rounded-xl h-12"
-              />
-            </div>
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         isOpen={isCancelModalOpen}
@@ -1660,7 +1503,11 @@ export default function TournamentsPage() {
 
       <CreateTournamentWizard 
         isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)} 
+        tournamentId={wizardTournamentId}
+        onClose={() => {
+          setIsWizardOpen(false);
+          setWizardTournamentId(null);
+        }} 
         onSuccess={() => reloadTournaments()} 
       />
     </div>

@@ -75,6 +75,13 @@ function getErrorMessage(e: unknown) {
   return null;
 }
 
+function formatCompactCurrency(value: number) {
+  if (value >= 100) {
+    return (Math.floor(value / 10) / 100).toFixed(2) + "k";
+  }
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function RoleBadge({ role }: { role: AdminUser["role"] }) {
   const meta = (() => {
     switch (role) {
@@ -165,6 +172,15 @@ export default function SuperAdminUsersPage() {
   const [viewTab, setViewTab] = useState<"overview" | "permissions" | "activity" | "payments" | "tournaments" | "settings">(
     "overview",
   );
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewRegistrations, setViewRegistrations] = useState<any[]>([]);
+  const [activitySearch, setActivitySearch] = useState("");
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [tournamentSearch, setTournamentSearch] = useState("");
+  const [activityPage, setActivityPage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [tournamentPage, setTournamentPage] = useState(1);
+  const modalItemsPerPage = 5;
 
   const closeTimeoutRef = useRef<number | null>(null);
   const closeDropdown = () => {
@@ -322,11 +338,28 @@ export default function SuperAdminUsersPage() {
 
   const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
 
-  const openViewModal = (u: AdminUser) => {
+  const openViewModal = async (u: AdminUser) => {
     setSelectedUser(u);
     setViewTab("overview");
+    setActivitySearch("");
+    setPaymentSearch("");
+    setTournamentSearch("");
+    setActivityPage(1);
+    setPaymentPage(1);
+    setTournamentPage(1);
     setIsViewModalOpen(true);
+    setViewLoading(true);
     closeDropdown();
+
+    try {
+      const { getRegistrations } = await import("@/lib/api/registrations");
+      const res = await getRegistrations({ userId: u.id, take: 500 });
+      setViewRegistrations(res.items || []);
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to load user activity");
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   const openEditModal = (u: AdminUser) => {
@@ -1229,6 +1262,36 @@ export default function SuperAdminUsersPage() {
         title="View User Details"
         size="lg"
       >
+        {(() => {
+          const filteredActivity = viewRegistrations.filter((r) =>
+            r.tournament.name.toLowerCase().includes(activitySearch.toLowerCase()),
+          );
+          const paginatedActivity = filteredActivity.slice(
+            (activityPage - 1) * modalItemsPerPage,
+            activityPage * modalItemsPerPage,
+          );
+          const totalActivityPages = Math.ceil(filteredActivity.length / modalItemsPerPage);
+
+          const filteredPayments = viewRegistrations.filter((r) =>
+            r.tournament.name.toLowerCase().includes(paymentSearch.toLowerCase()) ||
+            (r.paymentReference || "").toLowerCase().includes(paymentSearch.toLowerCase())
+          );
+          const paginatedPayments = filteredPayments.slice(
+            (paymentPage - 1) * modalItemsPerPage,
+            paymentPage * modalItemsPerPage,
+          );
+          const totalPaymentPages = Math.ceil(filteredPayments.length / modalItemsPerPage);
+
+          const filteredTournaments = viewRegistrations.filter((r) =>
+            r.tournament.name.toLowerCase().includes(tournamentSearch.toLowerCase()),
+          );
+          const paginatedTournaments = filteredTournaments.slice(
+            (tournamentPage - 1) * modalItemsPerPage,
+            tournamentPage * modalItemsPerPage,
+          );
+          const totalTournamentPages = Math.ceil(filteredTournaments.length / modalItemsPerPage);
+
+          return (
         <div className="space-y-6">
           <div className="flex items-start gap-4 pb-6 border-b border-gray-50">
             <img
@@ -1275,7 +1338,12 @@ export default function SuperAdminUsersPage() {
           </div>
 
           <div className="min-h-[300px]">
-            {viewTab === "overview" ? (
+            {viewLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-40 w-full rounded-2xl" />
+              </div>
+            ) : viewTab === "overview" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
                   <h5 className="text-sm font-bold text-gray-900">Personal Information</h5>
@@ -1323,7 +1391,7 @@ export default function SuperAdminUsersPage() {
                       </div>
                       <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
                         <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Tournaments</p>
-                        <p className="text-lg font-bold text-blue-700">0</p>
+                        <p className="text-lg font-bold text-blue-700">{viewRegistrations.length}</p>
                       </div>
                       <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
                         <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Wins</p>
@@ -1334,6 +1402,151 @@ export default function SuperAdminUsersPage() {
                         <p className="text-lg font-bold text-amber-700">—</p>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            ) : viewTab === "activity" ? (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search activity..."
+                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    value={activitySearch}
+                    onChange={(e) => {
+                      setActivitySearch(e.target.value);
+                      setActivityPage(1);
+                    }}
+                  />
+                </div>
+                <div className="space-y-3">
+                  {paginatedActivity.length > 0 ? (
+                    paginatedActivity.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 bg-white hover:border-blue-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Trophy className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-[14px] font-bold text-gray-900">Registered for {r.tournament.name}</p>
+                            <p className="text-[12px] text-gray-400 font-medium">{formatJoinedDate(r.registeredAt)}</p>
+                          </div>
+                        </div>
+                        <StatusPill status={r.status === "APPROVED" ? "ACTIVE" : r.status === "REJECTED" ? "SUSPENDED" : "ACTIVE"} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-gray-400 font-medium">No activity found</p>
+                    </div>
+                  )}
+                </div>
+                {totalActivityPages > 1 && (
+                  <div className="flex justify-end pt-2">
+                    <Pagination currentPage={activityPage} totalPages={totalActivityPages} onPageChange={setActivityPage} />
+                  </div>
+                )}
+              </div>
+            ) : viewTab === "payments" ? (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search payments..."
+                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    value={paymentSearch}
+                    onChange={(e) => {
+                      setPaymentSearch(e.target.value);
+                      setPaymentPage(1);
+                    }}
+                  />
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-5 py-3">Tournament</th>
+                        <th className="px-5 py-3">Amount</th>
+                        <th className="px-5 py-3">Reference</th>
+                        <th className="px-5 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-[13px]">
+                      {paginatedPayments.length > 0 ? (
+                        paginatedPayments.map((r) => (
+                          <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-5 py-4 font-bold text-gray-900">{r.tournament.name}</td>
+                            <td className="px-5 py-4 font-bold text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                            <td className="px-5 py-4 font-medium text-gray-500">{r.paymentReference || "—"}</td>
+                            <td className="px-5 py-4">
+                              <span className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold",
+                                r.paymentStatus === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                              )}>
+                                {r.paymentStatus}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-medium">No payments found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {totalPaymentPages > 1 && (
+                  <div className="flex justify-end pt-2">
+                    <Pagination currentPage={paymentPage} totalPages={totalPaymentPages} onPageChange={setPaymentPage} />
+                  </div>
+                )}
+              </div>
+            ) : viewTab === "tournaments" ? (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search tournaments..."
+                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    value={tournamentSearch}
+                    onChange={(e) => {
+                      setTournamentSearch(e.target.value);
+                      setTournamentPage(1);
+                    }}
+                  />
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-5 py-3">Tournament</th>
+                        <th className="px-5 py-3">Date</th>
+                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3 text-right">Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-[13px]">
+                      {paginatedTournaments.length > 0 ? (
+                        paginatedTournaments.map((r) => (
+                          <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-5 py-4 font-bold text-gray-900">{r.tournament.name}</td>
+                            <td className="px-5 py-4 text-gray-500">{formatJoinedDate(r.tournament.startDate)}</td>
+                            <td className="px-5 py-4">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600">
+                                {r.status}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right font-bold text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-medium">No tournaments found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {totalTournamentPages > 1 && (
+                  <div className="flex justify-end pt-2">
+                    <Pagination currentPage={tournamentPage} totalPages={totalTournamentPages} onPageChange={setTournamentPage} />
                   </div>
                 )}
               </div>
@@ -1350,8 +1563,9 @@ export default function SuperAdminUsersPage() {
             )}
           </div>
         </div>
-      </Modal>
-
-    </div>
+      );
+    })()}
+  </Modal>
+</div>
   );
 }

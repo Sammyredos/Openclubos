@@ -124,6 +124,7 @@ export class RegistrationsService {
     status?: RegistrationStatus;
     disqualified?: boolean;
     paymentStatus?: PaymentStatus;
+    userId?: string;
     skip?: number;
     take?: number;
   }) {
@@ -138,6 +139,7 @@ export class RegistrationsService {
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.clubId) where.tournament = { clubId: query.clubId };
     if (query.tournamentId) where.tournamentId = query.tournamentId;
+    if (query.userId) where.userId = query.userId;
     if (query.q?.trim()) {
       const q = query.q.trim();
       where.OR = [

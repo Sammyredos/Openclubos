@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
-import { createTournament } from "@/lib/api/tournaments";
+import { createTournament, getTournament, updateTournament } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -14,7 +14,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Upload, X, ImageIcon } from "lucide-react";
 
-type WizardProps = { isOpen: boolean; onClose: () => void; onSuccess: () => void };
+type WizardProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  tournamentId?: string | null;
+};
 
 const STEPS = ["Basic Details", "Schedule", "Format & Divisions", "Eligibility", "Payments", "Grouping", "Scoring", "Publish"];
 
@@ -54,6 +59,15 @@ async function compressImage(file: File, targetKB = 50): Promise<string> {
     img.onerror = reject;
     img.src = url;
   });
+}
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return null;
 }
 
 const DEFAULT_FORM = {
@@ -127,7 +141,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 
 
 
-export function CreateTournamentWizard({ isOpen, onClose, onSuccess }: WizardProps) {
+export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentId }: WizardProps) {
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -147,11 +161,66 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess }: WizardPro
       setStep(1);
       setShowValidation(false);
       setFormData({ ...DEFAULT_FORM });
-      getOrganizers().then((d: any[]) => {
-        if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
-      }).catch(() => { });
+      getOrganizers()
+        .then((d: any[]) => {
+          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
+        })
+        .catch(() => {});
+
+      if (tournamentId) {
+        setLoading(true);
+        getTournament(tournamentId)
+          .then((t) => {
+            setFormData({
+              name: t.name || "",
+              clubId: t.clubId || "",
+              courseId: t.courseId || "",
+              bannerUrl: t.bannerUrl || "",
+              bannerPreview: t.bannerUrl || "",
+              description: t.description || "",
+              venue: t.venue || "NG",
+              location: t.location || "",
+              startDate: t.startDate ? t.startDate.slice(0, 10) : "",
+              endDate: t.endDate ? t.endDate.slice(0, 10) : "",
+              registrationOpenAt: t.registrationOpenAt ? t.registrationOpenAt.slice(0, 10) : "",
+              registrationCloseAt: t.registrationCloseAt ? t.registrationCloseAt.slice(0, 10) : "",
+              format: t.format || "STROKE_PLAY",
+              scoringType: t.scoringType || "GROSS",
+              holes: t.holes || 18,
+              divisions: t.divisions || [],
+              allowRegisteredPlayers: t.allowRegisteredPlayers ?? true,
+              allowGuests: t.allowGuests ?? false,
+              allowExternalPlayers: t.allowExternalPlayers ?? false,
+              hasHandicapRestriction: t.hasHandicapRestriction ?? false,
+              minHandicap: t.minHandicap != null ? String(t.minHandicap) : "",
+              maxHandicap: t.maxHandicap != null ? String(t.maxHandicap) : "",
+              maxPlayers: t.maxPlayers != null ? String(t.maxPlayers) : "",
+              maxPlayersPerGroup: t.maxPlayersPerGroup || 4,
+              enableWaitlist: t.enableWaitlist ?? false,
+              requiresPayment: t.requiresPayment ?? false,
+              entryFee: t.entryFee != null ? String(t.entryFee) : "",
+              currency: t.currency || "NGN",
+              paymentDeadline: t.paymentDeadline ? t.paymentDeadline.slice(0, 10) : "",
+              isRefundable: t.isRefundable ?? false,
+              autoGrouping: t.autoGrouping ?? false,
+              teeStartTime: t.teeStartTime || "",
+              teeIntervalMinutes: t.teeIntervalMinutes || 10,
+              enableLiveScoring: t.enableLiveScoring ?? false,
+              requireMarkerVerification: t.requireMarkerVerification ?? false,
+              enableHoleScoring: t.enableHoleScoring ?? true,
+              publishImmediately: t.status === "REGISTRATION_OPEN",
+              visibility: t.visibility || "PUBLIC",
+            });
+          })
+          .catch((e) => {
+            toast.error(getErrorMessage(e) || "Failed to load tournament data");
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, tournamentId]);
 
   useEffect(() => {
     if (formData.clubId) {
@@ -200,39 +269,58 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess }: WizardPro
     setLoading(true);
     try {
       const f = formData;
-      await createTournament({
-        name: f.name, clubId: f.clubId, courseId: f.courseId,
-        description: f.description || undefined,
-        bannerUrl: f.bannerUrl || undefined,
-        venue: Country.getCountryByCode(f.venue)?.name || f.venue || undefined,
-        location: f.location || undefined,
+      const payload: UpdateTournamentPayload = {
+        name: f.name,
+        clubId: f.clubId,
+        courseId: f.courseId,
+        description: f.description || null,
+        bannerUrl: f.bannerUrl || null,
+        venue: f.venue || null,
+        location: f.location || null,
         startDate: new Date(f.startDate).toISOString(),
-        endDate: f.endDate ? new Date(f.endDate).toISOString() : undefined,
-        registrationOpenAt: f.registrationOpenAt ? new Date(f.registrationOpenAt).toISOString() : undefined,
-        registrationCloseAt: f.registrationCloseAt ? new Date(f.registrationCloseAt).toISOString() : undefined,
-        format: f.format, scoringType: f.scoringType, holes: Number(f.holes), divisions: f.divisions,
-        allowRegisteredPlayers: f.allowRegisteredPlayers, allowGuests: f.allowGuests, allowExternalPlayers: f.allowExternalPlayers,
+        endDate: f.endDate ? new Date(f.endDate).toISOString() : null,
+        registrationOpenAt: f.registrationOpenAt ? new Date(f.registrationOpenAt).toISOString() : null,
+        registrationCloseAt: f.registrationCloseAt ? new Date(f.registrationCloseAt).toISOString() : null,
+        format: f.format as any,
+        scoringType: f.scoringType as any,
+        holes: Number(f.holes),
+        divisions: f.divisions,
+        allowRegisteredPlayers: f.allowRegisteredPlayers,
+        allowGuests: f.allowGuests,
+        allowExternalPlayers: f.allowExternalPlayers,
         hasHandicapRestriction: f.hasHandicapRestriction,
-        minHandicap: f.hasHandicapRestriction && f.minHandicap !== "" ? Number(f.minHandicap) : undefined,
-        maxHandicap: f.hasHandicapRestriction && f.maxHandicap !== "" ? Number(f.maxHandicap) : undefined,
-        maxPlayers: f.maxPlayers !== "" ? Number(f.maxPlayers) : undefined,
-        maxPlayersPerGroup: Number(f.maxPlayersPerGroup), enableWaitlist: f.enableWaitlist,
+        minHandicap: f.hasHandicapRestriction && f.minHandicap !== "" ? Number(f.minHandicap) : null,
+        maxHandicap: f.hasHandicapRestriction && f.maxHandicap !== "" ? Number(f.maxHandicap) : null,
+        maxPlayers: f.maxPlayers !== "" ? Number(f.maxPlayers) : null,
+        maxPlayersPerGroup: Number(f.maxPlayersPerGroup),
+        enableWaitlist: f.enableWaitlist,
         requiresPayment: f.requiresPayment,
-        entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : undefined,
-        currency: f.requiresPayment ? f.currency : undefined,
-        paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : undefined,
-        isRefundable: f.requiresPayment ? f.isRefundable : undefined,
+        entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
+        currency: f.requiresPayment ? f.currency : "NGN",
+        paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
+        isRefundable: f.requiresPayment ? f.isRefundable : false,
         autoGrouping: f.autoGrouping,
-        teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : undefined,
-        teeIntervalMinutes: f.autoGrouping ? Number(f.teeIntervalMinutes) : undefined,
-        enableLiveScoring: f.enableLiveScoring, requireMarkerVerification: f.requireMarkerVerification, enableHoleScoring: f.enableHoleScoring,
-        publishImmediately: f.publishImmediately, visibility: f.visibility,
-        status: f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT",
-      });
-      toast.success("Tournament created!");
-      onSuccess(); onClose();
+        teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : null,
+        teeIntervalMinutes: f.autoGrouping ? Number(f.teeIntervalMinutes) : 10,
+        enableLiveScoring: f.enableLiveScoring,
+        requireMarkerVerification: f.requireMarkerVerification,
+        enableHoleScoring: f.enableHoleScoring,
+        publishImmediately: f.publishImmediately,
+        visibility: f.visibility as any,
+        status: (tournamentId ? undefined : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT")) as any,
+      };
+
+      if (tournamentId) {
+        await updateTournament(tournamentId, payload);
+        toast.success("Tournament updated!");
+      } else {
+        await createTournament(payload);
+        toast.success("Tournament created!");
+      }
+      onSuccess();
+      onClose();
     } catch (e: any) {
-      toast.error(e.message || "Failed to create tournament");
+      toast.error(e.message || `Failed to ${tournamentId ? "update" : "create"} tournament`);
     } finally {
       setLoading(false);
     }
@@ -479,7 +567,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess }: WizardPro
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Tournament" className="max-w-4xl"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={tournamentId ? "Edit Tournament" : "Create Tournament"}
+      className="max-w-4xl"
       footer={
         <div className="flex justify-between w-full">
           <Button variant="outline" onClick={handleBack} disabled={step === 1 || loading}>Back</Button>
@@ -488,7 +580,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess }: WizardPro
             {step < STEPS.length
               ? <Button onClick={handleNext} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">Next →</Button>
               : <Button onClick={handleSubmit} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
-                {loading ? "Creating..." : "Create Tournament"}
+                {loading ? (tournamentId ? "Updating..." : "Creating...") : (tournamentId ? "Update Tournament" : "Create Tournament")}
               </Button>
             }
           </div>
