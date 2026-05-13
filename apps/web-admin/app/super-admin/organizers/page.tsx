@@ -678,9 +678,7 @@ export default function OrganizersPage() {
               triggerClassName="h-11 bg-white font-medium"
               placeholder="All Locations"
             />
-            <Button variant="outline" className="h-11 border-gray-100 text-gray-500 gap-2 rounded-lg px-4 text-[14px] font-bold">
-              <Filter className="w-4 h-4" /> More Filters
-            </Button>
+
           </div>
 
           <div className="overflow-x-auto relative">
@@ -856,8 +854,16 @@ export default function OrganizersPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">
-                      No organizers found matching your filters.
+                    <td colSpan={7} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
+                          <Building2 className="w-8 h-8 text-gray-200" />
+                        </div>
+                        <div className="space-y-1 text-center">
+                          <p className="text-[15px] font-bold text-gray-900">No organizers found</p>
+                          <p className="text-[13px] text-gray-400">Try adjusting your filters or search query.</p>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 )}

@@ -166,26 +166,81 @@ export class TournamentsService {
   }
 
   async findOne(id: string) {
-    const tournament = await this.prisma.tournament.findUnique({
-      where: { id },
-      include: { club: true, course: true, registrations: true },
-    });
+    try {
+      const tournament = await this.prisma.tournament.findUnique({
+        where: { id },
+        include: { 
+          club: true, 
+          course: true,
+          _count: { select: { registrations: true } }
+        },
+      });
 
-    if (!tournament) {
-      throw new NotFoundException('Tournament not found');
+      if (!tournament) {
+        throw new NotFoundException('Tournament not found');
+      }
+
+      return tournament;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error(`[TournamentsService.findOne] Error fetching tournament ${id}:`, error);
+      throw error;
     }
-
-    return tournament;
   }
 
-  async update(id: string, updateTournamentDto: UpdateTournamentDto) {
-    const data: any = { ...updateTournamentDto };
+  async update(id: string, dto: UpdateTournamentDto) {
+    // Manually map fields to ensure we don't pass unexpected fields to Prisma
+    // and to handle date conversions safely.
+    const data: any = {};
 
-    if (data.startDate) data.startDate = new Date(data.startDate);
-    if (data.endDate) data.endDate = new Date(data.endDate);
-    if (data.registrationOpenAt) data.registrationOpenAt = new Date(data.registrationOpenAt);
-    if (data.registrationCloseAt) data.registrationCloseAt = new Date(data.registrationCloseAt);
-    if (data.paymentDeadline) data.paymentDeadline = new Date(data.paymentDeadline);
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl;
+    if (dto.venue !== undefined) data.venue = dto.venue;
+    if (dto.location !== undefined) data.location = dto.location;
+    if (dto.clubId !== undefined) data.clubId = dto.clubId;
+    if (dto.courseId !== undefined) data.courseId = dto.courseId;
+    
+    if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
+    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.registrationOpenAt !== undefined) data.registrationOpenAt = dto.registrationOpenAt ? new Date(dto.registrationOpenAt) : null;
+    if (dto.registrationCloseAt !== undefined) data.registrationCloseAt = dto.registrationCloseAt ? new Date(dto.registrationCloseAt) : null;
+    
+    if (dto.format !== undefined) data.format = dto.format;
+    if (dto.scoringType !== undefined) data.scoringType = dto.scoringType;
+    if (dto.holes !== undefined) data.holes = dto.holes;
+    
+    if (dto.allowRegisteredPlayers !== undefined) data.allowRegisteredPlayers = dto.allowRegisteredPlayers;
+    if (dto.allowGuests !== undefined) data.allowGuests = dto.allowGuests;
+    if (dto.allowExternalPlayers !== undefined) data.allowExternalPlayers = dto.allowExternalPlayers;
+    if (dto.hasHandicapRestriction !== undefined) data.hasHandicapRestriction = dto.hasHandicapRestriction;
+    if (dto.minHandicap !== undefined) data.minHandicap = dto.minHandicap;
+    if (dto.maxHandicap !== undefined) data.maxHandicap = dto.maxHandicap;
+    if (dto.playerTypes !== undefined) data.playerTypes = dto.playerTypes;
+    
+    if (dto.maxPlayers !== undefined) data.maxPlayers = dto.maxPlayers;
+    if (dto.maxPlayersPerGroup !== undefined) data.maxPlayersPerGroup = dto.maxPlayersPerGroup;
+    if (dto.enableWaitlist !== undefined) data.enableWaitlist = dto.enableWaitlist;
+    
+    if (dto.requiresPayment !== undefined) data.requiresPayment = dto.requiresPayment;
+    if (dto.entryFee !== undefined) data.entryFee = dto.entryFee;
+    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.paymentDeadline !== undefined) data.paymentDeadline = dto.paymentDeadline ? new Date(dto.paymentDeadline) : null;
+    if (dto.isRefundable !== undefined) data.isRefundable = dto.isRefundable;
+    
+    if (dto.divisions !== undefined) data.divisions = dto.divisions;
+    
+    if (dto.autoGrouping !== undefined) data.autoGrouping = dto.autoGrouping;
+    if (dto.teeStartTime !== undefined) data.teeStartTime = dto.teeStartTime;
+    if (dto.teeIntervalMinutes !== undefined) data.teeIntervalMinutes = dto.teeIntervalMinutes;
+    
+    if (dto.enableLiveScoring !== undefined) data.enableLiveScoring = dto.enableLiveScoring;
+    if (dto.requireMarkerVerification !== undefined) data.requireMarkerVerification = dto.requireMarkerVerification;
+    if (dto.enableHoleScoring !== undefined) data.enableHoleScoring = dto.enableHoleScoring;
+    
+    if (dto.publishImmediately !== undefined) data.publishImmediately = dto.publishImmediately;
+    if (dto.visibility !== undefined) data.visibility = dto.visibility;
+    if (dto.status !== undefined) data.status = dto.status;
 
     try {
       return await this.prisma.tournament.update({
@@ -198,7 +253,12 @@ export class TournamentsService {
         },
       });
     } catch (error) {
-      throw new NotFoundException('Tournament not found');
+      console.error(`[TournamentsService.update] Error updating tournament ${id}:`, error);
+      // Prisma error for record not found is P2025
+      if ((error as any).code === 'P2025') {
+        throw new NotFoundException('Tournament not found');
+      }
+      throw error; // Let NestJS handle other errors (will return 500 but now it's logged)
     }
   }
 

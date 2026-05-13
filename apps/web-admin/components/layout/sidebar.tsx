@@ -22,6 +22,7 @@ import {
   Activity,
   Bell,
   ChevronDown,
+  Mountain,
 } from "lucide-react";
 import { Icons } from "@/components/ui/icons";
 
@@ -34,6 +35,7 @@ const SUPER_ADMIN_GROUPS = [
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
       { name: "Subscriptions", href: "/super-admin/subscriptions", icon: ShieldCheck },
       { name: "Users", href: "/super-admin/users", icon: Users },
+      { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Mountain },
     ],
   },
   {

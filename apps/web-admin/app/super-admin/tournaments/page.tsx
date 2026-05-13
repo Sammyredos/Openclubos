@@ -739,7 +739,7 @@ export default function TournamentsPage() {
         <div className="xl:col-span-3 space-y-6">
           <Card className="border-none shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-xl font-bold">All Tournaments <span className="text-gray-400 font-normal ml-2 text-sm">({formatWithCommas(totalTournaments)})</span></CardTitle>
+              <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Download className="w-4 h-4" /> Export
@@ -789,9 +789,7 @@ export default function TournamentsPage() {
                   placeholder="All Dates"
                   disabled
                 />
-                <Button variant="outline" className="h-11 border-gray-100 text-gray-500 gap-2 rounded-lg px-4">
-                  <Filter className="w-4 h-4" /> More Filters
-                </Button>
+
               </div>
 
               {/* Table */}
@@ -921,8 +919,16 @@ export default function TournamentsPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                          No tournaments found matching your filters.
+                        <td colSpan={7} className="px-6 py-20 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
+                              <Trophy className="w-8 h-8 text-gray-200" />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[15px] font-bold text-gray-900">No tournaments found</p>
+                              <p className="text-[13px] text-gray-400">Try adjusting your filters or search query.</p>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
