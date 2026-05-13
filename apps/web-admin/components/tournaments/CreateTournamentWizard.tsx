@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
-import { createTournament, getTournament, updateTournament } from "@/lib/api/tournaments";
+import { createTournament, getTournament, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -75,14 +75,14 @@ const DEFAULT_FORM = {
   bannerUrl: "", bannerPreview: "",
   description: "", venue: "NG", location: "",
   startDate: "", endDate: "", registrationOpenAt: "", registrationCloseAt: "",
-  format: "STROKE_PLAY", scoringType: "GROSS", holes: 18, divisions: [] as string[],
+  format: "STROKE_PLAY" as const, scoringType: "GROSS" as const, holes: 18, divisions: [] as string[],
   allowRegisteredPlayers: true, allowGuests: false, allowExternalPlayers: false,
   hasHandicapRestriction: false, minHandicap: "", maxHandicap: "",
   maxPlayers: "", maxPlayersPerGroup: 4, enableWaitlist: false,
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
   autoGrouping: false, teeStartTime: "", teeIntervalMinutes: 10,
   enableLiveScoring: false, requireMarkerVerification: false, enableHoleScoring: true,
-  publishImmediately: false, visibility: "PUBLIC",
+  publishImmediately: false, visibility: "PUBLIC" as const,
 };
 
 type FormData = typeof DEFAULT_FORM;
@@ -281,8 +281,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         endDate: f.endDate ? new Date(f.endDate).toISOString() : null,
         registrationOpenAt: f.registrationOpenAt ? new Date(f.registrationOpenAt).toISOString() : null,
         registrationCloseAt: f.registrationCloseAt ? new Date(f.registrationCloseAt).toISOString() : null,
-        format: f.format as any,
-        scoringType: f.scoringType as any,
+        format: f.format,
+        scoringType: f.scoringType,
         holes: Number(f.holes),
         divisions: f.divisions,
         allowRegisteredPlayers: f.allowRegisteredPlayers,
@@ -306,8 +306,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         requireMarkerVerification: f.requireMarkerVerification,
         enableHoleScoring: f.enableHoleScoring,
         publishImmediately: f.publishImmediately,
-        visibility: f.visibility as any,
-        status: (tournamentId ? undefined : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT")) as any,
+        visibility: f.visibility,
+        status: (tournamentId ? undefined : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT")),
       };
 
       if (tournamentId) {
