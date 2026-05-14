@@ -2,21 +2,52 @@ import { getAuthToken, handleAuthFailure } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+export interface TeeBox {
+  id?: string;
+  name: string;
+  color: string;
+  yardage: number;
+  rating?: number;
+  slope?: number;
+}
+
 export interface Course {
   id: string;
   name: string;
-  clubId?: string;
-  club?: { id: string; name: string };
-  bannerUrl?: string | null;
-  location: string;
-  city: string;
-  state: string;
+  alsoKnownAs?: string | null;
+  type: string;
   country: string;
+  state: string | null;
+  city: string | null;
+  
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  
   holes: number;
   par: number;
-  type: string;
+  yearEstablished?: number | null;
+  architect?: string | null;
+  courseRating?: number | null;
+  slopeRating?: number | null;
+  
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  bookingUrl?: string | null;
+  
+  amenities: string[];
+  coverImage?: string | null;
+  galleryImages: string[];
+  
   status: 'ACTIVE' | 'INACTIVE';
+  isFeatured: boolean;
+  
+  clubId?: string;
+  club?: { id: string; name: string };
+  teeBoxes?: TeeBox[];
   createdAt: string;
+  tournamentCount?: number;
 }
 
 export interface CourseStats {
@@ -81,7 +112,24 @@ export async function getAdminCourses(params: {
   return res.json();
 }
 
-export async function createCourse(data: Partial<Course>) {
+export async function getCourse(id: string): Promise<Course> {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/courses/${id}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to fetch course');
+  }
+  return res.json();
+}
+
+export async function createCourse(data: any) {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/courses`, {
     method: 'POST',
@@ -99,7 +147,7 @@ export async function createCourse(data: Partial<Course>) {
   return res.json();
 }
 
-export async function updateCourse(id: string, data: Partial<Course>) {
+export async function updateCourse(id: string, data: any) {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/courses/${id}`, {
     method: 'PATCH',
@@ -130,5 +178,7 @@ export async function deleteCourse(id: string) {
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to delete course');
   }
-  return res.json();
+  
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }

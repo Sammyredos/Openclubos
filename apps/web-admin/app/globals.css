@@ -148,6 +148,6 @@
     font-weight: inherit;
   }
   body {
-    @apply bg-background text-foreground font-sans tracking-[0.01em];
+    @apply bg-background text-foreground font-sans tracking-[0.01em] capitalize;
   }
 }

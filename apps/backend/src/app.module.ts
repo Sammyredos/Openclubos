@@ -11,6 +11,7 @@ import { TournamentsModule } from './modules/tournaments/tournaments.module';
 import { RegistrationsModule } from './modules/registrations/registrations.module';
 import { ScoresModule } from './modules/scores/scores.module';
 import { PrismaModule } from './common/prisma.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { PrismaModule } from './common/prisma.module';
     TournamentsModule,
     RegistrationsModule,
     ScoresModule,
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

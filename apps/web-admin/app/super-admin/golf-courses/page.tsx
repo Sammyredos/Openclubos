@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Flag,
   MapPin,
   Mountain,
   CheckCircle2,
   AlertCircle,
+  Ban,
   Search,
   Plus,
   Download,
@@ -25,9 +26,12 @@ import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Course, CourseStats, getAdminCourses, deleteCourse } from "@/lib/api/courses";
-import { CourseModal } from "@/components/courses/CourseModal";
+import { Course, CourseStats, getAdminCourses, deleteCourse, updateCourse } from "@/lib/api/courses";
+import { CreateCourseWizard } from "@/components/courses/CreateCourseWizard";
 import { Country } from "country-state-city";
+import { Modal } from "@/components/ui/modal";
+import { Label } from "@/components/ui/label";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 
 function StatusPill({ status }: { status: Course["status"] }) {
   const isActive = status === "ACTIVE";
@@ -62,6 +66,28 @@ export default function SuperAdminGolfCoursesPage() {
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const [statusAction, setStatusAction] = useState<"activate" | "deactivate">("activate");
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [mutating, setMutating] = useState(false);
+
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [dropdownCourse, setDropdownCourse] = useState<Course | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  const closeDropdown = () => {
+    setActiveDropdown(null);
+    if (closeTimeoutRef.current != null) window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setDropdownAnchorEl(null);
+      setDropdownCourse(null);
+      closeTimeoutRef.current = null;
+    }, 160);
+  };
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -92,6 +118,52 @@ export default function SuperAdminGolfCoursesPage() {
     e.preventDefault();
     setCurrentPage(1);
     fetchCourses();
+  };
+
+  const openStatusModal = (c: Course) => {
+    setSelectedCourse(c);
+    setStatusAction(c.status === "ACTIVE" ? "deactivate" : "activate");
+    setIsStatusModalOpen(true);
+    closeDropdown();
+  };
+
+  const confirmStatusChange = async () => {
+    if (!selectedCourse?.id) return;
+    setMutating(true);
+    try {
+      const nextStatus = statusAction === "activate" ? "ACTIVE" : "INACTIVE";
+      await updateCourse(selectedCourse.id, { status: nextStatus });
+      toast.success(statusAction === "activate" ? "Course activated" : "Course deactivated");
+      setIsStatusModalOpen(false);
+      fetchCourses();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update course status");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const openDeleteModal = (c: Course) => {
+    setSelectedCourse(c);
+    setDeleteConfirmText("");
+    setIsDeleteModalOpen(true);
+    closeDropdown();
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedCourse?.id) return;
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") return;
+    setMutating(true);
+    try {
+      await deleteCourse(selectedCourse.id);
+      toast.success("Course deleted successfully");
+      setIsDeleteModalOpen(false);
+      fetchCourses();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete course");
+    } finally {
+      setMutating(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -228,18 +300,6 @@ export default function SuperAdminGolfCoursesPage() {
               placeholder="All Status"
             />
 
-            <Button
-              variant="ghost"
-              className="h-11 text-gray-400 hover:text-gray-600"
-              onClick={() => {
-                setSearchQuery("");
-                setCountryFilter("All Countries");
-                setStatusFilter("All Status");
-                setTypeFilter("All Types");
-              }}
-            >
-              Clear
-            </Button>
           </div>
 
           <div className="overflow-x-auto relative">
@@ -259,12 +319,53 @@ export default function SuperAdminGolfCoursesPage() {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
-                        <td key={j} className="px-6 py-4">
-                          <Skeleton className="h-4 w-full" />
-                        </td>
-                      ))}
+                    <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3 min-w-[240px]">
+                          <Skeleton className="w-12 h-10 rounded-lg" />
+                          <div className="flex flex-col gap-2">
+                            <Skeleton className="h-4 w-32 rounded-md" />
+                            <Skeleton className="h-3 w-24 rounded-md" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="w-3.5 h-3.5 rounded-full" />
+                          <div className="flex flex-col gap-2">
+                            <Skeleton className="h-4 w-28 rounded-md" />
+                            <Skeleton className="h-3 w-20 rounded-md" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-6 rounded-md" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-6 rounded-md" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <Skeleton className="w-3.5 h-3.5 rounded-full" />
+                          <Skeleton className="h-4 w-16 rounded-md" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="w-5 h-3.5 rounded-sm" />
+                          <Skeleton className="h-4 w-20 rounded-md" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <Skeleton className="h-9 w-9 rounded-lg" />
+                          <Skeleton className="h-9 w-9 rounded-lg" />
+                          <Skeleton className="h-9 w-9 rounded-lg" />
+                        </div>
+                      </td>
                     </tr>
                   ))
                 ) : courses.length > 0 ? (
@@ -273,8 +374,8 @@ export default function SuperAdminGolfCoursesPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 min-w-[240px]">
                           <div className="w-12 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
-                            {course.bannerUrl ? (
-                              <img src={course.bannerUrl} alt={course.name} className="w-full h-full object-cover" />
+                            {course.coverImage ? (
+                              <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-300">
                                 <Mountain className="w-5 h-5" />
@@ -292,7 +393,7 @@ export default function SuperAdminGolfCoursesPage() {
                           <MapPin className="w-3.5 h-3.5 text-emerald-500" />
                           <div className="flex flex-col">
                             <span className="text-[13px] font-medium text-gray-700">{course.city}, {course.state}</span>
-                            <span className="text-[11px] text-gray-400">{course.country}</span>
+                            <span className="text-[11px] text-gray-400">{Country.getCountryByCode(course.country)?.name || course.country}</span>
                           </div>
                         </div>
                       </td>
@@ -306,19 +407,15 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">
-                            {course.country === 'NG' ? '🇳🇬' : 
-                             course.country === 'ZW' ? '🇿🇼' : 
-                             course.country === 'ZA' ? '🇿🇦' : 
-                             course.country === 'KE' ? '🇰🇪' : 
-                             course.country === 'TZ' ? '🇹🇿' : '🏳️'}
-                          </span>
+                          <div className="w-5 h-3.5 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
+                            <img 
+                              src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`} 
+                              alt={course.country}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                           <span className="text-[13px] font-medium text-gray-700">
-                            {course.country === 'NG' ? 'Nigeria' : 
-                             course.country === 'ZW' ? 'Zimbabwe' : 
-                             course.country === 'ZA' ? 'South Africa' : 
-                             course.country === 'KE' ? 'Kenya' : 
-                             course.country === 'TZ' ? 'Tanzania' : course.country}
+                            {Country.getCountryByCode(course.country)?.name || course.country}
                           </span>
                         </div>
                       </td>
@@ -331,25 +428,49 @@ export default function SuperAdminGolfCoursesPage() {
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
                             onClick={() => {
                               setSelectedCourse(course);
-                              setIsModalOpen(true);
+                              setIsViewModalOpen(true);
                             }}
+                            title="View Course"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-4.5 h-4.5" />
                           </button>
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setIsModalOpen(true);
-                            }}
+                            className={cn(
+                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                              course.status === "INACTIVE"
+                                ? "text-emerald-600 hover:bg-emerald-50"
+                                : "text-red-600 hover:bg-red-50"
+                            )}
+                            onClick={() => openStatusModal(course)}
+                            title={course.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            {course.status === "INACTIVE" ? (
+                              <CheckCircle2 className="w-4.5 h-4.5" />
+                            ) : (
+                              <Ban className="w-4.5 h-4.5" />
+                            )}
                           </button>
-                          <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                if (activeDropdown === course.id) {
+                                  closeDropdown();
+                                } else {
+                                  if (closeTimeoutRef.current != null) {
+                                    window.clearTimeout(closeTimeoutRef.current);
+                                    closeTimeoutRef.current = null;
+                                  }
+                                  setActiveDropdown(course.id);
+                                  setDropdownAnchorEl(e.currentTarget);
+                                  setDropdownCourse(course);
+                                }
+                              }}
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                              title="More Actions"
+                            >
+                              <MoreHorizontal className="w-4.5 h-4.5" />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -386,12 +507,227 @@ export default function SuperAdminGolfCoursesPage() {
         </CardContent>
       </Card>
 
-      <CourseModal
+      <CreateCourseWizard
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchCourses}
-        course={selectedCourse}
+        courseId={selectedCourse?.id}
       />
+
+      <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="View Course Details">
+        {selectedCourse ? (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 border-b border-gray-50 pb-6">
+              <div className="w-16 h-16 rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center">
+                {selectedCourse.coverImage ? (
+                  <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Mountain className="w-8 h-8 text-gray-300" />
+                )}
+              </div>
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">{selectedCourse.name}</h4>
+                <p className="text-sm text-gray-500">{selectedCourse.type} Course • {selectedCourse.holes} Holes • Par {selectedCourse.par}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Location</p>
+                <p className="text-[13px] font-medium text-gray-900 leading-relaxed">
+                  {selectedCourse.address}<br />
+                  {selectedCourse.city}, {selectedCourse.state}<br />
+                  {Country.getCountryByCode(selectedCourse.country)?.name || selectedCourse.country}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Contact Details</p>
+                <div className="text-[13px] font-medium text-gray-900 flex flex-col gap-1.5 mt-1">
+                  {selectedCourse.phone ? <span>{selectedCourse.phone}</span> : <span className="text-gray-400 italic">No phone</span>}
+                  {selectedCourse.email ? <span>{selectedCourse.email}</span> : <span className="text-gray-400 italic">No email</span>}
+                  {selectedCourse.website ? <a href={selectedCourse.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Website Link</a> : null}
+                </div>
+              </div>
+            </div>
+
+            {selectedCourse.amenities && selectedCourse.amenities.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Amenities</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCourse.amenities.map(a => (
+                    <span key={a} className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-700">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end pt-4 border-t border-gray-50">
+               <Button onClick={() => setIsViewModalOpen(false)} variant="outline">Close</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-10 text-center text-gray-500 font-medium">No course selected</div>
+        )}
+      </Modal>
+
+      {dropdownAnchorEl && dropdownCourse && (
+        <FloatingMenu
+          open={Boolean(dropdownAnchorEl)}
+          anchorEl={dropdownAnchorEl}
+          onClose={closeDropdown}
+          className="w-48 p-1.5 bg-white border border-gray-100 shadow-xl rounded-2xl"
+        >
+          <button
+            onClick={() => {
+              setSelectedCourse(dropdownCourse);
+              setIsModalOpen(true);
+              closeDropdown();
+            }}
+            className="w-full text-left px-3 py-2 text-[13px] font-bold text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" /> Edit Course
+          </button>
+          <button
+            onClick={() => {
+              closeDropdown();
+              const blob = new Blob([JSON.stringify(dropdownCourse, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${(dropdownCourse.name || "course").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+              toast.success("Course exported");
+            }}
+            className="w-full text-left px-3 py-2 text-[13px] font-bold text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export Data
+          </button>
+          <div className="h-px bg-gray-100 my-1 mx-2" />
+          <button
+            onClick={() => openDeleteModal(dropdownCourse)}
+            className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Course
+          </button>
+        </FloatingMenu>
+      )}
+
+      {/* Status Confirm Modal */}
+      <Modal 
+        isOpen={isStatusModalOpen} 
+        onClose={() => setIsStatusModalOpen(false)} 
+        title=""
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className={cn(
+                "text-white rounded-lg font-bold px-8",
+                statusAction === "activate"
+                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
+                  : "bg-red-500 hover:bg-red-600 border-red-600/30",
+              )}
+              onClick={confirmStatusChange}
+              disabled={mutating}
+            >
+              {statusAction === "activate" ? "Yes, Activate" : "Yes, Deactivate"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center pt-2">
+            <div
+              className={cn(
+                "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+                statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-red-50 text-red-500",
+              )}
+            >
+              {statusAction === "activate" ? (
+                <CheckCircle2 className="h-10 w-10" />
+              ) : (
+                <AlertCircle className="h-10 w-10" />
+              )}
+            </div>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">
+              {statusAction === "activate" ? "Activate Course?" : "Deactivate Course?"}
+            </h4>
+            <p className="text-gray-500 max-w-sm">
+              {statusAction === "activate"
+                ? "This golf course will become visible and active on the platform."
+                : "This golf course will be hidden from users until reactivated."}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-4 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl overflow-hidden border border-gray-100 bg-white flex-shrink-0 flex items-center justify-center">
+              {selectedCourse?.coverImage ? (
+                <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
+              ) : (
+                <Mountain className="w-5 h-5 text-gray-300" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-bold text-gray-900 truncate">
+                {selectedCourse?.name || "Unknown Course"}
+              </p>
+              <p className="text-[12px] text-gray-400 font-medium truncate">
+                {selectedCourse?.city && selectedCourse?.state ? `${selectedCourse.city}, ${selectedCourse.state}` : selectedCourse?.country || "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirm Modal */}
+      <Modal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        title=""
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              onClick={confirmDelete}
+            >
+              Delete Course
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center py-2">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+              <Trash2 className="h-10 w-10" />
+            </div>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Course Permanently?</h4>
+            <p className="text-gray-500 max-w-sm">This action cannot be undone and will permanently remove this golf course.</p>
+          </div>
+          <div className="space-y-3">
+            <Label className="font-bold text-gray-700">
+              Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
+            </Label>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="rounded-xl border-gray-200 focus:border-red-500"
+            />
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 }

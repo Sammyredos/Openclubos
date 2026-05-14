@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Building2 } from "lucide-react"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
@@ -22,6 +23,7 @@ type SearchableSelectOption = {
   value: string
   label: string
   disabled?: boolean
+  image?: string
 }
 
 type SearchableSelectProps = {
@@ -75,16 +77,25 @@ function SearchableSelect({
           triggerClassName
         )}
       >
-        <span className={cn(!value ? "text-gray-400" : undefined)}>
-          {selected ? selected.label : placeholder}
-        </span>
+        <div className="flex items-center gap-2.5 truncate">
+          {selected?.image ? (
+            <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-gray-100" alt="" />
+          ) : selected ? (
+            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-100">
+              <Building2 className="w-3 h-3 text-gray-400" />
+            </div>
+          ) : null}
+          <span className={cn(!value ? "text-gray-400" : undefined, "truncate")}>
+            {selected ? selected.label : placeholder}
+          </span>
+        </div>
         <svg
           width="16"
           height="16"
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="text-gray-400"
+          className="text-gray-400 shrink-0"
         >
           <path
             d="M6 9L12 15L18 9"
@@ -97,7 +108,7 @@ function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100">
           <div className="border-b border-gray-100 p-2">
             <input
               autoFocus
@@ -110,9 +121,9 @@ function SearchableSelect({
               className="h-[35px] w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
             />
           </div>
-          <div className="max-h-60 overflow-auto py-1">
+          <div className="max-h-60 overflow-auto py-1 custom-scrollbar">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-400">No results</div>
+              <div className="px-3 py-2 text-sm text-gray-400 text-center">No results found</div>
             ) : (
               filtered.map((o) => (
                 <button
@@ -125,12 +136,21 @@ function SearchableSelect({
                     setQuery("")
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors",
-                    o.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-gray-50",
-                    o.value === value ? "bg-gray-50 font-bold text-gray-900" : "text-gray-700"
+                    "flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors",
+                    o.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-emerald-50/50",
+                    o.value === value ? "bg-emerald-50/80 font-bold text-emerald-900" : "text-gray-700"
                   )}
                 >
-                  <span>{o.label}</span>
+                  <div className="flex items-center gap-2.5 flex-1 truncate">
+                    {o.image ? (
+                      <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-gray-100" alt="" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center shrink-0 border border-gray-100">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                      </div>
+                    )}
+                    <span className="truncate">{o.label}</span>
+                  </div>
                   {o.value === value && (
                     <svg
                       width="16"
@@ -138,7 +158,7 @@ function SearchableSelect({
                       viewBox="0 0 24 24"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      className="text-emerald-600"
+                      className="text-emerald-600 shrink-0"
                     >
                       <path
                         d="M20 6L9 17L4 12"

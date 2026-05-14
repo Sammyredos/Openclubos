@@ -13,9 +13,10 @@ type DatePickerProps = {
   minDate?: string;
   maxDate?: string;
   disablePast?: boolean;
+  disableToday?: boolean;
   disableFuture?: boolean;
   isDateDisabled?: (ymd: string) => boolean;
-  onInvalidSelect?: (args: { ymd: string; reason: "minDate" | "maxDate" | "past" | "future" | "custom" }) => void;
+  onInvalidSelect?: (args: { ymd: string; reason: "minDate" | "maxDate" | "past" | "future" | "custom" | "today" }) => void;
   className?: string;
   buttonClassName?: string;
 };
@@ -51,6 +52,7 @@ export function DatePicker({
   minDate,
   maxDate,
   disablePast,
+  disableToday,
   disableFuture,
   isDateDisabled,
   onInvalidSelect,
@@ -102,6 +104,7 @@ export function DatePicker({
     if (minDate && ymd < minDate) return "minDate" as const;
     if (maxDate && ymd > maxDate) return "maxDate" as const;
     if (disablePast && ymd < todayYMD) return "past" as const;
+    if (disableToday && ymd === todayYMD) return "today" as const;
     if (disableFuture && ymd > todayYMD) return "future" as const;
     if (isDateDisabled && isDateDisabled(ymd)) return "custom" as const;
     return null;
@@ -128,7 +131,7 @@ export function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div className="absolute z-50 mt-2 left-0 w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <button
               type="button"
@@ -147,42 +150,45 @@ export function DatePicker({
             </button>
           </div>
 
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="p-3">
+            <div className="grid grid-cols-7 gap-0.5 mb-1.5">
               {WEEKDAYS.map((d) => (
-                <div key={d} className="text-center text-[11px] font-bold text-gray-400">
+                <div key={d} className="text-center text-[10px] font-bold text-gray-400">
                   {d}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {cells.map((cell, idx) => {
-                if (!cell) return <div key={`e-${idx}`} className="h-10" />;
+                if (!cell) return <div key={`e-${idx}`} className="h-8" />;
                 const isSelected = cell.ymd === value;
+                const isToday = cell.ymd === todayYMD;
                 const disabledReason = getDisabledReason(cell.ymd);
                 const isDisabled = disabledReason != null;
                 return (
                   <button
                     key={cell.ymd}
                     type="button"
-                    aria-disabled={isDisabled}
+                    disabled={isDisabled}
                     className={cn(
-                      "h-10 rounded-xl text-[13px] font-bold transition-colors",
-                      isDisabled ? "text-gray-300 cursor-not-allowed hover:bg-transparent opacity-60" : undefined,
-                      isSelected
-                        ? "bg-[#10b981] text-white"
-                        : "text-gray-700 hover:bg-emerald-50",
+                      "h-8 rounded-lg text-[12px] font-bold transition-colors relative",
+                      isDisabled
+                        ? "text-gray-300 cursor-not-allowed opacity-40"
+                        : isSelected
+                          ? "bg-[#10b981] text-white ring-2 ring-emerald-400 ring-offset-1"
+                          : isToday
+                            ? "text-emerald-600 ring-2 ring-emerald-300 ring-offset-1 hover:bg-emerald-50"
+                            : "text-gray-700 hover:bg-emerald-50",
                     )}
                     onClick={() => {
-                      if (isDisabled) {
-                        onInvalidSelect?.({ ymd: cell.ymd, reason: disabledReason! });
-                        return;
-                      }
                       onValueChange(cell.ymd);
                       setOpen(false);
                     }}
                   >
                     {cell.day}
+                    {isToday && !isSelected && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400" />
+                    )}
                   </button>
                 );
               })}

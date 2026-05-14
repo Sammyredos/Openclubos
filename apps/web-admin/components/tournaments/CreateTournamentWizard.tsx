@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
-import { createTournament, getTournament, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
+import { createTournament, getTournament, getTournaments, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
-import { getCourses } from "@/lib/api/courses";
+import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info } from "lucide-react";
 
 type WizardProps = {
   isOpen: boolean;
@@ -23,7 +23,6 @@ type WizardProps = {
 
 const STEPS = ["Basic Details", "Schedule", "Format & Divisions", "Eligibility", "Payments", "Grouping", "Scoring", "Publish"];
 
-// Compress image to target size (default 50KB) using canvas
 async function compressImage(file: File, targetKB = 50): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -42,8 +41,6 @@ async function compressImage(file: File, targetKB = 50): Promise<string> {
       canvas.height = height;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, width, height);
-
-      // Binary search for quality that fits under targetKB
       let lo = 0.1, hi = 0.9, best = "";
       const target = targetKB * 1024;
       for (let i = 0; i < 8; i++) {
@@ -87,7 +84,7 @@ const DEFAULT_FORM = {
 
 type FormData = typeof DEFAULT_FORM;
 
-function validateStep(step: number, f: FormData): string | null {
+function validateStep(step: number, f: FormData, isMultiDay = false): string | null {
   if (step === 1) {
     if (!f.name.trim()) return "Tournament name is required.";
     if (!f.venue) return "Please select a country.";
@@ -99,11 +96,16 @@ function validateStep(step: number, f: FormData): string | null {
   }
   if (step === 2) {
     if (!f.startDate) return "Start date is required.";
-    if (f.endDate && f.endDate < f.startDate) return "End date cannot be before start date.";
-    if (f.registrationOpenAt && f.registrationCloseAt && f.registrationCloseAt < f.registrationOpenAt)
-      return "Registration close date must be after open date.";
-    if (f.registrationCloseAt && f.registrationCloseAt > f.startDate)
-      return "Registration must close before the tournament starts.";
+    if (isMultiDay) {
+      if (!f.endDate) return "End date is required for a multi-day tournament.";
+      if (f.endDate <= f.startDate) return "End date must be at least one day after the start date.";
+    }
+    if (!f.registrationOpenAt) return "Registration open date is required.";
+    if (!f.registrationCloseAt) return "Registration close date is required.";
+    if (f.registrationCloseAt < f.registrationOpenAt)
+      return "Registration close date must be after the open date.";
+    if (f.registrationCloseAt >= f.startDate)
+      return "Registration must close before the tournament start date.";
   }
   if (step === 4) {
     if (!f.allowRegisteredPlayers && !f.allowGuests && !f.allowExternalPlayers)
@@ -139,33 +141,56 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
   </div>
 );
 
-
-
 export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentId }: WizardProps) {
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [nameCheckLoading, setNameCheckLoading] = useState(false);
   const [organizers, setOrganizers] = useState<{ id: string; name: string }[]>([]);
-  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
-  const stateOptions = useMemo(() => formData.venue ? State.getStatesOfCountry(formData.venue).map(s => ({ value: s.name, label: s.name })) : [], [formData.venue]);
+  const stateOptions = useMemo(() => formData.venue ? State.getStatesOfCountry(formData.venue).map(s => ({ value: s.isoCode, label: s.name })) : [], [formData.venue]);
+
+  // Filter courses by selected country and state
+  const filteredCourses = useMemo(() => {
+    return courses.filter(c => {
+      const matchCountry = !formData.venue || c.country === formData.venue;
+      const matchState = !formData.location || c.state === formData.location;
+      return matchCountry && matchState;
+    });
+  }, [courses, formData.venue, formData.location]);
 
   const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
+
+  // Date arithmetic helpers
+  function shiftDate(ymd: string, days: number): string {
+    if (!ymd) return "";
+    const [y, m, d] = ymd.split("-").map(Number);
+    const dt = new Date(y, m - 1, d + days);
+    const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  }
 
   useEffect(() => {
     if (isOpen) {
       setStep(1);
       setShowValidation(false);
+      setIsMultiDay(false);
       setFormData({ ...DEFAULT_FORM });
       getOrganizers()
         .then((d: any[]) => {
           if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
         })
         .catch(() => {});
+
+      getCourses().then((d: any) => {
+        setCourses(Array.isArray(d) ? d : d.items || []);
+      }).catch(() => {});
 
       if (tournamentId) {
         setLoading(true);
@@ -211,6 +236,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               publishImmediately: t.status === "REGISTRATION_OPEN",
               visibility: t.visibility || "PUBLIC",
             });
+            // Auto-enable multi-day if the tournament already has an end date
+            setIsMultiDay(!!t.endDate);
           })
           .catch((e) => {
             toast.error(getErrorMessage(e) || "Failed to load tournament data");
@@ -222,19 +249,34 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     }
   }, [isOpen, tournamentId]);
 
-  useEffect(() => {
-    if (formData.clubId) {
-      getCourses(formData.clubId).then((d: any) => {
-        const list = Array.isArray(d) ? d : d.items || [];
-        setCourses(list.map((c: any) => ({ id: c.id, name: c.name })));
-      }).catch(() => {});
-    } else {
-      setCourses([]);
-      setFormData((p) => ({ ...p, courseId: "" }));
-    }
-  }, [formData.clubId]);
-
   const set = (field: string, value: any) => setFormData((p) => ({ ...p, [field]: value }));
+
+  const handleClubChange = (id: string) => {
+    set("clubId", id);
+    // Find first course of this club to prefill location
+    const firstCourse = courses.find(c => c.clubId === id);
+    if (firstCourse) {
+      setFormData(prev => ({
+        ...prev,
+        venue: firstCourse.country || prev.venue,
+        location: firstCourse.state || prev.location
+      }));
+    }
+  };
+
+  const handleCourseChange = (id: string) => {
+    const course = courses.find(c => c.id === id);
+    if (course) {
+      setFormData(prev => ({
+        ...prev,
+        courseId: id,
+        venue: course.country || prev.venue,
+        location: course.state || prev.location
+      }));
+    } else {
+      set("courseId", id);
+    }
+  };
 
   const handleBannerUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) { toast.error("Please upload an image file."); return; }
@@ -252,9 +294,35 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     }
   };
 
-  const handleNext = () => {
-    const err = validateStep(step, formData);
+  const handleNext = async () => {
+    const err = validateStep(step, formData, isMultiDay);
     if (err) { setShowValidation(true); toast.error(err); return; }
+
+    // Async name uniqueness check on Step 1
+    if (step === 1) {
+      setNameCheckLoading(true);
+      try {
+        const all = await getTournaments() as Array<{ id: string; name: string }>;
+        const trimmed = formData.name.trim().toLowerCase();
+        const duplicate = Array.isArray(all)
+          ? all.find(
+              (t) =>
+                t.name.trim().toLowerCase() === trimmed &&
+                t.id !== tournamentId, // allow same name when editing self
+            )
+          : null;
+        if (duplicate) {
+          setShowValidation(true);
+          toast.error(`A tournament named "${duplicate.name}" already exists. Include the year or a unique identifier to differentiate it.`);
+          return;
+        }
+      } catch {
+        // If the check fails, allow proceeding — server will catch duplicates
+      } finally {
+        setNameCheckLoading(false);
+      }
+    }
+
     setShowValidation(false);
     setStep((s) => s + 1);
   };
@@ -263,7 +331,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
   const handleSubmit = async () => {
     for (let s = 1; s <= STEPS.length; s++) {
-      const err = validateStep(s, formData);
+      const err = validateStep(s, formData, isMultiDay);
       if (err) { setShowValidation(true); toast.error(`Step ${s}: ${err}`); setStep(s); return; }
     }
     setLoading(true);
@@ -329,10 +397,17 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const stepContent = () => {
     switch (step) {
       case 1: return (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <Field label="Tournament Name" required>
-            <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Summer Classic 2026" className={req(formData.name)} />
+            <div className="relative">
+               <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+               <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">
+              Include the year so recurring tournaments stay unique — e.g. <span className="font-semibold text-gray-500">Lagos Open 2026</span>, <span className="font-semibold text-gray-500">Sunshine Tour 2026</span>.
+            </p>
           </Field>
+
           <div className="grid grid-cols-2 gap-4">
             <Field label="Country" required>
               <SearchableSelect value={formData.venue} onValueChange={(v) => { set("venue", v); set("location", ""); }}
@@ -343,16 +418,35 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 options={stateOptions} placeholder="Select state..." disabled={!formData.venue} triggerClassName={req(formData.location)} />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
+            <Info className="w-4 h-4 text-emerald-500 shrink-0" />
+            <p className="text-[12px] font-medium text-emerald-700">
+              Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong> 
+              {formData.location && <> and <strong>{stateOptions.find(s => s.value === formData.location)?.label}</strong></>}.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-1">
             <Field label="Organizer" required>
-              <SearchableSelect value={formData.clubId} onValueChange={(v) => set("clubId", v)}
+              <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
                 options={organizers.map((o) => ({ value: o.id, label: o.name }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
             </Field>
             <Field label="Golf Course" required>
-              <SearchableSelect value={formData.courseId} onValueChange={(v) => set("courseId", v)}
-                options={courses.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select course..." disabled={!formData.clubId} triggerClassName={req(formData.courseId)} />
+              <SearchableSelect 
+                value={formData.courseId} 
+                onValueChange={handleCourseChange}
+                options={filteredCourses.map((c) => ({ 
+                  value: c.id, 
+                  label: c.name,
+                  image: c.coverImage || undefined 
+                }))} 
+                placeholder="Select course..." 
+                triggerClassName={req(formData.courseId)} 
+              />
             </Field>
           </div>
+
           <Field label="Tournament Banner" required>
             <div className="relative">
               {formData.bannerPreview ? (
@@ -400,23 +494,122 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         </div>
       );
       case 2: return (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Start Date" required>
-              <DatePicker value={formData.startDate} onValueChange={(v) => set("startDate", v)} buttonClassName={req(formData.startDate)} />
-            </Field>
-            <Field label="End Date">
-              <DatePicker value={formData.endDate} onValueChange={(v) => set("endDate", v)} minDate={formData.startDate} />
-            </Field>
+        <div className="space-y-5">
+
+          {/* Radio toggle — One Day vs Multi-Day */}
+          <div className="space-y-1.5">
+            <Label className="text-[13px] font-semibold text-gray-600">Tournament Duration</Label>
+            <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => { setIsMultiDay(false); set("endDate", ""); }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-all",
+                  !isMultiDay
+                    ? "bg-[#10b981] text-white"
+                    : "bg-white text-gray-500 hover:bg-gray-50",
+                )}
+              >
+                <span className={cn(
+                  "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                  !isMultiDay ? "border-white bg-white" : "border-gray-300",
+                )}>
+                  {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
+                </span>
+                One Day
+              </button>
+              <div className="w-px bg-gray-200" />
+              <button
+                type="button"
+                onClick={() => setIsMultiDay(true)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-all",
+                  isMultiDay
+                    ? "bg-[#10b981] text-white"
+                    : "bg-white text-gray-500 hover:bg-gray-50",
+                )}
+              >
+                <span className={cn(
+                  "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                  isMultiDay ? "border-white bg-white" : "border-gray-300",
+                )}>
+                  {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
+                </span>
+                Multi-Day
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Registration Opens">
-              <DatePicker value={formData.registrationOpenAt} onValueChange={(v) => set("registrationOpenAt", v)} />
+
+          {/* Date fields — 1 or 2 columns based on duration type */}
+          <div className={cn("grid gap-4", isMultiDay ? "grid-cols-2" : "grid-cols-1")}>
+            <Field label={isMultiDay ? "Start Date" : "Tournament Date"} required>
+              <DatePicker
+                value={formData.startDate}
+                onValueChange={(v) => {
+                  set("startDate", v);
+                  // Clear end date if it's no longer strictly after the new start
+                  if (formData.endDate && formData.endDate <= v) set("endDate", "");
+                  // Clear registration dates that fall on or after the new start date
+                  if (formData.registrationOpenAt && formData.registrationOpenAt >= v) set("registrationOpenAt", "");
+                  if (formData.registrationCloseAt && formData.registrationCloseAt >= v) set("registrationCloseAt", "");
+                }}
+                buttonClassName={req(formData.startDate)}
+                disablePast
+                disableToday
+              />
             </Field>
-            <Field label="Registration Closes">
-              <DatePicker value={formData.registrationCloseAt} onValueChange={(v) => set("registrationCloseAt", v)} />
-            </Field>
+            {isMultiDay && (
+              <Field label="End Date" required>
+                <DatePicker
+                  value={formData.endDate}
+                  onValueChange={(v) => set("endDate", v)}
+                  minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
+                  buttonClassName={req(formData.endDate)}
+                  disabled={!formData.startDate}
+                />
+              </Field>
+            )}
           </div>
+
+          {/* Registration dates */}
+          <div className="space-y-1.5">
+            <p className="text-[12px] text-gray-500 font-medium">
+              Set the window during which players can register for this tournament.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Registration Opens" required>
+                <DatePicker
+                  value={formData.registrationOpenAt}
+                  onValueChange={(v) => {
+                    set("registrationOpenAt", v);
+                    // Clear close date if it's now before the new open date
+                    if (formData.registrationCloseAt && formData.registrationCloseAt < v) set("registrationCloseAt", "");
+                  }}
+                  disablePast
+                  maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                  buttonClassName={req(formData.registrationOpenAt)}
+                  disabled={!formData.startDate}
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  The date players can start signing up.
+                </p>
+              </Field>
+              <Field label="Registration Closes" required>
+                <DatePicker
+                  value={formData.registrationCloseAt}
+                  onValueChange={(v) => set("registrationCloseAt", v)}
+                  minDate={formData.registrationOpenAt || undefined}
+                  maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                  buttonClassName={req(formData.registrationCloseAt)}
+                  disabled={!formData.registrationOpenAt}
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Deadline for players to register — must be before the tournament starts.
+                </p>
+              </Field>
+            </div>
+          </div>
+
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-[12px] text-blue-700">
             <strong>Note:</strong> Registration must close before the tournament start date.
           </div>
@@ -534,7 +727,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         <div className="space-y-4">
           <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
           <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
-          <Toggle label="Enable Hole-by-Hole Scoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
+          <Toggle label="Enable HoleScoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
         </div>
       );
       case 8: return (
@@ -576,9 +769,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         <div className="flex justify-between w-full">
           <Button variant="outline" onClick={handleBack} disabled={step === 1 || loading}>Back</Button>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+            <Button variant="outline" onClick={onClose} disabled={loading || nameCheckLoading}>Cancel</Button>
             {step < STEPS.length
-              ? <Button onClick={handleNext} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">Next →</Button>
+              ? <Button onClick={handleNext} disabled={nameCheckLoading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
+                  {nameCheckLoading ? "Checking..." : "Next →"}
+                </Button>
               : <Button onClick={handleSubmit} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
                 {loading ? (tournamentId ? "Updating..." : "Creating...") : (tournamentId ? "Update Tournament" : "Create Tournament")}
               </Button>
@@ -586,25 +781,23 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
         </div>
       }>
-      {/* Step indicators */}
-      <div className="flex gap-1 border-b border-gray-100 pb-4 mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-gray-100 pb-4 mb-6 overflow-x-auto no-scrollbar">
         {STEPS.map((name, i) => {
           const active = step === i + 1, past = step > i + 1;
           return (
             <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[60px]">
-              <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors",
-                active ? "bg-[#10b981] text-white" : past ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400")}>
+              <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                active ? "bg-[#10b981] text-white shadow-sm ring-4 ring-emerald-50" : past ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400")}>
                 {past ? "✓" : i + 1}
               </div>
-              <span className={cn("text-[9px] font-semibold uppercase tracking-wide text-center leading-tight",
+              <span className={cn("text-[9px] font-bold uppercase tracking-wide text-center leading-tight transition-colors",
                 active ? "text-gray-900" : "text-gray-400")}>{name}</span>
             </div>
           );
         })}
       </div>
 
-      <div className="min-h-[280px]">
-        <h3 className="text-base font-bold text-gray-900 mb-4">{STEPS[step - 1]}</h3>
+      <div className="min-h-[350px]">
         {stepContent()}
       </div>
     </Modal>

@@ -78,18 +78,64 @@ model Club {
   courses     Course[]
 }
 
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Course {
-  id          String    @id @default(uuid())
-  name        String
-  holesCount  Int       @default(18)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String       @id @default(uuid())
+  name            String
+  alsoKnownAs     String?
+  type            String       @default("Parkland")
+  country         String       @default("NG")
+  state           String?
+  city            String?
+
+  address         String?
+  latitude        Float?
+  longitude       Float?
+
+  holesCount      Int          @default(18)
+  par             Int          @default(72)
+  yearEstablished Int?
+  architect       String?
+  courseRating    Float?
+  slopeRating     Int?
+
+  phone           String?
+  email           String?
+  website         String?
+  bookingUrl      String?
+
+  amenities       String[]     @default([])
+  coverImage      String?
+  galleryImages   String[]     @default([])
+
+  status          CourseStatus @default(ACTIVE)
+  isFeatured      Boolean      @default(false)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   // Relations
-  club        Club      @relation(fields: [clubId], references: [id])
-  clubId      String
-  holes       Hole[]
-  tournaments Tournament[]
+  club            Club?        @relation(fields: [clubId], references: [id])
+  clubId          String?
+  holes           Hole[]
+  teeBoxes        TeeBox[]
+  tournaments     Tournament[]
+}
+
+model TeeBox {
+  id        String  @id @default(uuid())
+  name      String
+  color     String
+  yardage   Int
+  rating    Float?
+  slope     Int?
+
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
 }
 
 model Hole {
