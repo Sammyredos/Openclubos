@@ -16,7 +16,11 @@ import {
 export class RegistrationsService {
   constructor(private prisma: PrismaService) {}
 
-  async register(userId: string, dto: RegisterTournamentDto) {
+  async register(
+    userId: string,
+    dto: RegisterTournamentDto,
+    isAdmin = false,
+  ) {
     const { tournamentId, playerType, paymentReference } = dto;
 
     // 1. Fetch tournament and user details
@@ -56,17 +60,21 @@ export class RegistrationsService {
       );
 
     // 5. Validate Eligibility (Player Type)
-    const effectivePlayerType = playerType || user.role; // Default to user role if not provided
-    if (tournament.playerTypes && tournament.playerTypes.length > 0) {
+    const effectivePlayerType = playerType || user.role;
+    if (
+      !isAdmin &&
+      tournament.playerTypes &&
+      tournament.playerTypes.length > 0
+    ) {
       if (!tournament.playerTypes.includes(effectivePlayerType)) {
         throw new BadRequestException(
-          `This tournament is not open to ${effectivePlayerType} players`,
+          `This tournament is not open to ${effectivePlayerType}s`,
         );
       }
     }
 
     // 6. Validate Eligibility (Handicap)
-    if (user.handicap !== null) {
+    if (!isAdmin && user.handicap !== null) {
       if (
         tournament.minHandicap !== null &&
         user.handicap < tournament.minHandicap

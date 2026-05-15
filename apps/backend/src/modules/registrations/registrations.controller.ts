@@ -23,7 +23,10 @@ export class RegistrationsController {
 
   @Post()
   register(@Request() req: any, @Body() dto: RegisterTournamentDto) {
-    return this.registrationsService.register(req.user.userId, dto);
+    const role = req.user?.role as UserRole;
+    const isAdmin = role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
+    const userId = isAdmin && dto.userId ? dto.userId : req.user.userId;
+    return this.registrationsService.register(userId, dto, isAdmin);
   }
 
   @Get('my')

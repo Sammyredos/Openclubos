@@ -10,9 +10,10 @@ import { createTournament, getTournament, getTournaments, updateTournament, Upda
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info } from "lucide-react";
+import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send } from "lucide-react";
 
 type WizardProps = {
   isOpen: boolean;
@@ -107,17 +108,31 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
     if (f.registrationCloseAt >= f.startDate)
       return "Registration must close before the tournament start date.";
   }
+  if (step === 3) {
+    if (!f.format) return "Tournament format is required.";
+    if (!f.scoringType) return "Scoring type is required.";
+    if (!f.holes || f.holes < 1) return "Number of holes is required and must be at least 1.";
+    if (f.divisions.length === 0) return "At least one division is required.";
+  }
   if (step === 4) {
-    if (!f.allowRegisteredPlayers && !f.allowGuests && !f.allowExternalPlayers)
-      return "At least one player type must be allowed.";
+    if (f.maxPlayers && Number(f.maxPlayers) <= 0) return "Max total players must be greater than zero.";
+    if (!f.maxPlayersPerGroup || Number(f.maxPlayersPerGroup) <= 0) return "Players per group is required.";
     if (f.hasHandicapRestriction) {
-      if (f.minHandicap !== "" && f.maxHandicap !== "" && Number(f.minHandicap) > Number(f.maxHandicap))
+      if (f.minHandicap === "") return "Minimum handicap is required when restriction is enabled.";
+      if (f.maxHandicap === "") return "Maximum handicap is required when restriction is enabled.";
+      if (Number(f.minHandicap) > Number(f.maxHandicap))
         return "Minimum handicap cannot exceed maximum handicap.";
     }
   }
   if (step === 5) {
     if (f.requiresPayment && !f.entryFee) return "Entry fee is required when payment is enabled.";
     if (f.requiresPayment && Number(f.entryFee) <= 0) return "Entry fee must be greater than zero.";
+  }
+  if (step === 6) {
+    if (f.autoGrouping) {
+      if (!f.teeStartTime) return "Tee off start time is required.";
+      if (!f.teeIntervalMinutes || Number(f.teeIntervalMinutes) <= 0) return "Tee interval must be greater than zero.";
+    }
   }
   return null;
 }
@@ -186,11 +201,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         .then((d: any[]) => {
           if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
         })
-        .catch(() => {});
+        .catch(() => { });
 
       getCourses().then((d: any) => {
         setCourses(Array.isArray(d) ? d : d.items || []);
-      }).catch(() => {});
+      }).catch(() => { });
 
       if (tournamentId) {
         setLoading(true);
@@ -233,7 +248,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               enableLiveScoring: t.enableLiveScoring ?? false,
               requireMarkerVerification: t.requireMarkerVerification ?? false,
               enableHoleScoring: t.enableHoleScoring ?? true,
-              publishImmediately: t.status === "REGISTRATION_OPEN",
+              publishImmediately: t.status !== "DRAFT",
               visibility: t.visibility || "PUBLIC",
             });
             // Auto-enable multi-day if the tournament already has an end date
@@ -306,10 +321,10 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         const trimmed = formData.name.trim().toLowerCase();
         const duplicate = Array.isArray(all)
           ? all.find(
-              (t) =>
-                t.name.trim().toLowerCase() === trimmed &&
-                t.id !== tournamentId, // allow same name when editing self
-            )
+            (t) =>
+              t.name.trim().toLowerCase() === trimmed &&
+              t.id !== tournamentId, // allow same name when editing self
+          )
           : null;
         if (duplicate) {
           setShowValidation(true);
@@ -375,7 +390,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         enableHoleScoring: f.enableHoleScoring,
         publishImmediately: f.publishImmediately,
         visibility: f.visibility,
-        status: (tournamentId ? undefined : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT")),
+        status: tournamentId ? (f.publishImmediately ? undefined : "DRAFT") : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT"),
       };
 
       if (tournamentId) {
@@ -397,11 +412,23 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const stepContent = () => {
     switch (step) {
       case 1: return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <Field label="Tournament Name" required>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Basic Details</h4>
+                <p className="text-[12px] text-gray-500">Essential information about the tournament</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-5">
+              <Field label="Tournament Name" required>
             <div className="relative">
-               <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-               <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
+              <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
             </div>
             <p className="text-[11px] text-gray-400 mt-1">
               Include the year so recurring tournaments stay unique — e.g. <span className="font-semibold text-gray-500">Lagos Open 2026</span>, <span className="font-semibold text-gray-500">Sunshine Tour 2026</span>.
@@ -422,7 +449,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
             <Info className="w-4 h-4 text-emerald-500 shrink-0" />
             <p className="text-[12px] font-medium text-emerald-700">
-              Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong> 
+              Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong>
               {formData.location && <> and <strong>{stateOptions.find(s => s.value === formData.location)?.label}</strong></>}.
             </p>
           </div>
@@ -433,68 +460,84 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 options={organizers.map((o) => ({ value: o.id, label: o.name }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
             </Field>
             <Field label="Golf Course" required>
-              <SearchableSelect 
-                value={formData.courseId} 
+              <SearchableSelect
+                value={formData.courseId}
                 onValueChange={handleCourseChange}
-                options={filteredCourses.map((c) => ({ 
-                  value: c.id, 
+                options={filteredCourses.map((c) => ({
+                  value: c.id,
                   label: c.name,
-                  image: c.coverImage || undefined 
-                }))} 
-                placeholder="Select course..." 
-                triggerClassName={req(formData.courseId)} 
+                  image: c.coverImage || undefined
+                }))}
+                placeholder="Select course..."
+                triggerClassName={req(formData.courseId)}
               />
             </Field>
           </div>
 
-          <Field label="Tournament Banner" required>
-            <div className="relative">
-              {formData.bannerPreview ? (
-                <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-40">
-                  <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                  <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
-                  <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
-                    Compressed to ≤50KB
-                  </div>
-                </div>
-              ) : (
-                <div onClick={() => fileInputRef.current?.click()}
-                  className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-gray-200")}>
-                  {compressing ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-[12px] text-gray-400">Compressing image...</span>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Tournament Banner" required>
+              <div className="relative">
+                {formData.bannerPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-40">
+                    <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
+                    <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
+                      Compressed to ≤50KB
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                        <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
+                  </div>
+                ) : (
+                  <div onClick={() => fileInputRef.current?.click()}
+                    className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-gray-200")}>
+                    {compressing ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[12px] text-gray-400">Compressing image...</span>
                       </div>
-                      <div className="text-center">
-                        <p className="text-[13px] font-medium text-gray-600 group-hover:text-emerald-600">Click to upload banner</p>
-                        <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }} />
-            </div>
-          </Field>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                          <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[13px] font-medium text-gray-600 group-hover:text-emerald-600">Click to upload banner</p>
+                          <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }} />
+              </div>
+            </Field>
 
-          <Field label="Description" required>
-            <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
-              placeholder="Brief description of the tournament..."
-              className={cn("flex min-h-[80px] w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
-          </Field>
+            <Field label="Description" required>
+              <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
+                placeholder="Brief description of the tournament..."
+                className={cn("flex h-40 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
+            </Field>
+          </div>
+            </div>
+          </div>
         </div>
       );
       case 2: return (
-        <div className="space-y-5">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <CalendarDays className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Tournament Schedule</h4>
+                <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-6">
 
           {/* Radio toggle — One Day vs Multi-Day */}
           <div className="space-y-1.5">
@@ -542,7 +585,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           {/* Date fields — 1 or 2 columns based on duration type */}
           <div className={cn("grid gap-4", isMultiDay ? "grid-cols-2" : "grid-cols-1")}>
-            <Field label={isMultiDay ? "Start Date" : "Tournament Date"} required>
+            <Field label={isMultiDay ? "Tournament Start Date" : "Tournament Date"} required>
               <DatePicker
                 value={formData.startDate}
                 onValueChange={(v) => {
@@ -559,7 +602,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               />
             </Field>
             {isMultiDay && (
-              <Field label="End Date" required>
+              <Field label="Tournament End Date" required>
                 <DatePicker
                   value={formData.endDate}
                   onValueChange={(v) => set("endDate", v)}
@@ -573,9 +616,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           {/* Registration dates */}
           <div className="space-y-1.5">
-            <p className="text-[12px] text-gray-500 font-medium">
-              Set the window during which players can register for this tournament.
-            </p>
+
             <div className="grid grid-cols-2 gap-4">
               <Field label="Registration Opens" required>
                 <DatePicker
@@ -610,149 +651,497 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-[12px] text-blue-700">
-            <strong>Note:</strong> Registration must close before the tournament start date.
+            </div>
           </div>
         </div>
       );
       case 3: return (
-        <div className="space-y-4">
-          <Field label="Tournament Format">
-            <SearchableSelect value={formData.format} onValueChange={(v) => set("format", v)}
-              options={[
-                { value: "STROKE_PLAY", label: "Stroke Play" }, { value: "MATCH_PLAY", label: "Match Play" },
-                { value: "STABLEFORD", label: "Stableford" }, { value: "SCRAMBLE", label: "Scramble" },
-                { value: "BEST_BALL", label: "Best Ball" },
-              ]} />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Scoring Type">
-              <SearchableSelect value={formData.scoringType} onValueChange={(v) => set("scoringType", v)}
-                options={[{ value: "GROSS", label: "Gross" }, { value: "NET", label: "Net" }]} />
-            </Field>
-            <Field label="Number of Holes">
-              <Input type="number" value={formData.holes} min={1} max={18} onChange={(e) => set("holes", Number(e.target.value))} />
-            </Field>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <ListOrdered className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Format & Rules</h4>
+                <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-6">
+
+          {/* ── Tournament Format ── */}
+          <div className="space-y-2">
+            <p className="text-[13px] font-semibold text-gray-600">Tournament Format <span className="text-red-500">*</span></p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                {
+                  value: "STROKE_PLAY",
+                  label: "Stroke Play",
+                  icon: "🏌️",
+                  desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
+                },
+                {
+                  value: "STABLEFORD",
+                  label: "Stableford",
+                  icon: "⭐",
+                  desc: "Players earn points based on their score relative to par on each hole (e.g. 2pts for par, 3pts for birdie). Highest total points wins. Encourages risk-taking.",
+                },
+                {
+                  value: "MATCH_PLAY",
+                  label: "Match Play",
+                  icon: "⚔️",
+                  desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match. Score on previous holes doesn't carry forward.",
+                },
+                {
+                  value: "SCRAMBLE",
+                  label: "Scramble",
+                  icon: "🤝",
+                  desc: "All team members tee off, the best shot is selected, and everyone plays their next shot from that spot. Continues until holed. Great for team events and charity days.",
+                },
+                {
+                  value: "BEST_BALL",
+                  label: "Best Ball",
+                  icon: "🥇",
+                  desc: "Each player plays their own ball throughout. The team's score for each hole is the lowest (best) individual score recorded. Also called Four-Ball in match play.",
+                },
+              ].map(({ value, label, icon, desc }) => {
+                const active = formData.format === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => set("format", value)}
+                    className={cn(
+                      "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                      active
+                        ? "border-emerald-500 bg-emerald-50/60"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                      active ? "border-emerald-500 bg-emerald-500" : "border-gray-300"
+                    )}>
+                      {active && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base leading-none">{icon}</span>
+                        <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
+                      </div>
+                      <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <Field label="Divisions (comma separated)">
-            <Input value={formData.divisions.join(", ")}
-              onChange={(e) => set("divisions", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-              placeholder="Men, Ladies, Juniors, Seniors, Professionals" />
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* ── Scoring Type ── */}
+            <div className="space-y-2">
+              <p className="text-[13px] font-semibold text-gray-600">Scoring Type <span className="text-red-500">*</span></p>
+              <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                {[
+                  { value: "GROSS", label: "Gross", desc: "Actual strokes" },
+                  { value: "NET",   label: "Net",   desc: "After handicap" },
+                ].map(({ value, label, desc }) => {
+                  const active = formData.scoringType === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => set("scoringType", value)}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-bold transition-all",
+                        active ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                      )}
+                    >
+                      {label}
+                      <span className={cn("text-[10px] font-normal", active ? "text-emerald-100" : "text-gray-400")}>{desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Number of Holes ── */}
+            <div>
+              <Field label="Holes Per Round (Daily)" required>
+                <Input type="number" value={formData.holes} min={1} max={18} onChange={(e) => set("holes", Number(e.target.value))} />
+              </Field>
+              <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">
+                For multi-day events, this is the number of holes played <span className="font-medium text-gray-600">per day</span>.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Divisions ── */}
+          <div className="space-y-2">
+            <p className="text-[13px] font-semibold text-gray-600">Divisions <span className="text-red-500">*</span></p>
+            <p className="text-[11px] text-gray-400">Select common divisions or type a custom one and press Enter.</p>
+            {/* Preset chip buttons */}
+            <div className="flex flex-wrap gap-2">
+              {["Men", "Ladies", "Juniors", "Seniors", "Professionals", "Amateurs", "Mixed"].map((preset) => {
+                const selected = formData.divisions.includes(preset);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      if (selected) {
+                        set("divisions", formData.divisions.filter((d) => d !== preset));
+                      } else {
+                        set("divisions", [...formData.divisions, preset]);
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-[12px] font-bold border-2 transition-all",
+                      selected
+                        ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-200"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
+                    )}
+                  >
+                    {selected ? "✓ " : ""}{preset}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Custom division input */}
+            <div className="flex gap-2 mt-1">
+              <Input
+                placeholder="Add custom division..."
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const val = (e.target as HTMLInputElement).value.trim();
+                    if (val && !formData.divisions.includes(val)) {
+                      set("divisions", [...formData.divisions, val]);
+                    }
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-bold rounded-xl transition-colors whitespace-nowrap"
+                onClick={(e) => {
+                  const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                  const val = input.value.trim();
+                  if (val && !formData.divisions.includes(val)) {
+                    set("divisions", [...formData.divisions, val]);
+                    input.value = "";
+                  }
+                }}
+              >
+                Add
+              </button>
+            </div>
+            {/* Selected divisions as removable chips */}
             {formData.divisions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {formData.divisions.map((d) => (
-                  <span key={d} className="text-[11px] font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100">{d}</span>
+                  <span
+                    key={d}
+                    className="flex items-center gap-1.5 text-[12px] font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
+                  >
+                    {d}
+                    <button
+                      type="button"
+                      onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
+                      className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
+                    >
+                      ×
+                    </button>
+                  </span>
                 ))}
               </div>
             )}
-          </Field>
+          </div>
+            </div>
+          </div>
         </div>
       );
+
       case 4: return (
-        <div className="space-y-5">
-          <div>
-            <p className="text-[13px] font-semibold text-gray-600 mb-3">Allowed Player Types <span className="text-red-500">*</span></p>
-            <div className="space-y-3">
-              <Toggle label="Registered Club Members" checked={formData.allowRegisteredPlayers} onChange={(v) => set("allowRegisteredPlayers", v)} />
-              <Toggle label="Guest Players" checked={formData.allowGuests} onChange={(v) => set("allowGuests", v)} />
-              <Toggle label="External Players" checked={formData.allowExternalPlayers} onChange={(v) => set("allowExternalPlayers", v)} />
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          
+          {/* ── Player Limits ── */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Player Capacity</h4>
+                <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Field label="Max Total Players">
+                    <Input type="number" value={formData.maxPlayers} placeholder="e.g. 144" onChange={(e) => set("maxPlayers", e.target.value)} />
+                  </Field>
+                  <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
+                </div>
+                <Field label="Players Per Group" required>
+                  <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))} />
+                </Field>
+              </div>
+              
+              <div className={cn("rounded-xl border-2 p-3.5 cursor-pointer transition-all", formData.enableWaitlist ? "border-emerald-400 bg-emerald-50/50" : "border-gray-200 bg-gray-50/50 hover:bg-gray-100/50")}
+                onClick={() => set("enableWaitlist", !formData.enableWaitlist)}>
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors", formData.enableWaitlist ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white")}>
+                    {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-gray-900">Enable Waitlist</p>
+                    <p className="text-[11px] text-gray-500 leading-snug mt-0.5">Allow players to join a queue if the tournament reaches max capacity.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <hr />
-          <Toggle label="Require Handicap Restriction?" checked={formData.hasHandicapRestriction} onChange={(v) => set("hasHandicapRestriction", v)} />
-          {formData.hasHandicapRestriction && (
-            <div className="grid grid-cols-2 gap-4 pl-2 border-l-2 border-emerald-200">
-              <Field label="Min Handicap">
-                <Input type="number" value={formData.minHandicap} onChange={(e) => set("minHandicap", e.target.value)} placeholder="0" />
-              </Field>
-              <Field label="Max Handicap">
-                <Input type="number" value={formData.maxHandicap} onChange={(e) => set("maxHandicap", e.target.value)} placeholder="54" />
-              </Field>
+
+          {/* ── Handicap Restrictions ── */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+              onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-gray-900">Handicap Restrictions</h4>
+                  <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
+                </div>
+              </div>
+              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.hasHandicapRestriction ? "bg-emerald-500" : "bg-gray-200")}>
+                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.hasHandicapRestriction ? "left-6" : "left-1")} />
+              </div>
             </div>
-          )}
-          <hr />
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Max Players">
-              <Input type="number" value={formData.maxPlayers} placeholder="Unlimited" onChange={(e) => set("maxPlayers", e.target.value)} />
-            </Field>
-            <Field label="Max Per Group">
-              <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))} />
-            </Field>
+
+            {formData.hasHandicapRestriction && (
+              <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Minimum Handicap" required>
+                    <Input type="number" value={formData.minHandicap} onChange={(e) => set("minHandicap", e.target.value)} placeholder="0" className="bg-white" />
+                  </Field>
+                  <Field label="Maximum Handicap" required>
+                    <Input type="number" value={formData.maxHandicap} onChange={(e) => set("maxHandicap", e.target.value)} placeholder="54" className="bg-white" />
+                  </Field>
+                </div>
+                <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Only players with a handicap within this range will be allowed to register.
+                </p>
+              </div>
+            )}
           </div>
-          <Toggle label="Enable Waitlist" checked={formData.enableWaitlist} onChange={(v) => set("enableWaitlist", v)} />
+
         </div>
       );
       case 5: return (
-        <div className="space-y-5">
-          <Toggle label="Requires Payment?" checked={formData.requiresPayment} onChange={(v) => set("requiresPayment", v)} />
-          {formData.requiresPayment && (
-            <div className="space-y-4 pl-2 border-l-2 border-emerald-200">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Entry Fee" required>
-                  <Input type="number" value={formData.entryFee} onChange={(e) => set("entryFee", e.target.value)} placeholder="5000" className={req(formData.entryFee)} />
-                </Field>
-                <Field label="Currency">
-                  <Input value={formData.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} placeholder="NGN" />
-                </Field>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <CreditCard className="w-4 h-4" />
               </div>
-              <Field label="Payment Deadline">
-                <DatePicker value={formData.paymentDeadline} onValueChange={(v) => set("paymentDeadline", v)} />
-              </Field>
-              <Toggle label="Refundable Entry Fee?" checked={formData.isRefundable} onChange={(v) => set("isRefundable", v)} />
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Registration Fees</h4>
+                <p className="text-[12px] text-gray-500">Configure entry fees</p>
+              </div>
             </div>
-          )}
-          {!formData.requiresPayment && (
-            <div className="py-8 text-center text-gray-400">
-              <p className="text-sm">This tournament will be free to enter.</p>
+            
+            <div className="p-5 space-y-6">
+              <Toggle label="Requires Payment?" checked={formData.requiresPayment} onChange={(v) => set("requiresPayment", v)} />
+              {formData.requiresPayment && (
+                <div className="space-y-4 pl-4 border-l-2 border-emerald-200 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Entry Fee" required>
+                      <Input 
+                        type="text" 
+                        value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""} 
+                        onChange={(e) => {
+                          const rawValue = e.target.value.replace(/\D/g, "");
+                          set("entryFee", rawValue);
+                        }} 
+                        placeholder="5,000" 
+                        className={req(formData.entryFee)} 
+                      />
+                    </Field>
+                    <Field label="Currency" required>
+                      <Input value={formData.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} placeholder="NGN" />
+                    </Field>
+                  </div>
+                  <Toggle label="Refundable Entry Fee?" checked={formData.isRefundable} onChange={(v) => set("isRefundable", v)} />
+                  <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5" />
+                    Players must complete payment during registration to secure their spot.
+                  </p>
+                </div>
+              )}
+              {!formData.requiresPayment && (
+                <div className="py-8 text-center bg-gray-50 rounded-xl border border-gray-100 animate-in fade-in">
+                  <p className="text-[13px] font-medium text-gray-500">This tournament will be free to enter.</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       );
       case 6: return (
-        <div className="space-y-5">
-          <Toggle label="Auto-Generate Groups?" checked={formData.autoGrouping} onChange={(v) => set("autoGrouping", v)} />
-          {formData.autoGrouping && (
-            <div className="grid grid-cols-2 gap-4 pl-2 border-l-2 border-emerald-200">
-              <Field label="Tee Start Time">
-                <Input type="time" value={formData.teeStartTime} onChange={(e) => set("teeStartTime", e.target.value)} />
-              </Field>
-              <Field label="Tee Interval (min)">
-                <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} />
-              </Field>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+              onClick={() => set("autoGrouping", !formData.autoGrouping)}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-gray-900">Auto-Generate Groups</h4>
+                  <p className="text-[12px] text-gray-500">Automatically group players into tee times</p>
+                </div>
+              </div>
+              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.autoGrouping ? "bg-emerald-500" : "bg-gray-200")}>
+                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.autoGrouping ? "left-6" : "left-1")} />
+              </div>
             </div>
-          )}
+
+            {formData.autoGrouping && (
+              <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Tee Off Start Time" required>
+                    <TimePicker 
+                      value={formData.teeStartTime} 
+                      onValueChange={(v) => set("teeStartTime", v)} 
+                      placeholder="--:--  " 
+                    />
+                  </Field>
+                  <Field label="Tee Interval (min)" required>
+                    <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
+                  </Field>
+                </div>
+                <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Players will be assigned sequential tee times based on these settings.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       );
       case 7: return (
-        <div className="space-y-4">
-          <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
-          <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
-          <Toggle label="Enable HoleScoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
-        </div>
-      );
-      case 8: return (
-        <div className="space-y-5">
-          <Field label="Visibility">
-            <SearchableSelect value={formData.visibility} onValueChange={(v) => set("visibility", v)}
-              options={[{ value: "PUBLIC", label: "Public" }, { value: "PRIVATE", label: "Private" }, { value: "INVITE_ONLY", label: "Invite Only" }]} />
-          </Field>
-          <div className={cn("rounded-xl border-2 p-4 cursor-pointer transition-all", formData.publishImmediately ? "border-emerald-400 bg-emerald-50" : "border-gray-200 bg-gray-50/50")}
-            onClick={() => set("publishImmediately", !formData.publishImmediately)}>
-            <div className="flex items-center gap-3">
-              <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0", formData.publishImmediately ? "border-emerald-500 bg-emerald-500" : "border-gray-300")}>
-                {formData.publishImmediately && <div className="w-2 h-2 rounded-full bg-white" />}
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Activity className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-[14px] font-bold text-gray-900">Publish Immediately</p>
-                <p className="text-[12px] text-gray-500">Status will be set to Registration Open. Players can register right away.</p>
+                <h4 className="text-[14px] font-bold text-gray-900">Scoring Rules</h4>
+                <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
+              <div className="pl-12">
+                <p className="text-[12px] text-gray-500 -mt-2 mb-2">Players can input scores directly via the app during the round.</p>
+              </div>
+
+              <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
+              <div className="pl-12">
+                <p className="text-[12px] text-gray-500 -mt-2 mb-2">Another player in the group must verify and sign the scorecard.</p>
+              </div>
+
+              <Toggle label="Enable Hole-by-Hole Scoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
+              <div className="pl-12">
+                <p className="text-[12px] text-gray-500 -mt-2">Record scores for every single hole rather than just the final total.</p>
               </div>
             </div>
           </div>
-          {!formData.publishImmediately && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-              <p className="text-[13px] text-gray-500 text-center">Tournament will be saved as <strong>Draft</strong> and can be published later.</p>
+        </div>
+      );
+      case 8: return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* ── Visibility Settings ── */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Eye className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-bold text-gray-900">Visibility Status</h4>
+                <p className="text-[12px] text-gray-500">Control who can see and discover this tournament</p>
+              </div>
             </div>
-          )}
+            
+            <div className="p-5">
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { value: "PUBLIC", label: "Public", desc: "Visible to everyone on the platform. Anyone can search for and view this tournament." },
+                  { value: "PRIVATE", label: "Private", desc: "Hidden from search results and public listings. Only accessible via a direct link." },
+                  { value: "INVITE_ONLY", label: "Invite Only", desc: "Strictly restricted. Only specifically invited players can view and register." }
+                ].map(({ value, label, desc }) => {
+                  const active = formData.visibility === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => set("visibility", value)}
+                      className={cn(
+                        "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                        active ? "border-emerald-500 bg-emerald-50/60" : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                      )}
+                    >
+                      <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5", active ? "border-emerald-500 bg-emerald-500" : "border-gray-300")}>
+                        {active && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
+                        <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Publishing ── */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+              onClick={() => set("publishImmediately", !formData.publishImmediately)}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Send className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-gray-900">Publish Immediately</h4>
+                  <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
+                </div>
+              </div>
+              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.publishImmediately ? "bg-emerald-500" : "bg-gray-200")}>
+                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.publishImmediately ? "left-6" : "left-1")} />
+              </div>
+            </div>
+            
+            {!formData.publishImmediately && (
+              <div className="p-4 bg-emerald-50/40 border-t-2 border-emerald-100/50">
+                <p className="text-[11px] text-emerald-700 font-medium text-center leading-relaxed">
+                  This tournament will be saved as an unpublished <strong>DRAFT</strong>.<br className="hidden sm:block" /> Players cannot see or register for it until you manually publish it.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       );
       default: return null;
@@ -772,8 +1161,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
             <Button variant="outline" onClick={onClose} disabled={loading || nameCheckLoading}>Cancel</Button>
             {step < STEPS.length
               ? <Button onClick={handleNext} disabled={nameCheckLoading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
-                  {nameCheckLoading ? "Checking..." : "Next →"}
-                </Button>
+                {nameCheckLoading ? "Checking..." : "Next →"}
+              </Button>
               : <Button onClick={handleSubmit} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
                 {loading ? (tournamentId ? "Updating..." : "Creating...") : (tournamentId ? "Update Tournament" : "Create Tournament")}
               </Button>

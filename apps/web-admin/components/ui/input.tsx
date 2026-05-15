@@ -50,9 +50,21 @@ function SearchableSelect({
   const ref = React.useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
+  const [openUpwards, setOpenUpwards] = React.useState(false)
 
   React.useEffect(() => {
     if (!open) return
+
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      if (spaceBelow < 300 && rect.top > 300) {
+        setOpenUpwards(true)
+      } else {
+        setOpenUpwards(false)
+      }
+    }
+
     function onMouseDown(e: MouseEvent) {
       if (!ref.current) return
       if (e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false)
@@ -108,7 +120,10 @@ function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100">
+        <div className={cn(
+          "absolute z-50 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
+          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
+        )}>
           <div className="border-b border-gray-100 p-2">
             <input
               autoFocus

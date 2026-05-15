@@ -75,12 +75,14 @@ function LoginPageInner() {
       const response = await loginRequest(data);
       login(response.accessToken, response.user);
       toast.success("Successfully logged in");
+      // Intentionally NOT resetting isLoading here so the button stays
+      // disabled while the router.replace() in login() is navigating.
     } catch (err: unknown) {
       console.error("Login error details:", err);
       toast.error(
         err instanceof Error ? err.message : "Invalid email or password. Please check your credentials and try again.",
       );
-    } finally {
+      // Only re-enable on failure so the user can retry
       setIsLoading(false)
     }
   }

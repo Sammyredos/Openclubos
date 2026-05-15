@@ -61,12 +61,24 @@ export function DatePicker({
 }: DatePickerProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [openUpwards, setOpenUpwards] = React.useState(false);
 
   const selectedDate = React.useMemo(() => (value ? parseYMD(value) : null), [value]);
   const [viewMonth, setViewMonth] = React.useState<Date>(() => selectedDate ?? new Date());
 
   React.useEffect(() => {
     if (!open) return;
+
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 380 && rect.top > 380) {
+        setOpenUpwards(true);
+      } else {
+        setOpenUpwards(false);
+      }
+    }
+
     function onMouseDown(e: MouseEvent) {
       if (!ref.current) return;
       if (e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false);
@@ -131,7 +143,10 @@ export function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 left-0 w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div className={cn(
+          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl",
+          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
+        )}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <button
               type="button"

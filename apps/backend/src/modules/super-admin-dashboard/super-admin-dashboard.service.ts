@@ -54,7 +54,7 @@ export class SuperAdminDashboardService {
       new Date(now.getFullYear(), now.getMonth() - 1, 1),
     );
 
-    const [totalClubs, activeClubs, totalMembers, activeTournaments] =
+    const [totalClubs, activeClubs, totalMembers, activeTournaments, totalCourses] =
       await Promise.all([
         this.prisma.club.count({ where: { deletedAt: null } }),
         this.prisma.club.count({
@@ -72,6 +72,7 @@ export class SuperAdminDashboardService {
             },
           },
         }),
+        this.prisma.course.count(),
       ]);
 
     const [clubsThisMonth, clubsLastMonth] = await Promise.all([
@@ -142,6 +143,7 @@ export class SuperAdminDashboardService {
         revenueThisMonth,
         revenueLastMonth,
       ),
+      totalCourses,
       pendingPayments,
       pendingAmount: Math.round(pendingAmount),
     };

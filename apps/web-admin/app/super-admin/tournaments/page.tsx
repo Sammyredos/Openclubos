@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Trophy,
   Users,
+  UserPlus,
   Calendar,
   Wallet,
   Search,
@@ -18,6 +19,10 @@ import {
   CheckCircle2,
   Trash2,
   AlertTriangle,
+  Link,
+  Globe,
+  Lock,
+  Shield,
 } from "lucide-react";
 import {
   PieChart as RePieChart,
@@ -36,6 +41,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
+import { getAdminUsers } from "@/lib/api/members";
 import {
   addRegistrationStrokes,
   clearRegistrationStrokes,
@@ -61,6 +67,8 @@ type ApiTournament = {
   registrationDeadline?: string | null;
   playerTypes: string[];
   club: { id: string; name: string } | null;
+  visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+  createdAt: string;
   _count?: { registrations: number };
 };
 
@@ -78,6 +86,9 @@ type TournamentRow = {
   endDate: string | null;
   maxPlayers: number | null;
   statusKey: TournamentStatus;
+  visibility: string;
+  visibilityKey: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+  createdAt: string;
   registrations: number;
 };
 
@@ -91,11 +102,16 @@ function getErrorMessage(e: unknown) {
 }
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
-  DRAFT: { label: "Draft", color: "#9ca3af", badge: "bg-gray-100 text-gray-500" },
-  REGISTRATION_OPEN: { label: "Upcoming", color: "#3b82f6", badge: "bg-blue-50 text-blue-600" },
-  ONGOING: { label: "Ongoing", color: "#10b981", badge: "bg-emerald-50 text-emerald-600" },
+  DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-slate-600" },
+  REGISTRATION_OPEN: { label: "Upcoming", color: "#10b981", badge: "bg-emerald-50 text-emerald-600" },
+  ONGOING: { label: "Ongoing", color: "#3b82f6", badge: "bg-blue-50 text-blue-600" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600" },
-  CANCELLED: { label: "Cancelled", color: "#9ca3af", badge: "bg-gray-100 text-gray-500" },
+  CANCELLED: { label: "Cancelled", color: "#f43f5e", badge: "bg-rose-50 text-rose-600" },
+};
+const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
+  PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
+  PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
+  INVITE_ONLY: { label: "Invite Only", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
 function formatDateRange(startISO: string, endISO: string | null) {
@@ -133,6 +149,11 @@ function pad2(n: number) {
 }
 
 const CLIENT_REGISTRATIONS_MAX = 250;
+
+function fullName(firstName: string | null, lastName: string | null) {
+  const name = `${firstName || ""} ${lastName || ""}`.trim();
+  return name || "—";
+}
 
 function getDaysUntil(dateISO: string) {
   const now = new Date();
@@ -198,6 +219,12 @@ export default function TournamentsPage() {
   const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
   const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
   const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+  const [isRegisterPlayerModalOpen, setIsRegisterPlayerModalOpen] = useState(false);
+  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
+  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(false);
   const [editName, setEditName] = useState("");
@@ -280,9 +307,12 @@ export default function TournamentsPage() {
       endDate: t.endDate,
       maxPlayers: t.maxPlayers,
       statusKey: t.status,
+      visibility: VISIBILITY_META[t.visibility]?.label ?? t.visibility,
+      visibilityKey: t.visibility,
+      createdAt: t.createdAt,
       registrations,
     };
-  });
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const filteredTournaments = rows.filter((t) => {
     const q = searchQuery.trim().toLowerCase();
@@ -335,17 +365,18 @@ export default function TournamentsPage() {
     return sum + fee * t.registrations;
   }, 0);
 
-  const statusCounts: Record<Exclude<TournamentStatus, "DRAFT">, number> = {
+  const statusCounts: Record<TournamentStatus, number> = {
+    DRAFT: 0,
     REGISTRATION_OPEN: 0,
     ONGOING: 0,
     COMPLETED: 0,
     CANCELLED: 0,
   };
   for (const t of rows) {
-    const key = t.statusKey as Exclude<TournamentStatus, "DRAFT">;
+    const key = t.statusKey as TournamentStatus;
     if (key in statusCounts) statusCounts[key] += 1;
   }
-  const statusData = (Object.keys(statusCounts) as Array<Exclude<TournamentStatus, "DRAFT">>)
+  const statusData = (Object.keys(statusCounts) as Array<TournamentStatus>)
     .filter((k) => statusCounts[k] > 0)
     .map((k) => {
       const value = statusCounts[k];
@@ -372,8 +403,7 @@ export default function TournamentsPage() {
       const days = getDaysUntil(t.startDate);
       return isPending && days >= 0;
     })
-    .slice()
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
     .slice(0, 4) // Strictly 4 records
     .map((t, i) => {
       const daysUntil = getDaysUntil(t.startDate);
@@ -545,6 +575,81 @@ export default function TournamentsPage() {
         )
       : registrations;
 
+  useEffect(() => {
+    if (!isRegisterPlayerModalOpen) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+    const q = registerPlayerSearch.trim();
+    if (q.length < 2) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = window.setTimeout(async () => {
+      setIsSearchingPlayers(true);
+      try {
+        const { items } = await getAdminUsers({ search: q, take: 10 });
+        if (!cancelled) {
+          setRegisterPlayerResults(Array.isArray(items) ? items : []);
+        }
+      } catch (e: unknown) {
+        if (!cancelled) {
+          console.error("Player search failed", e);
+        }
+      } finally {
+        if (!cancelled) setIsSearchingPlayers(false);
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [isRegisterPlayerModalOpen, registerPlayerSearch]);
+
+  const handleRegisterPlayer = async (userId: string) => {
+    if (!selectedTournament?.id) return;
+    setIsRegistering(true);
+    try {
+      const { registerForTournament } = await import("@/lib/api/registrations");
+      await registerForTournament({
+        tournamentId: selectedTournament.id,
+        userId,
+      });
+      toast.success("Player registered successfully");
+      setIsRegisterPlayerModalOpen(false);
+      setRegisterPlayerSearch("");
+      
+      // Refresh everything
+      reloadTournaments();
+      
+      if (registrationsMode === "server") {
+        setRegistrationsPage(1); // Go to first page to see the new player
+        setRegistrationsLoading(true);
+        const { items, total } = await getRegistrations({
+          tournamentId: selectedTournament.id,
+          skip: 0,
+          take: registrationsPerPage,
+        });
+        setRegistrations(Array.isArray(items) ? items : []);
+        setRegistrationsTotal(typeof total === "number" ? total : 0);
+        setRegistrationsTournamentTotal(typeof total === "number" ? total : (prev => prev + 1));
+        setRegistrationsLoading(false);
+      } else {
+         // Full reload for client mode
+         setRegistrationsInitialized(false);
+         setIsViewModalOpen(false);
+         setTimeout(() => setIsViewModalOpen(true), 10);
+      }
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to register player");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const updateTournamentRegistrationStatus = async (
     registrationId: string,
     nextStatus: RegistrationListItem["status"],
@@ -648,6 +753,13 @@ export default function TournamentsPage() {
       a.remove();
       URL.revokeObjectURL(url);
       toast.success("Tournament data exported");
+      return;
+    }
+    if (action === "copy-link") {
+      const baseUrl = window.location.origin.replace("admin.", "app."); // Assuming mobile/player app is on app. subdomain
+      const link = `${baseUrl}/tournaments/${tournament.id}`;
+      navigator.clipboard.writeText(link);
+      toast.success("Tournament link copied to clipboard");
       return;
     }
     if (action === "cancel") {
@@ -802,6 +914,7 @@ export default function TournamentsPage() {
                       <th className="px-6 py-4">Dates</th>
                       <th className="px-6 py-4">Players</th>
                       <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Visibility</th>
                       <th className="px-6 py-4 text-right">Entry Fee</th>
                       <th className="px-6 py-4 text-center">Actions</th>
                     </tr>
@@ -832,13 +945,14 @@ export default function TournamentsPage() {
                             <Skeleton className="h-4 w-16 rounded-md" />
                           </td>
                           <td className="px-6 py-4">
-                            <Skeleton className="h-4 w-14 rounded-md" />
+                            <Skeleton className="h-4 w-16 rounded-md" />
                           </td>
                           <td className="px-6 py-4 text-right">
                             <Skeleton className="h-4 w-20 rounded-md ml-auto" />
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-2">
+                              <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
@@ -864,6 +978,12 @@ export default function TournamentsPage() {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${t.badge}`}>
                               {t.status}
                             </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold", VISIBILITY_META[t.visibilityKey]?.badge)}>
+                              {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3" })}
+                              {t.visibility}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-[14px] font-bold text-gray-900 text-right">{formatNaira(t.entryFee)}</td>
                           <td className="px-6 py-4">
@@ -892,6 +1012,31 @@ export default function TournamentsPage() {
                                 disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"}
                               >
                                 <Edit2 className="w-4.5 h-4.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedTournament(t);
+                                  setIsRegisterPlayerModalOpen(true);
+                                }}
+                                className={cn(
+                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                  t.statusKey === "DRAFT" || t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
+                                    ? "text-gray-300 cursor-not-allowed"
+                                    : t.maxPlayers !== null && t.registrations >= t.maxPlayers
+                                      ? "text-amber-500 hover:bg-amber-50"
+                                      : "text-[#10b981] hover:bg-[#10b981]/10"
+                                )}
+                                title={
+                                  t.statusKey === "DRAFT" ? "Draft tournaments cannot have players registered"
+                                  : t.statusKey === "CANCELLED" ? "Cancelled tournaments cannot have players registered"
+                                  : t.statusKey === "COMPLETED" ? "Completed tournaments cannot have players registered"
+                                  : t.maxPlayers !== null && t.registrations >= t.maxPlayers
+                                    ? "Tournament Full (Player will be Waitlisted)"
+                                    : "Register Player"
+                                }
+                                disabled={t.statusKey === "DRAFT" || t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
+                              >
+                                <Plus className="w-4.5 h-4.5" />
                               </button>
                               <div className="relative">
                                 <button
@@ -1080,6 +1225,13 @@ export default function TournamentsPage() {
               <Download className="w-4 h-4 text-gray-400" />
               Export Tournament Data
             </button>
+            <button
+              onClick={() => handleMoreAction("copy-link", dropdownTournament)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Link className="w-4 h-4 text-emerald-500" />
+              Copy Tournament Link
+            </button>
             <div className="h-px bg-gray-50 my-1" />
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
@@ -1192,7 +1344,9 @@ export default function TournamentsPage() {
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Registrations</p>
-              <p className="text-[12px] text-gray-400 font-medium">{formatWithCommas(registrationsTournamentTotal)} total</p>
+              <div className="flex items-center gap-3">
+                <p className="text-[12px] text-gray-400 font-medium">{formatWithCommas(registrationsTournamentTotal)} total</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
@@ -1429,6 +1583,153 @@ export default function TournamentsPage() {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={isRegisterPlayerModalOpen}
+        onClose={() => {
+          setIsRegisterPlayerModalOpen(false);
+          setRegisterPlayerSearch("");
+          setRegisterPlayerResults([]);
+        }}
+        title="Register Player"
+        size="md"
+      >
+        <div className="space-y-6 py-2">
+          {/* Header */}
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100/50">
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <UserPlus className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-[16px] font-bold text-gray-900 leading-tight">Manual Registration</h3>
+              <p className="text-[13px] text-gray-500 mt-1">
+                Search and add players directly to <span className="text-emerald-600 font-bold">{selectedTournament?.name}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Search Input */}
+          <div className="space-y-2 px-1">
+            <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Find Player</Label>
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[#10b981] transition-colors" />
+              <Input
+                value={registerPlayerSearch}
+                onChange={(e) => setRegisterPlayerSearch(e.target.value)}
+                placeholder="Search by name, email or handicap..."
+                className="pl-12 h-12 bg-white border-gray-200 focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Results Area */}
+          <div className="space-y-3 px-1">
+            <div className="flex items-center justify-between ml-1">
+              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Search Results</p>
+              {registerPlayerResults.length > 0 && (
+                <span className="text-[11px] font-bold text-[#10b981] bg-emerald-50 px-2 py-0.5 rounded-lg">
+                  {registerPlayerResults.length} found
+                </span>
+              )}
+            </div>
+
+            <div className="min-h-[280px] max-h-[380px] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+              {isSearchingPlayers ? (
+                <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 border-4 border-emerald-100 rounded-full" />
+                    <div className="absolute inset-0 border-4 border-t-emerald-500 rounded-full animate-spin" />
+                  </div>
+                  <p className="text-[14px] font-bold text-gray-900 mt-4">Searching database...</p>
+                  <p className="text-[12px] text-gray-400 mt-1">Looking for matching players</p>
+                </div>
+              ) : registerPlayerResults.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2.5">
+                  {registerPlayerResults.map((u) => (
+                    <div 
+                      key={u.id} 
+                      className="group p-3 rounded-xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
+                            alt={u.email}
+                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
+                          />
+                          <div className={cn(
+                            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
+                            u.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-300"
+                          )} />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
+                            <span className={cn(
+                              "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight",
+                              u.role === "PLAYER" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
+                            )}>
+                              {u.role}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-gray-500 truncate">{u.email}</p>
+                        </div>
+
+                        <Button
+                          disabled={isRegistering}
+                          onClick={() => handleRegisterPlayer(u.id)}
+                          className="h-9 px-4 bg-[#10b981] hover:bg-[#0da673] text-white rounded-lg text-[12px] font-bold flex items-center gap-2 transition-all group-hover:scale-105 active:scale-95 shadow-sm shadow-emerald-500/10"
+                        >
+                          {isRegistering ? (
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                          Register
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : registerPlayerSearch.trim().length >= 2 ? (
+                <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                    <Search className="w-8 h-8 text-gray-200" />
+                  </div>
+                  <p className="text-[14px] font-bold text-gray-900">No players found</p>
+                  <p className="text-[12px] text-gray-400 mt-1 max-w-[200px]">
+                    We couldn't find anyone matching "{registerPlayerSearch}"
+                  </p>
+                </div>
+              ) : (
+                <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-emerald-200" />
+                  </div>
+                  <p className="text-[14px] font-bold text-gray-900">Start Searching</p>
+                  <p className="text-[12px] text-gray-400 mt-1 max-w-[200px]">
+                    Enter a name or email address to find and register players
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsRegisterPlayerModalOpen(false);
+              setRegisterPlayerSearch("");
+              setRegisterPlayerResults([]);
+            }}
+            className="rounded-xl font-bold h-11 px-6 border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isCancelModalOpen}

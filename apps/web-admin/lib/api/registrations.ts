@@ -33,6 +33,7 @@ export async function registerForTournament(data: {
   tournamentId: string;
   playerType?: string;
   paymentReference?: string;
+  userId?: string;
 }) {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/registrations`, {

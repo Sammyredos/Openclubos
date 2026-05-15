@@ -81,6 +81,13 @@ export class CoursesService {
       _count: true,
     });
 
+    // Get unique cities for stats
+    const uniqueCities = await this.prisma.course.groupBy({
+      by: ['city'],
+      where: { city: { not: null } },
+      _count: true,
+    });
+
     const items = courses.map((c) => ({
       ...c,
       holes: c.holesCount,
@@ -93,7 +100,7 @@ export class CoursesService {
       stats: {
         totalCourses,
         countries: uniqueCountries.length,
-        cities: 0,
+        cities: uniqueCities.length,
         activeCourses,
         inactiveCourses: totalCourses - activeCourses,
       },
@@ -168,6 +175,27 @@ export class CoursesService {
 
   async create(dto: any) {
     const data = this.mapPayloadToData(dto);
+
+    // Uniqueness checks
+    if (data.email) {
+      const existingEmail = await this.prisma.course.findFirst({ where: { email: data.email } });
+      if (existingEmail) throw new BadRequestException('Email is already in use by another course');
+    }
+    if (data.phone) {
+      const existingPhone = await this.prisma.course.findFirst({ where: { phone: data.phone } });
+      if (existingPhone) throw new BadRequestException('Phone number is already in use by another course');
+    }
+
+    // Duplication check (Name + City + Country)
+    const duplicate = await this.prisma.course.findFirst({
+      where: {
+        name: { equals: data.name, mode: 'insensitive' },
+        city: { equals: data.city, mode: 'insensitive' },
+        country: data.country,
+      },
+    });
+    if (duplicate) throw new BadRequestException(`A course named "${data.name}" already exists in ${data.city}, ${data.country}`);
+    
     
     // Handle teeBoxes
     if (dto.teeBoxes && Array.isArray(dto.teeBoxes)) {
@@ -211,6 +239,30 @@ export class CoursesService {
     if (!existing) throw new NotFoundException('Course not found');
 
     const data = this.mapPayloadToData(dto);
+
+    // Uniqueness checks
+    if (data.email && data.email !== existing.email) {
+      const existingEmail = await this.prisma.course.findFirst({ where: { email: data.email } });
+      if (existingEmail) throw new BadRequestException('Email is already in use by another course');
+    }
+    if (data.phone && data.phone !== existing.phone) {
+      const existingPhone = await this.prisma.course.findFirst({ where: { phone: data.phone } });
+      if (existingPhone) throw new BadRequestException('Phone number is already in use by another course');
+    }
+
+    // Duplication check (Name + City + Country)
+    if (data.name || data.city || data.country) {
+      const duplicate = await this.prisma.course.findFirst({
+        where: {
+          id: { not: id },
+          name: { equals: data.name || existing.name, mode: 'insensitive' },
+          city: { equals: data.city || existing.city, mode: 'insensitive' },
+          country: data.country || existing.country,
+        },
+      });
+      if (duplicate) throw new BadRequestException('A course with this name already exists in this location');
+    }
+    
 
     // Replace all teeBoxes to simplify update
     if (dto.teeBoxes && Array.isArray(dto.teeBoxes)) {

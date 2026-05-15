@@ -88,9 +88,11 @@ export class TournamentsService {
         playerTypes: true,
         club: { select: { id: true, name: true } },
         course: { select: { id: true, name: true } },
+        visibility: true,
+        createdAt: true,
         _count: { select: { registrations: true } },
       },
-      orderBy: { startDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -122,9 +124,11 @@ export class TournamentsService {
           playerTypes: true,
           club: { select: { id: true, name: true } },
           course: { select: { id: true, name: true } },
+          visibility: true,
+          createdAt: true,
           _count: { select: { registrations: true } },
         },
-        orderBy: { startDate: 'desc' },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.tournament.count({ where }),
     ]);
@@ -158,7 +162,7 @@ export class TournamentsService {
     // 3. Mark as REGISTRATION_OPEN if startDate is in the future
     await this.prisma.tournament.updateMany({
       where: {
-        status: { notIn: ['CANCELLED', 'COMPLETED', 'ONGOING'] },
+        status: { notIn: ['CANCELLED', 'COMPLETED', 'ONGOING', 'DRAFT'] },
         startDate: { gt: now },
       },
       data: { status: 'REGISTRATION_OPEN' },

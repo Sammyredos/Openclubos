@@ -11,4 +11,8 @@ export class RegisterTournamentDto {
   @IsString()
   @IsOptional()
   paymentReference?: string;
+
+  @IsUUID()
+  @IsOptional()
+  userId?: string;
 }

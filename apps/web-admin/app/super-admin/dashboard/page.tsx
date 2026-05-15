@@ -14,6 +14,7 @@ import {
   User,
   Users2,
   ArrowUpRight,
+  Mountain,
 } from "lucide-react";
 import {
   LineChart,
@@ -68,6 +69,7 @@ type DashboardStats = {
   totalMembers?: number;
   activeTournaments?: number;
   totalRevenue?: number;
+  totalCourses?: number;
   pendingPayments?: number;
   pendingAmount?: number;
   clubsGrowth?: string;
@@ -416,14 +418,13 @@ export default function SuperAdminDashboard() {
           loading={loading || statsLoading}
         />
         <StatCard
-          title="Pending Payments"
-          value={stats?.pendingPayments?.toString() || "0"}
-          change={stats?.pendingAmount != null ? `₦${formatWithCommas(Math.round(stats.pendingAmount))}` : undefined}
-          changeType="decrease"
-          icon={Wallet}
-          iconBg="bg-red-50"
-          iconColor="text-red-600"
+          title="Total Golf Courses"
+          value={stats?.totalCourses?.toString() || "0"}
+          icon={Mountain}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
           loading={loading || statsLoading}
+          subValue="Across Africa"
         />
       </div>
 
