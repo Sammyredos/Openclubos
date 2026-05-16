@@ -41,10 +41,9 @@ export class MembersService {
         status: createMemberDto.status,
         handicap: createMemberDto.handicap,
         password: hashedPassword,
-        role: createMemberDto.role || UserRole.PLAYER,
-        profilePhoto: createMemberDto.profilePhoto,
         ...(phone !== undefined ? { phone } : undefined),
-        clubId: createMemberDto.clubId || null,
+        clubId: null,
+        role: UserRole.PLAYER, // Default role for members
       },
     });
   }
