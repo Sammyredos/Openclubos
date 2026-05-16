@@ -155,7 +155,31 @@ export function DatePicker({
             >
               <ChevronLeft className="h-4.5 w-4.5" />
             </button>
-            <div className="text-[13px] font-bold text-gray-800">{titleFmt.format(monthStart)}</div>
+            
+            <div className="flex gap-1">
+              <select 
+                className="bg-transparent border-none text-[13px] font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-emerald-600 transition-colors"
+                value={viewMonth.getMonth()}
+                onChange={(e) => setViewMonth(new Date(viewMonth.getFullYear(), parseInt(e.target.value), 1))}
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString('en-US', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+              <select 
+                className="bg-transparent border-none text-[13px] font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-emerald-600 transition-colors"
+                value={viewMonth.getFullYear()}
+                onChange={(e) => setViewMonth(new Date(parseInt(e.target.value), viewMonth.getMonth(), 1))}
+              >
+                {Array.from({ length: 100 }, (_, i) => {
+                  const y = new Date().getFullYear() - i;
+                  return <option key={y} value={y}>{y}</option>;
+                })}
+              </select>
+            </div>
+
             <button
               type="button"
               className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"

@@ -15,4 +15,12 @@ export class RegisterTournamentDto {
   @IsUUID()
   @IsOptional()
   userId?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentStatus?: string;
 }

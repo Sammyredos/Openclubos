@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Patch,
+  Delete,
   Query,
   UseGuards,
   Request,
@@ -96,5 +97,12 @@ export class RegistrationsController {
     @Body('paymentReference') paymentReference: string,
   ) {
     return this.registrationsService.confirmPayment(id, paymentReference);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
+  remove(@Param('id') id: string) {
+    return this.registrationsService.remove(id);
   }
 }

@@ -51,6 +51,18 @@ export async function getClubStats(id: string) {
   return res.json();
 }
 
+export type Club = {
+  id: string;
+  name: string;
+  address?: string;
+  plan: 'PRO' | 'BASIC';
+  status: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
+  adminName?: string;
+  adminEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UpdateClubPayload = {
   name?: string;
   address?: string;

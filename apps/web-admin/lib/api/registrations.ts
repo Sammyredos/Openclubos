@@ -34,6 +34,8 @@ export async function registerForTournament(data: {
   playerType?: string;
   paymentReference?: string;
   userId?: string;
+  status?: Registration['status'];
+  paymentStatus?: Registration['paymentStatus'];
 }) {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/registrations`, {
@@ -165,3 +167,21 @@ export async function clearRegistrationStrokes(registrationId: string): Promise<
   }
   return res.json();
 }
+
+export async function deleteRegistration(registrationId: string) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error: unknown = await res.json().catch(() => null);
+    throw new Error(getErrorMessage(error) || 'Failed to delete registration');
+  }
+  return true;
+}
+

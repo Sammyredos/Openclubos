@@ -175,9 +175,10 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
 
       // Strip country code from phone if it exists
       if (c.phone) {
+        const phoneStr = c.phone;
         const code = Country.getCountryByCode(c.country || "NG")?.phonecode;
-        if (code && c.phone.startsWith(`+${code}`)) {
-          setFormData(prev => ({ ...prev, phone: c.phone.replace(`+${code}`, "") }));
+        if (code && phoneStr.startsWith(`+${code}`)) {
+          setFormData(prev => ({ ...prev, phone: phoneStr.replace(`+${code}`, "") }));
         }
       }
     } catch (e) {

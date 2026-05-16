@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   UserPlus,
@@ -10,6 +11,8 @@ import {
   KeyRound,
   CreditCard,
   Trophy,
+  Globe,
+  Shield,
   Clock,
   Settings,
   Mail,
@@ -38,6 +41,16 @@ import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
 import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
+import dynamic from "next/dynamic";
+import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
+
+const CreateUserWizard = dynamic(
+  () => import("@/components/users/CreateUserWizard").then(mod => mod.CreateUserWizard),
+  { 
+    ssr: false, 
+    loading: () => <WizardSkeleton steps={5} /> 
+  }
+);
 
 function fullName(firstName: string | null, lastName: string | null) {
   const name = `${firstName || ""} ${lastName || ""}`.trim();
@@ -88,7 +101,7 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
       case "SUPER_ADMIN":
         return { label: "SUPER_ADMIN", className: "bg-purple-50 text-purple-700 border-purple-100" };
       case "CLUB_ADMIN":
-        return { label: "CLUB_ADMIN", className: "bg-blue-50 text-blue-700 border-blue-100" };
+        return { label: "ORGANISER ADMIN", className: "bg-blue-50 text-blue-700 border-blue-100" };
       case "MARKER":
         return { label: "MARKER", className: "bg-indigo-50 text-indigo-700 border-indigo-100" };
       default:
@@ -123,6 +136,7 @@ function StatusPill({ status }: { status: AdminUser["status"] }) {
 }
 
 export default function SuperAdminUsersPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +170,7 @@ export default function SuperAdminUsersPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
+  const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -285,7 +300,7 @@ export default function SuperAdminUsersPage() {
           v === "All Roles"
             ? "All Roles"
             : v === "CLUB_ADMIN"
-              ? "ORGANIZER ADMIN"
+              ? "ORGANISER ADMIN"
               : v.replaceAll("_", " "),
       })),
     [],
@@ -305,7 +320,7 @@ export default function SuperAdminUsersPage() {
   const rolesOverview = useMemo(() => {
     const map = stats?.roles ?? {};
     const rows = [
-      { key: "CLUB_ADMIN", label: "Organizer Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
+      { key: "CLUB_ADMIN", label: "Organiser Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
       { key: "PLAYER", label: "Players", color: "bg-emerald-500", value: map.PLAYER ?? 0 },
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
@@ -611,7 +626,10 @@ export default function SuperAdminUsersPage() {
             <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
-            <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button 
+              onClick={() => setIsCreateWizardOpen(true)}
+              className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
+            >
               <UserPlus className="w-4 h-4" /> Add User
             </Button>
           </div>
@@ -671,43 +689,42 @@ export default function SuperAdminUsersPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Handicap</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Joined Date</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+                <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-4">User</th>
+                  <th className="px-4 py-4">Role</th>
+                  <th className="px-4 py-4 text-center">Handicap</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4">Joined Date</th>
+                  <th className="px-4 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   skeletonRows.map((i) => (
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-10 h-10 rounded-full" />
+                          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-2">
                             <Skeleton className="h-4 w-40 rounded-md" />
                             <Skeleton className="h-3 w-56 rounded-md" />
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-5 w-20 rounded-lg" />
                       </td>
-                      <td className="px-6 py-4">
-                        <Skeleton className="h-4 w-14 rounded-md" />
+                      <td className="px-4 py-4">
+                        <Skeleton className="h-4 w-10 rounded-md mx-auto" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-5 w-24 rounded-lg" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-4 w-28 rounded-md" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -717,12 +734,12 @@ export default function SuperAdminUsersPage() {
                 ) : paginatedUsers.length > 0 ? (
                   paginatedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[260px]">
                           <img
                             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                             alt={u.email}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50"
+                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
                           />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</span>
@@ -730,23 +747,23 @@ export default function SuperAdminUsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <RoleBadge role={u.role} />
                       </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">
+                      <td className="px-4 py-4 text-[14px] text-gray-500 font-medium text-center">
                         {u.role === "PLAYER"
                           ? typeof u.handicap === "number"
                             ? u.handicap.toFixed(1)
                             : "—"
                           : "—"}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <StatusPill status={u.status} />
                       </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-500 font-medium whitespace-nowrap">
+                      <td className="px-4 py-4 text-[14px] text-gray-500 font-medium whitespace-nowrap">
                         {formatJoinedDate(u.createdAt)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
@@ -754,25 +771,6 @@ export default function SuperAdminUsersPage() {
                             onClick={() => openViewModal(u)}
                           >
                             <Eye className="w-4.5 h-4.5" />
-                          </button>
-                          <button
-                            disabled={!canManageUser(u)}
-                            className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              !canManageUser(u)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : u.status === "SUSPENDED"
-                                  ? "text-emerald-600 hover:bg-emerald-50"
-                                  : "text-red-600 hover:bg-red-50",
-                            )}
-                            title={u.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
-                            onClick={() => openStatusModal(u)}
-                          >
-                            {u.status === "SUSPENDED" ? (
-                              <CheckCircle2 className="w-4.5 h-4.5" />
-                            ) : (
-                              <Ban className="w-4.5 h-4.5" />
-                            )}
                           </button>
                           <div className="relative">
                             <button
@@ -898,6 +896,26 @@ export default function SuperAdminUsersPage() {
       >
         {dropdownUser ? (
           <>
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => openStatusModal(dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) 
+                  ? "text-gray-300 cursor-not-allowed" 
+                  : dropdownUser.status === "SUSPENDED" 
+                    ? "text-emerald-600 hover:bg-emerald-50" 
+                    : "text-red-600 hover:bg-red-50",
+              )}
+            >
+              {dropdownUser.status === "SUSPENDED" ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Ban className="w-4 h-4" />
+              )}
+              {dropdownUser.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
             <button
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openEditModal(dropdownUser)}
@@ -1152,7 +1170,7 @@ export default function SuperAdminUsersPage() {
               onValueChange={(v) => setEditRole(v as AdminUser["role"])}
               options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
                 value: v,
-                label: v === "CLUB_ADMIN" ? "ORGANIZER ADMIN" : v.replaceAll("_", " "),
+                label: v === "CLUB_ADMIN" ? "ORGANISER ADMIN" : v.replaceAll("_", " "),
               }))}
               triggerClassName="h-12 bg-white font-medium rounded-xl"
               placeholder="Select role..."
@@ -1267,8 +1285,22 @@ export default function SuperAdminUsersPage() {
       <Modal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
-        title="View User Details"
+        title=""
         size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-[11px] text-gray-400 font-medium italic">
+              User UUID: {selectedUser?.id || "—"}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setIsViewModalOpen(false)}
+              className="rounded-lg font-bold border-gray-200"
+            >
+              Close Profile
+            </Button>
+          </div>
+        }
       >
         {(() => {
           const filteredActivity = viewRegistrations.filter((r) =>
@@ -1300,31 +1332,55 @@ export default function SuperAdminUsersPage() {
           const totalTournamentPages = Math.ceil(filteredTournaments.length / modalItemsPerPage);
 
           return (
-        <div className="space-y-6">
-          <div className="flex items-start gap-4 pb-6 border-b border-gray-50">
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
-              alt={selectedUser?.email || "User"}
-              className="h-16 w-16 rounded-2xl border border-gray-100 bg-gray-50"
-            />
+        <div className="space-y-8">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
+            <div className="relative">
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
+                alt={selectedUser?.email || "User"}
+                className="h-24 w-24 rounded-3xl border-2 border-white shadow-md bg-gray-50 object-cover"
+              />
+              <div className={cn(
+                "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
+                selectedUser?.status === "ACTIVE" ? "bg-emerald-500" : "bg-red-500"
+              )} />
+            </div>
+            
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xl font-bold text-gray-900 truncate">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h4 className="text-2xl font-bold text-gray-900 truncate">
                   {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
-                </p>
-                {selectedUser ? <StatusPill status={selectedUser.status} /> : null}
+                </h4>
+                {selectedUser && <StatusPill status={selectedUser.status} />}
               </div>
-              <p className="text-sm text-gray-400 font-medium truncate mt-1">{selectedUser?.email || "—"}</p>
-              <p className="text-sm text-gray-500 font-medium truncate mt-1">
-                {selectedUser?.role?.replaceAll("_", " ") ?? "—"} • {selectedUser?.club?.name ? `Organizer: ${selectedUser.club.name}` : "No Organizer Assigned"}
+              
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <Globe className="w-4 h-4 text-gray-400" />
+                  {selectedUser?.email || "No email provided"}
+                </div>
+                <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block" />
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <Shield className="w-4 h-4 text-gray-400" />
+                  <span className="font-bold text-blue-600">
+                    {selectedUser?.role === "CLUB_ADMIN" ? "ORGANISER ADMIN" : (selectedUser?.role?.replaceAll("_", " ") ?? "USER")}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-[12px] text-gray-400 mt-2 font-medium flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Joined {formatJoinedDate(selectedUser?.createdAt || "")}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-2xl overflow-x-auto scrollbar-hide">
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-2xl border border-gray-100 overflow-x-auto scrollbar-hide">
             {[
               { id: "overview", label: "Overview", icon: Users },
-              { id: "activity", label: "Activity", icon: Clock },
+              { id: "activity", label: "History", icon: Clock },
               { id: "payments", label: "Payments", icon: CreditCard },
               { id: "tournaments", label: "Tournaments", icon: Trophy },
             ].map((tab) => (
@@ -1333,13 +1389,13 @@ export default function SuperAdminUsersPage() {
                 type="button"
                 onClick={() => setViewTab(tab.id as any)}
                 className={cn(
-                  "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all whitespace-nowrap",
+                  "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2.5 transition-all whitespace-nowrap",
                   viewTab === tab.id
                     ? "bg-white text-blue-600 shadow-sm border border-blue-50"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/50"
                 )}
               >
-                <tab.icon className="h-4 w-4 shrink-0" />
+                <tab.icon className={cn("h-4 w-4 shrink-0", viewTab === tab.id ? "text-blue-500" : "text-gray-400")} />
                 <span>{tab.label}</span>
               </button>
             ))}
@@ -1352,66 +1408,90 @@ export default function SuperAdminUsersPage() {
                 <Skeleton className="h-40 w-full rounded-2xl" />
               </div>
             ) : viewTab === "overview" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
-                  <h5 className="text-sm font-bold text-gray-900">Personal Information</h5>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Full Name</span>
-                      <span className="text-[13px] text-gray-900 font-bold">{fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Email</span>
-                      <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.email || "—"}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Phone</span>
-                      <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.phone || "—"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
-                  <h5 className="text-sm font-bold text-gray-900">Account Details</h5>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Role</span>
-                      <RoleBadge role={selectedUser?.role || "PLAYER"} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Status</span>
-                      <StatusPill status={selectedUser?.status || "ACTIVE"} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-500 font-medium">Joined Date</span>
-                      <span className="text-[13px] text-gray-900 font-bold">{formatJoinedDate(selectedUser?.createdAt || "")}</span>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="space-y-6">
+                {/* Player Stats Cards (If Player) */}
                 {selectedUser?.role === "PLAYER" && (
-                  <div className="rounded-2xl border border-gray-100 p-5 col-span-full">
-                    <h5 className="text-sm font-bold text-gray-900 mb-4">Player Statistics</h5>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Handicap</p>
-                        <p className="text-lg font-bold text-emerald-700">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 shadow-sm">
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Handicap</p>
+                      <div className="flex items-end justify-between">
+                        <p className="text-2xl font-bold text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
+                        <Shield className="w-5 h-5 text-emerald-300" />
                       </div>
-                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Tournaments</p>
-                        <p className="text-lg font-bold text-blue-700">{viewRegistrations.length}</p>
+                    </div>
+                    <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 shadow-sm">
+                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Tournaments</p>
+                      <div className="flex items-end justify-between">
+                        <p className="text-2xl font-bold text-blue-900">{viewRegistrations.length}</p>
+                        <Trophy className="w-5 h-5 text-blue-300" />
                       </div>
-                      <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                        <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Wins</p>
-                        <p className="text-lg font-bold text-purple-700">0</p>
+                    </div>
+                    <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 shadow-sm">
+                      <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Wins</p>
+                      <div className="flex items-end justify-between">
+                        <p className="text-2xl font-bold text-purple-900">0</p>
+                        <Trophy className="w-5 h-5 text-purple-300" />
                       </div>
-                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                        <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Rank</p>
-                        <p className="text-lg font-bold text-amber-700">—</p>
+                    </div>
+                    <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100/50 shadow-sm">
+                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Rank</p>
+                      <div className="flex items-end justify-between">
+                        <p className="text-2xl font-bold text-amber-900">—</p>
+                        <Users className="w-5 h-5 text-amber-300" />
                       </div>
                     </div>
                   </div>
                 )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Personal Info */}
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
+                      <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        Personal Information
+                      </h5>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Full Name</span>
+                        <span className="text-[14px] text-gray-900 font-bold">{fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Email Address</span>
+                        <span className="text-[14px] text-gray-900 font-bold break-all">{selectedUser?.email || "—"}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Phone Number</span>
+                        <span className="text-[14px] text-gray-900 font-bold">{selectedUser?.phone || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Details */}
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
+                      <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-gray-400" />
+                        Account Details
+                      </h5>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                        <span className="text-[13px] text-gray-500 font-medium">System Role</span>
+                        <RoleBadge role={selectedUser?.role || "PLAYER"} />
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                        <span className="text-[13px] text-gray-500 font-medium">Account Status</span>
+                        <StatusPill status={selectedUser?.status || "ACTIVE"} />
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                        <span className="text-[13px] text-gray-500 font-medium">Organizer</span>
+                        <span className="text-[13px] text-gray-900 font-bold">{selectedUser?.club?.name || "None"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : viewTab === "activity" ? (
               <div className="space-y-4">
@@ -1573,7 +1653,13 @@ export default function SuperAdminUsersPage() {
         </div>
       );
     })()}
-  </Modal>
-</div>
+      </Modal>
+
+      <CreateUserWizard 
+        isOpen={isCreateWizardOpen} 
+        onClose={() => setIsCreateWizardOpen(false)} 
+        onSuccess={reload}
+      />
+    </div>
   );
 }

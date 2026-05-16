@@ -21,7 +21,7 @@ export class RegistrationsService {
     dto: RegisterTournamentDto,
     isAdmin = false,
   ) {
-    const { tournamentId, playerType, paymentReference } = dto;
+    const { tournamentId, playerType, paymentReference, status: requestedStatus, paymentStatus: requestedPaymentStatus } = dto;
 
     // 1. Fetch tournament and user details
     const [tournament, user] = await Promise.all([
@@ -97,9 +97,9 @@ export class RegistrationsService {
     const approvedCount = tournament.registrations.filter(
       (r) => r.status === RegistrationStatus.APPROVED,
     ).length;
-    let status: RegistrationStatus = RegistrationStatus.PENDING;
+    let status: RegistrationStatus = isAdmin && requestedStatus ? (requestedStatus as RegistrationStatus) : RegistrationStatus.PENDING;
 
-    if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+    if (!isAdmin && tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
       status = RegistrationStatus.WAITLISTED;
     }
 
@@ -110,9 +110,7 @@ export class RegistrationsService {
         tournamentId,
         playerType: effectivePlayerType,
         status,
-        paymentStatus: paymentReference
-          ? PaymentStatus.PAID
-          : PaymentStatus.UNPAID,
+        paymentStatus: isAdmin && requestedPaymentStatus ? (requestedPaymentStatus as PaymentStatus) : (paymentReference ? PaymentStatus.PAID : PaymentStatus.UNPAID),
         paymentReference,
       },
     });
@@ -233,6 +231,12 @@ export class RegistrationsService {
         paymentStatus: PaymentStatus.PAID,
         paymentReference,
       },
+    });
+  }
+
+  async remove(id: string) {
+    return this.prisma.registration.delete({
+      where: { id },
     });
   }
 }

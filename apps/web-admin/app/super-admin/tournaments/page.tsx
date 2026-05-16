@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore, useMemo } from "react";
 import {
   Trophy,
   Users,
@@ -23,6 +23,11 @@ import {
   Globe,
   Lock,
   Shield,
+  Check,
+  Eraser,
+  UserMinus,
+  Clock,
+  X,
 } from "lucide-react";
 import {
   PieChart as RePieChart,
@@ -52,7 +57,16 @@ import {
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FloatingMenu } from "@/components/ui/floating-menu";
-import { CreateTournamentWizard } from "@/components/tournaments/CreateTournamentWizard";
+import dynamic from "next/dynamic";
+import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
+
+const CreateTournamentWizard = dynamic(
+  () => import("@/components/tournaments/CreateTournamentWizard").then(mod => mod.CreateTournamentWizard),
+  { 
+    ssr: false, 
+    loading: () => <WizardSkeleton steps={8} /> 
+  }
+);
 
 type TournamentStatus = "DRAFT" | "REGISTRATION_OPEN" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
@@ -216,6 +230,8 @@ export default function TournamentsPage() {
   const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
+  const [monthFilter, setMonthFilter] = useState("All Months");
+  const [yearFilter, setYearFilter] = useState("All Years");
   const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
   const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
   const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -225,6 +241,11 @@ export default function TournamentsPage() {
   const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
   const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
+  const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
+  const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
+  const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
+  const [actionRegistration, setActionRegistration] = useState<RegistrationListItem | null>(null);
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(false);
   const [editName, setEditName] = useState("");
@@ -323,8 +344,46 @@ export default function TournamentsPage() {
 
     const matchesClub = clubFilter === "All Organizers" || t.clubName === clubFilter;
     const matchesStatus = statusFilter === "All Status" || t.status === statusFilter;
-    return matchesSearch && matchesClub && matchesStatus;
+
+    let matchesMonth = true;
+    if (monthFilter !== "All Months") {
+      const d = new Date(t.startDate);
+      const monthName = d.toLocaleString("default", { month: "long" });
+      matchesMonth = monthName === monthFilter;
+    }
+
+    let matchesYear = true;
+    if (yearFilter !== "All Years") {
+      const d = new Date(t.startDate);
+      matchesYear = d.getFullYear().toString() === yearFilter;
+    }
+
+    return matchesSearch && matchesClub && matchesStatus && matchesMonth && matchesYear;
   });
+
+  const uniqueClubs = Array.from(new Set(rows.map((t) => t.clubName))).filter((c) => c !== "—");
+  const uniqueStatuses = Array.from(new Set(rows.map((t) => t.status)));
+
+  const uniqueMonths = useMemo(() => {
+    const months = new Set<string>();
+    rows.forEach(t => {
+      const d = new Date(t.startDate);
+      months.add(d.toLocaleString("default", { month: "long" }));
+    });
+    return Array.from(months).sort((a, b) => {
+      const monthsOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      return monthsOrder.indexOf(a) - monthsOrder.indexOf(b);
+    });
+  }, [rows]);
+
+  const uniqueYears = useMemo(() => {
+    const years = new Set<string>();
+    rows.forEach(t => {
+      const d = new Date(t.startDate);
+      years.add(d.getFullYear().toString());
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [rows]);
 
   // Paginated data
   const totalPages = Math.ceil(filteredTournaments.length / itemsPerPage);
@@ -332,9 +391,6 @@ export default function TournamentsPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const uniqueClubs = Array.from(new Set(rows.map((t) => t.clubName))).filter((c) => c !== "—");
-  const uniqueStatuses = Array.from(new Set(rows.map((t) => t.status)));
 
   const totalTournaments = rows.length;
   const activeTournaments = rows.filter(
@@ -445,7 +501,7 @@ export default function TournamentsPage() {
   }, [registrationsSearch]);
 
   useEffect(() => {
-    if (!isViewModalOpen || !selectedTournament?.id) return;
+    if ((!isViewModalOpen && !isRegisterPlayerModalOpen) || !selectedTournament?.id) return;
     let cancelled = false;
     getRegistrations({
       tournamentId: selectedTournament.id,
@@ -587,25 +643,25 @@ export default function TournamentsPage() {
     }
 
     let cancelled = false;
-    const handle = window.setTimeout(async () => {
-      setIsSearchingPlayers(true);
-      try {
-        const { items } = await getAdminUsers({ search: q, take: 10 });
+    
+    setIsSearchingPlayers(true);
+    getAdminUsers({ search: q, take: 10 })
+      .then(({ items }) => {
         if (!cancelled) {
           setRegisterPlayerResults(Array.isArray(items) ? items : []);
         }
-      } catch (e: unknown) {
+      })
+      .catch((e: unknown) => {
         if (!cancelled) {
           console.error("Player search failed", e);
         }
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setIsSearchingPlayers(false);
-      }
-    }, 400);
+      });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
   }, [isRegisterPlayerModalOpen, registerPlayerSearch]);
 
@@ -617,11 +673,17 @@ export default function TournamentsPage() {
       await registerForTournament({
         tournamentId: selectedTournament.id,
         userId,
+        paymentStatus: manualPaymentType === "CASH" ? "PAID" : "UNPAID",
+        status: manualPaymentType === "CASH" ? "APPROVED" : "PENDING",
       });
       toast.success("Player registered successfully");
       setIsRegisterPlayerModalOpen(false);
       setRegisterPlayerSearch("");
       
+      // Update local state for realtime feel
+      setRegistrationsTournamentTotal(prev => prev + 1);
+      setSelectedTournament(prev => prev ? { ...prev, registrations: prev.registrations + 1 } : null);
+
       // Refresh everything
       reloadTournaments();
       
@@ -635,7 +697,6 @@ export default function TournamentsPage() {
         });
         setRegistrations(Array.isArray(items) ? items : []);
         setRegistrationsTotal(typeof total === "number" ? total : 0);
-        setRegistrationsTournamentTotal(typeof total === "number" ? total : (prev => prev + 1));
         setRegistrationsLoading(false);
       } else {
          // Full reload for client mode
@@ -762,6 +823,15 @@ export default function TournamentsPage() {
       toast.success("Tournament link copied to clipboard");
       return;
     }
+    if (action === "edit") {
+      openEdit(tournament);
+      return;
+    }
+    if (action === "register") {
+      setSelectedTournament(tournament);
+      setIsRegisterPlayerModalOpen(true);
+      return;
+    }
     if (action === "cancel") {
       openCancel(tournament);
       return;
@@ -796,6 +866,59 @@ export default function TournamentsPage() {
       })
       .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to delete tournament"))
       .finally(() => setMutating(false));
+  };
+
+  const confirmDisqualify = () => {
+    if (!actionRegistration) return;
+    setIsDisqualifyModalOpen(false);
+    updateTournamentRegistrationStatus(actionRegistration.id, "DISQUALIFIED");
+  };
+
+  const confirmEnablePlayer = () => {
+    if (!actionRegistration) return;
+    setIsEnablePlayerModalOpen(false);
+    updateTournamentRegistrationStatus(actionRegistration.id, "APPROVED");
+  };
+
+  const confirmRemovePlayer = async () => {
+    if (!actionRegistration || !selectedTournament) return;
+    setIsRemovePlayerModalOpen(false);
+    setRegistrationActionId(actionRegistration.id);
+    try {
+      const { deleteRegistration } = await import("@/lib/api/registrations");
+      await deleteRegistration(actionRegistration.id);
+      toast.success("Player removed from tournament");
+      
+      // Update local state for realtime feel
+      setRegistrationsTournamentTotal(prev => Math.max(0, prev - 1));
+      setSelectedTournament(prev => prev ? { ...prev, registrations: Math.max(0, prev.registrations - 1) } : null);
+
+      // Refresh registrations list
+      if (registrationsMode === "client") {
+        setRegistrationsAll(prev => prev.filter(x => x.id !== actionRegistration.id));
+        setRegistrations(prev => prev.filter(x => x.id !== actionRegistration.id));
+        setRegistrationsTotal(prev => Math.max(0, prev - 1));
+      } else {
+        // Trigger server refresh by re-fetching the current page
+        setRegistrationsLoading(true);
+        const { items, total } = await getRegistrations({
+          tournamentId: selectedTournament.id,
+          skip: (registrationsPage - 1) * registrationsPerPage,
+          take: registrationsPerPage,
+        });
+        setRegistrations(Array.isArray(items) ? items : []);
+        setRegistrationsTotal(typeof total === "number" ? total : 0);
+        setRegistrationsLoading(false);
+      }
+
+      // Sync with main dashboard
+      reloadTournaments();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove player");
+    } finally {
+      setRegistrationActionId(null);
+      setActionRegistration(null);
+    }
   };
 
   return (
@@ -893,13 +1016,20 @@ export default function TournamentsPage() {
                   placeholder="All Status"
                 />
                 <SearchableSelect
-                  value={"All Dates"}
-                  onValueChange={() => {}}
-                  options={[{ value: "All Dates", label: "All Dates" }]}
-                  className="min-w-[160px]"
+                  value={monthFilter}
+                  onValueChange={setMonthFilter}
+                  options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
+                  className="min-w-[140px]"
                   triggerClassName="h-11 bg-white"
-                  placeholder="All Dates"
-                  disabled
+                  placeholder="All Months"
+                />
+                <SearchableSelect
+                  value={yearFilter}
+                  onValueChange={setYearFilter}
+                  options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
+                  className="min-w-[120px]"
+                  triggerClassName="h-11 bg-white"
+                  placeholder="All Years"
                 />
 
               </div>
@@ -909,14 +1039,14 @@ export default function TournamentsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      <th className="px-6 py-4">Tournament Name</th>
-                      <th className="px-6 py-4">Organizer</th>
-                      <th className="px-6 py-4">Dates</th>
-                      <th className="px-6 py-4">Players</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Visibility</th>
-                      <th className="px-6 py-4 text-right">Entry Fee</th>
-                      <th className="px-6 py-4 text-center">Actions</th>
+                      <th className="px-4 py-4">Tournament Name</th>
+                      <th className="px-4 py-4">Organizer</th>
+                      <th className="px-4 py-4">Dates</th>
+                      <th className="px-4 py-4 text-center">Players</th>
+                      <th className="px-4 py-4">Status</th>
+                      <th className="px-4 py-4">Visibility</th>
+                      <th className="px-4 py-4 text-right">Entry Fee</th>
+                      <th className="px-4 py-4 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -929,31 +1059,32 @@ export default function TournamentsPage() {
                     ) : loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <Skeleton className="w-8 h-8 rounded-lg" />
                               <Skeleton className="h-4 w-32 rounded-md" />
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <Skeleton className="h-4 w-24 rounded-md" />
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <Skeleton className="h-4 w-28 rounded-md" />
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 text-center">
+                            <Skeleton className="h-4 w-16 rounded-md mx-auto" />
+                          </td>
+                          <td className="px-4 py-4">
                             <Skeleton className="h-4 w-16 rounded-md" />
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <Skeleton className="h-4 w-16 rounded-md" />
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-4 py-4 text-right">
                             <Skeleton className="h-4 w-20 rounded-md ml-auto" />
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="flex items-center justify-center gap-2">
-                              <Skeleton className="h-9 w-9 rounded-lg" />
-                              <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
                             </div>
@@ -963,30 +1094,30 @@ export default function TournamentsPage() {
                     ) : paginatedTournaments.length > 0 ? (
                       paginatedTournaments.map((t) => (
                         <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
                                 <Trophy className="w-4 h-4" />
                               </div>
-                              <span className="text-[14px] font-bold text-gray-900">{t.name}</span>
+                              <span className="text-[14px] font-bold text-gray-900 truncate max-w-[180px]" title={t.name}>{t.name}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{t.clubName}</td>
-                          <td className="px-6 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{t.dates}</td>
-                          <td className="px-6 py-4 text-[13px] text-gray-900 font-bold">{t.players}</td>
-                          <td className="px-6 py-4">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${t.badge}`}>
+                          <td className="px-4 py-4 text-[13px] text-gray-500 font-medium truncate max-w-[140px]" title={t.clubName}>{t.clubName}</td>
+                          <td className="px-4 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{t.dates}</td>
+                          <td className="px-4 py-4 text-[13px] text-gray-900 font-bold text-center">{t.players}</td>
+                          <td className="px-4 py-4">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${t.badge}`}>
                               {t.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold", VISIBILITY_META[t.visibilityKey]?.badge)}>
+                          <td className="px-4 py-4">
+                            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold whitespace-nowrap", VISIBILITY_META[t.visibilityKey]?.badge)}>
                               {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3" })}
                               {t.visibility}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-[14px] font-bold text-gray-900 text-right">{formatNaira(t.entryFee)}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 text-[14px] font-bold text-gray-900 text-right whitespace-nowrap">{formatNaira(t.entryFee)}</td>
+                          <td className="px-4 py-4">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => openView(t)}
@@ -994,49 +1125,6 @@ export default function TournamentsPage() {
                                 title="View Tournament"
                               >
                                 <Eye className="w-4.5 h-4.5" />
-                              </button>
-                              <button
-                                onClick={() => openEdit(t)}
-                                className={cn(
-                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : "text-blue-600 hover:bg-blue-50"
-                                )}
-                                title={
-                                  t.statusKey === "CANCELLED" ? "Cancelled tournaments cannot be edited" 
-                                  : t.statusKey === "COMPLETED" ? "Completed tournaments cannot be edited"
-                                  : t.statusKey === "ONGOING" ? "Ongoing tournaments cannot be edited"
-                                  : "Edit Tournament"
-                                }
-                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"}
-                              >
-                                <Edit2 className="w-4.5 h-4.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedTournament(t);
-                                  setIsRegisterPlayerModalOpen(true);
-                                }}
-                                className={cn(
-                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                  t.statusKey === "DRAFT" || t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : t.maxPlayers !== null && t.registrations >= t.maxPlayers
-                                      ? "text-amber-500 hover:bg-amber-50"
-                                      : "text-[#10b981] hover:bg-[#10b981]/10"
-                                )}
-                                title={
-                                  t.statusKey === "DRAFT" ? "Draft tournaments cannot have players registered"
-                                  : t.statusKey === "CANCELLED" ? "Cancelled tournaments cannot have players registered"
-                                  : t.statusKey === "COMPLETED" ? "Completed tournaments cannot have players registered"
-                                  : t.maxPlayers !== null && t.registrations >= t.maxPlayers
-                                    ? "Tournament Full (Player will be Waitlisted)"
-                                    : "Register Player"
-                                }
-                                disabled={t.statusKey === "DRAFT" || t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
-                              >
-                                <Plus className="w-4.5 h-4.5" />
                               </button>
                               <div className="relative">
                                 <button
@@ -1234,6 +1322,33 @@ export default function TournamentsPage() {
             </button>
             <div className="h-px bg-gray-50 my-1" />
             <button
+              onClick={() => handleMoreAction("edit", dropdownTournament)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-blue-50 flex items-center gap-3",
+                dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "ONGOING"
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-blue-600"
+              )}
+              disabled={dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "ONGOING"}
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit Tournament
+            </button>
+            <button
+              onClick={() => handleMoreAction("register", dropdownTournament)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-emerald-50 flex items-center gap-3",
+                dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-emerald-600"
+              )}
+              disabled={dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"}
+            >
+              <UserPlus className="w-4 h-4" />
+              Register Player
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
+            <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
@@ -1301,51 +1416,140 @@ export default function TournamentsPage() {
           setStrokesMenuAnchorEl(null);
           setIsViewModalOpen(false);
         }}
-        title="Tournament Details"
+        title=""
         size="xl"
         footer={
-          <Button
-            variant="outline"
-            onClick={() => {
-              setStrokesMenuRegistration(null);
-              setStrokesMenuAnchorEl(null);
-              setIsViewModalOpen(false);
-            }}
-            className="rounded-lg font-bold"
-          >
-            Close
-          </Button>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+               <span className="text-xs text-gray-400 font-medium italic">
+                Tournament ID: {selectedTournament?.id.slice(0, 8)}...
+               </span>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStrokesMenuRegistration(null);
+                setStrokesMenuAnchorEl(null);
+                setIsViewModalOpen(false);
+              }}
+              className="rounded-lg font-bold border-gray-200"
+            >
+              Close Details
+            </Button>
+          </div>
         }
       >
-        <div className="space-y-5">
-          <div className="space-y-1">
-            <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Tournament</p>
-            <p className="text-[16px] font-bold text-gray-900">{selectedTournament?.name || "—"}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="space-y-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Organizer</p>
-              <p className="text-[14px] font-bold text-gray-900">{selectedTournament?.clubName || "—"}</p>
+        <div className="space-y-8">
+          {/* Status Alert Banners */}
+          {selectedTournament?.statusKey === "CANCELLED" && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-4 text-red-700">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Ban className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">Tournament Cancelled</p>
+                <p className="text-[12px] text-red-600/80 font-medium">This tournament has been cancelled and player actions are disabled.</p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Status</p>
-              <p className="text-[14px] font-bold text-gray-900">{selectedTournament?.status || "—"}</p>
+          )}
+          {selectedTournament?.statusKey === "COMPLETED" && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 text-emerald-700">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">Tournament Completed</p>
+                <p className="text-[12px] text-emerald-600/80 font-medium">This tournament has concluded and is now read-only.</p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Dates</p>
-              <p className="text-[14px] font-bold text-gray-900">{selectedTournament?.dates || "—"}</p>
+          )}
+
+          {/* Header Section */}
+          <div className="flex items-center gap-5 border-b border-gray-50 pb-8">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-[#10b981] border border-emerald-100 flex-shrink-0 shadow-sm">
+              <Trophy className="w-8 h-8" />
             </div>
-            <div className="space-y-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Entry Fee</p>
-              <p className="text-[14px] font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3 mb-1">
+                <h4 className="text-2xl font-bold text-gray-900 truncate">
+                  {selectedTournament?.name || "Tournament Details"}
+                </h4>
+                {selectedTournament && (
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border",
+                    selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                    selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                    selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-gray-200" :
+                    "bg-amber-50 text-amber-700 border-amber-100"
+                  )}>
+                    {selectedTournament.status}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <Globe className="w-4 h-4 text-gray-400" />
+                  {selectedTournament?.clubName || "Independent"}
+                </div>
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  {selectedTournament?.dates || "Dates TBD"}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Registrations</p>
-              <div className="flex items-center gap-3">
-                <p className="text-[12px] text-gray-400 font-medium">{formatWithCommas(registrationsTournamentTotal)} total</p>
+          {/* Quick Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Total Players</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Per Registration</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <Wallet className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {selectedTournament?.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Player Limit</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                  <Lock className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Registrations Header Section */}
+          <div className="space-y-5 pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h5 className="text-[16px] font-bold text-gray-900">Registered Players</h5>
+                <p className="text-[12px] text-gray-500 font-medium">Manage and monitor tournament participation</p>
               </div>
             </div>
 
@@ -1445,116 +1649,164 @@ export default function TournamentsPage() {
               </div>
             ) : registrationsPageItems.length > 0 ? (
               <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-                {registrationsPageItems.map((r) => {
-                  const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim();
-                  const statusBadge =
-                    r.status === "DISQUALIFIED"
-                      ? "bg-gray-100 text-gray-800"
-                      : r.status === "APPROVED"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : r.status === "REJECTED"
-                        ? "bg-red-50 text-red-700"
-                        : r.status === "WAITLISTED"
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-amber-50 text-amber-700";
-                  const paymentBadge =
-                    r.paymentStatus === "PAID"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : r.paymentStatus === "REFUNDED"
-                        ? "bg-violet-50 text-violet-700"
-                        : "bg-gray-50 text-gray-700";
-                  return (
-                    <div key={r.id} className="px-4 py-3 hover:bg-gray-50/40 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <p className="text-[13px] text-gray-900 font-bold truncate">{fullName || "—"}</p>
-                            <span className={cn("text-[11px] font-bold px-2 py-1 rounded-lg", statusBadge)}>
-                              {r.status}
-                            </span>
-                            <span className={cn("text-[11px] font-bold px-2 py-1 rounded-lg", paymentBadge)}>
-                              {r.paymentStatus}
-                            </span>
-                            {typeof r.extraStrokes === "number" && r.extraStrokes > 0 ? (
-                              <span className="text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700">
-                                +{r.extraStrokes} strokes
-                              </span>
-                            ) : null}
+                  {registrationsPageItems.map((r) => {
+                    const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
+                    const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
+                    
+                    const statusConfig = {
+                      DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
+                      APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
+                      REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
+                      WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
+                      PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
+                    }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
+
+                    const paymentConfig = {
+                      PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
+                      REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
+                      UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
+                    }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
+
+                    return (
+                      <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <img
+                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
+                              alt={fullName}
+                              className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="text-[14px] text-gray-900 font-bold truncate">{fullName}</p>
+                                <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
+                                  {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
+                                  {r.status}
+                                </span>
+                                <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
+                                  {paymentConfig.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <p className="text-[12px] text-gray-400 font-medium truncate">{r.user?.email || "No email"}</p>
+                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                  <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
+                                    <Plus className="w-3 h-3" />
+                                    {r.extraStrokes} Strokes
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-[12px] text-gray-500 font-medium break-all">{r.user?.email ?? "—"}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {r.status === "DISQUALIFIED" ? (
-                            <button
-                              className={cn(
-                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                registrationActionId === r.id
-                                  ? "text-gray-300 cursor-not-allowed"
-                                  : "text-emerald-600 hover:bg-emerald-50",
-                              )}
-                              title="Enable Player"
-                              disabled={registrationActionId === r.id}
-                              onClick={() => updateTournamentRegistrationStatus(r.id, "APPROVED")}
-                            >
-                              <CheckCircle2 className="w-4.5 h-4.5" />
-                            </button>
-                          ) : (
-                            <button
-                              className={cn(
-                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                registrationActionId === r.id
-                                  ? "text-gray-300 cursor-not-allowed"
-                                  : "text-red-600 hover:bg-red-50",
-                              )}
-                              title="Disqualify Player"
-                              disabled={registrationActionId === r.id}
-                              onClick={() => updateTournamentRegistrationStatus(r.id, "DISQUALIFIED")}
-                            >
-                              <Ban className="w-4.5 h-4.5" />
-                            </button>
-                          )}
-                          <button
-                            className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              registrationActionId === r.id
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-600 hover:bg-gray-50",
+
+                          <div className={cn(
+                            "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
+                            isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}>
+                            {isTournamentLocked ? (
+                              <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                                Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
+                              </span>
+                            ) : (
+                              <>
+                                {r.status === "DISQUALIFIED" ? (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
+                                    )}
+                                    title="Enable Player"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => {
+                                      setActionRegistration(r);
+                                      setIsEnablePlayerModalOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Enable</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-red-600 hover:bg-red-50 hover:border-red-100"
+                                    )}
+                                    title="Disqualify Player"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => {
+                                      setActionRegistration(r);
+                                      setIsDisqualifyModalOpen(true);
+                                    }}
+                                  >
+                                    <Ban className="w-4 h-4" />
+                                    <span>Disqualify</span>
+                                  </button>
+                                )}
+                                
+                                <button
+                                  className={cn(
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-600 transition-all",
+                                    registrationActionId === r.id
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "hover:bg-gray-50 hover:border-gray-300"
+                                  )}
+                                  title="Add Strokes"
+                                  disabled={registrationActionId === r.id}
+                                  onClick={(e) => {
+                                    if (registrationActionId === r.id) return;
+                                    setStrokesMenuRegistration(r);
+                                    setStrokesMenuAnchorEl(e.currentTarget);
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>Strokes</span>
+                                </button>
+
+                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-400 transition-all",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
+                                    )}
+                                    title="Clear Strokes"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => clearTournamentRegistrationStrokes(r)}
+                                  >
+                                    <Eraser className="w-4 h-4" />
+                                    <span>Clear</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  className={cn(
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-red-600 transition-all",
+                                    registrationActionId === r.id
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "hover:bg-red-50 hover:border-red-100"
+                                  )}
+                                  title="Remove Player"
+                                  disabled={registrationActionId === r.id}
+                                  onClick={() => {
+                                    setActionRegistration(r);
+                                    setIsRemovePlayerModalOpen(true);
+                                  }}
+                                >
+                                  <UserMinus className="w-4 h-4" />
+                                  <span>Remove</span>
+                                </button>
+                              </>
                             )}
-                            title="Add Strokes"
-                            disabled={registrationActionId === r.id}
-                            onClick={(e) => {
-                              if (registrationActionId === r.id) return;
-                              if (strokesMenuRegistration?.id === r.id) {
-                                setStrokesMenuRegistration(null);
-                                setStrokesMenuAnchorEl(null);
-                                return;
-                              }
-                              setStrokesMenuRegistration(r);
-                              setStrokesMenuAnchorEl(e.currentTarget);
-                            }}
-                          >
-                            <Plus className="w-4.5 h-4.5" />
-                          </button>
-                          <button
-                            className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              registrationActionId === r.id || (typeof r.extraStrokes === "number" && r.extraStrokes <= 0)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-600 hover:bg-gray-50",
-                            )}
-                            title="Clear Strokes"
-                            disabled={
-                              registrationActionId === r.id || (typeof r.extraStrokes === "number" ? r.extraStrokes <= 0 : true)
-                            }
-                            onClick={() => clearTournamentRegistrationStrokes(r)}
-                          >
-                            <Trash2 className="w-4.5 h-4.5" />
-                          </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             ) : (
               <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
@@ -1589,9 +1841,10 @@ export default function TournamentsPage() {
           setIsRegisterPlayerModalOpen(false);
           setRegisterPlayerSearch("");
           setRegisterPlayerResults([]);
+          setManualPaymentType('UNPAID');
         }}
         title="Register Player"
-        size="md"
+        size="lg"
       >
         <div className="space-y-6 py-2">
           {/* Header */}
@@ -1607,6 +1860,55 @@ export default function TournamentsPage() {
             </div>
           </div>
 
+          {/* Payment Status Selection */}
+          <div className="space-y-3 px-1">
+            <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setManualPaymentType('UNPAID')}
+                className={cn(
+                  "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                  manualPaymentType === 'UNPAID' 
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700" 
+                    : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    manualPaymentType === 'UNPAID' ? "border-emerald-500" : "border-gray-300"
+                  )}>
+                    {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                  </div>
+                  <span className="text-[13px] font-bold">Unpaid</span>
+                </div>
+                <p className="text-[10px] opacity-70 leading-tight">Player will not be confirmed for grouping until payment is recorded.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setManualPaymentType('CASH')}
+                className={cn(
+                  "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                  manualPaymentType === 'CASH' 
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700" 
+                    : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    manualPaymentType === 'CASH' ? "border-emerald-500" : "border-gray-300"
+                  )}>
+                    {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                  </div>
+                  <span className="text-[13px] font-bold">Paid with Cash</span>
+                </div>
+                <p className="text-[10px] opacity-70 leading-tight">Registration will be approved and confirmed for grouping immediately.</p>
+              </button>
+            </div>
+          </div>
+
           {/* Search Input */}
           <div className="space-y-2 px-1">
             <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Find Player</Label>
@@ -1616,8 +1918,16 @@ export default function TournamentsPage() {
                 value={registerPlayerSearch}
                 onChange={(e) => setRegisterPlayerSearch(e.target.value)}
                 placeholder="Search by name, email or handicap..."
-                className="pl-12 h-12 bg-white border-gray-200 focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
+                className="pl-12 pr-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
               />
+              {registerPlayerSearch && (
+                <button 
+                  onClick={() => setRegisterPlayerSearch("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -1644,52 +1954,60 @@ export default function TournamentsPage() {
                 </div>
               ) : registerPlayerResults.length > 0 ? (
                 <div className="grid grid-cols-1 gap-2.5">
-                  {registerPlayerResults.map((u) => (
-                    <div 
-                      key={u.id} 
-                      className="group p-3 rounded-xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
-                            alt={u.email}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
-                          />
-                          <div className={cn(
-                            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                            u.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-300"
-                          )} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
-                            <span className={cn(
-                              "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight",
-                              u.role === "PLAYER" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
-                            )}>
-                              {u.role}
-                            </span>
+                  {registerPlayerResults.map((u) => {
+                    const isRegistered = registrationsAll.some(r => r.user?.id === u.id);
+                    return (
+                      <div 
+                        key={u.id} 
+                        className="group p-4 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <img
+                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
+                              alt={u.email}
+                              className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
+                            />
+                            <div className={cn(
+                              "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
+                              u.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-300"
+                            )} />
                           </div>
-                          <p className="text-[12px] text-gray-500 truncate">{u.email}</p>
-                        </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
+                              {isRegistered && (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
+                                  <Check className="w-3 h-3" /> Registered
+                                </span>
+                              )}
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight",
+                                u.role === "PLAYER" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
+                              )}>
+                                {u.role}
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-gray-500 truncate">{u.email}</p>
+                          </div>
 
-                        <Button
-                          disabled={isRegistering}
-                          onClick={() => handleRegisterPlayer(u.id)}
-                          className="h-9 px-4 bg-[#10b981] hover:bg-[#0da673] text-white rounded-lg text-[12px] font-bold flex items-center gap-2 transition-all group-hover:scale-105 active:scale-95 shadow-sm shadow-emerald-500/10"
-                        >
-                          {isRegistering ? (
-                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <Plus className="w-3.5 h-3.5" />
-                          )}
-                          Register
-                        </Button>
+                          <Button
+                            disabled={isRegistering || isRegistered}
+                            onClick={() => handleRegisterPlayer(u.id)}
+                            className={cn(
+                              "h-10 px-5 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm",
+                              isRegistered 
+                                ? "bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed" 
+                                : "bg-[#10b981] hover:bg-[#0da673] text-white shadow-emerald-500/20"
+                            )}
+                          >
+                            {isRegistering ? "Registering..." : isRegistered ? "Registered" : "Register Now"}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : registerPlayerSearch.trim().length >= 2 ? (
                 <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
@@ -1805,6 +2123,111 @@ export default function TournamentsPage() {
               className="rounded-xl border-gray-200 focus:border-red-500"
             />
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isDisqualifyModalOpen}
+        onClose={() => {
+          setIsDisqualifyModalOpen(false);
+          setActionRegistration(null);
+        }}
+        title="Disqualify Player?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsDisqualifyModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+              onClick={confirmDisqualify}
+            >
+              Confirm Disqualify
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
+            <Ban className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Disqualify Player?</h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
+          </p>
+          <p className="text-[13px] text-amber-600 font-medium mt-4">
+            This will mark their status as DISQUALIFIED. They can be re-enabled later.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRemovePlayerModalOpen}
+        onClose={() => {
+          setIsRemovePlayerModalOpen(false);
+          setActionRegistration(null);
+        }}
+        title="Remove Player from Tournament?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              onClick={confirmRemovePlayer}
+            >
+              Remove Player
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <UserMinus className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Remove Player?</h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+          </p>
+          <p className="text-[13px] text-red-600 font-medium mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
+            Warning: This action is permanent and will delete their registration records for this tournament.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isEnablePlayerModalOpen}
+        onClose={() => {
+          setIsEnablePlayerModalOpen(false);
+          setActionRegistration(null);
+        }}
+        title="Re-enable Player?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsEnablePlayerModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
+              onClick={confirmEnablePlayer}
+            >
+              Confirm Enable
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500">
+            <CheckCircle2 className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Re-enable Player?</h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
+          </p>
+          <p className="text-[13px] text-emerald-600 font-medium mt-4">
+            This will set their status back to APPROVED and allow them to be grouped for tee times.
+          </p>
         </div>
       </Modal>
 

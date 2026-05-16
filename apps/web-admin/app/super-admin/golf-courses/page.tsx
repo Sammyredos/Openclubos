@@ -17,6 +17,10 @@ import {
   MoreHorizontal,
   ChevronRight,
   Filter,
+  Phone,
+  Globe,
+  Shield,
+  Trophy,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +31,16 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Course, CourseStats, getAdminCourses, deleteCourse, updateCourse } from "@/lib/api/courses";
-import { CreateCourseWizard } from "@/components/courses/CreateCourseWizard";
+import dynamic from "next/dynamic";
+import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
+
+const CreateCourseWizard = dynamic(
+  () => import("@/components/courses/CreateCourseWizard").then(mod => mod.CreateCourseWizard),
+  { 
+    ssr: false, 
+    loading: () => <WizardSkeleton steps={6} /> 
+  }
+);
 import { Country } from "country-state-city";
 import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
@@ -305,63 +318,62 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">Course</th>
-                  <th className="px-6 py-4">Location</th>
-                  <th className="px-6 py-4">Holes</th>
-                  <th className="px-6 py-4">Par</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Country</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+                <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-4">Course</th>
+                  <th className="px-4 py-4">Location</th>
+                  <th className="px-4 py-4 text-center">Holes</th>
+                  <th className="px-4 py-4 text-center">Par</th>
+                  <th className="px-4 py-4">Type</th>
+                  <th className="px-4 py-4">Country</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[240px]">
-                          <Skeleton className="w-12 h-10 rounded-lg" />
+                          <Skeleton className="w-12 h-10 rounded-lg flex-shrink-0" />
                           <div className="flex flex-col gap-2">
                             <Skeleton className="h-4 w-32 rounded-md" />
                             <Skeleton className="h-3 w-24 rounded-md" />
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <Skeleton className="w-3.5 h-3.5 rounded-full" />
+                          <Skeleton className="w-3.5 h-3.5 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-2">
                             <Skeleton className="h-4 w-28 rounded-md" />
                             <Skeleton className="h-3 w-20 rounded-md" />
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <Skeleton className="h-4 w-6 rounded-md" />
+                      <td className="px-4 py-4">
+                        <Skeleton className="h-4 w-6 rounded-md mx-auto" />
                       </td>
-                      <td className="px-6 py-4">
-                        <Skeleton className="h-4 w-6 rounded-md" />
+                      <td className="px-4 py-4">
+                        <Skeleton className="h-4 w-6 rounded-md mx-auto" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-1.5">
                           <Skeleton className="w-3.5 h-3.5 rounded-full" />
                           <Skeleton className="h-4 w-16 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <Skeleton className="w-5 h-3.5 rounded-sm" />
                           <Skeleton className="h-4 w-20 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-5 w-16 rounded-full" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -371,7 +383,7 @@ export default function SuperAdminGolfCoursesPage() {
                 ) : courses.length > 0 ? (
                   courses.map((course) => (
                     <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[240px]">
                           <div className="w-12 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
                             {course.coverImage ? (
@@ -388,25 +400,25 @@ export default function SuperAdminGolfCoursesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-500" />
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-medium text-gray-700">{course.city}, {course.state}</span>
-                            <span className="text-[11px] text-gray-400">{Country.getCountryByCode(course.country)?.name || course.country}</span>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2 min-w-[180px]">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[13px] font-medium text-gray-700 truncate">{course.city}, {course.state}</span>
+                            <span className="text-[11px] text-gray-400 truncate">{Country.getCountryByCode(course.country)?.name || course.country}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[14px] text-gray-600 font-medium">{course.holes}</td>
-                      <td className="px-6 py-4 text-[14px] text-gray-600 font-medium">{course.par}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-600">
-                          <Mountain className="w-3.5 h-3.5 text-blue-400" />
+                      <td className="px-4 py-4 text-[14px] text-gray-600 font-bold text-center">{course.holes}</td>
+                      <td className="px-4 py-4 text-[14px] text-gray-600 font-bold text-center">{course.par}</td>
+                      <td className="px-4 py-4">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-600 bg-blue-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
+                          <Mountain className="w-3 h-3 text-blue-400" />
                           {course.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
                           <div className="w-5 h-3.5 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
                             <img 
                               src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`} 
@@ -419,10 +431,10 @@ export default function SuperAdminGolfCoursesPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <StatusPill status={course.status} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
@@ -433,22 +445,6 @@ export default function SuperAdminGolfCoursesPage() {
                             title="View Course"
                           >
                             <Eye className="w-4.5 h-4.5" />
-                          </button>
-                          <button
-                            className={cn(
-                              "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                              course.status === "INACTIVE"
-                                ? "text-emerald-600 hover:bg-emerald-50"
-                                : "text-red-600 hover:bg-red-50"
-                            )}
-                            onClick={() => openStatusModal(course)}
-                            title={course.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
-                          >
-                            {course.status === "INACTIVE" ? (
-                              <CheckCircle2 className="w-4.5 h-4.5" />
-                            ) : (
-                              <Ban className="w-4.5 h-4.5" />
-                            )}
                           </button>
                           <div className="relative">
                             <button
@@ -514,61 +510,170 @@ export default function SuperAdminGolfCoursesPage() {
         courseId={selectedCourse?.id}
       />
 
-      <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="View Course Details">
+      <Modal 
+        isOpen={isViewModalOpen} 
+        onClose={() => setIsViewModalOpen(false)} 
+        title=""
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-[11px] text-gray-400 font-medium italic">
+              Course ID: {selectedCourse?.id || "—"}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setIsViewModalOpen(false)}
+              className="rounded-lg font-bold border-gray-200"
+            >
+              Close Details
+            </Button>
+          </div>
+        }
+      >
         {selectedCourse ? (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 border-b border-gray-50 pb-6">
-              <div className="w-16 h-16 rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center">
-                {selectedCourse.coverImage ? (
-                  <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Mountain className="w-8 h-8 text-gray-300" />
-                )}
+          <div className="space-y-8">
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
+              <div className="relative">
+                <div className="h-24 w-24 rounded-3xl border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
+                  {selectedCourse.coverImage ? (
+                    <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Mountain className="h-10 w-10 text-gray-300" />
+                  )}
+                </div>
+                <div className={cn(
+                  "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
+                  selectedCourse.status === "ACTIVE" ? "bg-emerald-500" : "bg-red-500"
+                )} />
               </div>
-              <div>
-                <h4 className="text-xl font-bold text-gray-900">{selectedCourse.name}</h4>
-                <p className="text-sm text-gray-500">{selectedCourse.type} Course • {selectedCourse.holes} Holes • Par {selectedCourse.par}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Location</p>
-                <p className="text-[13px] font-medium text-gray-900 leading-relaxed">
-                  {selectedCourse.address}<br />
-                  {selectedCourse.city}, {selectedCourse.state}<br />
-                  {Country.getCountryByCode(selectedCourse.country)?.name || selectedCourse.country}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Contact Details</p>
-                <div className="text-[13px] font-medium text-gray-900 flex flex-col gap-1.5 mt-1">
-                  {selectedCourse.phone ? <span>{selectedCourse.phone}</span> : <span className="text-gray-400 italic">No phone</span>}
-                  {selectedCourse.email ? <span>{selectedCourse.email}</span> : <span className="text-gray-400 italic">No email</span>}
-                  {selectedCourse.website ? <a href={selectedCourse.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Website Link</a> : null}
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <h4 className="text-2xl font-bold text-gray-900 truncate">{selectedCourse.name}</h4>
+                  <span className={cn(
+                    "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm border",
+                    selectedCourse.status === "ACTIVE" 
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                      : "bg-red-50 text-red-600 border-red-100"
+                  )}>
+                    {selectedCourse.status}
+                  </span>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    {selectedCourse.city}, {selectedCourse.state}
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block" />
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                    <Globe className="w-4 h-4 text-gray-400" />
+                    {Country.getCountryByCode(selectedCourse.country)?.name || selectedCourse.country}
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Course Metrics Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 shadow-sm">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Course Type</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-xl font-bold text-blue-900">{selectedCourse.type}</p>
+                  <Trophy className="w-5 h-5 text-blue-300" />
+                </div>
+              </div>
+              <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 shadow-sm">
+                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Total Holes</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-xl font-bold text-emerald-900">{selectedCourse.holes} Holes</p>
+                  <Flag className="w-5 h-5 text-emerald-300" />
+                </div>
+              </div>
+              <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 shadow-sm">
+                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Course Par</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-xl font-bold text-purple-900">Par {selectedCourse.par}</p>
+                  <Trophy className="w-5 h-5 text-purple-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Location Card */}
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
+                  <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    Full Address
+                  </h5>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Street Address</span>
+                    <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.address}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">City & State</span>
+                    <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.city}, {selectedCourse.state}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Card */}
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
+                  <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    Contact Details
+                  </h5>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                    <span className="text-[13px] text-gray-500 font-medium">Email</span>
+                    <span className="text-[13px] text-gray-900 font-bold">{selectedCourse.email || "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                    <span className="text-[13px] text-gray-500 font-medium">Phone</span>
+                    <span className="text-[13px] text-gray-900 font-bold">{selectedCourse.phone || "—"}</span>
+                  </div>
+                  {selectedCourse.website && (
+                    <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                      <span className="text-[13px] text-gray-500 font-medium">Website</span>
+                      <a href={selectedCourse.website} target="_blank" rel="noreferrer" className="text-[13px] text-blue-600 font-bold hover:underline">Visit Site</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Amenities Section */}
             {selectedCourse.amenities && selectedCourse.amenities.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Amenities</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <h5 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-gray-400" />
+                  Available Amenities
+                </h5>
+                <div className="flex flex-wrap gap-2.5">
                   {selectedCourse.amenities.map(a => (
-                    <span key={a} className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-700">
+                    <span key={a} className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[12px] font-bold text-gray-700 shadow-sm flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                       {a}
                     </span>
                   ))}
                 </div>
               </div>
             )}
-            
-            <div className="flex justify-end pt-4 border-t border-gray-50">
-               <Button onClick={() => setIsViewModalOpen(false)} variant="outline">Close</Button>
-            </div>
           </div>
         ) : (
-          <div className="py-10 text-center text-gray-500 font-medium">No course selected</div>
+          <div className="py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+              <Mountain className="w-8 h-8 text-gray-200" />
+            </div>
+            <p className="text-[15px] font-bold text-gray-900">No course selected</p>
+            <p className="text-[13px] text-gray-400 mt-1">Please select a golf course to view its details.</p>
+          </div>
         )}
       </Modal>
 
@@ -577,17 +682,34 @@ export default function SuperAdminGolfCoursesPage() {
           open={Boolean(dropdownAnchorEl)}
           anchorEl={dropdownAnchorEl}
           onClose={closeDropdown}
-          className="w-48 p-1.5 bg-white border border-gray-100 shadow-xl rounded-2xl"
+          className="w-60 bg-white border border-gray-100 shadow-xl rounded-2xl py-2"
         >
+          <button
+            onClick={() => openStatusModal(dropdownCourse)}
+            className={cn(
+              "w-full text-left px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-3",
+              dropdownCourse.status === "INACTIVE" 
+                ? "text-emerald-600 hover:bg-emerald-50" 
+                : "text-red-600 hover:bg-red-50"
+            )}
+          >
+            {dropdownCourse.status === "INACTIVE" ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Ban className="w-4 h-4" />
+            )}
+            {dropdownCourse.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
+          </button>
+          <div className="h-px bg-gray-50 my-1 mx-2" />
           <button
             onClick={() => {
               setSelectedCourse(dropdownCourse);
               setIsModalOpen(true);
               closeDropdown();
             }}
-            className="w-full text-left px-3 py-2 text-[13px] font-bold text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >
-            <Edit2 className="w-4 h-4" /> Edit Course
+            <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
           </button>
           <button
             onClick={() => {
@@ -603,16 +725,16 @@ export default function SuperAdminGolfCoursesPage() {
               URL.revokeObjectURL(url);
               toast.success("Course exported");
             }}
-            className="w-full text-left px-3 py-2 text-[13px] font-bold text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >
-            <Download className="w-4 h-4" /> Export Data
+            <Download className="w-4 h-4 text-gray-400" /> Export Data
           </button>
-          <div className="h-px bg-gray-100 my-1 mx-2" />
+          <div className="h-px bg-gray-50 my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
           >
-            <Trash2 className="w-4 h-4" /> Delete Course
+            <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>
         </FloatingMenu>
       )}

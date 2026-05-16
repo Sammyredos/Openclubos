@@ -684,14 +684,14 @@ export default function OrganizersPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">Organizer Name</th>
-                  <th className="px-6 py-4">Location</th>
-                  <th className="px-6 py-4">Admin</th>
-                  <th className="px-6 py-4">Plan</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Joined Date</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+                <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-4">Organizer Name</th>
+                  <th className="px-4 py-4">Location</th>
+                  <th className="px-4 py-4">Admin</th>
+                  <th className="px-4 py-4">Plan</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4">Joined Date</th>
+                  <th className="px-4 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -704,37 +704,35 @@ export default function OrganizersPage() {
                 ) : loading ? (
                   skeletonRows.map((i) => (
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-10 h-10 rounded-xl" />
+                          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
                           <Skeleton className="h-4 w-40 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-4 w-32 rounded-md" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
+                          <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-2">
                             <Skeleton className="h-3 w-28 rounded-md" />
                             <Skeleton className="h-3 w-36 rounded-md" />
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-5 w-14 rounded-lg" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-5 w-20 rounded-lg" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <Skeleton className="h-4 w-24 rounded-md" />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -745,42 +743,42 @@ export default function OrganizersPage() {
                   paginatedOrganizers.map((organizer) => {
                     return (
                       <tr key={organizer.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3 max-w-[200px]">
+                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                               <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                             </div>
-                            <span className="text-[15px] font-bold text-gray-800">{organizer.name}</span>
+                            <span className="text-[14px] font-bold text-gray-800 truncate">{organizer.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{organizer.location}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
+                        <td className="px-4 py-4 text-[13px] text-gray-500 font-medium truncate max-w-[140px]" title={organizer.location}>{organizer.location}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3 min-w-[200px]">
                             <img
                               src={organizer.admin.avatar}
                               alt={organizer.admin.name}
-                              className="w-8 h-8 rounded-full border border-gray-100"
+                              className="w-8 h-8 rounded-full border border-gray-100 flex-shrink-0"
                             />
-                            <div className="flex flex-col">
-                              <span className="text-[14px] font-bold text-gray-800 leading-tight">{organizer.admin.name}</span>
-                              <span className="text-[12px] text-gray-400 font-medium">{organizer.admin.email}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name}</span>
+                              <span className="text-[12px] text-gray-400 font-medium truncate">{organizer.admin.email}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4 text-center">
                           <span
                             className={cn(
-                              "text-[11px] font-bold px-2.5 py-1 rounded-lg",
+                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
                               organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600",
                             )}
                           >
                             {organizer.plan}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4">
                           <span
                             className={cn(
-                              "text-[11px] font-bold px-2.5 py-1 rounded-lg",
+                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
                               organizer.status === "Active"
                                 ? "bg-emerald-50 text-emerald-600"
                                 : organizer.status === "Suspended"
@@ -791,8 +789,8 @@ export default function OrganizersPage() {
                             {organizer.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-[14px] text-gray-500 font-medium">{organizer.joinedDate}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{organizer.joinedDate}</td>
+                        <td className="px-4 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => openViewModal(organizer)}
@@ -800,32 +798,6 @@ export default function OrganizersPage() {
                               title="View Organizer Details"
                             >
                               <Eye className="w-4.5 h-4.5" />
-                            </button>
-                            <button
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
-                              title="Edit Organizer"
-                              onClick={() => handleEdit(organizer)}
-                            >
-                              <Edit2 className="w-4.5 h-4.5" />
-                            </button>
-                            <button
-                              disabled={organizer.status === "Expired"}
-                              className={cn(
-                                "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                organizer.status === "Expired"
-                                  ? "text-gray-300 cursor-not-allowed"
-                                  : organizer.status === "Suspended"
-                                    ? "text-emerald-600 hover:bg-emerald-50"
-                                    : "text-red-600 hover:bg-red-50",
-                              )}
-                              title={organizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
-                              onClick={() => handleStatusChange(organizer)}
-                            >
-                              {organizer.status === "Suspended" ? (
-                                <CheckCircle2 className="w-4.5 h-4.5" />
-                              ) : (
-                                <Ban className="w-4.5 h-4.5" />
-                              )}
                             </button>
                             <div className="relative">
                               <button
@@ -890,6 +862,33 @@ export default function OrganizersPage() {
       >
         {dropdownOrganizer ? (
           <>
+            <button
+              disabled={dropdownOrganizer.status === "Expired"}
+              onClick={() => handleStatusChange(dropdownOrganizer)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                dropdownOrganizer.status === "Expired" 
+                  ? "text-gray-300 cursor-not-allowed" 
+                  : dropdownOrganizer.status === "Suspended" 
+                    ? "text-emerald-600 hover:bg-emerald-50" 
+                    : "text-red-600 hover:bg-red-50",
+              )}
+            >
+              {dropdownOrganizer.status === "Suspended" ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Ban className="w-4 h-4" />
+              )}
+              {dropdownOrganizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
+            </button>
+            <div className="h-px bg-gray-50 my-1" />
+            <button
+              onClick={() => handleEdit(dropdownOrganizer)}
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            >
+              <Edit2 className="w-4 h-4 text-gray-400" />
+              Edit Organizer
+            </button>
             <button
               onClick={() => handleMoreAction("view-analytics", dropdownOrganizer)}
               className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
