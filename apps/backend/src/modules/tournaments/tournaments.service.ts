@@ -90,7 +90,13 @@ export class TournamentsService {
         course: { select: { id: true, name: true } },
         visibility: true,
         createdAt: true,
-        _count: { select: { registrations: true } },
+        _count: {
+          select: {
+            registrations: {
+              where: { status: 'APPROVED' }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -126,7 +132,13 @@ export class TournamentsService {
           course: { select: { id: true, name: true } },
           visibility: true,
           createdAt: true,
-          _count: { select: { registrations: true } },
+          _count: {
+            select: {
+              registrations: {
+                where: { status: 'APPROVED' }
+              }
+            }
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -176,7 +188,13 @@ export class TournamentsService {
         include: { 
           club: true, 
           course: true,
-          _count: { select: { registrations: true } }
+          _count: {
+            select: {
+              registrations: {
+                where: { status: 'APPROVED' }
+              }
+            }
+          }
         },
       });
 
@@ -253,7 +271,13 @@ export class TournamentsService {
         include: {
           club: true,
           course: true,
-          _count: { select: { registrations: true } },
+          _count: {
+            select: {
+              registrations: {
+                where: { status: 'APPROVED' }
+              }
+            }
+          },
         },
       });
     } catch (error) {

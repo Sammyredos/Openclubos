@@ -54,11 +54,12 @@ type ApiOrganizer = {
   id: string;
   name: string;
   address: string | null;
+  logo?: string | null;
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
   createdAt: string;
   _count?: { tournaments: number; courses: number };
-  users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
+  users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null; phone?: string | null }>;
 };
 
 type ApiTournament = {
@@ -88,6 +89,7 @@ type OrganizerViewModel = {
   location: string;
   joinedDate: string;
   logo: string;
+  adminAvatar: string;
   status: "Active" | "Suspended" | "Expired";
   plan: "Pro" | "Basic" | "—";
   tournaments: number;
@@ -127,6 +129,8 @@ function toOrganizerViewModel(o: ApiOrganizer): OrganizerViewModel {
   const adminUser = o.users?.[0] || null;
   const adminName = adminUser ? fullName(adminUser.firstName, adminUser.lastName) : "—";
   const adminEmail = adminUser?.email || "—";
+  const adminPhone = adminUser?.phone || "—";
+  const adminAvatar = adminUser?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`;
   const status = o.status === "SUSPENDED" ? "Suspended" : o.status === "EXPIRED" ? "Expired" : "Active";
   const plan = o.plan === "PRO" ? "Pro" : o.plan === "BASIC" ? "Basic" : "—";
   return {
@@ -134,12 +138,13 @@ function toOrganizerViewModel(o: ApiOrganizer): OrganizerViewModel {
     name: o.name,
     location: o.address || "—",
     joinedDate: formatJoinedDate(o.createdAt),
-    logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}`,
+    logo: o.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(o.name)}&background=10b981&color=fff&bold=true`,
+    adminAvatar,
     status,
     plan,
     tournaments: o._count?.tournaments ?? 0,
     email: adminEmail,
-    phone: "—",
+    phone: adminPhone,
     website: "—",
     admin: adminName,
     createdAtISO: o.createdAt,
@@ -753,7 +758,7 @@ export default function OrganizerDetailsPage() {
                 Export Organizer Data
               </button>
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-red-600 hover:bg-red-50"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-red-50"
                 onClick={() => {
                   closeMoreMenu();
                   setDeleteConfirmText("");
@@ -826,9 +831,9 @@ export default function OrganizerDetailsPage() {
                   <div className="mt-6 flex flex-col items-start text-left">
                     <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
                       <img
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(organizer.email || organizer.id)}`}
+                        src={organizer.adminAvatar}
                         alt={organizer.admin}
-                        className="w-full h-full"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="mt-3">

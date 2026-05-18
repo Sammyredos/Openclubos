@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+// Force TS cache refresh
 import { PrismaService } from '../../common/prisma.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -26,12 +27,50 @@ export class MembersService {
       throw new ConflictException('Member with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(createMemberDto.password, 10);
-
     const phone =
       typeof createMemberDto.phone === 'string'
         ? createMemberDto.phone.trim() || null
         : undefined;
+
+    if (phone) {
+      const existingPhone = await this.prisma.user.findFirst({
+        where: {
+          phone,
+          deletedAt: null,
+        },
+      });
+      if (existingPhone) {
+        throw new ConflictException('Member with this phone number already exists');
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(createMemberDto.password, 10);
+
+    let clubId = createMemberDto.clubId || null;
+
+    if (!clubId && createMemberDto.clubName && (createMemberDto.role === UserRole.CLUB_ADMIN || createMemberDto.role === UserRole.MARKER)) {
+      const existingClub = await this.prisma.club.findFirst({
+        where: {
+          name: { equals: createMemberDto.clubName.trim(), mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+      if (existingClub) {
+        throw new ConflictException('An organization with this name already exists');
+      }
+
+      const newClub = await this.prisma.club.create({
+        data: {
+          name: createMemberDto.clubName.trim(),
+          address: createMemberDto.clubAddress?.trim() || null,
+          state: createMemberDto.orgState || null,
+          city: createMemberDto.orgCity || null,
+          logo: createMemberDto.clubLogo || null,
+          plan: (createMemberDto.clubPlan as 'PRO' | 'BASIC') || 'BASIC',
+        },
+      });
+      clubId = newClub.id;
+    }
 
     return this.prisma.user.create({
       data: {
@@ -41,9 +80,15 @@ export class MembersService {
         status: createMemberDto.status,
         handicap: createMemberDto.handicap,
         password: hashedPassword,
+        role: createMemberDto.role || UserRole.PLAYER,
+        profilePhoto: createMemberDto.profilePhoto,
+        dob: createMemberDto.dob || null,
+        gender: createMemberDto.gender || null,
+        state: createMemberDto.state || null,
+        city: createMemberDto.city || null,
+        address: createMemberDto.address || null,
         ...(phone !== undefined ? { phone } : undefined),
-        clubId: null,
-        role: UserRole.PLAYER, // Default role for members
+        clubId,
       },
     });
   }
@@ -147,9 +192,15 @@ export class MembersService {
           status: true,
           handicap: true,
           phone: true,
+          profilePhoto: true,
+          dob: true,
+          gender: true,
+          state: true,
+          city: true,
+          address: true,
           createdAt: true,
           clubId: true,
-          club: { select: { id: true, name: true } },
+          club: { select: { id: true, name: true, logo: true, address: true, state: true, city: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -239,11 +290,97 @@ export class MembersService {
     });
     if (!existing) throw new NotFoundException('Member not found');
 
+    if (updateMemberDto.email) {
+      const email = updateMemberDto.email.trim().toLowerCase();
+      const existingEmail = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: email, mode: 'insensitive' },
+          id: { not: id },
+          deletedAt: null,
+        },
+      });
+      if (existingEmail) {
+        throw new ConflictException('Member with this email already exists');
+      }
+    }
+
+    const phone =
+      typeof updateMemberDto.phone === 'string'
+        ? updateMemberDto.phone.trim() || null
+        : undefined;
+
+    if (phone) {
+      const existingPhone = await this.prisma.user.findFirst({
+        where: {
+          phone,
+          id: { not: id },
+          deletedAt: null,
+        },
+      });
+      if (existingPhone) {
+        throw new ConflictException('Member with this phone number already exists');
+      }
+    }
+
     const nextRole = updateMemberDto.role ?? existing.role;
+    let clubId = existing.clubId;
+
+    if (nextRole === UserRole.CLUB_ADMIN || nextRole === UserRole.MARKER) {
+      if (updateMemberDto.clubName) {
+        const targetName = updateMemberDto.clubName.trim();
+        const existingClub = await this.prisma.club.findFirst({
+          where: {
+            name: { equals: targetName, mode: 'insensitive' },
+            deletedAt: null,
+            ...(clubId ? { id: { not: clubId } } : {}),
+          },
+        });
+        if (existingClub) {
+          throw new ConflictException('An organization with this name already exists');
+        }
+
+        if (clubId) {
+          await this.prisma.club.update({
+            where: { id: clubId },
+            data: {
+              name: targetName,
+              ...(updateMemberDto.clubAddress !== undefined ? { address: updateMemberDto.clubAddress?.trim() || null } : {}),
+              ...(updateMemberDto.orgState !== undefined ? { state: updateMemberDto.orgState || null } : {}),
+              ...(updateMemberDto.orgCity !== undefined ? { city: updateMemberDto.orgCity || null } : {}),
+              ...(updateMemberDto.clubLogo !== undefined ? { logo: updateMemberDto.clubLogo || null } : {}),
+              ...(updateMemberDto.clubPlan !== undefined ? { plan: updateMemberDto.clubPlan as 'PRO' | 'BASIC' } : {}),
+            },
+          });
+        } else {
+          const newClub = await this.prisma.club.create({
+            data: {
+              name: targetName,
+              address: updateMemberDto.clubAddress?.trim() || null,
+              state: updateMemberDto.orgState || null,
+              city: updateMemberDto.orgCity || null,
+              logo: updateMemberDto.clubLogo || null,
+              plan: updateMemberDto.clubPlan || 'BASIC',
+            },
+          });
+          clubId = newClub.id;
+        }
+      }
+    }
 
     const data: any = { ...updateMemberDto };
     if (typeof data.phone === 'string') data.phone = data.phone.trim() || null;
-    if (nextRole !== UserRole.CLUB_ADMIN) data.clubId = null;
+    if (nextRole !== UserRole.CLUB_ADMIN && nextRole !== UserRole.MARKER) {
+      data.clubId = null;
+    } else {
+      data.clubId = clubId;
+    }
+
+    delete data.clubName;
+    delete data.clubAddress;
+    delete data.orgState;
+    delete data.orgCity;
+    delete data.clubLogo;
+    delete data.clubPlan;
 
     try {
       return await this.prisma.user.update({

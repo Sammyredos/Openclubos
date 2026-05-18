@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Country, State } from "country-state-city";
+import { getNigerianStates } from "@/lib/nigerian-states-lgas";
 import { Label } from "@/components/ui/label";
 import { createTournament, getTournament, getTournaments, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
@@ -170,7 +171,13 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
-  const stateOptions = useMemo(() => formData.venue ? State.getStatesOfCountry(formData.venue).map(s => ({ value: s.isoCode, label: s.name })) : [], [formData.venue]);
+  const stateOptions = useMemo(() => {
+    if (!formData.venue) return [];
+    if (formData.venue === "NG") {
+      return getNigerianStates();
+    }
+    return State.getStatesOfCountry(formData.venue).map(s => ({ value: s.isoCode, label: s.name }));
+  }, [formData.venue]);
 
   // Filter courses by selected country and state
   const filteredCourses = useMemo(() => {

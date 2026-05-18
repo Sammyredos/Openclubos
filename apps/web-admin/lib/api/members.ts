@@ -25,11 +25,17 @@ export interface AdminUser {
   firstName: string | null;
   lastName: string | null;
   phone?: string | null;
+  profilePhoto?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  state?: string | null;
+  city?: string | null;
+  address?: string | null;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
   handicap?: number | null;
   clubId?: string | null;
-  club?: { id: string; name: string } | null;
+  club?: { id: string; name: string; logo?: string | null; address?: string | null; state?: string | null; city?: string | null } | null;
   createdAt: string;
 }
 
@@ -106,6 +112,23 @@ export async function getAdminUsers(params: {
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to fetch users');
+  }
+  return res.json();
+}
+
+export async function getMember(id: string): Promise<AdminUser> {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/members/${id}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to fetch user');
   }
   return res.json();
 }

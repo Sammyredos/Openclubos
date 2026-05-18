@@ -57,17 +57,19 @@ import {
 import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
-import { updateMember } from "@/lib/api/members";
+import { updateMember, getMember } from "@/lib/api/members";
+import { CreateOrganiserWizard } from "@/components/organizers/CreateOrganiserWizard";
 
 type ApiOrganizer = {
   id: string;
   name: string;
   address: string | null;
+  logo?: string | null;
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
   createdAt: string;
   _count?: { tournaments: number; courses: number };
-  users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
+  users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null; phone?: string | null }>;
 };
 
 type OrganizerRow = {
@@ -158,13 +160,13 @@ function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
       id: adminUser?.id ?? null,
       name: adminName,
       email: adminEmail,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`,
+      avatar: adminUser?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`,
     },
     plan,
     status,
     joinedDate: formatJoinedDate(o.createdAt),
     createdAtISO: o.createdAt,
-    logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}`,
+    logo: o.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(o.name)}&background=10b981&color=fff&bold=true`,
   };
 }
 
@@ -197,16 +199,12 @@ export default function OrganizersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [selectedOrganizer, setSelectedOrganizer] = useState<OrganizerRow | null>(null);
-  const [editPlan, setEditPlan] = useState("Pro");
-  const [editName, setEditName] = useState("");
-  const [editLocation, setEditLocation] = useState("");
-  const [editAdminName, setEditAdminName] = useState("");
-  const [editAdminEmail, setEditAdminEmail] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
@@ -330,15 +328,22 @@ export default function OrganizersPage() {
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
 
-  const handleEdit = (organizer: OrganizerRow) => {
-    setSelectedOrganizer(organizer);
-    setEditPlan(organizer.plan || "Pro");
-    setEditName(organizer.name || "");
-    setEditLocation(organizer.location || "");
-    setEditAdminName(organizer.admin?.name || "");
-    setEditAdminEmail(organizer.admin?.email || "");
-    setIsEditModalOpen(true);
+  const handleEdit = async (organizer: OrganizerRow) => {
     closeDropdown();
+    if (!organizer.admin?.id) {
+      toast.error("No admin user attached to this organizer");
+      return;
+    }
+    try {
+      setLoading(true);
+      const user = await getMember(organizer.admin.id);
+      setEditingUser(user);
+      setIsWizardOpen(true);
+    } catch (e) {
+      toast.error(getErrorMessage(e) || "Failed to load organizer details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openViewModal = async (organizer: OrganizerRow) => {
@@ -531,47 +536,6 @@ export default function OrganizersPage() {
       .finally(() => setMutating(false));
   };
 
-  const saveEdit = () => {
-    if (!selectedOrganizer?.id) return;
-    const plan = editPlan === "Pro" ? "PRO" : editPlan === "Basic" ? "BASIC" : undefined;
-    const name = editName.trim();
-    const address = editLocation.trim();
-    const adminName = editAdminName.trim();
-    const adminEmail = editAdminEmail.trim();
-    const adminPairValid =
-      (adminName.length === 0 && adminEmail.length === 0) || (adminName.length > 0 && adminEmail.length > 0);
-
-    if (name.length === 0) {
-      toast.error("Organizer name is required");
-      return;
-    }
-    if (address.length === 0) {
-      toast.error("Location is required");
-      return;
-    }
-    if (!adminPairValid) {
-      toast.error("Please enter both Admin Name and Admin Email");
-      return;
-    }
-
-    setMutating(true);
-    updateOrganizer(selectedOrganizer.id, {
-      name: name || undefined,
-      address: address || undefined,
-      plan,
-      adminName: adminName || undefined,
-      adminEmail: adminEmail || undefined,
-    })
-      .then(() => {
-        toast.success("Organizer updated");
-        setIsEditModalOpen(false);
-        broadcastAdminEvent("organizers-changed");
-        return reloadOrganizers();
-      })
-      .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to update organizer"))
-      .finally(() => setMutating(false));
-  };
-
   const skeletonRows = Array.from({ length: itemsPerPage }, (_, idx) => idx);
 
   return (
@@ -626,7 +590,7 @@ export default function OrganizersPage() {
             <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
-            <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button onClick={() => setIsWizardOpen(true)} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Plus className="w-4 h-4" /> Add Organizer
             </Button>
           </div>
@@ -870,14 +834,14 @@ export default function OrganizersPage() {
                 dropdownOrganizer.status === "Expired" 
                   ? "text-gray-300 cursor-not-allowed" 
                   : dropdownOrganizer.status === "Suspended" 
-                    ? "text-emerald-600 hover:bg-emerald-50" 
-                    : "text-red-600 hover:bg-red-50",
+                    ? "text-gray-700 hover:bg-emerald-50" 
+                    : "text-gray-700 hover:bg-red-50",
               )}
             >
               {dropdownOrganizer.status === "Suspended" ? (
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               ) : (
-                <Ban className="w-4 h-4" />
+                <Ban className="w-4 h-4 text-red-600" />
               )}
               {dropdownOrganizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
             </button>
@@ -928,7 +892,7 @@ export default function OrganizersPage() {
             <div className="h-px bg-gray-50 my-1" />
             <button
               onClick={() => handleDelete(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Organizer
@@ -936,75 +900,6 @@ export default function OrganizersPage() {
           </>
         ) : null}
       </FloatingMenu>
-
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Organizer"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              onClick={saveEdit}
-              disabled={
-                mutating ||
-                editName.trim().length === 0 ||
-                editLocation.trim().length === 0 ||
-                !(
-                  (editAdminName.trim().length === 0 && editAdminEmail.trim().length === 0) ||
-                  (editAdminName.trim().length > 0 && editAdminEmail.trim().length > 0)
-                )
-              }
-              className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
-            >
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Organizer Name</Label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12" />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Location</Label>
-              <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="rounded-xl h-12" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Admin Name</Label>
-              <Input value={editAdminName} onChange={(e) => setEditAdminName(e.target.value)} className="rounded-xl h-12" />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Admin Email</Label>
-              <Input
-                type="email"
-                value={editAdminEmail}
-                onChange={(e) => setEditAdminEmail(e.target.value)}
-                className="rounded-xl h-12"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Subscription Plan</Label>
-            <SearchableSelect
-              value={editPlan}
-              onValueChange={setEditPlan}
-              options={[
-                { value: "Pro", label: "Pro Plan" },
-                { value: "Basic", label: "Basic Plan" },
-              ]}
-              triggerClassName="h-12 bg-white font-medium rounded-xl"
-              placeholder="Select a plan..."
-            />
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         isOpen={isStatusModalOpen}
@@ -1581,7 +1476,17 @@ export default function OrganizersPage() {
         </div>
       );
     })()}
-  </Modal>
-</div>
-);
+      </Modal>
+
+      <CreateOrganiserWizard 
+        isOpen={isWizardOpen}
+        onClose={() => {
+          setIsWizardOpen(false);
+          setEditingUser(null);
+        }}
+        onSuccess={reloadOrganizers}
+        editingUser={editingUser}
+      />
+    </div>
+  );
 }

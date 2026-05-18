@@ -142,7 +142,7 @@ export class OrganizersService {
         _count: { select: { tournaments: true, courses: true } },
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -158,7 +158,7 @@ export class OrganizersService {
         _count: { select: { tournaments: true, courses: true } },
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -174,7 +174,7 @@ export class OrganizersService {
       include: {
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },

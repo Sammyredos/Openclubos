@@ -227,7 +227,7 @@ export default function SuperAdminGolfCoursesPage() {
           subValue="Active"
         />
         <StatCard
-          title="Cities"
+          title="LGAs"
           value={String(stats?.cities ?? 57)}
           icon={MapPin}
           iconBg="bg-amber-50"
@@ -278,7 +278,7 @@ export default function SuperAdminGolfCoursesPage() {
             <form onSubmit={handleSearch} className="relative flex-1 min-w-[280px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search courses by name, city, or country..."
+                placeholder="Search courses by name, LGA, or country..."
                 className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -615,7 +615,7 @@ export default function SuperAdminGolfCoursesPage() {
                     <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.address}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">City & State</span>
+                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">{selectedCourse.country === "NG" ? "LGA" : "City"} & State</span>
                     <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.city}, {selectedCourse.state}</span>
                   </div>
                 </div>
@@ -687,16 +687,16 @@ export default function SuperAdminGolfCoursesPage() {
           <button
             onClick={() => openStatusModal(dropdownCourse)}
             className={cn(
-              "w-full text-left px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-3",
+              "w-full text-left px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-3 text-gray-700",
               dropdownCourse.status === "INACTIVE" 
-                ? "text-emerald-600 hover:bg-emerald-50" 
-                : "text-red-600 hover:bg-red-50"
+                ? "hover:bg-emerald-50" 
+                : "hover:bg-red-50"
             )}
           >
             {dropdownCourse.status === "INACTIVE" ? (
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             ) : (
-              <Ban className="w-4 h-4" />
+              <Ban className="w-4 h-4 text-red-600" />
             )}
             {dropdownCourse.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
           </button>
@@ -732,7 +732,7 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="h-px bg-gray-50 my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
           >
             <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>

@@ -23,7 +23,7 @@ interface WizardProps {
   editingUser?: any;
 }
 
-const STEPS = ["Basic Information", "Role & Permissions", "Organization", "Review & Confirm"];
+const STEPS = ["Contact Person Information", "Organization", "Review & Confirm"];
 
 const AVAILABLE_ROLES = [
   { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -183,7 +183,7 @@ const Field = ({ label, required, children, error, optional }: { label: string; 
   </div>
 );
 
-export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: WizardProps) {
+export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser }: WizardProps) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
@@ -204,6 +204,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
     country: "NG",
     state: "",
     city: "",
+    plan: "PRO",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const orgLogoInputRef = useRef<HTMLInputElement>(null);
@@ -248,6 +249,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
         setOrgProfile({
           name: editingUser.club?.name || "",
           type: editingUser.club?.type || "Golf Club",
+          plan: editingUser.club?.plan || "PRO",
           website: editingUser.club?.website || "",
           phone: editingUser.club?.phone || "",
           countryCode: "234",
@@ -267,6 +269,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
         setOrgProfile({
           name: "",
           type: "Golf Club",
+          plan: "PRO",
           website: "",
           phone: "",
           countryCode: "234",
@@ -366,18 +369,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
       }
     }
     if (s === 2) {
-      if (formData.roles.length === 0) return "Please select a role";
-    }
-    if (s === 3) {
-      if (formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER")) {
-        if (!orgProfile.name.trim()) return "Organization Name is required";
-        if (!orgProfile.type.trim()) return "Organization Type is required";
-        if (!editingUser && !orgProfile.logo.trim()) return "Organization Logo is required";
-        if (!orgProfile.address.trim()) return "Organization Address is required";
-        if (!orgProfile.contactEmail.trim()) return "Contact Person Email is required";
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(orgProfile.contactEmail)) return "Invalid contact person email address";
-        if (!orgProfile.phone.trim()) return "Contact Person Phone Number is required";
-      }
+      if (!orgProfile.name.trim()) return "Organization Name is required";
+      if (!orgProfile.type.trim()) return "Organization Type is required";
+      if (!editingUser && !orgProfile.logo.trim()) return "Organization Logo is required";
     }
     return null;
   };
@@ -391,22 +385,6 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
     }
     
     let nextStep = step + 1;
-    const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
-    
-    if (step === 2 && !needsOrg) {
-      nextStep = 4; // Jump to Review & Confirm
-    }
-
-    if (nextStep === 3) {
-      const fullName = `${formData.firstName} ${formData.middleName} ${formData.surname}`.replace(/\s+/g, ' ').trim();
-      setOrgProfile(prev => ({ 
-        ...prev, 
-        contactName: fullName,
-        contactEmail: formData.email,
-        phone: formData.phone,
-        countryCode: countryCode
-      }));
-    }
 
     if (nextStep <= STEPS.length) {
       setStep(nextStep);
@@ -418,12 +396,6 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
 
   const handleBack = () => {
     let prevStep = step - 1;
-    const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
-    
-    if (step === 4 && !needsOrg) {
-      prevStep = 2;
-    }
-
     if (prevStep >= 1) setStep(prevStep);
   };
 
@@ -443,28 +415,26 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
         isJunior = age < 18;
       }
 
-      const isOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
+      
       const payload: any = {
         firstName: formData.firstName.trim(),
         lastName: `${formData.middleName.trim()} ${formData.surname.trim()}`.replace(/\s+/g, ' ').trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone ? `+${countryCode}${formData.phone.replace(/\D/g, "")}` : undefined,
-        role: formData.roles.includes("SUPER_ADMIN") ? "SUPER_ADMIN" : 
-              formData.roles.includes("CLUB_ADMIN") ? "CLUB_ADMIN" : 
-              formData.roles.includes("MARKER") ? "MARKER" : "PLAYER",
+        role: "CLUB_ADMIN", // Force role
         status: formData.status,
         profilePhoto: formData.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName)}+${encodeURIComponent(formData.surname)}&background=10b981&color=fff&bold=true`,
-        handicap: formData.roles.includes("PLAYER") ? parseFloat(formData.handicap) : undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
         state: formData.state || undefined,
         city: formData.city || undefined,
         address: formData.address || undefined,
-        clubName: isOrg ? orgProfile.name.trim() : undefined,
-        clubAddress: isOrg ? orgProfile.address.trim() : undefined,
-        orgState: isOrg ? orgProfile.state : undefined,
-        orgCity: isOrg ? orgProfile.city : undefined,
-        clubLogo: isOrg ? orgProfile.logo : undefined,
+        clubName: orgProfile.name.trim(),
+        clubAddress: formData.address || undefined, // Inherit from contact person
+        orgState: formData.state || undefined, // Inherit from contact person
+        orgCity: formData.city || undefined, // Inherit from contact person
+        clubLogo: orgProfile.logo || undefined,
+        clubPlan: orgProfile.plan || "PRO",
       };
 
       if (editingUser) {
@@ -520,7 +490,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                 </div>
                 <div>
                   <h4 className="text-[14px] font-bold text-gray-900">Basic Details</h4>
-                  <p className="text-[12px] text-gray-500">Essential information about the user</p>
+                  <p className="text-[12px] text-gray-500">Essential information about the primary contact for this organization.</p>
                 </div>
               </div>
 
@@ -691,21 +661,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                 </Field>
 
                 <div className="grid grid-cols-2 gap-4 items-start">
-                  {formData.roles.includes("PLAYER") ? (
-                    <Field label="Playing Handicap" required>
-                      <div className="relative">
-                        <Input 
-                          type="number"
-                          step="0.1"
-                          placeholder="e.g. 15.4"
-                          value={formData.handicap} 
-                          onChange={(e) => setFormData({...formData, handicap: e.target.value})} 
-                          className={cn("pr-16 font-bold text-emerald-600", showValidation && !formData.handicap && "border-red-400 bg-red-50/30")}
-                        />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">MAX 36</span>
-                      </div>
-                    </Field>
-                  ) : <div />}
+                  <div />
                   
                   <Field label="Account Status" required>
                     <SearchableSelect 
@@ -724,147 +680,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
             </div>
           </div>
         );
-      case 2:
-        return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              
-              {/* Header */}
-              <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Role & Permissions</h4>
-                  <p className="text-[12px] text-gray-500">Select a role — permissions will auto-apply and can be customised.</p>
-                </div>
-              </div>
-
-              <div className="flex" style={{minHeight: 0}}>
-
-                {/* Left — Roles */}
-                <div className="w-[240px] border-r border-gray-100 bg-gray-50/30 shrink-0 p-3 flex flex-col gap-2">
-                  {AVAILABLE_ROLES.map(role => {
-                    const active = formData.roles.includes(role.id);
-                    return (
-                      <div
-                        key={role.id}
-                        onClick={() => {
-                          const newRoles = [role.id];
-                          setFormData({
-                            ...formData, 
-                            roles: newRoles, 
-                            permissions: mergeRolePermissions(newRoles),
-                            handicap: role.id === "PLAYER" ? "20" : ""
-                          });
-                        }}
-                        className={cn(
-                          "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
-                          active ? "bg-white border-emerald-500 shadow-[0_0_0_1px_#10b981]" : "bg-white border-gray-200 hover:border-gray-300"
-                        )}
-                      >
-                        <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-emerald-500 bg-white" : "border-gray-300")}>
-                          {active && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-in zoom-in-50 duration-200" />}
-                        </div>
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", role.bg)}>
-                          <role.icon className={cn("w-3.5 h-3.5", role.color)} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className={cn("text-[12px] font-bold leading-tight", active ? "text-emerald-700" : "text-gray-800")}>{role.label}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{role.desc}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Info note */}
-                  <div className="mt-1 p-2.5 rounded-xl bg-blue-50 border border-blue-100 flex gap-2 items-start">
-                    <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-blue-600 leading-snug">Select a single role. Permissions will auto-apply and can be customised below.</p>
-                  </div>
-                </div>
-
-                {/* Right — Permissions Table */}
-                <div className="flex-1 min-w-0">
-                  {/* Column headers */}
-                  <div className="grid border-b border-gray-100 bg-gray-50/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
-                    <div className="px-4 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Module</div>
-                    {PERMISSION_ACTIONS.map(a => (
-                      <div key={a} className="py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">{a}</div>
-                    ))}
-                  </div>
-
-                  {/* Rows */}
-                  {PERMISSIONS_LIST.map((perm, rowIdx) => (
-                    <div
-                      key={perm.id}
-                      className={cn(
-                        "grid items-center transition-colors hover:bg-emerald-50/20",
-                        rowIdx < PERMISSIONS_LIST.length - 1 && "border-b border-gray-50"
-                      )}
-                      style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}
-                    >
-                      {/* Module label */}
-                      <div className="flex items-center gap-2.5 px-4 py-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                          <perm.icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-bold text-gray-800 leading-tight">{perm.label}</p>
-                          <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{perm.desc}</p>
-                        </div>
-                      </div>
-
-                      {/* Checkboxes */}
-                      {PERMISSION_ACTIONS.map(action => {
-                        const key = action.toLowerCase();
-                        const checked = formData.permissions[perm.id]?.[key] || false;
-                        return (
-                          <div key={action} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const current = formData.permissions[perm.id] || {};
-                                setFormData({
-                                  ...formData,
-                                  permissions: {...formData.permissions, [perm.id]: {...current, [key]: !checked}}
-                                });
-                              }}
-                              className={cn(
-                                "w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
-                                checked
-                                  ? "bg-emerald-500 border-emerald-500"
-                                  : "bg-white border-gray-300 hover:border-emerald-400"
-                              )}
-                            >
-                              {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-
-                  {/* Role summary badge row */}
-                  {formData.roles.length > 0 && (
-                    <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/40 flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
-                      {formData.roles.map(r => {
-                        const rMeta = AVAILABLE_ROLES.find(x => x.id === r);
-                        return (
-                          <span key={r} className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", rMeta?.bg, rMeta?.color, "border-current border-opacity-30")}>
-                            {rMeta?.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case 3: {
+      case 2: {
         const fullNameStr = `${formData.firstName} ${formData.middleName} ${formData.surname}`.replace(/\s+/g, ' ').trim();
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -881,8 +697,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                   </div>
                 </div>
 
-                {/* Name & Type */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Name, Type & Plan */}
+                <div className="grid grid-cols-3 gap-4">
                   <Field label="Organization Name" required>
                     <Input 
                       value={orgProfile.name} 
@@ -901,6 +717,17 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                         { value: "Sports Association", label: "Sports Association" }
                       ]}
                       triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "border-red-400 bg-red-50/30")}
+                    />
+                  </Field>
+                  <Field label="Subscription Plan" required>
+                    <SearchableSelect 
+                      value={orgProfile.plan}
+                      onValueChange={(v) => setOrgProfile({...orgProfile, plan: v})}
+                      options={[
+                        { value: "PRO", label: "Pro Plan" },
+                        { value: "BASIC", label: "Basic Plan" }
+                      ]}
+                      triggerClassName="bg-white"
                     />
                   </Field>
                 </div>
@@ -944,116 +771,6 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                       <p className="text-[9px] text-gray-400">Optional website or social link</p>
                     </div>
                   </Field>
-                </div>
-
-                {/* Country & State / Province */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Country" required>
-                    <SearchableSelect 
-                      value={orgProfile.country}
-                      onValueChange={v => setOrgProfile({...orgProfile, country: v, state: "", city: ""})}
-                      options={countryOptions}
-                      triggerClassName={cn(showValidation && !orgProfile.country && "border-red-400 bg-red-50/30")}
-                      placeholder="Select country"
-                    />
-                  </Field>
-                  <Field label="State / Province" required>
-                    <SearchableSelect 
-                      value={orgProfile.state}
-                      onValueChange={v => setOrgProfile({...orgProfile, state: v, city: ""})}
-                      options={orgStateOptions}
-                      disabled={!orgProfile.country}
-                      triggerClassName={cn(showValidation && !orgProfile.state && "border-red-400 bg-red-50/30")}
-                      placeholder="Select state / province"
-                    />
-                  </Field>
-                </div>
-
-                {/* LGA / City */}
-                <div>
-                  <Field label="LGA / City" required>
-                    {orgCityOptions.length > 0 ? (
-                      <SearchableSelect 
-                        value={orgProfile.city}
-                        onValueChange={v => setOrgProfile({...orgProfile, city: v})}
-                        options={orgCityOptions}
-                        disabled={!orgProfile.state}
-                        triggerClassName={cn(showValidation && !orgProfile.city && "border-red-400 bg-red-50/30")}
-                        placeholder="Select LGA / City"
-                      />
-                    ) : (
-                      <Input 
-                        placeholder="Enter LGA / city"
-                        value={orgProfile.city} 
-                        onChange={(e) => setOrgProfile({...orgProfile, city: e.target.value})} 
-                        className={cn(showValidation && !orgProfile.city && "border-red-400 bg-red-50/30")}
-                        disabled={!orgProfile.state}
-                      />
-                    )}
-                  </Field>
-                </div>
-
-                {/* Organization Address (Relocated under Country, State, LGA!) */}
-                <Field label="Organization Address" required>
-                  <div className="relative">
-                    <textarea 
-                      value={orgProfile.address} 
-                      onChange={(e) => setOrgProfile({...orgProfile, address: e.target.value.slice(0, 200)})}
-                      placeholder="KM 42, Lekki-Epe Expressway, Lakowe, Ibeju-Lekki, Lagos State, Nigeria."
-                      className={cn("w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "border-red-400 bg-red-50/30" : "border-gray-200")}
-                    />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
-                      {orgProfile.address.length}/200
-                    </span>
-                  </div>
-                </Field>
-
-                {/* Contact Person Details */}
-                <div className="border-t border-gray-100 pt-4 mt-2">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
-                  
-                  {/* Contact Person Name & Email */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Contact Person Name" required>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={fullNameStr} 
-                          disabled
-                          className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Contact Person Email" required>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={formData.email} 
-                          disabled
-                          className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
-                        />
-                      </div>
-                    </Field>
-                  </div>
-
-                  {/* Contact Person Phone Number */}
-                  <div className="mt-4">
-                    <Field label="Contact Person Phone Number" required>
-                      <div className="flex gap-2">
-                        <div className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px] select-none">
-                          +{countryCode}
-                        </div>
-                        <div className="relative flex-1">
-                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input 
-                            value={formData.phone} 
-                            disabled
-                            className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
-                          />
-                        </div>
-                      </div>
-                    </Field>
-                  </div>
                 </div>
 
                 {/* About the Organization */}
@@ -1103,7 +820,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
           </div>
         );
       }
-      case 4: {
+      case 3: {
         const birthDate = formData.dob ? new Date(formData.dob) : null;
         let isJunior = false;
         let ageText = "";
@@ -1210,51 +927,28 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                 <div>
                   <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
                     <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-                    <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Access & Permissions</h5>
+                    <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Organization Details</h5>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
-                    {formData.roles.includes("PLAYER") && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-3.5">
                       <div>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase block">Playing Handicap</span>
-                        <span className="text-[12px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{formData.handicap}</span>
+                        <span className="text-[8px] font-bold text-gray-400 uppercase block">Name</span>
+                        <span className="text-[12px] text-gray-700 font-semibold truncate block">{orgProfile.name || "—"}</span>
                       </div>
-                    )}
-                    {(formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER")) && (
-                      <div className="col-span-2 space-y-2 border-t border-gray-100 pt-2.5 mt-1">
-                        <span className="text-[9px] font-bold text-gray-400 uppercase block">Organization Details</span>
-                        <div className="grid grid-cols-2 gap-3.5">
-                          <div>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase block">Name</span>
-                            <span className="text-[12px] text-gray-700 font-semibold truncate block">{orgProfile.name || "—"}</span>
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase block">Type</span>
-                            <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{orgProfile.type || "—"}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[8px] font-bold text-gray-400 uppercase block">Address</span>
-                          <span className="text-[11px] text-gray-600 font-medium block leading-tight mt-0.5">{orgProfile.address || "—"}</span>
-                        </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-gray-400 uppercase block">Type</span>
+                        <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{orgProfile.type || "—"}</span>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase block mb-1.5">Authorized Modules ({activeModules.length})</span>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {activeModules.length > 0 ? (
-                      activeModules.map(perm => (
-                        <div key={perm.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 border border-gray-100 text-[10px] text-gray-600 font-semibold">
-                          <perm.icon className="w-3 h-3 text-emerald-500 shrink-0" />
-                          <span className="truncate max-w-[100px]">{perm.label}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-[11px] text-gray-400 italic">No modules authorized</span>
-                    )}
+                      <div>
+                        <span className="text-[8px] font-bold text-gray-400 uppercase block">Subscription</span>
+                        <span className="text-[11px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-100 inline-block mt-0.5">{orgProfile.plan}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-bold text-gray-400 uppercase block">Address (Inherited)</span>
+                      <span className="text-[11px] text-gray-600 font-medium block leading-tight mt-0.5">{formData.address || "—"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1271,7 +965,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingUser ? "Edit User Details" : "Add New User"}
+      title={editingUser ? "Edit Organiser Details" : "Add New Organiser"}
       size="xl"
       footer={
         <div className="flex justify-between w-full">

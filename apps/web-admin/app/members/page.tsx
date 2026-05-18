@@ -201,10 +201,12 @@ export default function MembersPage() {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-nexa-bold">
-                        {member.firstName[0]}{member.lastName[0]}
+                        {member.firstName?.[0] || ""}{(member.lastName || "")?.[0] || ""}
                       </div>
                       <div>
-                        <div className="font-nexa-bold text-[15px] text-gray-900">{member.firstName} {member.lastName}</div>
+                        <div className="font-nexa-bold text-[15px] text-gray-900 flex items-center gap-1.5">
+                          {member.firstName} {member.lastName}
+                        </div>
                         <div className="text-[14px] text-gray-500">{member.email}</div>
                       </div>
                     </div>

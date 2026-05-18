@@ -6,7 +6,7 @@ import {
   IsNumber,
   MinLength,
 } from 'class-validator';
-import { MemberStatus } from '@prisma/client';
+import { MemberStatus, UserRole } from '@prisma/client';
 
 export class CreateMemberDto {
   @IsEmail()
@@ -23,6 +23,10 @@ export class CreateMemberDto {
   lastName: string;
 
   @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @IsOptional()
   @IsString()
   phone?: string;
 
@@ -36,5 +40,53 @@ export class CreateMemberDto {
 
   @IsOptional()
   @IsString()
+  dob?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
   clubId?: string;
+
+  @IsOptional()
+  @IsString()
+  clubName?: string;
+
+  @IsOptional()
+  @IsString()
+  clubAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  orgState?: string;
+
+  @IsOptional()
+  @IsString()
+  orgCity?: string;
+
+  @IsOptional()
+  @IsString()
+  clubLogo?: string;
+
+  @IsOptional()
+  @IsString()
+  profilePhoto?: string;
+
+  @IsOptional()
+  @IsEnum(['PRO', 'BASIC'])
+  clubPlan?: 'PRO' | 'BASIC';
 }

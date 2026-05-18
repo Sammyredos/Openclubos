@@ -94,13 +94,30 @@ export class RegistrationsService {
     }
 
     // 7. Check Capacity & Waitlist
+    // 7. Check Capacity & Waitlist
     const approvedCount = tournament.registrations.filter(
       (r) => r.status === RegistrationStatus.APPROVED,
     ).length;
+
     let status: RegistrationStatus = isAdmin && requestedStatus ? (requestedStatus as RegistrationStatus) : RegistrationStatus.PENDING;
 
-    if (!isAdmin && tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
-      status = RegistrationStatus.WAITLISTED;
+    if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+      if (isAdmin) {
+        // Admin manual registration: Auto-increment maxPlayers if at capacity and approving
+        if (status === RegistrationStatus.APPROVED) {
+          await this.prisma.tournament.update({
+            where: { id: tournamentId },
+            data: { maxPlayers: { increment: 1 } },
+          });
+        }
+      } else {
+        // Player registration
+        if (tournament.enableWaitlist) {
+          status = RegistrationStatus.WAITLISTED;
+        } else {
+          throw new BadRequestException('Tournament has reached maximum capacity');
+        }
+      }
     }
 
     // 8. Create Registration
@@ -184,6 +201,29 @@ export class RegistrationsService {
 
   async updateStatus(registrationId: string, status: RegistrationStatus) {
     try {
+      const registration = await this.prisma.registration.findUnique({
+        where: { id: registrationId },
+        include: { tournament: { include: { registrations: true } } },
+      });
+
+      if (!registration) throw new NotFoundException('Registration not found');
+
+      // If moving to APPROVED status, check capacity
+      if (status === RegistrationStatus.APPROVED && registration.status !== RegistrationStatus.APPROVED) {
+        const tournament = registration.tournament;
+        const approvedCount = tournament.registrations.filter(
+          (r) => r.status === RegistrationStatus.APPROVED,
+        ).length;
+
+        if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+          // Auto-increment maxPlayers if at capacity
+          await this.prisma.tournament.update({
+            where: { id: tournament.id },
+            data: { maxPlayers: { increment: 1 } },
+          });
+        }
+      }
+
       return await this.prisma.registration.update({
         where: { id: registrationId },
         data: { status },

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy } from "lucide-react";
 import { createCourse, updateCourse, getCourse, TeeBox } from "@/lib/api/courses";
+import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas";
 
 interface HoleDetail {
   number: number;
@@ -101,7 +102,20 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
-  const stateOptions = useMemo(() => formData.country ? State.getStatesOfCountry(formData.country).map(s => ({ value: s.isoCode, label: s.name })) : [], [formData.country]);
+  const stateOptions = useMemo(() => {
+    if (!formData.country) return [];
+    if (formData.country === "NG") {
+      return getNigerianStates();
+    }
+    return State.getStatesOfCountry(formData.country).map(s => ({ value: s.isoCode, label: s.name }));
+  }, [formData.country]);
+  const lgaOptions = useMemo(() => {
+    if (!formData.country || !formData.state) return [];
+    if (formData.country === "NG") {
+      return getNigerianLGAs(formData.state);
+    }
+    return [];
+  }, [formData.country, formData.state]);
 
   const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
 
@@ -196,7 +210,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
       if (!formData.name.trim()) return "Course name is required";
       if (!formData.country) return "Country is required";
       if (!formData.state) return "State is required";
-      if (!formData.city.trim()) return "City is required";
+      if (!formData.city.trim()) return formData.country === "NG" ? "LGA is required" : "City is required";
       if (!formData.address.trim()) return "Full address is required";
       
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -350,7 +364,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
                     <Field label="Country" required>
                       <SearchableSelect 
                         value={formData.country} 
-                        onValueChange={(v) => { set("country", v); set("state", ""); }} 
+                        onValueChange={(v) => { set("country", v); set("state", ""); set("city", ""); }} 
                         options={countryOptions} 
                         className={req(formData.country)}
                       />
@@ -358,7 +372,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
                     <Field label="State / Province" required>
                       <SearchableSelect 
                         value={formData.state} 
-                        onValueChange={(v) => set("state", v)} 
+                        onValueChange={(v) => { set("state", v); set("city", ""); }} 
                         options={stateOptions} 
                         disabled={!formData.country} 
                         className={req(formData.state)}
@@ -367,8 +381,19 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Field label="City" required>
-                    <Input value={formData.city} onChange={(e) => set("city", e.target.value)} placeholder="Enter city" className={req(formData.city)} />
+                  <Field label={formData.country === "NG" ? "LGA" : "City"} required>
+                    {formData.country === "NG" ? (
+                      <SearchableSelect
+                        value={formData.city}
+                        onValueChange={(v) => set("city", v)}
+                        options={lgaOptions}
+                        disabled={!formData.state}
+                        placeholder="Select LGA"
+                        className={req(formData.city)}
+                      />
+                    ) : (
+                      <Input value={formData.city} onChange={(e) => set("city", e.target.value)} placeholder="Enter city" className={req(formData.city)} />
+                    )}
                   </Field>
                   <Field label="Full Address" required>
                     <Input value={formData.address} onChange={(e) => set("address", e.target.value)} placeholder="Enter full address" className={req(formData.address)} />

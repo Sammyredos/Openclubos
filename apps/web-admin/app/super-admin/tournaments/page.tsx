@@ -62,10 +62,15 @@ import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
 
 const CreateTournamentWizard = dynamic(
   () => import("@/components/tournaments/CreateTournamentWizard").then(mod => mod.CreateTournamentWizard),
-  { 
-    ssr: false, 
-    loading: () => <WizardSkeleton steps={8} /> 
+  {
+    ssr: false,
+    loading: () => <WizardSkeleton steps={8} />
   }
+);
+
+const WaitlistModal = dynamic(
+  () => import("@/components/tournaments/WaitlistModal").then(mod => mod.WaitlistModal),
+  { ssr: false }
 );
 
 type TournamentStatus = "DRAFT" | "REGISTRATION_OPEN" | "ONGOING" | "COMPLETED" | "CANCELLED";
@@ -82,6 +87,7 @@ type ApiTournament = {
   playerTypes: string[];
   club: { id: string; name: string } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+  enableWaitlist?: boolean;
   createdAt: string;
   _count?: { registrations: number };
 };
@@ -102,6 +108,7 @@ type TournamentRow = {
   statusKey: TournamentStatus;
   visibility: string;
   visibilityKey: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+  enableWaitlist?: boolean;
   createdAt: string;
   registrations: number;
 };
@@ -190,7 +197,7 @@ export default function TournamentsPage() {
   })();
 
   const isMounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => true,
     () => false,
   );
@@ -208,6 +215,7 @@ export default function TournamentsPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardTournamentId, setWizardTournamentId] = useState<string | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
@@ -330,6 +338,7 @@ export default function TournamentsPage() {
       statusKey: t.status,
       visibility: VISIBILITY_META[t.visibility]?.label ?? t.visibility,
       visibilityKey: t.visibility,
+      enableWaitlist: t.enableWaitlist,
       createdAt: t.createdAt,
       registrations,
     };
@@ -606,29 +615,29 @@ export default function TournamentsPage() {
   const filteredRegistrationsAll =
     registrationsMode === "client"
       ? registrationsAll.filter((r) => {
-          const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim().toLowerCase();
-          const email = (r.user?.email ?? "").toLowerCase();
-          const matchesSearch =
-            registrationsQuery.length === 0 || fullName.includes(registrationsQuery) || email.includes(registrationsQuery);
-          const matchesStatus = registrationsStatusFilter === "All Status" || r.status === registrationsStatusFilter;
-          const matchesPayment =
-            registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
-          const matchesDisqualified =
-            registrationsDisqualifiedFilter === "All Players" ||
-            (registrationsDisqualifiedFilter === "Disqualified Players"
-              ? r.status === "DISQUALIFIED"
-              : r.status !== "DISQUALIFIED");
-          return matchesSearch && matchesStatus && matchesPayment && matchesDisqualified;
-        })
+        const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim().toLowerCase();
+        const email = (r.user?.email ?? "").toLowerCase();
+        const matchesSearch =
+          registrationsQuery.length === 0 || fullName.includes(registrationsQuery) || email.includes(registrationsQuery);
+        const matchesStatus = registrationsStatusFilter === "All Status" || r.status === registrationsStatusFilter;
+        const matchesPayment =
+          registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
+        const matchesDisqualified =
+          registrationsDisqualifiedFilter === "All Players" ||
+          (registrationsDisqualifiedFilter === "Disqualified Players"
+            ? r.status === "DISQUALIFIED"
+            : r.status !== "DISQUALIFIED");
+        return matchesSearch && matchesStatus && matchesPayment && matchesDisqualified;
+      })
       : [];
 
   const registrationsFilteredTotal = registrationsMode === "client" ? filteredRegistrationsAll.length : registrationsTotal;
   const registrationsPageItems =
     registrationsMode === "client"
       ? filteredRegistrationsAll.slice(
-          (registrationsPage - 1) * registrationsPerPage,
-          registrationsPage * registrationsPerPage,
-        )
+        (registrationsPage - 1) * registrationsPerPage,
+        registrationsPage * registrationsPerPage,
+      )
       : registrations;
 
   useEffect(() => {
@@ -643,7 +652,7 @@ export default function TournamentsPage() {
     }
 
     let cancelled = false;
-    
+
     setIsSearchingPlayers(true);
     getAdminUsers({ search: q, take: 10 })
       .then(({ items }) => {
@@ -679,14 +688,14 @@ export default function TournamentsPage() {
       toast.success("Player registered successfully");
       setIsRegisterPlayerModalOpen(false);
       setRegisterPlayerSearch("");
-      
+
       // Update local state for realtime feel
       setRegistrationsTournamentTotal(prev => prev + 1);
       setSelectedTournament(prev => prev ? { ...prev, registrations: prev.registrations + 1 } : null);
 
       // Refresh everything
       reloadTournaments();
-      
+
       if (registrationsMode === "server") {
         setRegistrationsPage(1); // Go to first page to see the new player
         setRegistrationsLoading(true);
@@ -699,10 +708,10 @@ export default function TournamentsPage() {
         setRegistrationsTotal(typeof total === "number" ? total : 0);
         setRegistrationsLoading(false);
       } else {
-         // Full reload for client mode
-         setRegistrationsInitialized(false);
-         setIsViewModalOpen(false);
-         setTimeout(() => setIsViewModalOpen(true), 10);
+        // Full reload for client mode
+        setRegistrationsInitialized(false);
+        setIsViewModalOpen(false);
+        setTimeout(() => setIsViewModalOpen(true), 10);
       }
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to register player");
@@ -832,6 +841,11 @@ export default function TournamentsPage() {
       setIsRegisterPlayerModalOpen(true);
       return;
     }
+    if (action === "waitlist") {
+      setSelectedTournament(tournament);
+      setIsWaitlistModalOpen(true);
+      return;
+    }
     if (action === "cancel") {
       openCancel(tournament);
       return;
@@ -888,7 +902,7 @@ export default function TournamentsPage() {
       const { deleteRegistration } = await import("@/lib/api/registrations");
       await deleteRegistration(actionRegistration.id);
       toast.success("Player removed from tournament");
-      
+
       // Update local state for realtime feel
       setRegistrationsTournamentTotal(prev => Math.max(0, prev - 1));
       setSelectedTournament(prev => prev ? { ...prev, registrations: Math.max(0, prev.registrations - 1) } : null);
@@ -979,7 +993,7 @@ export default function TournamentsPage() {
                 <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Download className="w-4 h-4" /> Export
                 </Button>
-                <Button 
+                <Button
                   onClick={() => setIsWizardOpen(true)}
                   className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
                 >
@@ -992,8 +1006,8 @@ export default function TournamentsPage() {
               <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    placeholder="Search tournament name, organizer..." 
+                  <Input
+                    placeholder="Search tournament name, organizer..."
                     className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -1174,7 +1188,7 @@ export default function TournamentsPage() {
                 <p className="text-[13px] text-gray-500">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTournaments.length)} of {filteredTournaments.length} tournaments
                 </p>
-                <Pagination 
+                <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
@@ -1209,7 +1223,7 @@ export default function TournamentsPage() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
                       />
                     </RePieChart>
@@ -1222,7 +1236,7 @@ export default function TournamentsPage() {
                   <p className="text-2xl font-bold text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
                 </div>
               </div>
-              
+
               <div className="w-full space-y-3 mt-4">
                 {statusData.map((item) => (
                   <div key={item.name} className="flex items-center justify-between text-[13px]">
@@ -1248,8 +1262,8 @@ export default function TournamentsPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-xl font-bold">Upcoming Tournaments</CardTitle>
               {upcomingList.length > 0 && (
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="text-[#10b981] p-0 h-auto font-bold text-sm hover:no-underline"
                   onClick={() => setStatusFilter("Upcoming")}
                 >
@@ -1327,11 +1341,11 @@ export default function TournamentsPage() {
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-blue-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "ONGOING"
                   ? "text-gray-300 cursor-not-allowed"
-                  : "text-blue-600"
+                  : "text-gray-700"
               )}
               disabled={dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "ONGOING"}
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-4 h-4 text-blue-600" />
               Edit Tournament
             </button>
             <button
@@ -1340,12 +1354,23 @@ export default function TournamentsPage() {
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-emerald-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
-                  : "text-emerald-600"
+                  : "text-gray-700"
               )}
               disabled={dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"}
             >
-              <UserPlus className="w-4 h-4" />
-              Register Player
+              <UserPlus className="w-4 h-4 text-emerald-600" />
+              Register a Player
+            </button>
+            <button
+              onClick={() => handleMoreAction("waitlist", dropdownTournament)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-emerald-50 flex items-center gap-3",
+                !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
+              )}
+              disabled={!dropdownTournament.enableWaitlist}
+            >
+              <Clock className={cn("w-4 h-4", !dropdownTournament.enableWaitlist ? "text-gray-300" : "text-gray-400")} />
+              View Waitlist
             </button>
             <div className="h-px bg-gray-50 my-1" />
             <button
@@ -1354,7 +1379,7 @@ export default function TournamentsPage() {
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"
                   ? "text-gray-300 cursor-not-allowed"
-                  : "text-red-600",
+                  : "text-gray-700",
               )}
               disabled={dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"}
             >
@@ -1370,7 +1395,7 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("delete", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Tournament
@@ -1421,9 +1446,9 @@ export default function TournamentsPage() {
         footer={
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
-               <span className="text-xs text-gray-400 font-medium italic">
+              <span className="text-xs text-gray-400 font-medium italic">
                 Tournament ID: {selectedTournament?.id.slice(0, 8)}...
-               </span>
+              </span>
             </div>
             <Button
               variant="outline"
@@ -1478,9 +1503,9 @@ export default function TournamentsPage() {
                   <span className={cn(
                     "px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border",
                     selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                    selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                    selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-gray-200" :
-                    "bg-amber-50 text-amber-700 border-amber-100"
+                      selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                        selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-gray-200" :
+                          "bg-amber-50 text-amber-700 border-amber-100"
                   )}>
                     {selectedTournament.status}
                   </span>
@@ -1514,7 +1539,7 @@ export default function TournamentsPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
               <div className="flex items-end justify-between">
@@ -1572,11 +1597,11 @@ export default function TournamentsPage() {
                 onValueChange={(v) => {
                   const next =
                     v === "All Status" ||
-                    v === "PENDING" ||
-                    v === "APPROVED" ||
-                    v === "REJECTED" ||
-                    v === "WAITLISTED" ||
-                    v === "DISQUALIFIED"
+                      v === "PENDING" ||
+                      v === "APPROVED" ||
+                      v === "REJECTED" ||
+                      v === "WAITLISTED" ||
+                      v === "DISQUALIFIED"
                       ? v
                       : "All Status";
                   setRegistrationsPage(1);
@@ -1649,164 +1674,164 @@ export default function TournamentsPage() {
               </div>
             ) : registrationsPageItems.length > 0 ? (
               <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-                  {registrationsPageItems.map((r) => {
-                    const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
-                    const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
-                    
-                    const statusConfig = {
-                      DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
-                      APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
-                      REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
-                      WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
-                      PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-                    }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
+                {registrationsPageItems.map((r) => {
+                  const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
+                  const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
 
-                    const paymentConfig = {
-                      PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
-                      REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
-                      UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
-                    }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
+                  const statusConfig = {
+                    DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
+                    APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
+                    REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
+                    WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
+                    PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
+                  }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
 
-                    return (
-                      <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <img
-                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
-                              alt={fullName}
-                              className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <p className="text-[14px] text-gray-900 font-bold truncate">{fullName}</p>
-                                <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
-                                  {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
-                                  {r.status}
+                  const paymentConfig = {
+                    PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
+                    REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
+                    UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
+                  }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
+
+                  return (
+                    <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <img
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
+                            alt={fullName}
+                            className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-[14px] text-gray-900 font-bold truncate">{fullName}</p>
+                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
+                                {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
+                                {r.status}
+                              </span>
+                              <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
+                                {paymentConfig.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <p className="text-[12px] text-gray-400 font-medium truncate">{r.user?.email || "No email"}</p>
+                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
+                                  <Plus className="w-3 h-3" />
+                                  {r.extraStrokes} Strokes
                                 </span>
-                                <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
-                                  {paymentConfig.label}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <p className="text-[12px] text-gray-400 font-medium truncate">{r.user?.email || "No email"}</p>
-                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                  <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
-                                    <Plus className="w-3 h-3" />
-                                    {r.extraStrokes} Strokes
-                                  </span>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
+                        </div>
 
-                          <div className={cn(
-                            "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
-                            isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                          )}>
-                            {isTournamentLocked ? (
-                              <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
-                              </span>
-                            ) : (
-                              <>
-                                {r.status === "DISQUALIFIED" ? (
-                                  <button
-                                    className={cn(
-                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
-                                      registrationActionId === r.id
-                                        ? "text-gray-300 cursor-not-allowed"
-                                        : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
-                                    )}
-                                    title="Enable Player"
-                                    disabled={registrationActionId === r.id}
-                                    onClick={() => {
-                                      setActionRegistration(r);
-                                      setIsEnablePlayerModalOpen(true);
-                                    }}
-                                  >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>Enable</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    className={cn(
-                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
-                                      registrationActionId === r.id
-                                        ? "text-gray-300 cursor-not-allowed"
-                                        : "text-red-600 hover:bg-red-50 hover:border-red-100"
-                                    )}
-                                    title="Disqualify Player"
-                                    disabled={registrationActionId === r.id}
-                                    onClick={() => {
-                                      setActionRegistration(r);
-                                      setIsDisqualifyModalOpen(true);
-                                    }}
-                                  >
-                                    <Ban className="w-4 h-4" />
-                                    <span>Disqualify</span>
-                                  </button>
-                                )}
-                                
+                        <div className={cn(
+                          "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
+                          isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        )}>
+                          {isTournamentLocked ? (
+                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                              Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
+                            </span>
+                          ) : (
+                            <>
+                              {r.status === "DISQUALIFIED" ? (
                                 <button
                                   className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-600 transition-all",
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
                                     registrationActionId === r.id
                                       ? "text-gray-300 cursor-not-allowed"
-                                      : "hover:bg-gray-50 hover:border-gray-300"
+                                      : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
                                   )}
-                                  title="Add Strokes"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={(e) => {
-                                    if (registrationActionId === r.id) return;
-                                    setStrokesMenuRegistration(r);
-                                    setStrokesMenuAnchorEl(e.currentTarget);
-                                  }}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  <span>Strokes</span>
-                                </button>
-
-                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                  <button
-                                    className={cn(
-                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-400 transition-all",
-                                      registrationActionId === r.id
-                                        ? "text-gray-300 cursor-not-allowed"
-                                        : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
-                                    )}
-                                    title="Clear Strokes"
-                                    disabled={registrationActionId === r.id}
-                                    onClick={() => clearTournamentRegistrationStrokes(r)}
-                                  >
-                                    <Eraser className="w-4 h-4" />
-                                    <span>Clear</span>
-                                  </button>
-                                )}
-
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-red-600 transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "hover:bg-red-50 hover:border-red-100"
-                                  )}
-                                  title="Remove Player"
+                                  title="Enable Player"
                                   disabled={registrationActionId === r.id}
                                   onClick={() => {
                                     setActionRegistration(r);
-                                    setIsRemovePlayerModalOpen(true);
+                                    setIsEnablePlayerModalOpen(true);
                                   }}
                                 >
-                                  <UserMinus className="w-4 h-4" />
-                                  <span>Remove</span>
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  <span>Enable</span>
                                 </button>
-                              </>
-                            )}
-                          </div>
+                              ) : (
+                                <button
+                                  className={cn(
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
+                                    registrationActionId === r.id
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "text-red-600 hover:bg-red-50 hover:border-red-100"
+                                  )}
+                                  title="Disqualify Player"
+                                  disabled={registrationActionId === r.id}
+                                  onClick={() => {
+                                    setActionRegistration(r);
+                                    setIsDisqualifyModalOpen(true);
+                                  }}
+                                >
+                                  <Ban className="w-4 h-4" />
+                                  <span>Disqualify</span>
+                                </button>
+                              )}
+
+                              <button
+                                className={cn(
+                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-600 transition-all",
+                                  registrationActionId === r.id
+                                    ? "text-gray-300 cursor-not-allowed"
+                                    : "hover:bg-gray-50 hover:border-gray-300"
+                                )}
+                                title="Add Strokes"
+                                disabled={registrationActionId === r.id}
+                                onClick={(e) => {
+                                  if (registrationActionId === r.id) return;
+                                  setStrokesMenuRegistration(r);
+                                  setStrokesMenuAnchorEl(e.currentTarget);
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                                <span>Strokes</span>
+                              </button>
+
+                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                <button
+                                  className={cn(
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-400 transition-all",
+                                    registrationActionId === r.id
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
+                                  )}
+                                  title="Clear Strokes"
+                                  disabled={registrationActionId === r.id}
+                                  onClick={() => clearTournamentRegistrationStrokes(r)}
+                                >
+                                  <Eraser className="w-4 h-4" />
+                                  <span>Clear</span>
+                                </button>
+                              )}
+
+                              <button
+                                className={cn(
+                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-red-600 transition-all",
+                                  registrationActionId === r.id
+                                    ? "text-gray-300 cursor-not-allowed"
+                                    : "hover:bg-red-50 hover:border-red-100"
+                                )}
+                                title="Remove Player"
+                                disabled={registrationActionId === r.id}
+                                onClick={() => {
+                                  setActionRegistration(r);
+                                  setIsRemovePlayerModalOpen(true);
+                                }}
+                              >
+                                <UserMinus className="w-4 h-4" />
+                                <span>Remove</span>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
@@ -1834,6 +1859,14 @@ export default function TournamentsPage() {
           </div>
         </div>
       </Modal>
+
+      <WaitlistModal
+        isOpen={isWaitlistModalOpen}
+        onClose={() => setIsWaitlistModalOpen(false)}
+        tournamentId={selectedTournament?.id || ""}
+        tournamentName={selectedTournament?.name || ""}
+        onUpdate={() => reloadTournaments()}
+      />
 
       <Modal
         isOpen={isRegisterPlayerModalOpen}
@@ -1869,8 +1902,8 @@ export default function TournamentsPage() {
                 onClick={() => setManualPaymentType('UNPAID')}
                 className={cn(
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                  manualPaymentType === 'UNPAID' 
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700" 
+                  manualPaymentType === 'UNPAID'
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                     : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
                 )}
               >
@@ -1890,8 +1923,8 @@ export default function TournamentsPage() {
                 onClick={() => setManualPaymentType('CASH')}
                 className={cn(
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                  manualPaymentType === 'CASH' 
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700" 
+                  manualPaymentType === 'CASH'
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                     : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
                 )}
               >
@@ -1921,7 +1954,7 @@ export default function TournamentsPage() {
                 className="pl-12 pr-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
               />
               {registerPlayerSearch && (
-                <button 
+                <button
                   onClick={() => setRegisterPlayerSearch("")}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
@@ -1957,8 +1990,8 @@ export default function TournamentsPage() {
                   {registerPlayerResults.map((u) => {
                     const isRegistered = registrationsAll.some(r => r.user?.id === u.id);
                     return (
-                      <div 
-                        key={u.id} 
+                      <div
+                        key={u.id}
                         className="group p-4 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300"
                       >
                         <div className="flex items-center gap-3">
@@ -1973,7 +2006,7 @@ export default function TournamentsPage() {
                               u.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-300"
                             )} />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
@@ -1997,8 +2030,8 @@ export default function TournamentsPage() {
                             onClick={() => handleRegisterPlayer(u.id)}
                             className={cn(
                               "h-10 px-5 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm",
-                              isRegistered 
-                                ? "bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed" 
+                              isRegistered
+                                ? "bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed"
                                 : "bg-[#10b981] hover:bg-[#0da673] text-white shadow-emerald-500/20"
                             )}
                           >
@@ -2231,14 +2264,14 @@ export default function TournamentsPage() {
         </div>
       </Modal>
 
-      <CreateTournamentWizard 
-        isOpen={isWizardOpen} 
+      <CreateTournamentWizard
+        isOpen={isWizardOpen}
         tournamentId={wizardTournamentId}
         onClose={() => {
           setIsWizardOpen(false);
           setWizardTournamentId(null);
-        }} 
-        onSuccess={() => reloadTournaments()} 
+        }}
+        onSuccess={() => reloadTournaments()}
       />
     </div>
   );

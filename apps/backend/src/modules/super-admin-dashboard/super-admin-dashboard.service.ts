@@ -269,7 +269,13 @@ export class SuperAdminDashboardService {
         entryFee: true,
         clubId: true,
         club: { select: { name: true, status: true } },
-        _count: { select: { registrations: true } },
+        _count: {
+          select: {
+            registrations: {
+              where: { status: 'APPROVED' }
+            }
+          }
+        },
       },
     });
 
@@ -402,7 +408,15 @@ export class SuperAdminDashboardService {
             status: TournamentStatus.REGISTRATION_OPEN,
             startDate: { gte: now, lt: inSevenDays },
           },
-          include: { _count: { select: { registrations: true } } },
+          include: {
+            _count: {
+              select: {
+                registrations: {
+                  where: { status: 'APPROVED' }
+                }
+              }
+            }
+          },
           orderBy: { startDate: 'asc' },
           take: 20,
         }),

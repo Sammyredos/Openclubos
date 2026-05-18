@@ -64,10 +64,24 @@ export function DatePicker({
   const [openUpwards, setOpenUpwards] = React.useState(false);
 
   const selectedDate = React.useMemo(() => (value ? parseYMD(value) : null), [value]);
-  const [viewMonth, setViewMonth] = React.useState<Date>(() => selectedDate ?? new Date());
+  const [viewMonth, setViewMonth] = React.useState<Date>(() => {
+    if (selectedDate) return selectedDate;
+    if (maxDate) {
+      const parsedMax = parseYMD(maxDate);
+      if (parsedMax) return parsedMax;
+    }
+    return new Date();
+  });
 
   React.useEffect(() => {
     if (!open) return;
+
+    if (selectedDate) {
+      setViewMonth(selectedDate);
+    } else if (maxDate) {
+      const parsedMax = parseYMD(maxDate);
+      if (parsedMax) setViewMonth(parsedMax);
+    }
 
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();

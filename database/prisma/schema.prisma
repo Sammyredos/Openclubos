@@ -25,6 +25,11 @@ model User {
   phone         String?
   status        MemberStatus @default(ACTIVE)
   handicap      Float?       @default(0.0)
+  dob           String?
+  gender        String?
+  state         String?
+  city          String?
+  address       String?
 
   // Relations
   club          Club?     @relation(fields: [clubId], references: [id])
@@ -66,8 +71,17 @@ model Club {
   id          String    @id @default(uuid())
   name        String
   address     String?
+  state       String?
+  city        String?
+  logo        String?
   status      ClubStatus @default(ACTIVE)
   plan        ClubPlan   @default(BASIC)
+  type        String?    @default("Golf Club")
+  website     String?
+  about       String?
+  facebook    String?
+  instagram   String?
+  country     String?    @default("NG")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?

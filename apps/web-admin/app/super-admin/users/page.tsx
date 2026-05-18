@@ -99,18 +99,18 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
   const meta = (() => {
     switch (role) {
       case "SUPER_ADMIN":
-        return { label: "SUPER_ADMIN", className: "bg-purple-50 text-purple-700 border-purple-100" };
+        return { label: "super admin", className: "bg-purple-50 text-purple-700 border-purple-100" };
       case "CLUB_ADMIN":
-        return { label: "ORGANISER ADMIN", className: "bg-blue-50 text-blue-700 border-blue-100" };
+        return { label: "organiser admin", className: "bg-blue-50 text-blue-700 border-blue-100" };
       case "MARKER":
-        return { label: "MARKER", className: "bg-indigo-50 text-indigo-700 border-indigo-100" };
+        return { label: "marker", className: "bg-indigo-50 text-indigo-700 border-indigo-100" };
       default:
-        return { label: "PLAYER", className: "bg-emerald-50 text-emerald-700 border-emerald-100" };
+        return { label: "player", className: "bg-emerald-50 text-emerald-700 border-emerald-100" };
     }
   })();
 
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold", meta.className)}>
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold capitalize", meta.className)}>
       {meta.label}
     </span>
   );
@@ -379,13 +379,7 @@ export default function SuperAdminUsersPage() {
 
   const openEditModal = (u: AdminUser) => {
     setSelectedUser(u);
-    setEditFullName(fullName(u.firstName, u.lastName));
-    setEditEmail(u.email || "");
-    setEditPhone(u.phone || "");
-    setEditRole(u.role);
-    setEditStatus(u.status);
-    setEditHandicap(u.role === "PLAYER" && typeof u.handicap === "number" ? String(u.handicap) : "");
-    setIsEditModalOpen(true);
+    setIsCreateWizardOpen(true);
     closeDropdown();
   };
 
@@ -627,7 +621,10 @@ export default function SuperAdminUsersPage() {
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button 
-              onClick={() => setIsCreateWizardOpen(true)}
+              onClick={() => {
+                setSelectedUser(null);
+                setIsCreateWizardOpen(true);
+              }}
               className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
             >
               <UserPlus className="w-4 h-4" /> Add User
@@ -737,9 +734,9 @@ export default function SuperAdminUsersPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[260px]">
                           <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
+                            src={u.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                             alt={u.email}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
+                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0 object-cover"
                           />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</span>
@@ -866,14 +863,14 @@ export default function SuperAdminUsersPage() {
                 <div key={`recent-${u.id}`} className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.email || u.id)}`}
+                      src={u.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                       alt={u.email}
-                      className="h-10 w-10 rounded-xl border border-gray-100 bg-gray-50"
+                      className="h-10 w-10 rounded-xl border border-gray-100 bg-gray-50 object-cover"
                     />
                     <div className="min-w-0">
                       <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
-                      <p className="text-[12px] text-gray-400 font-medium truncate">
-                        {u.role.replaceAll("_", " ")}
+                      <p className="text-[12px] text-gray-400 font-medium truncate capitalize">
+                        {(u.role === "CLUB_ADMIN" ? "organiser admin" : u.role).replaceAll("_", " ")}
                       </p>
                     </div>
                   </div>
@@ -904,14 +901,14 @@ export default function SuperAdminUsersPage() {
                 !canManageUser(dropdownUser) 
                   ? "text-gray-300 cursor-not-allowed" 
                   : dropdownUser.status === "SUSPENDED" 
-                    ? "text-emerald-600 hover:bg-emerald-50" 
-                    : "text-red-600 hover:bg-red-50",
+                    ? "text-gray-700 hover:bg-emerald-50" 
+                    : "text-gray-700 hover:bg-red-50",
               )}
             >
               {dropdownUser.status === "SUSPENDED" ? (
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               ) : (
-                <Ban className="w-4 h-4" />
+                <Ban className="w-4 h-4 text-red-600" />
               )}
               {dropdownUser.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
             </button>
@@ -962,7 +959,7 @@ export default function SuperAdminUsersPage() {
               onClick={() => handleMoreAction("delete", dropdownUser)}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-red-600",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
               <Trash2 className="w-4 h-4 text-red-500" />
@@ -1119,65 +1116,7 @@ export default function SuperAdminUsersPage() {
         </div>
       </Modal>
 
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit User"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              onClick={saveEdit}
-              disabled={mutating}
-              className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
-            >
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Full Name</Label>
-            <Input value={editFullName} onChange={(e) => setEditFullName(e.target.value)} className="rounded-xl h-12" />
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Email Address</Label>
-            <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="rounded-xl h-12" />
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Phone Number</Label>
-            <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="rounded-xl h-12" />
-          </div>
-          {editRole === "PLAYER" ? (
-            <div className="space-y-2">
-              <Label className="font-bold text-gray-700">Playing Handicap</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={editHandicap}
-                onChange={(e) => setEditHandicap(e.target.value)}
-                className="rounded-xl h-12"
-              />
-            </div>
-          ) : null}
-          <div className="space-y-2">
-            <Label className="font-bold text-gray-700">Role</Label>
-            <SearchableSelect
-              value={editRole}
-              onValueChange={(v) => setEditRole(v as AdminUser["role"])}
-              options={["SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
-                value: v,
-                label: v === "CLUB_ADMIN" ? "ORGANISER ADMIN" : v.replaceAll("_", " "),
-              }))}
-              triggerClassName="h-12 bg-white font-medium rounded-xl"
-              placeholder="Select role..."
-            />
-          </div>
-        </div>
-      </Modal>
+
 
       <Modal
         isOpen={isResetPasswordModalOpen}
@@ -1657,8 +1596,12 @@ export default function SuperAdminUsersPage() {
 
       <CreateUserWizard 
         isOpen={isCreateWizardOpen} 
-        onClose={() => setIsCreateWizardOpen(false)} 
+        onClose={() => {
+          setIsCreateWizardOpen(false);
+          setSelectedUser(null);
+        }} 
         onSuccess={reload}
+        editingUser={selectedUser}
       />
     </div>
   );

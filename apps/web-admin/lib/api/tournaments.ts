@@ -20,6 +20,7 @@ export interface Tournament {
   courseId: string;
   club?: { id: string; name: string } | null;
   course?: { id: string; name: string } | null;
+  enableWaitlist?: boolean;
   _count?: { registrations: number };
 }
 
@@ -46,7 +47,7 @@ export type UpdateTournamentPayload = {
   maxHandicap?: number | null;
   maxPlayers?: number | null;
   maxPlayersPerGroup?: number;
-  enableWaitlist?: boolean;
+  enableWaitlist?: boolean | null;
   requiresPayment?: boolean;
   entryFee?: number | null;
   currency?: string | null;
