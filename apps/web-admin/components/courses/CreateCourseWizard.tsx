@@ -158,14 +158,43 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
     setFetching(true);
     try {
       const c = await getCourse(id);
+
+      const loadedCountry = c.country || "NG";
+      let loadedState = c.state || "";
+      let loadedCity = c.city || "";
+
+      if (loadedCountry === "NG" && loadedState) {
+        const matchedState = getNigerianStates().find(
+          s => s.value.toLowerCase() === loadedState.toLowerCase()
+        );
+        if (matchedState) {
+          loadedState = matchedState.value;
+          
+          // Now match LGA (city)
+          const matchedLga = getNigerianLGAs(loadedState).find(
+            l => l.value.toLowerCase() === loadedCity.toLowerCase()
+          );
+          if (matchedLga) {
+            loadedCity = matchedLga.value;
+          }
+        }
+      } else if (loadedCountry && loadedState) {
+        const matchedState = State.getStatesOfCountry(loadedCountry).find(
+          s => s.isoCode.toLowerCase() === loadedState.toLowerCase() || s.name.toLowerCase() === loadedState.toLowerCase()
+        );
+        if (matchedState) {
+          loadedState = matchedState.isoCode;
+        }
+      }
+
       setFormData({
         name: c.name || "",
         alsoKnownAs: c.alsoKnownAs || "",
         clubId: c.clubId || "",
         type: c.type || "Parkland",
-        country: c.country || "NG",
-        state: c.state || "",
-        city: c.city || "",
+        country: loadedCountry,
+        state: loadedState,
+        city: loadedCity,
         address: c.address || "",
         latitude: c.latitude?.toString() || "",
         longitude: c.longitude?.toString() || "",
@@ -890,8 +919,27 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
 
       <div className="min-h-[400px]">
         {fetching ? (
-          <div className="h-[400px] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+              <div className="space-y-2">
+                <div className="h-4.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4.5 w-28 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+              </div>
+            </div>
           </div>
         ) : renderStep()}
       </div>

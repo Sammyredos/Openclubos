@@ -48,7 +48,10 @@ export function getNigerianStates() {
 
 // Helper to get LGAs for a state
 export function getNigerianLGAs(state: string) {
-  const lgas = NIGERIAN_STATES_LGAS[state] || [];
+  const matchKey = Object.keys(NIGERIAN_STATES_LGAS).find(
+    (k) => k.toLowerCase() === state?.toLowerCase()
+  );
+  const lgas = matchKey ? NIGERIAN_STATES_LGAS[matchKey] : [];
   return lgas.map(lga => ({
     value: lga,
     label: lga

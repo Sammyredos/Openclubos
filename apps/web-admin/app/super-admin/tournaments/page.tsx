@@ -1053,12 +1053,10 @@ export default function TournamentsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      <th className="px-4 py-4">Tournament Name</th>
-                      <th className="px-4 py-4">Organizer</th>
-                      <th className="px-4 py-4">Dates</th>
-                      <th className="px-4 py-4 text-center">Players</th>
+                      <th className="px-4 py-4">Tournament Info</th>
+                      <th className="px-4 py-4">Schedule & Visibility</th>
+                      <th className="px-4 py-4">Players</th>
                       <th className="px-4 py-4">Status</th>
-                      <th className="px-4 py-4">Visibility</th>
                       <th className="px-4 py-4 text-right">Entry Fee</th>
                       <th className="px-4 py-4 text-center">Actions</th>
                     </tr>
@@ -1066,7 +1064,7 @@ export default function TournamentsPage() {
                   <tbody className="divide-y divide-gray-50">
                     {error ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-bold text-[13px]">
+                        <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-bold text-[13px]">
                           {error}
                         </td>
                       </tr>
@@ -1076,23 +1074,23 @@ export default function TournamentsPage() {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <Skeleton className="w-8 h-8 rounded-lg" />
-                              <Skeleton className="h-4 w-32 rounded-md" />
+                              <div className="flex flex-col gap-1.5">
+                                <Skeleton className="h-4 w-32 rounded-md" />
+                                <Skeleton className="h-3 w-24 rounded-md" />
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <Skeleton className="h-4 w-24 rounded-md" />
+                            <div className="flex flex-col gap-1.5">
+                              <Skeleton className="h-4 w-28 rounded-md" />
+                              <Skeleton className="h-3 w-16 rounded-md" />
+                            </div>
                           </td>
                           <td className="px-4 py-4">
-                            <Skeleton className="h-4 w-28 rounded-md" />
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <Skeleton className="h-4 w-16 rounded-md mx-auto" />
+                            <Skeleton className="h-4 w-12 rounded-md" />
                           </td>
                           <td className="px-4 py-4">
-                            <Skeleton className="h-4 w-16 rounded-md" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <Skeleton className="h-4 w-16 rounded-md" />
+                            <Skeleton className="h-5.5 w-16 rounded-full" />
                           </td>
                           <td className="px-4 py-4 text-right">
                             <Skeleton className="h-4 w-20 rounded-md ml-auto" />
@@ -1101,36 +1099,48 @@ export default function TournamentsPage() {
                             <div className="flex items-center justify-center gap-2">
                               <Skeleton className="h-9 w-9 rounded-lg" />
                               <Skeleton className="h-9 w-9 rounded-lg" />
+                              <Skeleton className="h-9 w-9 rounded-lg" />
                             </div>
                           </td>
                         </tr>
                       ))
                     ) : paginatedTournaments.length > 0 ? (
                       paginatedTournaments.map((t) => (
-                        <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
+                        <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
                           <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                                <Trophy className="w-4 h-4" />
+                            <div className="flex items-center gap-3 min-w-[220px]">
+                              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <Trophy className="w-4.5 h-4.5" />
                               </div>
-                              <span className="text-[14px] font-bold text-gray-900 truncate max-w-[180px]" title={t.name}>{t.name}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[14px] font-bold text-gray-900 truncate leading-tight" title={t.name}>{t.name.toLowerCase()}</span>
+                                <span className="text-[12px] text-gray-400 font-medium truncate mt-0.5" title={t.clubName}>{t.clubName.toLowerCase()}</span>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-[13px] text-gray-500 font-medium truncate max-w-[140px]" title={t.clubName}>{t.clubName}</td>
-                          <td className="px-4 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{t.dates}</td>
-                          <td className="px-4 py-4 text-[13px] text-gray-900 font-bold text-center">{t.players}</td>
                           <td className="px-4 py-4">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${t.badge}`}>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[13px] text-gray-700 font-medium truncate leading-tight">{t.dates}</span>
+                              <div className={cn("inline-flex items-center gap-1 mt-1 text-[9px] font-bold uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
+                                {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-2.5 h-2.5 flex-shrink-0" })}
+                                <span>{t.visibility}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col items-start">
+                              <span className="text-[14px] text-gray-900 font-bold leading-tight">{t.players}</span>
+                              <span className="text-[10px] text-gray-400 font-medium mt-0.5">Registered</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase ${t.badge}`}>
                               {t.status}
                             </span>
                           </td>
-                          <td className="px-4 py-4">
-                            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold whitespace-nowrap", VISIBILITY_META[t.visibilityKey]?.badge)}>
-                              {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3" })}
-                              {t.visibility}
-                            </div>
+                          <td className="px-4 py-4 text-right">
+                            <span className="text-[14px] font-bold text-gray-900 whitespace-nowrap">{formatNaira(t.entryFee)}</span>
                           </td>
-                          <td className="px-4 py-4 text-[14px] font-bold text-gray-900 text-right whitespace-nowrap">{formatNaira(t.entryFee)}</td>
                           <td className="px-4 py-4">
                             <div className="flex items-center justify-center gap-2">
                               <button
@@ -1139,6 +1149,19 @@ export default function TournamentsPage() {
                                 title="View Tournament"
                               >
                                 <Eye className="w-4.5 h-4.5" />
+                              </button>
+                              <button
+                                onClick={() => openEdit(t)}
+                                className={cn(
+                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"
+                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-gray-100"
+                                    : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+                                )}
+                                title="Edit Tournament"
+                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"}
+                              >
+                                <Edit2 className="w-4.5 h-4.5" />
                               </button>
                               <div className="relative">
                                 <button
@@ -1156,6 +1179,7 @@ export default function TournamentsPage() {
                                     }
                                   }}
                                   className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                                  title="More Actions"
                                 >
                                   <MoreHorizontal className="w-4.5 h-4.5" />
                                 </button>
@@ -1166,7 +1190,7 @@ export default function TournamentsPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-6 py-20 text-center">
+                        <td colSpan={6} className="px-6 py-20 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                               <Trophy className="w-8 h-8 text-gray-200" />

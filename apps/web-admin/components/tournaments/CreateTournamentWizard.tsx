@@ -179,14 +179,12 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     return State.getStatesOfCountry(formData.venue).map(s => ({ value: s.isoCode, label: s.name }));
   }, [formData.venue]);
 
-  // Filter courses by selected country and state
+  // Filter courses by selected country
   const filteredCourses = useMemo(() => {
     return courses.filter(c => {
-      const matchCountry = !formData.venue || c.country === formData.venue;
-      const matchState = !formData.location || c.state === formData.location;
-      return matchCountry && matchState;
+      return !formData.venue || c.country?.toLowerCase() === formData.venue?.toLowerCase();
     });
-  }, [courses, formData.venue, formData.location]);
+  }, [courses, formData.venue]);
 
   const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
 
@@ -237,6 +235,25 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         getTournament(tournamentId)
           .then((t) => {
             setOriginalStatus(t.status);
+
+            const loadedVenue = t.venue || "NG";
+            let loadedLocation = t.location || "";
+            if (loadedVenue === "NG" && loadedLocation) {
+              const matchedState = getNigerianStates().find(
+                s => s.value.toLowerCase() === loadedLocation.toLowerCase()
+              );
+              if (matchedState) {
+                loadedLocation = matchedState.value;
+              }
+            } else if (loadedVenue && loadedLocation) {
+              const matchedState = State.getStatesOfCountry(loadedVenue).find(
+                s => s.isoCode.toLowerCase() === loadedLocation.toLowerCase() || s.name.toLowerCase() === loadedLocation.toLowerCase()
+              );
+              if (matchedState) {
+                loadedLocation = matchedState.isoCode;
+              }
+            }
+
             setFormData({
               name: t.name || "",
               clubId: t.clubId || "",
@@ -244,8 +261,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               bannerUrl: t.bannerUrl || "",
               bannerPreview: t.bannerUrl || "",
               description: t.description || "",
-              venue: t.venue || "NG",
-              location: t.location || "",
+              venue: loadedVenue,
+              location: loadedLocation,
               startDate: t.startDate ? t.startDate.slice(0, 10) : "",
               endDate: t.endDate ? t.endDate.slice(0, 10) : "",
               registrationOpenAt: t.registrationOpenAt ? t.registrationOpenAt.slice(0, 10) : "",
@@ -294,11 +311,12 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
   const handleClubChange = (id: string) => {
     set("clubId", id);
-    // Find first course of this club to prefill location
+    // Find first course of this club to prefill
     const firstCourse = courses.find(c => c.clubId === id);
     if (firstCourse) {
       setFormData(prev => ({
         ...prev,
+        courseId: firstCourse.id,
         venue: firstCourse.country || prev.venue,
         location: firstCourse.state || prev.location
       }));
@@ -467,27 +485,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Country" required>
-                  <SearchableSelect value={formData.venue} onValueChange={(v) => { set("venue", v); set("location", ""); }}
+                  <SearchableSelect value={formData.venue} onValueChange={(v) => { set("venue", v); set("courseId", ""); set("location", ""); }}
                     options={countryOptions} placeholder="Select country..." triggerClassName={req(formData.venue)} />
-                </Field>
-                <Field label="State" required>
-                  <SearchableSelect value={formData.location} onValueChange={(v) => set("location", v)}
-                    options={stateOptions} placeholder="Select state..." disabled={!formData.venue} triggerClassName={req(formData.location)} />
-                </Field>
-              </div>
-
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
-                <Info className="w-4 h-4 text-emerald-500 shrink-0" />
-                <p className="text-[12px] font-medium text-emerald-700">
-                  Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong>
-                  {formData.location && <> and <strong>{stateOptions.find(s => s.value === formData.location)?.label}</strong></>}.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-1">
-                <Field label="Organizer" required>
-                  <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
-                    options={organizers.map((o) => ({ value: o.id, label: o.name }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
                 </Field>
                 <Field label="Golf Course" required>
                   <SearchableSelect
@@ -499,8 +498,23 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       image: c.coverImage || undefined
                     }))}
                     placeholder="Select course..."
+                    disabled={!formData.venue}
                     triggerClassName={req(formData.courseId)}
                   />
+                </Field>
+              </div>
+
+              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
+                <Info className="w-4 h-4 text-emerald-500 shrink-0" />
+                <p className="text-[12px] font-medium text-emerald-700">
+                  Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong>.
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <Field label="Organizer" required>
+                  <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
+                    options={organizers.map((o) => ({ value: o.id, label: o.name }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
                 </Field>
               </div>
 
@@ -1217,7 +1231,30 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       </div>
 
       <div className="min-h-[350px]">
-        {stepContent()}
+        {loading ? (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+              <div className="space-y-2">
+                <div className="h-4.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4.5 w-28 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ) : stepContent()}
       </div>
     </Modal>
   );

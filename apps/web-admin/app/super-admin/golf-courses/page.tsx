@@ -319,12 +319,10 @@ export default function SuperAdminGolfCoursesPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-4">Course</th>
-                  <th className="px-4 py-4">Location</th>
-                  <th className="px-4 py-4 text-center">Holes</th>
-                  <th className="px-4 py-4 text-center">Par</th>
+                  <th className="px-4 py-4">Course Info</th>
+                  <th className="px-4 py-4">Location & Country</th>
+                  <th className="px-4 py-4 text-center">Holes & Par</th>
                   <th className="px-4 py-4">Type</th>
-                  <th className="px-4 py-4">Country</th>
                   <th className="px-4 py-4">Status</th>
                   <th className="px-4 py-4 text-center">Actions</th>
                 </tr>
@@ -334,9 +332,9 @@ export default function SuperAdminGolfCoursesPage() {
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-3 min-w-[240px]">
+                        <div className="flex items-center gap-3">
                           <Skeleton className="w-12 h-10 rounded-lg flex-shrink-0" />
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
                             <Skeleton className="h-4 w-32 rounded-md" />
                             <Skeleton className="h-3 w-24 rounded-md" />
                           </div>
@@ -345,35 +343,27 @@ export default function SuperAdminGolfCoursesPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <Skeleton className="w-3.5 h-3.5 rounded-full flex-shrink-0" />
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
                             <Skeleton className="h-4 w-28 rounded-md" />
                             <Skeleton className="h-3 w-20 rounded-md" />
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-6 rounded-md mx-auto" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-6 rounded-md mx-auto" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <Skeleton className="w-3.5 h-3.5 rounded-full" />
-                          <Skeleton className="h-4 w-16 rounded-md" />
+                        <div className="flex flex-col items-center gap-1.5">
+                          <Skeleton className="h-4 w-12 rounded-md mx-auto" />
+                          <Skeleton className="h-3.5 w-10 rounded-md mx-auto" />
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-5 h-3.5 rounded-sm" />
-                          <Skeleton className="h-4 w-20 rounded-md" />
-                        </div>
+                        <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
+                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -384,8 +374,8 @@ export default function SuperAdminGolfCoursesPage() {
                   courses.map((course) => (
                     <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-3 min-w-[240px]">
-                          <div className="w-12 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+                        <div className="flex items-center gap-3 min-w-[220px]">
+                          <div className="w-12 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
                             {course.coverImage ? (
                               <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                             ) : (
@@ -395,8 +385,8 @@ export default function SuperAdminGolfCoursesPage() {
                             )}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[14px] font-bold text-gray-900 truncate">{course.name}</span>
-                            <span className="text-[12px] text-gray-400 font-medium truncate">{course.club?.name || "Independent"}</span>
+                            <span className="text-[14px] font-bold text-gray-900 truncate" title={course.name}>{course.name.toLowerCase()}</span>
+                            <span className="text-[12px] text-gray-400 font-medium truncate mt-0.5">{(course.club?.name || "Independent").toLowerCase()}</span>
                           </div>
                         </div>
                       </td>
@@ -404,32 +394,33 @@ export default function SuperAdminGolfCoursesPage() {
                         <div className="flex items-center gap-2 min-w-[180px]">
                           <MapPin className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[13px] font-medium text-gray-700 truncate">{course.city}, {course.state}</span>
-                            <span className="text-[11px] text-gray-400 truncate">{Country.getCountryByCode(course.country)?.name || course.country}</span>
+                            <span className="text-[13px] font-bold text-gray-700 truncate">{course.city?.toLowerCase()}, {course.state?.toLowerCase()}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                              <div className="w-4 h-3 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
+                                <img 
+                                  src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`} 
+                                  alt={course.country}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span className="text-[11px] text-gray-400 font-medium truncate">
+                                {(Country.getCountryByCode(course.country)?.name || course.country).toLowerCase()}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-[14px] text-gray-600 font-bold text-center">{course.holes}</td>
-                      <td className="px-4 py-4 text-[14px] text-gray-600 font-bold text-center">{course.par}</td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-600 bg-blue-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[14px] text-gray-900 font-bold leading-tight">{course.holes} Holes</span>
+                          <span className="text-[11px] text-gray-400 font-medium mt-0.5">Par {course.par}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-lg whitespace-nowrap uppercase">
                           <Mountain className="w-3 h-3 text-blue-400" />
-                          {course.type}
+                          {course.type.toLowerCase()}
                         </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 whitespace-nowrap">
-                          <div className="w-5 h-3.5 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
-                            <img 
-                              src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`} 
-                              alt={course.country}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <span className="text-[13px] font-medium text-gray-700">
-                            {Country.getCountryByCode(course.country)?.name || course.country}
-                          </span>
-                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <StatusPill status={course.status} />
@@ -445,6 +436,16 @@ export default function SuperAdminGolfCoursesPage() {
                             title="View Course"
                           >
                             <Eye className="w-4.5 h-4.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setIsModalOpen(true);
+                            }}
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            title="Edit Course"
+                          >
+                            <Edit2 className="w-4.5 h-4.5" />
                           </button>
                           <div className="relative">
                             <button
@@ -473,7 +474,7 @@ export default function SuperAdminGolfCoursesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                           <Mountain className="w-8 h-8 text-gray-200" />

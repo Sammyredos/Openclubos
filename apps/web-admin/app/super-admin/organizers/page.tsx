@@ -68,6 +68,11 @@ type ApiOrganizer = {
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
   createdAt: string;
+  type?: string | null;
+  website?: string | null;
+  facebook?: string | null;
+  instagram?: string | null;
+  country?: string | null;
   _count?: { tournaments: number; courses: number };
   users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null; phone?: string | null }>;
 };
@@ -82,6 +87,11 @@ type OrganizerRow = {
   joinedDate: string;
   createdAtISO: string;
   logo: string;
+  type: string;
+  website: string;
+  facebook: string;
+  instagram: string;
+  country: string;
 };
 
 type ApiTournament = {
@@ -167,6 +177,11 @@ function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
     joinedDate: formatJoinedDate(o.createdAt),
     createdAtISO: o.createdAt,
     logo: o.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(o.name)}&background=10b981&color=fff&bold=true`,
+    type: o.type || "Golf Club",
+    website: o.website || "—",
+    facebook: o.facebook || "",
+    instagram: o.instagram || "",
+    country: o.country || "NG",
   };
 }
 
@@ -650,18 +665,17 @@ export default function OrganizersPage() {
               <thead>
                 <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="px-4 py-4">Organizer Name</th>
-                  <th className="px-4 py-4">Location</th>
-                  <th className="px-4 py-4">Admin</th>
-                  <th className="px-4 py-4">Plan</th>
+                  <th className="px-4 py-4">Location & Contact</th>
+                  <th className="px-4 py-4">Admin Details</th>
+                  <th className="px-4 py-4">Plan & Joined</th>
                   <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4">Joined Date</th>
                   <th className="px-4 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {error ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-medium">
+                    <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-medium">
                       {error}
                     </td>
                   </tr>
@@ -671,32 +685,39 @@ export default function OrganizersPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
-                          <Skeleton className="h-4 w-40 rounded-md" />
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-32 rounded-md" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
-                          <div className="flex flex-col gap-2">
-                            <Skeleton className="h-3 w-28 rounded-md" />
-                            <Skeleton className="h-3 w-36 rounded-md" />
+                          <div className="flex flex-col gap-1.5">
+                            <Skeleton className="h-4 w-32 rounded-md" />
+                            <Skeleton className="h-3 w-16 rounded-md" />
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-5 w-14 rounded-lg" />
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-4 w-28 rounded-md" />
+                          <Skeleton className="h-3.5 w-24 rounded-md" />
+                        </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-5 w-20 rounded-lg" />
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                          <div className="flex flex-col gap-1.5">
+                            <Skeleton className="h-3.5 w-24 rounded-md" />
+                            <Skeleton className="h-3 w-28 rounded-md" />
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-24 rounded-md" />
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-4.5 w-12 rounded-md" />
+                          <Skeleton className="h-3.5 w-20 rounded-md" />
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Skeleton className="h-5 w-16 rounded-lg" />
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
+                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -712,10 +733,35 @@ export default function OrganizersPage() {
                             <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                               <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                             </div>
-                            <span className="text-[14px] font-bold text-gray-800 truncate">{organizer.name}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate" title={organizer.name}>
+                                {organizer.name.toLowerCase()}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded mt-1 self-start whitespace-nowrap">
+                                {organizer.type.toLowerCase()}
+                              </span>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-[13px] text-gray-500 font-medium truncate max-w-[140px]" title={organizer.location}>{organizer.location}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1 text-[13px] text-gray-500 font-medium truncate max-w-[180px]" title={organizer.location}>
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                              <span>{organizer.location.toLowerCase()}</span>
+                            </div>
+                            {organizer.website && organizer.website !== "—" && (
+                              <a
+                                href={organizer.website.startsWith("http") ? organizer.website : `https://${organizer.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[12px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 mt-1 normal-case hover:underline self-start"
+                              >
+                                <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="truncate max-w-[150px]">{organizer.website.toLowerCase()}</span>
+                              </a>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3 min-w-[200px]">
                             <img
@@ -724,44 +770,55 @@ export default function OrganizersPage() {
                               className="w-8 h-8 rounded-full border border-gray-100 flex-shrink-0"
                             />
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name}</span>
-                              <span className="text-[12px] text-gray-400 font-medium truncate">{organizer.admin.email}</span>
+                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name.toLowerCase()}</span>
+                              <span className="text-[12px] text-gray-400 font-medium truncate normal-case">{organizer.admin.email}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-center">
-                          <span
-                            className={cn(
-                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
-                              organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600",
-                            )}
-                          >
-                            {organizer.plan}
-                          </span>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
+                                organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-blue-50 text-blue-600 border border-blue-100",
+                              )}
+                            >
+                              {organizer.plan}
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                              {organizer.joinedDate}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           <span
                             className={cn(
                               "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
                               organizer.status === "Active"
-                                ? "bg-emerald-50 text-emerald-600"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                 : organizer.status === "Suspended"
-                                  ? "bg-amber-50 text-amber-600"
-                                  : "bg-red-50 text-red-600",
+                                  ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                  : "bg-red-50 text-red-600 border border-red-100",
                             )}
                           >
                             {organizer.status}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">{organizer.joinedDate}</td>
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => openViewModal(organizer)}
                               className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
-                              title="View Organizer Details"
+                              title="View Details"
                             >
                               <Eye className="w-4.5 h-4.5" />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(organizer)}
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                              title="Edit Organizer"
+                            >
+                              <Edit2 className="w-4.5 h-4.5" />
                             </button>
                             <div className="relative">
                               <button
@@ -790,7 +847,7 @@ export default function OrganizersPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                           <Building2 className="w-8 h-8 text-gray-200" />

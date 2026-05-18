@@ -73,7 +73,7 @@ function SearchableSelect({
     return () => window.removeEventListener("mousedown", onMouseDown)
   }, [open])
 
-  const selected = options.find((o) => o.value === value) || null
+  const selected = options.find((o) => o.value?.toLowerCase() === value?.toLowerCase()) || null
   const filtered = query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
     : options

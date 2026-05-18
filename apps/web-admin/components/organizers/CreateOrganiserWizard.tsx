@@ -435,6 +435,12 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser 
         orgCity: formData.city || undefined, // Inherit from contact person
         clubLogo: orgProfile.logo || undefined,
         clubPlan: orgProfile.plan || "PRO",
+        clubType: orgProfile.type || "Golf Club",
+        clubWebsite: orgProfile.website || undefined,
+        clubAbout: orgProfile.about || undefined,
+        clubFacebook: orgProfile.facebook || undefined,
+        clubInstagram: orgProfile.instagram || undefined,
+        clubCountry: orgProfile.country || "NG",
       };
 
       if (editingUser) {

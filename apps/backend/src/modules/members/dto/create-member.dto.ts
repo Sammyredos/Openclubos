@@ -89,4 +89,28 @@ export class CreateMemberDto {
   @IsOptional()
   @IsEnum(['PRO', 'BASIC'])
   clubPlan?: 'PRO' | 'BASIC';
+
+  @IsOptional()
+  @IsString()
+  clubType?: string;
+
+  @IsOptional()
+  @IsString()
+  clubWebsite?: string;
+
+  @IsOptional()
+  @IsString()
+  clubAbout?: string;
+
+  @IsOptional()
+  @IsString()
+  clubFacebook?: string;
+
+  @IsOptional()
+  @IsString()
+  clubInstagram?: string;
+
+  @IsOptional()
+  @IsString()
+  clubCountry?: string;
 }

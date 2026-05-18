@@ -27,6 +27,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertTriangle,
+  MapPin,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -687,9 +688,10 @@ export default function SuperAdminUsersPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-4">User</th>
+                  <th className="px-4 py-4">User Profile</th>
                   <th className="px-4 py-4">Role</th>
                   <th className="px-4 py-4 text-center">Handicap</th>
+                  <th className="px-4 py-4">Contact & Location</th>
                   <th className="px-4 py-4">Status</th>
                   <th className="px-4 py-4">Joined Date</th>
                   <th className="px-4 py-4 text-center">Actions</th>
@@ -702,26 +704,33 @@ export default function SuperAdminUsersPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
-                          <div className="flex flex-col gap-2">
-                            <Skeleton className="h-4 w-40 rounded-md" />
-                            <Skeleton className="h-3 w-56 rounded-md" />
+                          <div className="flex flex-col gap-1.5">
+                            <Skeleton className="h-4 w-32 rounded-md" />
+                            <Skeleton className="h-3 w-28 rounded-md" />
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-5 w-20 rounded-lg" />
+                        <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-10 rounded-md mx-auto" />
+                        <Skeleton className="h-4 w-8 rounded-md mx-auto" />
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-5 w-24 rounded-lg" />
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-3.5 w-24 rounded-md" />
+                          <Skeleton className="h-3 w-16 rounded-md" />
+                        </div>
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-4 w-28 rounded-md" />
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <Skeleton className="h-3.5 w-20 rounded-md" />
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
+                          <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
                         </div>
@@ -732,32 +741,49 @@ export default function SuperAdminUsersPage() {
                   paginatedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-3 min-w-[260px]">
+                        <div className="flex items-center gap-3 min-w-[240px]">
                           <img
                             src={u.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                             alt={u.email}
                             className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0 object-cover"
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</span>
-                            <span className="text-[12px] text-gray-400 font-medium truncate">{u.email}</span>
+                            <span className="text-[14px] font-bold text-gray-900 truncate leading-tight">{fullName(u.firstName, u.lastName).toLowerCase()}</span>
+                            <span className="text-[12px] text-gray-400 font-medium truncate normal-case">{u.email}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <RoleBadge role={u.role} />
                       </td>
-                      <td className="px-4 py-4 text-[14px] text-gray-500 font-medium text-center">
-                        {u.role === "PLAYER"
-                          ? typeof u.handicap === "number"
-                            ? u.handicap.toFixed(1)
-                            : "—"
-                          : "—"}
+                      <td className="px-4 py-4 text-center">
+                        <span className="text-[14px] text-gray-900 font-bold">
+                          {u.role === "PLAYER"
+                            ? typeof u.handicap === "number"
+                              ? u.handicap.toFixed(1)
+                              : "—"
+                            : "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col min-w-0">
+                          {u.phone ? (
+                            <span className="text-[13px] text-gray-700 font-medium truncate">{u.phone}</span>
+                          ) : (
+                            <span className="text-[13px] text-gray-400 font-medium">—</span>
+                          )}
+                          {u.state ? (
+                            <span className="text-[11px] text-gray-400 font-medium truncate leading-tight flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                              <span>{u.state.toLowerCase()}</span>
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <StatusPill status={u.status} />
                       </td>
-                      <td className="px-4 py-4 text-[14px] text-gray-500 font-medium whitespace-nowrap">
+                      <td className="px-4 py-4 text-[13px] text-gray-500 font-medium whitespace-nowrap">
                         {formatJoinedDate(u.createdAt)}
                       </td>
                       <td className="px-4 py-4">
@@ -768,6 +794,13 @@ export default function SuperAdminUsersPage() {
                             onClick={() => openViewModal(u)}
                           >
                             <Eye className="w-4.5 h-4.5" />
+                          </button>
+                          <button
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            title="Edit User"
+                            onClick={() => openEditModal(u)}
+                          >
+                            <Edit2 className="w-4.5 h-4.5" />
                           </button>
                           <div className="relative">
                             <button
@@ -796,7 +829,7 @@ export default function SuperAdminUsersPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center">
+                    <td colSpan={7} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                           <Users className="w-8 h-8 text-gray-200" />

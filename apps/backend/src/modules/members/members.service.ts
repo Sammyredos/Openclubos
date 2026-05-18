@@ -67,6 +67,12 @@ export class MembersService {
           city: createMemberDto.orgCity || null,
           logo: createMemberDto.clubLogo || null,
           plan: (createMemberDto.clubPlan as 'PRO' | 'BASIC') || 'BASIC',
+          type: createMemberDto.clubType || 'Golf Club',
+          website: createMemberDto.clubWebsite || null,
+          about: createMemberDto.clubAbout || null,
+          facebook: createMemberDto.clubFacebook || null,
+          instagram: createMemberDto.clubInstagram || null,
+          country: createMemberDto.clubCountry || 'NG',
         },
       });
       clubId = newClub.id;
@@ -250,6 +256,9 @@ export class MembersService {
   async findOne(id: string) {
     const member = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        club: true,
+      },
     });
 
     if (!member) {
@@ -349,6 +358,12 @@ export class MembersService {
               ...(updateMemberDto.orgCity !== undefined ? { city: updateMemberDto.orgCity || null } : {}),
               ...(updateMemberDto.clubLogo !== undefined ? { logo: updateMemberDto.clubLogo || null } : {}),
               ...(updateMemberDto.clubPlan !== undefined ? { plan: updateMemberDto.clubPlan as 'PRO' | 'BASIC' } : {}),
+              ...(updateMemberDto.clubType !== undefined ? { type: updateMemberDto.clubType || 'Golf Club' } : {}),
+              ...(updateMemberDto.clubWebsite !== undefined ? { website: updateMemberDto.clubWebsite || null } : {}),
+              ...(updateMemberDto.clubAbout !== undefined ? { about: updateMemberDto.clubAbout || null } : {}),
+              ...(updateMemberDto.clubFacebook !== undefined ? { facebook: updateMemberDto.clubFacebook || null } : {}),
+              ...(updateMemberDto.clubInstagram !== undefined ? { instagram: updateMemberDto.clubInstagram || null } : {}),
+              ...(updateMemberDto.clubCountry !== undefined ? { country: updateMemberDto.clubCountry || 'NG' } : {}),
             },
           });
         } else {
@@ -360,6 +375,12 @@ export class MembersService {
               city: updateMemberDto.orgCity || null,
               logo: updateMemberDto.clubLogo || null,
               plan: updateMemberDto.clubPlan || 'BASIC',
+              type: updateMemberDto.clubType || 'Golf Club',
+              website: updateMemberDto.clubWebsite || null,
+              about: updateMemberDto.clubAbout || null,
+              facebook: updateMemberDto.clubFacebook || null,
+              instagram: updateMemberDto.clubInstagram || null,
+              country: updateMemberDto.clubCountry || 'NG',
             },
           });
           clubId = newClub.id;
@@ -381,6 +402,12 @@ export class MembersService {
     delete data.orgCity;
     delete data.clubLogo;
     delete data.clubPlan;
+    delete data.clubType;
+    delete data.clubWebsite;
+    delete data.clubAbout;
+    delete data.clubFacebook;
+    delete data.clubInstagram;
+    delete data.clubCountry;
 
     try {
       return await this.prisma.user.update({
