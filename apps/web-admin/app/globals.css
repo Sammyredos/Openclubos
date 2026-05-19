@@ -113,7 +113,7 @@
 
   .font-normal {
     font-family: var(--font-dmsans);
-    font-weight: 400 !important;
+    font-weight: 500 !important;
   }
 
   .font-medium {
@@ -126,7 +126,7 @@
   .font-extrabold,
   .font-black {
     font-family: var(--font-dmsans);
-    font-weight: 600 !important;
+    font-weight: 700 !important;
   }
 
   .scrollbar-hide {

@@ -31,17 +31,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Course, CourseStats, getAdminCourses, deleteCourse, updateCourse } from "@/lib/api/courses";
-import dynamic from "next/dynamic";
-import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
-
-const CreateCourseWizard = dynamic(
-  () => import("@/components/courses/CreateCourseWizard").then(mod => mod.CreateCourseWizard),
-  { 
-    ssr: false, 
-    loading: () => <WizardSkeleton steps={6} /> 
-  }
-);
 import { Country } from "country-state-city";
+import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
@@ -64,6 +55,7 @@ function StatusPill({ status }: { status: Course["status"] }) {
 }
 
 export default function SuperAdminGolfCoursesPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<CourseStats | null>(null);
@@ -78,7 +70,6 @@ export default function SuperAdminGolfCoursesPage() {
   const itemsPerPage = 10;
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [statusAction, setStatusAction] = useState<"activate" | "deactivate">("activate");
@@ -263,10 +254,7 @@ export default function SuperAdminGolfCoursesPage() {
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button
-              onClick={() => {
-                setSelectedCourse(null);
-                setIsModalOpen(true);
-              }}
+              onClick={() => router.push("/super-admin/golf-courses/create")}
               className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
             >
               <Plus className="w-4 h-4" /> Add Golf Course
@@ -438,10 +426,7 @@ export default function SuperAdminGolfCoursesPage() {
                             <Eye className="w-4.5 h-4.5" />
                           </button>
                           <button
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setIsModalOpen(true);
-                            }}
+                            onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                             title="Edit Course"
                           >
@@ -504,12 +489,6 @@ export default function SuperAdminGolfCoursesPage() {
         </CardContent>
       </Card>
 
-      <CreateCourseWizard
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchCourses}
-        courseId={selectedCourse?.id}
-      />
 
       <Modal 
         isOpen={isViewModalOpen} 
@@ -704,9 +683,8 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="h-px bg-gray-50 my-1 mx-2" />
           <button
             onClick={() => {
-              setSelectedCourse(dropdownCourse);
-              setIsModalOpen(true);
               closeDropdown();
+              router.push(`/super-admin/golf-courses/${dropdownCourse.id}/edit`);
             }}
             className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >

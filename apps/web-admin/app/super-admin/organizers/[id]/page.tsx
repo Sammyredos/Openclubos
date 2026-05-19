@@ -22,13 +22,14 @@ import {
   ArrowLeft,
   DollarSign,
   LogOut,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { Pagination } from "@/components/ui/pagination";
 import { broadcastAdminEvent, cn, formatWithCommas, formatNumber, subscribeAdminEvents } from "@/lib/utils";
-import { deleteOrganizer, forceLogoutOrganizer, getOrganizer, getOrganizerStats, updateOrganizer } from "@/lib/api/organizers";
+import { deleteOrganizer, forceLogoutOrganizer, getOrganizer, getOrganizerStats, updateOrganizer, suspendOrganizer, activateOrganizer } from "@/lib/api/organizers";
 import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -200,6 +201,8 @@ export default function OrganizerDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
 
   const [editPlan, setEditPlan] = useState("Pro");
   const [editName, setEditName] = useState("");
@@ -414,6 +417,13 @@ export default function OrganizerDetailsPage() {
   const confirmDelete = () => {
     if (!organizerId) return;
     if (deleteConfirmText.trim().toUpperCase() !== "DELETE") return;
+    if (organizer && organizer.tournaments > 0) {
+      toast.error(`Cannot delete organizer: "${organizer.name}" has hosted tournaments before. Please suspend them instead.`);
+      setIsDeleteModalOpen(false);
+      setStatusAction("suspend");
+      setIsStatusModalOpen(true);
+      return;
+    }
     setMutating(true);
     deleteOrganizer(organizerId)
       .then(() => {
@@ -437,6 +447,30 @@ export default function OrganizerDetailsPage() {
         return reloadOrganizerData();
       })
       .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to force logout organizer"))
+      .finally(() => setMutating(false));
+  };
+
+  const confirmStatusChange = () => {
+    if (!organizerId) return;
+    setMutating(true);
+    const op = statusAction === "activate" ? activateOrganizer : suspendOrganizer;
+    op(organizerId)
+      .then(() => {
+        toast.success(
+          statusAction === "activate"
+            ? `${organizer?.name} has been activated`
+            : `${organizer?.name} has been suspended`,
+        );
+        setIsStatusModalOpen(false);
+        broadcastAdminEvent("organizers-changed");
+        return reloadOrganizerData();
+      })
+      .catch((e: unknown) =>
+        toast.error(
+          getErrorMessage(e) ||
+            (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
+        ),
+      )
       .finally(() => setMutating(false));
   };
 
@@ -650,6 +684,46 @@ export default function OrganizerDetailsPage() {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        title={statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className={cn(
+                "border rounded-lg font-bold px-8",
+                statusAction === "activate"
+                  ? "bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30 text-white"
+                  : "bg-amber-500 hover:bg-amber-600 border-amber-600/30 text-white"
+              )}
+              onClick={confirmStatusChange}
+              disabled={mutating}
+            >
+              {statusAction === "activate" ? "Activate" : "Suspend"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className={cn(
+            "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+            statusAction === "activate" ? "bg-emerald-50 text-emerald-500" : "bg-amber-50 text-amber-500"
+          )}>
+            {statusAction === "activate" ? <CheckCircle2 className="h-10 w-10" /> : <Ban className="h-10 w-10" />}
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            {statusAction === "activate"
+              ? `Are you sure you want to activate ${organizer?.name}?`
+              : `Are you sure you want to suspend ${organizer?.name}?`}
+          </p>
+        </div>
+      </Modal>
+
       <div className="flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-7 overflow-x-auto">
           {TABS.map((t) => (
@@ -757,6 +831,31 @@ export default function OrganizerDetailsPage() {
                 <Download className="w-4 h-4 text-gray-500" />
                 Export Organizer Data
               </button>
+              {organizer?.status === "Suspended" ? (
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
+                  onClick={() => {
+                    closeMoreMenu();
+                    setStatusAction("activate");
+                    setIsStatusModalOpen(true);
+                  }}
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Activate Organizer
+                </button>
+              ) : (
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-gray-50"
+                  onClick={() => {
+                    closeMoreMenu();
+                    setStatusAction("suspend");
+                    setIsStatusModalOpen(true);
+                  }}
+                >
+                  <Ban className="w-4 h-4 text-amber-600" />
+                  Suspend Organizer
+                </button>
+              )}
               <button
                 className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-red-50"
                 onClick={() => {
@@ -1152,7 +1251,10 @@ export default function OrganizerDetailsPage() {
           <Card className="border-none shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold">Tournaments</CardTitle>
-              <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg px-4 font-bold">
+              <Button
+                onClick={() => router.push(`/super-admin/tournaments/create?organizerId=${organizer?.id || ""}`)}
+                className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg px-4 font-bold"
+              >
                 Add Tournament
               </Button>
             </CardHeader>

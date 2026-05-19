@@ -7,20 +7,22 @@ import { Input, SearchableSelect } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { 
-  Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye
+  Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye, ArrowLeft
 } from "lucide-react";
+import { createMember, updateMember, getMember } from "@/lib/api/members";
 import { toast } from "sonner";
-import { createMember, updateMember } from "@/lib/api/members";
 import { getClubs, Club } from "@/lib/api/clubs";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Country, State, City } from "country-state-city";
 import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas";
 
 interface WizardProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: () => void;
   editingUser?: any;
+  userId?: string | null;
+  isPageMode?: boolean;
 }
 
 const STEPS = ["Basic Information", "Role & Permissions", "Organization", "Review & Confirm"];
@@ -183,11 +185,14 @@ const Field = ({ label, required, children, error, optional }: { label: string; 
   </div>
 );
 
-export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: WizardProps) {
+export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: propEditingUser, userId, isPageMode }: WizardProps) {
   const [step, setStep] = useState(1);
+  const [editingUser, setEditingUser] = useState<any>(propEditingUser || null);
+  const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [orgProfile, setOrgProfile] = useState({
     name: "",
     type: "Golf Club",
@@ -209,7 +214,32 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
   const orgLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (propEditingUser) {
+      setEditingUser(propEditingUser);
+    }
+  }, [propEditingUser]);
+
+  useEffect(() => {
+    if (userId && (isOpen || isPageMode)) {
+      const loadUser = async () => {
+        setFetching(true);
+        try {
+          const u = await getMember(userId);
+          setEditingUser(u);
+        } catch (err: any) {
+          toast.error(err.message || "Failed to load user details");
+        } finally {
+          setFetching(false);
+        }
+      };
+      loadUser();
+    } else if (!userId) {
+      setEditingUser(propEditingUser || null);
+    }
+  }, [userId, isOpen, isPageMode, propEditingUser]);
+
+  useEffect(() => {
+    if (isOpen || isPageMode) {
       setStep(1);
       setShowValidation(false);
       if (editingUser) {
@@ -241,7 +271,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
           permissions: editingUser.permissions || mergeRolePermissions([editingUser.role]),
           clubId: editingUser.clubId || "",
           handicap: editingUser.handicap !== undefined && editingUser.handicap !== null ? String(editingUser.handicap) : "20",
-          profileImage: editingUser.profilePhoto || "",
+          profileImage: editingUser.profilePhoto && !editingUser.profilePhoto.includes("ui-avatars.com") ? editingUser.profilePhoto : "",
           status: editingUser.status || "ACTIVE",
         });
 
@@ -283,7 +313,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
         });
       }
     }
-  }, [isOpen, editingUser]);
+  }, [isOpen, isPageMode, editingUser]);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
   const stateOptions = useMemo(() => {
@@ -429,6 +459,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
 
   const handleSubmit = async () => {
     setLoading(true);
+    const toastId = toast.loading(editingUser ? "Saving changes..." : "Creating user...");
     try {
       const generatedPassword = Math.random().toString(36).slice(-8) + "A1!";
       let isJunior = false;
@@ -453,7 +484,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
               formData.roles.includes("CLUB_ADMIN") ? "CLUB_ADMIN" : 
               formData.roles.includes("MARKER") ? "MARKER" : "PLAYER",
         status: formData.status,
-        profilePhoto: formData.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName)}+${encodeURIComponent(formData.surname)}&background=10b981&color=fff&bold=true`,
+        profilePhoto: formData.profileImage && !formData.profileImage.includes("ui-avatars.com") ? formData.profileImage : null,
         handicap: formData.roles.includes("PLAYER") ? parseFloat(formData.handicap) : undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
@@ -469,16 +500,25 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
 
       if (editingUser) {
         await updateMember(editingUser.id, payload);
-        toast.success("User updated successfully");
+        toast.success("User updated successfully", { id: toastId });
       } else {
         payload.password = generatedPassword;
         await createMember(payload);
-        toast.success("User created successfully");
+        toast.success("User created successfully", { id: toastId });
       }
-      onSuccess();
-      onClose();
+      
+      if (isPageMode) {
+        setIsRedirecting(true);
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 150);
+      } else {
+        onSuccess();
+        onClose();
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to submit user details");
+      toast.error(err.message || "Failed to submit user details", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -1138,7 +1178,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
                 {formData.profileImage ? (
                   <img src={formData.profileImage} className="w-full h-full object-cover" />
                 ) : (
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName)}+${encodeURIComponent(formData.surname)}&background=10b981&color=fff&bold=true`} className="w-full h-full object-cover" />
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.email || formData.firstName || "user")}`} className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -1267,9 +1307,131 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser }: Wi
     }
   };
 
+  if (isPageMode) {
+    return (
+      <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
+        {/* Page Header */}
+        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{editingUser ? "Edit User" : "Add User"}</h1>
+              <p className="text-[13px] text-gray-500 mt-0.5">
+                {editingUser ? "Update and configure the user details step by step" : "Setup and configure a new platform user step by step"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Column - Steps Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+              {STEPS.map((name, i) => {
+                const active = step === i + 1;
+                const past = step > i + 1;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (!loading) setStep(i + 1);
+                    }}
+                    className={cn(
+                      "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                      active
+                        ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
+                        : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                        active
+                          ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
+                          : past
+                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                          : "bg-gray-100 text-gray-400 border border-gray-200"
+                      )}
+                    >
+                      {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
+                    </div>
+                    <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column - Active Step Content */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="min-h-[400px]">
+              {fetching ? (
+                <div className="space-y-6 bg-white border border-gray-100 rounded-2xl p-6 animate-pulse">
+                  <div className="h-5 w-32 bg-gray-100 rounded-lg" />
+                  <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  </div>
+                  <div className="h-32 w-full bg-gray-50 rounded-xl" />
+                </div>
+              ) : (
+                renderStep()
+              )}
+            </div>
+
+            {/* Form Actions Footer */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={step === 1 || loading}
+                className="h-10 rounded-xl px-5 text-[13px] font-bold"
+              >
+                ← Back
+              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="h-10 rounded-xl px-5 text-[13px] font-bold"
+                >
+                  Cancel
+                </Button>
+                {step < STEPS.length ? (
+                  <Button
+                    onClick={handleNext}
+                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  >
+                    Next Step →
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  >
+                    {loading ? (editingUser ? "Saving Changes..." : "Creating User...") : (editingUser ? "Save Changes" : "Save User")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={!!isOpen}
       onClose={onClose}
       title={editingUser ? "Edit User Details" : "Add New User"}
       size="xl"

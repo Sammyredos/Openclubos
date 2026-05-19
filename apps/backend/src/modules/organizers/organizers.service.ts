@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import {
   ClubStatus as OrganizerStatus,
   MemberStatus,
@@ -334,6 +334,16 @@ export class OrganizersService {
   async remove(id: string) {
     const organizer = await this.prisma.club.findUnique({ where: { id } });
     if (!organizer) throw new NotFoundException('Organizer not found');
+
+    // Check if the organizer has hosted any tournaments before
+    const tournamentCount = await this.prisma.tournament.count({
+      where: { clubId: id, deletedAt: null },
+    });
+    if (tournamentCount > 0) {
+      throw new ConflictException(
+        'This organizer has hosted tournaments before and cannot be deleted. Please suspend the organizer instead.',
+      );
+    }
 
     await this.prisma.$transaction(async (tx) => {
       const tournaments = await tx.tournament.findMany({

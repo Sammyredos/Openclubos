@@ -46,7 +46,20 @@ import { cn, formatThousandsInput, formatWithCommas } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
+import {
+  cancelTournament,
+  deleteTournament,
+  getTournaments,
+  updateTournament,
+  getGroupings,
+  generateGroupings,
+  movePlayerInGroupings,
+  updateGroupingTime,
+  clearGroupings,
+  type GroupingData,
+  type GroupingItem,
+  type GroupingPlayer
+} from "@/lib/api/tournaments";
 import { getAdminUsers } from "@/lib/api/members";
 import {
   addRegistrationStrokes,
@@ -266,6 +279,16 @@ export default function TournamentsPage() {
   const [editMaxPlayers, setEditMaxPlayers] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
+  // Groupings (Tee Times) Management States
+  const [detailsTab, setDetailsTab] = useState<"players" | "groupings">("players");
+  const [groupingsData, setGroupingsData] = useState<GroupingData | null>(null);
+  const [groupingsLoading, setGroupingsLoading] = useState(false);
+  const [groupingsGenerating, setGroupingsGenerating] = useState(false);
+  const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
+  const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
+  const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
+  const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
+
   const closeTimeoutRef = useRef<number | null>(null);
   const closeDropdown = () => {
     setActiveDropdown(null);
@@ -295,6 +318,74 @@ export default function TournamentsPage() {
       setLoading(false);
     }
   }
+
+  // Load groupings
+  const loadGroupingsData = async () => {
+    if (!selectedTournament) return;
+    setGroupingsLoading(true);
+    try {
+      const data = await getGroupings(selectedTournament.id);
+      setGroupingsData(data);
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to load groupings");
+    } finally {
+      setGroupingsLoading(false);
+    }
+  };
+
+  // Generate groupings
+  const handleGenerateGroupings = async () => {
+    if (!selectedTournament) return;
+    setGroupingsGenerating(true);
+    try {
+      const data = await generateGroupings(selectedTournament.id);
+      setGroupingsData(data);
+      toast.success("Groupings generated successfully");
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to generate groupings");
+    } finally {
+      setGroupingsGenerating(false);
+    }
+  };
+
+  // Move player to a group or unassigned
+  const handleMovePlayer = async (registrationId: string, targetGroupId: string | null) => {
+    if (!selectedTournament) return;
+    try {
+      const data = await movePlayerInGroupings(selectedTournament.id, registrationId, targetGroupId);
+      setGroupingsData(data);
+      toast.success("Player reassigned successfully");
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to reassign player");
+    }
+  };
+
+  // Update group details
+  const handleUpdateGroupDetails = async (groupId: string, payload: { name?: string; startTime?: string }) => {
+    if (!selectedTournament) return;
+    try {
+      const data = await updateGroupingTime(selectedTournament.id, groupId, payload);
+      setGroupingsData(data);
+      setEditingGroupTimeId(null);
+      setEditingGroupNameId(null);
+      toast.success("Group updated successfully");
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to update group");
+    }
+  };
+
+  // Clear groupings
+  const handleClearGroupings = async () => {
+    if (!selectedTournament) return;
+    if (!window.confirm("Are you sure you want to reset all groupings? This will delete all groups and mark all players as unassigned.")) return;
+    try {
+      const data = await clearGroupings(selectedTournament.id);
+      setGroupingsData(data);
+      toast.success("Groupings reset successfully");
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to reset groupings");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -488,6 +579,7 @@ export default function TournamentsPage() {
   const openView = (tournament: TournamentRow) => {
     closeDropdown();
     setSelectedTournament(tournament);
+    setDetailsTab("players");
     setStrokesMenuRegistration(null);
     setStrokesMenuAnchorEl(null);
     setRegistrationsLoading(true);
@@ -795,7 +887,7 @@ export default function TournamentsPage() {
       toast.error("Ongoing tournaments cannot be edited");
       return;
     }
-    router.push(`/super-admin/tournaments/${tournament.id}/edit`);
+    router.push(`/organizer-admin/tournaments/${tournament.id}/edit`);
   };
 
   const openCancel = (tournament: TournamentRow) => {
@@ -1005,7 +1097,7 @@ export default function TournamentsPage() {
                   <Download className="w-4 h-4" /> Export
                 </Button>
                 <Button
-                  onClick={() => router.push("/super-admin/tournaments/create")}
+                  onClick={() => router.push("/organizer-admin/tournaments/create")}
                   className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
                 >
                   <Plus className="w-4 h-4" /> Add Tournament
@@ -1589,296 +1681,563 @@ export default function TournamentsPage() {
                 </div>
               </div>
             </div>
+              {/* Tab Navigation inside Details Modal */}
+          <div className="flex border-b border-gray-150 pt-2">
+            <button
+              onClick={() => setDetailsTab("players")}
+              className={cn(
+                "pb-3 px-6 text-sm transition-all duration-200 focus:outline-none border-b-2 font-normal",
+                detailsTab === "players"
+                  ? "border-[#10b981] text-[#10b981]"
+                  : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
+              )}
+            >
+              Registered Players
+            </button>
+            <button
+              onClick={() => {
+                setDetailsTab("groupings");
+                loadGroupingsData();
+              }}
+              className={cn(
+                "pb-3 px-6 text-sm transition-all duration-200 focus:outline-none border-b-2 font-normal flex items-center gap-2",
+                detailsTab === "groupings"
+                  ? "border-[#10b981] text-[#10b981]"
+                  : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
+              )}
+            >
+              Groupings (Tee Times)
+            </button>
           </div>
 
-          {/* Registrations Header Section */}
-          <div className="space-y-5 pt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h5 className="text-[16px] font-bold text-gray-900">Registered Players</h5>
-                <p className="text-[12px] text-gray-500 font-medium">Manage and monitor tournament participation</p>
+          {detailsTab === "players" ? (
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h5 className="text-[16px] text-gray-900 font-normal">Registered Players</h5>
+                  <p className="text-[12px] text-gray-500 font-normal">Manage and monitor tournament participation</p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  value={registrationsSearch}
-                  onChange={(e) => {
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={registrationsSearch}
+                    onChange={(e) => {
+                      setRegistrationsPage(1);
+                      if (registrationsMode === "server") setRegistrationsLoading(true);
+                      setRegistrationsSearch(e.target.value);
+                    }}
+                    placeholder="Search name or email..."
+                    className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg font-normal"
+                  />
+                </div>
+                <SearchableSelect
+                  value={registrationsStatusFilter === "All Status" ? "All Status" : registrationsStatusFilter}
+                  onValueChange={(v) => {
+                    const next =
+                      v === "All Status" ||
+                        v === "PENDING" ||
+                        v === "APPROVED" ||
+                        v === "REJECTED" ||
+                        v === "WAITLISTED" ||
+                        v === "DISQUALIFIED"
+                        ? v
+                        : "All Status";
                     setRegistrationsPage(1);
                     if (registrationsMode === "server") setRegistrationsLoading(true);
-                    setRegistrationsSearch(e.target.value);
+                    setRegistrationsStatusFilter(next);
                   }}
-                  placeholder="Search name or email..."
-                  className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg"
+                  options={[
+                    { value: "All Status", label: "All Status" },
+                    { value: "PENDING", label: "Pending" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                    { value: "WAITLISTED", label: "Waitlisted" },
+                    { value: "DISQUALIFIED", label: "Disqualified" },
+                  ]}
+                  className="min-w-[160px] font-normal"
+                  triggerClassName="h-11 bg-white font-normal"
+                  placeholder="All Status"
+                />
+                <SearchableSelect
+                  value={registrationsPaymentFilter === "All Payments" ? "All Payments" : registrationsPaymentFilter}
+                  onValueChange={(v) => {
+                    const next = v === "All Payments" || v === "PAID" || v === "UNPAID" || v === "REFUNDED" ? v : "All Payments";
+                    setRegistrationsPage(1);
+                    if (registrationsMode === "server") setRegistrationsLoading(true);
+                    setRegistrationsPaymentFilter(next);
+                  }}
+                  options={[
+                    { value: "All Payments", label: "All Payments" },
+                    { value: "PAID", label: "Paid" },
+                    { value: "UNPAID", label: "Unpaid" },
+                    { value: "REFUNDED", label: "Refunded" },
+                  ]}
+                  className="min-w-[160px] font-normal"
+                  triggerClassName="h-11 bg-white font-normal"
+                  placeholder="All Payments"
+                />
+                <SearchableSelect
+                  value={registrationsDisqualifiedFilter}
+                  onValueChange={(v) => {
+                    const next =
+                      v === "All Players" || v === "Enabled Players" || v === "Disqualified Players"
+                        ? v
+                        : "All Players";
+                    setRegistrationsPage(1);
+                    if (registrationsMode === "server") setRegistrationsLoading(true);
+                    setRegistrationsDisqualifiedFilter(next);
+                  }}
+                  options={[
+                    { value: "All Players", label: "All Players" },
+                    { value: "Enabled Players", label: "Enabled Players" },
+                    { value: "Disqualified Players", label: "Disqualified Players" },
+                  ]}
+                  className="min-w-[200px] font-normal"
+                  triggerClassName="h-11 bg-white font-normal"
+                  placeholder="All Players"
                 />
               </div>
-              <SearchableSelect
-                value={registrationsStatusFilter === "All Status" ? "All Status" : registrationsStatusFilter}
-                onValueChange={(v) => {
-                  const next =
-                    v === "All Status" ||
-                      v === "PENDING" ||
-                      v === "APPROVED" ||
-                      v === "REJECTED" ||
-                      v === "WAITLISTED" ||
-                      v === "DISQUALIFIED"
-                      ? v
-                      : "All Status";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsStatusFilter(next);
-                }}
-                options={[
-                  { value: "All Status", label: "All Status" },
-                  { value: "PENDING", label: "Pending" },
-                  { value: "APPROVED", label: "Approved" },
-                  { value: "REJECTED", label: "Rejected" },
-                  { value: "WAITLISTED", label: "Waitlisted" },
-                  { value: "DISQUALIFIED", label: "Disqualified" },
-                ]}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-white"
-                placeholder="All Status"
-              />
-              <SearchableSelect
-                value={registrationsPaymentFilter === "All Payments" ? "All Payments" : registrationsPaymentFilter}
-                onValueChange={(v) => {
-                  const next = v === "All Payments" || v === "PAID" || v === "UNPAID" || v === "REFUNDED" ? v : "All Payments";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsPaymentFilter(next);
-                }}
-                options={[
-                  { value: "All Payments", label: "All Payments" },
-                  { value: "PAID", label: "Paid" },
-                  { value: "UNPAID", label: "Unpaid" },
-                  { value: "REFUNDED", label: "Refunded" },
-                ]}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-white"
-                placeholder="All Payments"
-              />
-              <SearchableSelect
-                value={registrationsDisqualifiedFilter}
-                onValueChange={(v) => {
-                  const next =
-                    v === "All Players" || v === "Enabled Players" || v === "Disqualified Players"
-                      ? v
-                      : "All Players";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsDisqualifiedFilter(next);
-                }}
-                options={[
-                  { value: "All Players", label: "All Players" },
-                  { value: "Enabled Players", label: "Enabled Players" },
-                  { value: "Disqualified Players", label: "Disqualified Players" },
-                ]}
-                className="min-w-[200px]"
-                triggerClassName="h-11 bg-white"
-                placeholder="All Players"
-              />
-            </div>
 
-            {registrationsLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-40 rounded-md" />
-                      <Skeleton className="h-3 w-56 rounded-md" />
+              {registrationsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-40 rounded-md" />
+                        <Skeleton className="h-3 w-56 rounded-md" />
+                      </div>
+                      <Skeleton className="h-6 w-20 rounded-lg" />
                     </div>
-                    <Skeleton className="h-6 w-20 rounded-lg" />
-                  </div>
-                ))}
-              </div>
-            ) : registrationsPageItems.length > 0 ? (
-              <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-                {registrationsPageItems.map((r) => {
-                  const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
-                  const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
+                  ))}
+                </div>
+              ) : registrationsPageItems.length > 0 ? (
+                <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+                  {registrationsPageItems.map((r) => {
+                    const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
+                    const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
 
-                  const statusConfig = {
-                    DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
-                    APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
-                    REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
-                    WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
-                    PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-                  }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
+                    const statusConfig = {
+                      DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
+                      APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
+                      REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
+                      WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
+                      PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
+                    }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
 
-                  const paymentConfig = {
-                    PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
-                    REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
-                    UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
-                  }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
+                    const paymentConfig = {
+                      PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
+                      REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
+                      UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
+                    }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
 
-                  return (
-                    <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                          <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
-                            alt={fullName}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <p className="text-[14px] text-gray-900 font-bold truncate">{fullName}</p>
-                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
-                                {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
-                                {r.status}
-                              </span>
-                              <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
-                                {paymentConfig.label}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <p className="text-[12px] text-gray-400 font-medium truncate">{r.user?.email || "No email"}</p>
-                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
-                                  <Plus className="w-3 h-3" />
-                                  {r.extraStrokes} Strokes
+                    return (
+                      <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <img
+                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
+                              alt={fullName}
+                              className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="text-[14px] text-gray-900 font-normal truncate">{fullName}</p>
+                                <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] whitespace-nowrap uppercase tracking-wider font-normal", statusConfig.badge)}>
+                                  {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
+                                  {r.status}
                                 </span>
-                              )}
+                                <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] whitespace-nowrap uppercase tracking-wider font-normal", paymentConfig.badge)}>
+                                  {paymentConfig.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <p className="text-[12px] text-gray-400 font-normal truncate">{r.user?.email || "No email"}</p>
+                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                  <span className="flex items-center gap-1 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg font-normal">
+                                    <Plus className="w-3 h-3" />
+                                    {r.extraStrokes} Strokes
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className={cn(
-                          "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
-                          isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                        )}>
-                          {isTournamentLocked ? (
-                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                              Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
-                            </span>
-                          ) : (
-                            <>
-                              {r.status === "DISQUALIFIED" ? (
+                          <div className={cn(
+                            "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
+                            isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}>
+                            {isTournamentLocked ? (
+                              <span className="text-[11px] text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 font-normal">
+                                Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
+                              </span>
+                            ) : (
+                              <>
+                                {r.status === "DISQUALIFIED" ? (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] transition-all font-normal",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
+                                    )}
+                                    title="Enable Player"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => {
+                                      setActionRegistration(r);
+                                      setIsEnablePlayerModalOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Enable</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] transition-all font-normal",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-red-600 hover:bg-red-50 hover:border-red-100"
+                                    )}
+                                    title="Disqualify Player"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => {
+                                      setActionRegistration(r);
+                                      setIsDisqualifyModalOpen(true);
+                                    }}
+                                  >
+                                    <Ban className="w-4 h-4" />
+                                    <span>Disqualify</span>
+                                  </button>
+                                )}
+
                                 <button
                                   className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-gray-600 transition-all font-normal",
                                     registrationActionId === r.id
                                       ? "text-gray-300 cursor-not-allowed"
-                                      : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
+                                      : "hover:bg-gray-50 hover:border-gray-300"
                                   )}
-                                  title="Enable Player"
+                                  title="Add Strokes"
+                                  disabled={registrationActionId === r.id}
+                                  onClick={(e) => {
+                                    if (registrationActionId === r.id) return;
+                                    setStrokesMenuRegistration(r);
+                                    setStrokesMenuAnchorEl(e.currentTarget);
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>Strokes</span>
+                                </button>
+
+                                {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                  <button
+                                    className={cn(
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-gray-400 transition-all font-normal",
+                                      registrationActionId === r.id
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
+                                    )}
+                                    title="Clear Strokes"
+                                    disabled={registrationActionId === r.id}
+                                    onClick={() => clearTournamentRegistrationStrokes(r)}
+                                  >
+                                    <Eraser className="w-4 h-4" />
+                                    <span>Clear</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  className={cn(
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-red-600 transition-all font-normal",
+                                    registrationActionId === r.id
+                                      ? "text-gray-300 cursor-not-allowed"
+                                      : "hover:bg-red-50 hover:border-red-100"
+                                  )}
+                                  title="Remove Player"
                                   disabled={registrationActionId === r.id}
                                   onClick={() => {
                                     setActionRegistration(r);
-                                    setIsEnablePlayerModalOpen(true);
+                                    setIsRemovePlayerModalOpen(true);
                                   }}
                                 >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  <span>Enable</span>
+                                  <UserMinus className="w-4 h-4" />
+                                  <span>Remove</span>
                                 </button>
-                              ) : (
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "text-red-600 hover:bg-red-50 hover:border-red-100"
-                                  )}
-                                  title="Disqualify Player"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={() => {
-                                    setActionRegistration(r);
-                                    setIsDisqualifyModalOpen(true);
-                                  }}
-                                >
-                                  <Ban className="w-4 h-4" />
-                                  <span>Disqualify</span>
-                                </button>
-                              )}
-
-                              <button
-                                className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-600 transition-all",
-                                  registrationActionId === r.id
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-gray-50 hover:border-gray-300"
-                                )}
-                                title="Add Strokes"
-                                disabled={registrationActionId === r.id}
-                                onClick={(e) => {
-                                  if (registrationActionId === r.id) return;
-                                  setStrokesMenuRegistration(r);
-                                  setStrokesMenuAnchorEl(e.currentTarget);
-                                }}
-                              >
-                                <Plus className="w-4 h-4" />
-                                <span>Strokes</span>
-                              </button>
-
-                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-gray-400 transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
-                                  )}
-                                  title="Clear Strokes"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={() => clearTournamentRegistrationStrokes(r)}
-                                >
-                                  <Eraser className="w-4 h-4" />
-                                  <span>Clear</span>
-                                </button>
-                              )}
-
-                              <button
-                                className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] font-bold text-red-600 transition-all",
-                                  registrationActionId === r.id
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-red-50 hover:border-red-100"
-                                )}
-                                title="Remove Player"
-                                disabled={registrationActionId === r.id}
-                                onClick={() => {
-                                  setActionRegistration(r);
-                                  setIsRemovePlayerModalOpen(true);
-                                }}
-                              >
-                                <UserMinus className="w-4 h-4" />
-                                <span>Remove</span>
-                              </button>
-                            </>
-                          )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
-                No registrations yet for this tournament.
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-normal">
+                  No registrations yet for this tournament.
+                </div>
+              )}
 
-            {!registrationsLoading && registrationsFilteredTotal > 0 && (
-              <div className="pt-2 flex items-center justify-between gap-4">
-                <p className="text-[13px] text-gray-500 font-medium">
-                  Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
-                  {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
-                  {formatWithCommas(registrationsFilteredTotal)} registrations
-                </p>
-                <Pagination
-                  currentPage={registrationsPage}
-                  totalPages={Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage))}
-                  onPageChange={(p) => {
-                    if (registrationsMode === "server") setRegistrationsLoading(true);
-                    setRegistrationsPage(p);
-                  }}
-                />
-              </div>
-            )}
-          </div>
+              {!registrationsLoading && registrationsFilteredTotal > 0 && (
+                <div className="pt-2 flex items-center justify-between gap-4">
+                  <p className="text-[13px] text-gray-500 font-normal">
+                    Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
+                    {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
+                    {formatWithCommas(registrationsFilteredTotal)} registrations
+                  </p>
+                  <Pagination
+                    currentPage={registrationsPage}
+                    totalPages={Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage))}
+                    onPageChange={(p) => {
+                      if (registrationsMode === "server") setRegistrationsLoading(true);
+                      setRegistrationsPage(p);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {groupingsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
+                      <Skeleton className="h-5 w-24 rounded-md" />
+                      <Skeleton className="h-4 w-16 rounded-md" />
+                      <div className="space-y-2 pt-2 border-t border-gray-50">
+                        <Skeleton className="h-10 w-full rounded-md" />
+                        <Skeleton className="h-10 w-full rounded-md" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : groupingsData?.groups && groupingsData.groups.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                    <div>
+                      <p className="text-[13px] text-gray-500 font-normal">Manage groupings, custom tee off times, and labels.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={handleGenerateGroupings}
+                        disabled={groupingsGenerating}
+                        variant="outline"
+                        className="border-emerald-100 hover:bg-emerald-50 text-[#10b981] rounded-lg h-10 px-4 text-[12px] font-normal"
+                      >
+                        Regenerate
+                      </Button>
+                      <Button
+                        onClick={handleClearGroupings}
+                        variant="outline"
+                        className="border-red-100 hover:bg-red-50 text-red-600 rounded-lg h-10 px-4 text-[12px] font-normal"
+                      >
+                        Reset Groupings
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex-1 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {groupingsData.groups.map((group: GroupingItem) => (
+                          <div key={group.id} className="border border-gray-150 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between gap-4 pb-2 border-b border-gray-50">
+                              {editingGroupNameId === group.id ? (
+                                <div className="flex items-center gap-2 flex-1">
+                                  <Input
+                                    value={editingGroupNameValue}
+                                    onChange={(e) => setEditingGroupNameValue(e.target.value)}
+                                    className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-full"
+                                  />
+                                  <button
+                                    onClick={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
+                                    className="text-[12px] text-[#10b981] hover:text-emerald-700 font-normal focus:outline-none shrink-0"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingGroupNameId(null)}
+                                    className="text-[12px] text-gray-400 hover:text-gray-600 font-normal focus:outline-none shrink-0"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[14px] text-gray-900 font-normal">{group.name}</span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingGroupNameId(group.id);
+                                      setEditingGroupNameValue(group.name);
+                                    }}
+                                    className="text-gray-400 hover:text-[#10b981] transition-colors focus:outline-none"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {editingGroupTimeId === group.id ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="text"
+                                    placeholder="e.g. 08:30 AM"
+                                    value={editingGroupTimeValue}
+                                    onChange={(e) => setEditingGroupTimeValue(e.target.value)}
+                                    className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-24"
+                                  />
+                                  <button
+                                    onClick={() => handleUpdateGroupDetails(group.id, { startTime: editingGroupTimeValue })}
+                                    className="text-[12px] text-[#10b981] hover:text-emerald-700 font-normal focus:outline-none shrink-0"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingGroupTimeId(null)}
+                                    className="text-[12px] text-gray-400 hover:text-gray-600 font-normal focus:outline-none shrink-0"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-gray-500">
+                                  <Clock className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-[12px] font-normal">{group.startTime || "TBD"}</span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingGroupTimeId(group.id);
+                                      setEditingGroupTimeValue(group.startTime || "");
+                                    }}
+                                    className="text-gray-400 hover:text-[#10b981] transition-colors focus:outline-none"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {group.registrations && group.registrations.length > 0 ? (
+                              <div className="divide-y divide-gray-50 mt-3">
+                                {group.registrations.map((player: GroupingPlayer) => (
+                                  <div key={player.id} className="flex items-center justify-between py-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <img
+                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                        alt={`${player.user?.firstName || ""} ${player.user?.lastName || ""}`}
+                                        className="w-8 h-8 rounded-full border border-gray-100 bg-gray-50 shrink-0"
+                                      />
+                                      <div className="min-w-0">
+                                        <div className="text-[13px] text-gray-800 font-normal truncate">
+                                          {player.user?.firstName || ""} {player.user?.lastName || ""}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 font-normal">
+                                          HCP: {player.user?.handicap !== null && player.user?.handicap !== undefined ? player.user.handicap : "—"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <select
+                                        value={group.id}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          handleMovePlayer(player.id, val === "unassigned" ? null : val);
+                                        }}
+                                        className="bg-transparent border-none text-[11px] text-gray-400 hover:bg-gray-150 rounded px-2 py-1 focus:outline-none font-normal cursor-pointer transition-colors"
+                                      >
+                                        <option value={group.id}>Move To...</option>
+                                        <option value="unassigned">Unassigned Pool</option>
+                                        {groupingsData.groups.map((g: GroupingItem) => (
+                                          g.id !== group.id && (
+                                            <option key={g.id} value={g.id}>{g.name}</option>
+                                          )
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-gray-400 italic mt-3 font-normal">No players in this group.</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="w-full lg:w-[320px] shrink-0 bg-gray-50/50 border border-gray-150 rounded-2xl p-4 shadow-sm self-start">
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <span className="text-[13px] text-gray-600 font-normal flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-gray-400" /> Unassigned Players
+                        </span>
+                        <span className="text-[11px] font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg">
+                          {groupingsData.unassigned.length}
+                        </span>
+                      </div>
+                      {groupingsData.unassigned && groupingsData.unassigned.length > 0 ? (
+                        <div className="divide-y divide-gray-100 max-h-[480px] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                          {groupingsData.unassigned.map((player: GroupingPlayer) => (
+                            <div key={player.id} className="flex items-center justify-between py-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <img
+                                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                  alt={`${player.user?.firstName || ""} ${player.user?.lastName || ""}`}
+                                  className="w-7 h-7 rounded-full border border-gray-100 bg-white shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="text-[12px] text-gray-800 font-normal truncate">
+                                    {player.user?.firstName || ""} {player.user?.lastName || ""}
+                                  </div>
+                                  <div className="text-[9px] text-gray-400 font-normal">
+                                    HCP: {player.user?.handicap !== null && player.user?.handicap !== undefined ? player.user.handicap : "—"}
+                                  </div>
+                                </div>
+                              </div>
+                              <select
+                                value="unassigned"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val !== "unassigned") {
+                                    handleMovePlayer(player.id, val);
+                                  }
+                                }}
+                                className="bg-transparent border-none text-[11px] text-[#10b981] hover:bg-emerald-50 rounded px-1.5 py-0.5 focus:outline-none font-normal cursor-pointer transition-colors shrink-0"
+                              >
+                                <option value="unassigned">Place in...</option>
+                                {groupingsData.groups.map((g: GroupingItem) => (
+                                  <option key={g.id} value={g.id}>{g.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[12px] text-gray-400 italic font-normal text-center py-6">All approved players are assigned.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center border border-gray-150 rounded-2xl p-12 text-center bg-gray-50/20">
+                  <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-6 text-emerald-600">
+                    <Trophy className="w-8 h-8 font-light" />
+                  </div>
+                  <h5 className="text-[18px] text-gray-900 font-normal mb-2">No Groupings Generated Yet</h5>
+                  <p className="text-[13px] text-gray-500 max-w-md font-normal mb-6 leading-relaxed">
+                    Generate dynamic player groupings and sequential tee-off times for this tournament automatically. This segments approved and paid players into slots.
+                  </p>
+                  <Button
+                    onClick={handleGenerateGroupings}
+                    disabled={groupingsGenerating}
+                    className="bg-[#10b981] hover:bg-[#0da673] text-white rounded-lg px-6 h-11 text-[13px] font-normal shadow-sm"
+                  >
+                    {groupingsGenerating ? "Generating Groupings..." : "Generate Groupings"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}          </div>
         </div>
       </Modal>
 

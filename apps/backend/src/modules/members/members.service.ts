@@ -429,9 +429,27 @@ export class MembersService {
     const email = existing.email?.trim().toLowerCase();
     const toDelete = await this.prisma.user.findMany({
       where: { email: { equals: email, mode: 'insensitive' } },
-      select: { id: true },
+      select: { id: true, role: true, clubId: true, club: { select: { name: true } } },
     });
     const ids = toDelete.map((u) => u.id);
+
+    // Validate that we are not leaving any organizer blank without a CLUB_ADMIN user
+    const adminsToValidate = toDelete.filter((u) => u.role === UserRole.CLUB_ADMIN && u.clubId);
+    for (const admin of adminsToValidate) {
+      const remainingAdminsCount = await this.prisma.user.count({
+        where: {
+          clubId: admin.clubId,
+          role: UserRole.CLUB_ADMIN,
+          id: { notIn: ids },
+          deletedAt: null,
+        },
+      });
+      if (remainingAdminsCount === 0) {
+        throw new ConflictException(
+          `Cannot delete this user. This user is the administrator for organizer "${admin.club?.name || 'Organizer'}". Please edit and update the organizer account with a new user before deleting this user.`,
+        );
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.score.deleteMany({ where: { userId: { in: ids } } });

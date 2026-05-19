@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  Users,
+  Home,
+  User,
+  Flag,
   CreditCard,
   Trophy,
   PieChart,
@@ -22,7 +23,6 @@ import {
   Activity,
   Bell,
   ChevronDown,
-  Mountain,
 } from "lucide-react";
 import { Icons } from "@/components/ui/icons";
 
@@ -31,16 +31,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SUPER_ADMIN_GROUPS = [
   {
     items: [
-      { name: "Overview", href: "/super-admin/dashboard", icon: LayoutDashboard },
+      { name: "Overview", href: "/super-admin/dashboard", icon: Home },
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
-      { name: "Subscriptions", href: "/super-admin/subscriptions", icon: ShieldCheck },
-      { name: "Users", href: "/super-admin/users", icon: Users },
-      { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Mountain },
+      { name: "Subscriptions", href: "/super-admin/subscriptions", icon: CreditCard },
+      { name: "Users", href: "/super-admin/users", icon: User },
+      { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Flag },
     ],
   },
   {
     items: [
-      { name: "Tournaments", href: "/super-admin/tournaments", icon: CalendarDays },
+      { name: "Tournaments", href: "/super-admin/tournaments", icon: Trophy },
       { name: "Payments", href: "/super-admin/payments", icon: CreditCard },
     ],
   },
@@ -51,7 +51,7 @@ const SUPER_ADMIN_GROUPS = [
   },
   {
     items: [
-      { name: "System", href: "/super-admin/system", icon: MonitorDot },
+      { name: "System", href: "/super-admin/system", icon: Settings },
       { name: "Settings", href: "/super-admin/settings", icon: Settings },
     ],
   },
@@ -60,8 +60,8 @@ const SUPER_ADMIN_GROUPS = [
 const CLUB_ADMIN_GROUPS = [
   {
     items: [
-      { name: "Dashboard", href: "/organizer-admin/dashboard", icon: LayoutDashboard },
-      { name: "Users", href: "/organizer-admin/members", icon: Users },
+      { name: "Dashboard", href: "/organizer-admin/dashboard", icon: Home },
+      { name: "Users", href: "/organizer-admin/members", icon: User },
     ],
   },
   {

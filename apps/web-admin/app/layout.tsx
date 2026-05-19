@@ -30,9 +30,11 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         <Toaster 
           richColors 
-          position="top-center" 
+          position="top-right" 
+          closeButton
           toastOptions={{
-            className: `${dmSans.className} text-[15px] font-medium leading-snug`,
+            className: `${dmSans.className} text-[15px] font-medium leading-snug shadow-lg rounded-2xl border border-gray-100`,
+            duration: 4000,
           }}
         />
       </body>

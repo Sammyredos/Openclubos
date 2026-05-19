@@ -249,7 +249,7 @@ async function main() {
       const now = new Date();
       let startDate: Date;
       let endDate: Date | null = null;
-      let registrationDeadline: Date | null = null;
+      let registrationCloseAt: Date | null = null;
 
       if (status === TournamentStatus.COMPLETED) {
         startDate = new Date(now);
@@ -266,8 +266,8 @@ async function main() {
         startDate.setDate(startDate.getDate() + randomInt(10, 60));
         endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + randomInt(1, 3));
-        registrationDeadline = new Date(startDate);
-        registrationDeadline.setDate(registrationDeadline.getDate() - randomInt(1, 14));
+        registrationCloseAt = new Date(startDate);
+        registrationCloseAt.setDate(registrationCloseAt.getDate() - randomInt(1, 14));
       } else {
         startDate = new Date(now);
         startDate.setDate(startDate.getDate() + randomInt(90, 180));
@@ -286,7 +286,7 @@ async function main() {
           entryFee: randomInt(5000, 50000),
           maxPlayers: randomInt(60, 144),
           playerTypes: ['MEMBER'],
-          registrationDeadline,
+          registrationCloseAt,
         },
       });
       createdTournaments += 1;

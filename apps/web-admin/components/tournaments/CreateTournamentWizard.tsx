@@ -90,7 +90,6 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
   if (step === 1) {
     if (!f.name.trim()) return "Tournament name is required.";
     if (!f.venue) return "Please select a country.";
-    if (!f.location) return "Please select a state.";
     if (!f.clubId) return "Please select an organizer.";
     if (!f.courseId) return "Please select a golf course.";
     if (!f.bannerUrl) return "Tournament banner is required.";
@@ -667,8 +666,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       value={formData.registrationOpenAt}
                       onValueChange={(v) => {
                         set("registrationOpenAt", v);
-                        // Clear close date if it's now before the new open date
-                        if (formData.registrationCloseAt && formData.registrationCloseAt < v) set("registrationCloseAt", "");
+                        // Clear close date if it's now before the new open date + 1 day
+                        const minCloseDate = v ? shiftDate(v, 1) : "";
+                        if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
+                          set("registrationCloseAt", "");
+                        }
                       }}
                       disablePast
                       maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
@@ -683,7 +685,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     <DatePicker
                       value={formData.registrationCloseAt}
                       onValueChange={(v) => set("registrationCloseAt", v)}
-                      minDate={formData.registrationOpenAt || undefined}
+                      minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
                       maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
                       buttonClassName={req(formData.registrationCloseAt)}
                       disabled={!formData.registrationOpenAt}

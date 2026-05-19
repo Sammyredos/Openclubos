@@ -31,6 +31,8 @@ import {
   Globe,
   Phone,
   ArrowUpRight,
+  Calendar,
+  User,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +60,7 @@ import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { updateMember, getMember } from "@/lib/api/members";
-import { CreateOrganiserWizard } from "@/components/organizers/CreateOrganiserWizard";
+
 
 type ApiOrganizer = {
   id: string;
@@ -92,6 +94,8 @@ type OrganizerRow = {
   facebook: string;
   instagram: string;
   country: string;
+  tournamentsCount: number;
+  coursesCount: number;
 };
 
 type ApiTournament = {
@@ -182,6 +186,8 @@ function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
     facebook: o.facebook || "",
     instagram: o.instagram || "",
     country: o.country || "NG",
+    tournamentsCount: o._count?.tournaments ?? 0,
+    coursesCount: o._count?.courses ?? 0,
   };
 }
 
@@ -343,22 +349,9 @@ export default function OrganizersPage() {
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
 
-  const handleEdit = async (organizer: OrganizerRow) => {
+  const handleEdit = (organizer: OrganizerRow) => {
     closeDropdown();
-    if (!organizer.admin?.id) {
-      toast.error("No admin user attached to this organizer");
-      return;
-    }
-    try {
-      setLoading(true);
-      const user = await getMember(organizer.admin.id);
-      setEditingUser(user);
-      setIsWizardOpen(true);
-    } catch (e) {
-      toast.error(getErrorMessage(e) || "Failed to load organizer details");
-    } finally {
-      setLoading(false);
-    }
+    router.push(`/super-admin/organizers/${organizer.id}/edit`);
   };
 
   const openViewModal = async (organizer: OrganizerRow) => {
@@ -501,6 +494,13 @@ export default function OrganizersPage() {
 
   const confirmDelete = () => {
     if (deleteConfirmText.trim().toUpperCase() !== "DELETE" || !selectedOrganizer?.id) return;
+    if (selectedOrganizer.tournamentsCount > 0) {
+      toast.error(`Cannot delete organizer: "${selectedOrganizer.name}" has hosted tournaments before. Please suspend them instead.`);
+      setIsDeleteModalOpen(false);
+      setStatusAction("suspend");
+      setIsStatusModalOpen(true);
+      return;
+    }
     setMutating(true);
     deleteOrganizer(selectedOrganizer.id)
       .then(() => {
@@ -605,7 +605,7 @@ export default function OrganizersPage() {
             <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
-            <Button onClick={() => setIsWizardOpen(true)} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button onClick={() => router.push("/super-admin/organizers/create")} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Plus className="w-4 h-4" /> Add Organizer
             </Button>
           </div>
@@ -1213,337 +1213,351 @@ export default function OrganizersPage() {
           );
 
           return (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-start gap-4 pb-6 border-b border-gray-50">
-            <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img
-                src={selectedOrganizer?.logo}
-                alt={selectedOrganizer?.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xl font-bold text-gray-900 truncate">{selectedOrganizer?.name}</p>
-                {selectedOrganizer ? (
-                  <span
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Profile Card Header */}
+              <div className="rounded-2xl border border-gray-100 bg-emerald-50/20 p-5 flex items-start gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-100/50 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                  {selectedOrganizer?.logo ? (
+                    <img
+                      src={selectedOrganizer.logo}
+                      alt={selectedOrganizer.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <Building2 className="w-8 h-8" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xl text-gray-900 truncate">{selectedOrganizer?.name}</p>
+                    {selectedOrganizer ? (
+                      <span
+                        className={cn(
+                          "text-[10px] px-2.5 py-1 rounded-full border flex items-center gap-1.5",
+                          selectedOrganizer.status === "Active"
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                            : selectedOrganizer.status === "Suspended"
+                              ? "bg-amber-50 text-amber-600 border-amber-100"
+                              : "bg-red-50 text-red-600 border-red-100",
+                        )}
+                      >
+                        <span className={cn("w-1.5 h-1.5 rounded-full",
+                          selectedOrganizer.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                        )} />
+                        {selectedOrganizer.status}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500/80" />
+                      {selectedOrganizer?.location || "No Location"}
+                    </span>
+                    <span className="h-3 w-px bg-gray-200" />
+                    <span className="flex items-center gap-1">
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-500/80" />
+                      Plan: <span className="text-emerald-600">{selectedOrganizer?.plan || "Standard"}</span>
+                    </span>
+                    <span className="h-3 w-px bg-gray-200" />
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-500/80" />
+                      Joined: {selectedOrganizer?.joinedDate || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100/50">
+                {[
+                  { id: "overview", label: "Overview", icon: BarChart3 },
+                  { id: "tournaments", label: "Tournaments", icon: Trophy },
+                  { id: "payments", label: "Payments", icon: CreditCard },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setViewTab(tab.id as any)}
                     className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded-lg",
-                      selectedOrganizer.status === "Active"
-                        ? "bg-emerald-50 text-emerald-600"
-                        : selectedOrganizer.status === "Suspended"
-                          ? "bg-amber-50 text-amber-600"
-                          : "bg-red-50 text-red-600",
+                      "flex-1 px-4 py-2 rounded-lg text-[13px] flex items-center justify-center gap-2 transition-all duration-200 whitespace-nowrap",
+                      viewTab === tab.id
+                        ? "bg-white text-emerald-600 shadow-sm border border-gray-100"
+                        : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100/50",
                     )}
                   >
-                    {selectedOrganizer.status}
-                  </span>
-                ) : null}
+                    <tab.icon className="h-4 w-4 shrink-0" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
               </div>
-              <p className="text-sm text-gray-400 font-medium truncate mt-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
-                {selectedOrganizer?.location}
-              </p>
-              <p className="text-sm text-gray-500 font-medium truncate mt-1">
-                Plan: <span className="text-emerald-600 font-bold">{selectedOrganizer?.plan}</span> • Joined: {selectedOrganizer?.joinedDate}
-              </p>
-            </div>
-          </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-2xl overflow-x-auto scrollbar-hide">
-            {[
-              { id: "overview", label: "Overview", icon: BarChart3 },
-              { id: "tournaments", label: "Tournaments", icon: Trophy },
-              { id: "payments", label: "Payments", icon: CreditCard },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setViewTab(tab.id as any)}
-                className={cn(
-                  "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all whitespace-nowrap",
-                  viewTab === tab.id
-                    ? "bg-white text-emerald-600 shadow-sm border border-emerald-50"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50",
-                )}
-              >
-                <tab.icon className="h-4 w-4 shrink-0" />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Content */}
-          <div className="min-h-[400px]">
-            {viewLoading ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <Skeleton className="h-24 w-full rounded-2xl" />
-                  <Skeleton className="h-24 w-full rounded-2xl" />
-                </div>
-                <Skeleton className="h-40 w-full rounded-2xl" />
-                <Skeleton className="h-40 w-full rounded-2xl" />
-              </div>
-            ) : (
-              <>
-                {viewTab === "overview" && (
+              {/* Content */}
+              <div className="min-h-[400px]">
+                {viewLoading ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
-                        <h5 className="text-sm font-bold text-gray-900">Organizer Stats</h5>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Revenue</p>
-                            <p className="text-lg font-bold text-emerald-700">
-                              ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Tournaments</p>
-                            <p className="text-lg font-bold text-blue-700">{viewStats?.totalTournaments ?? 0}</p>
-                          </div>
-                          <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                            <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Members</p>
-                            <p className="text-lg font-bold text-purple-700">{viewStats?.totalMembers ?? 0}</p>
-                          </div>
-                          <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Unpaid</p>
-                            <p className="text-lg font-bold text-amber-700">
-                              ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
-                        <h5 className="text-sm font-bold text-gray-900">Admin Information</h5>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[13px] text-gray-500 font-medium">Name</span>
-                            <span className="text-[13px] text-gray-900 font-bold">{selectedOrganizer?.admin.name}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[13px] text-gray-500 font-medium">Email</span>
-                            <span className="text-[13px] text-gray-900 font-bold">{selectedOrganizer?.admin.email}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[13px] text-gray-500 font-medium">Joined Date</span>
-                            <span className="text-[13px] text-gray-900 font-bold">{selectedOrganizer?.joinedDate}</span>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Skeleton className="h-24 w-full rounded-2xl animate-pulse" />
+                      <Skeleton className="h-24 w-full rounded-2xl animate-pulse" />
                     </div>
+                    <Skeleton className="h-40 w-full rounded-2xl animate-pulse" />
+                  </div>
+                ) : (
+                  <>
+                    {viewTab === "overview" && (
+                      <div className="space-y-6 animate-in fade-in duration-300">
+                        {/* KPI Cards Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 flex flex-col justify-between h-24">
+                            <span className="text-[11px] text-emerald-600 uppercase tracking-wider">Revenue</span>
+                            <span className="text-xl text-emerald-700 mt-1">
+                              ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
+                            </span>
+                          </div>
+                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                            <span className="text-[11px] text-gray-500 uppercase tracking-wider">Tournaments</span>
+                            <span className="text-xl text-gray-800 mt-1">{viewStats?.totalTournaments ?? 0}</span>
+                          </div>
+                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                            <span className="text-[11px] text-gray-500 uppercase tracking-wider">Members</span>
+                            <span className="text-xl text-gray-800 mt-1">{viewStats?.totalMembers ?? 0}</span>
+                          </div>
+                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                            <span className="text-[11px] text-gray-500 uppercase tracking-wider">Unpaid</span>
+                            <span className="text-xl text-gray-800 mt-1">
+                              ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
+                            </span>
+                          </div>
+                        </div>
 
-                    <div className="rounded-2xl border border-gray-100 p-5 space-y-4">
-                      <h5 className="text-sm font-bold text-gray-900">Recent Activity</h5>
-                      {viewTournaments.length > 0 ? (
-                        <div className="space-y-4">
-                          {viewTournaments.slice(0, 5).map((t) => (
-                            <div key={t.id} className="flex items-center justify-between gap-4">
+                        {/* Admin Information & Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="rounded-2xl border border-gray-100 p-5 space-y-4 bg-white shadow-sm">
+                            <h5 className="text-[14px] text-gray-900 border-b border-gray-50 pb-2">Admin Profile</h5>
+                            <div className="space-y-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                                  <Trophy className="w-5 h-5" />
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                  <User className="w-4 h-4" />
                                 </div>
-                                <div>
-                                  <p className="text-[14px] font-bold text-gray-900">{t.name}</p>
-                                  <p className="text-[12px] text-gray-400 font-medium">{formatJoinedDate(t.startDate)}</p>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] text-gray-400 uppercase tracking-wider">Full Name</p>
+                                  <p className="text-[13px] text-gray-700 truncate">{selectedOrganizer?.admin.name}</p>
                                 </div>
                               </div>
-                              <span
-                                className={cn(
-                                  "text-[10px] font-bold px-2 py-0.5 rounded-lg",
-                                  t.status === "ONGOING"
-                                    ? "bg-emerald-50 text-emerald-600"
-                                    : t.status === "REGISTRATION_OPEN"
-                                      ? "bg-blue-50 text-blue-600"
-                                      : "bg-gray-50 text-gray-400",
-                                )}
-                              >
-                                {t.status.replaceAll("_", " ")}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                  <Mail className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] text-gray-400 uppercase tracking-wider">Email Address</p>
+                                  <p className="text-[13px] text-gray-700 truncate normal-case">{selectedOrganizer?.admin.email}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                  <Calendar className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] text-gray-400 uppercase tracking-wider">Registration Date</p>
+                                  <p className="text-[13px] text-gray-700 truncate">{selectedOrganizer?.joinedDate}</p>
+                                </div>
+                              </div>
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Recent Activity Timeline */}
+                          <div className="rounded-2xl border border-gray-100 p-5 space-y-4 bg-white shadow-sm">
+                            <h5 className="text-[14px] text-gray-900 border-b border-gray-50 pb-2">Recent Tournaments</h5>
+                            {viewTournaments.length > 0 ? (
+                              <div className="space-y-4 relative pl-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
+                                {viewTournaments.slice(0, 3).map((t) => (
+                                  <div key={t.id} className="relative flex items-center justify-between gap-4">
+                                    <div className="absolute -left-[14.5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white ring-4 ring-emerald-50" />
+                                    <div className="min-w-0">
+                                      <p className="text-[13px] text-gray-800 truncate">{t.name}</p>
+                                      <p className="text-[11px] text-gray-400">{formatJoinedDate(t.startDate)}</p>
+                                    </div>
+                                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-100/50">
+                                      {t.status.replaceAll("_", " ").toLowerCase()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="h-32 flex flex-col items-center justify-center text-center">
+                                <Trophy className="w-8 h-8 text-gray-200 mb-2" />
+                                <p className="text-[12px] text-gray-400">No tournaments registered yet</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-sm text-gray-400 text-center py-4">No recent activity</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {viewTab === "tournaments" && (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search tournaments..."
-                        className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
-                        value={tournamentSearch}
-                        onChange={(e) => {
-                          setTournamentSearch(e.target.value);
-                          setTournamentPage(1);
-                        }}
-                      />
-                    </div>
-                    <div className="overflow-hidden rounded-2xl border border-gray-100">
-                      <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                          <tr>
-                            <th className="px-5 py-3">Tournament</th>
-                            <th className="px-5 py-3">Date</th>
-                            <th className="px-5 py-3">Status</th>
-                            <th className="px-5 py-3 text-right">Players</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {paginatedTournaments.length > 0 ? (
-                            paginatedTournaments.map((t) => (
-                              <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-5 py-4">
-                                  <p className="text-[13px] font-bold text-gray-900">{t.name}</p>
-                                </td>
-                                <td className="px-5 py-4 text-[13px] text-gray-500 font-medium">
-                                  {formatJoinedDate(t.startDate)}
-                                </td>
-                                <td className="px-5 py-4">
-                                  <span
-                                    className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg",
-                                      t.status === "ONGOING"
-                                        ? "bg-emerald-50 text-emerald-600"
-                                        : t.status === "REGISTRATION_OPEN"
-                                          ? "bg-blue-50 text-blue-600"
-                                          : "bg-gray-50 text-gray-400",
-                                    )}
-                                  >
-                                    {t.status.replaceAll("_", " ")}
-                                  </span>
-                                </td>
-                                <td className="px-5 py-4 text-right text-[13px] text-gray-900 font-bold">
-                                  {t._count?.registrations ?? 0} / {t.maxPlayers ?? "∞"}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-medium">
-                                No tournaments found
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    {totalTournamentPages > 1 && (
-                      <div className="flex justify-end pt-2">
-                        <Pagination
-                          currentPage={tournamentPage}
-                          totalPages={totalTournamentPages}
-                          onPageChange={setTournamentPage}
-                        />
                       </div>
                     )}
-                  </div>
-                )}
 
-                {viewTab === "payments" && (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search player, email or tournament..."
-                        className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
-                        value={paymentSearch}
-                        onChange={(e) => {
-                          setPaymentSearch(e.target.value);
-                          setPaymentPage(1);
-                        }}
-                      />
-                    </div>
-                    <div className="overflow-hidden rounded-2xl border border-gray-100">
-                      <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                          <tr>
-                            <th className="px-5 py-3">Player</th>
-                            <th className="px-5 py-3">Tournament</th>
-                            <th className="px-5 py-3">Amount</th>
-                            <th className="px-5 py-3">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {paginatedPayments.length > 0 ? (
-                            paginatedPayments.map((r) => (
-                              <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-5 py-4">
-                                  <p className="text-[13px] font-bold text-gray-900">
-                                    {fullName(r.user.firstName, r.user.lastName)}
-                                  </p>
-                                  <p className="text-[11px] text-gray-400 font-medium">{r.user.email}</p>
-                                </td>
-                                <td className="px-5 py-4">
-                                  <p className="text-[13px] text-gray-600 font-medium">{r.tournament.name}</p>
-                                </td>
-                                <td className="px-5 py-4">
-                                  <p className="text-[13px] text-gray-900 font-bold">
-                                    ₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}
-                                  </p>
-                                </td>
-                                <td className="px-5 py-4">
-                                  <span
-                                    className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg",
-                                      r.paymentStatus === "PAID"
-                                        ? "bg-emerald-50 text-emerald-600"
-                                        : r.paymentStatus === "UNPAID"
-                                          ? "bg-amber-50 text-amber-600"
-                                          : "bg-red-50 text-red-600",
-                                    )}
-                                  >
-                                    {r.paymentStatus}
-                                  </span>
-                                </td>
+                    {viewTab === "tournaments" && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search tournaments..."
+                            className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                            value={tournamentSearch}
+                            onChange={(e) => {
+                              setTournamentSearch(e.target.value);
+                              setTournamentPage(1);
+                            }}
+                          />
+                        </div>
+                        <div className="overflow-hidden rounded-2xl border border-gray-100">
+                          <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <tr>
+                                <th className="px-5 py-3 font-normal">Tournament</th>
+                                <th className="px-5 py-3 font-normal">Date</th>
+                                <th className="px-5 py-3 font-normal">Status</th>
+                                <th className="px-5 py-3 font-normal text-right">Players</th>
                               </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-medium">
-                                No payments found
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    {totalPaymentPages > 1 && (
-                      <div className="flex justify-end pt-2">
-                        <Pagination
-                          currentPage={paymentPage}
-                          totalPages={totalPaymentPages}
-                          onPageChange={setPaymentPage}
-                        />
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {paginatedTournaments.length > 0 ? (
+                                paginatedTournaments.map((t) => (
+                                  <tr key={t.id} className="hover:bg-gray-50/30 transition-colors">
+                                    <td className="px-5 py-4">
+                                      <p className="text-[13px] text-gray-800">{t.name}</p>
+                                    </td>
+                                    <td className="px-5 py-4 text-[13px] text-gray-500">
+                                      {formatJoinedDate(t.startDate)}
+                                    </td>
+                                    <td className="px-5 py-4">
+                                      <span
+                                        className={cn(
+                                          "text-[10px] px-2 py-0.5 rounded",
+                                          t.status === "ONGOING"
+                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                                            : t.status === "REGISTRATION_OPEN"
+                                              ? "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
+                                              : "bg-gray-50 text-gray-400 border border-gray-100",
+                                        )}
+                                      >
+                                        {t.status.replaceAll("_", " ").toLowerCase()}
+                                      </span>
+                                    </td>
+                                    <td className="px-5 py-4 text-right text-[13px] text-gray-800">
+                                      {t._count?.registrations ?? 0} / {t.maxPlayers ?? "∞"}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
+                                    No tournaments found
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {totalTournamentPages > 1 && (
+                          <div className="flex justify-end pt-2">
+                            <Pagination
+                              currentPage={tournamentPage}
+                              totalPages={totalTournamentPages}
+                              onPageChange={setTournamentPage}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
+
+                    {viewTab === "payments" && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search player, email or tournament..."
+                            className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                            value={paymentSearch}
+                            onChange={(e) => {
+                              setPaymentSearch(e.target.value);
+                              setPaymentPage(1);
+                            }}
+                          />
+                        </div>
+                        <div className="overflow-hidden rounded-2xl border border-gray-100">
+                          <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <tr>
+                                <th className="px-5 py-3 font-normal">Player</th>
+                                <th className="px-5 py-3 font-normal">Tournament</th>
+                                <th className="px-5 py-3 font-normal">Amount</th>
+                                <th className="px-5 py-3 font-normal text-right">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {paginatedPayments.length > 0 ? (
+                                paginatedPayments.map((r) => (
+                                  <tr key={r.id} className="hover:bg-gray-50/30 transition-colors">
+                                    <td className="px-5 py-4">
+                                      <p className="text-[13px] text-gray-800">
+                                        {fullName(r.user.firstName, r.user.lastName)}
+                                      </p>
+                                      <p className="text-[11px] text-gray-400 normal-case">{r.user.email}</p>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                      <p className="text-[13px] text-gray-600">{r.tournament.name}</p>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                      <p className="text-[13px] text-gray-800">
+                                        ₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}
+                                      </p>
+                                    </td>
+                                    <td className="px-5 py-4 text-right">
+                                      <span
+                                        className={cn(
+                                          "text-[10px] px-2 py-0.5 rounded",
+                                          r.paymentStatus === "PAID"
+                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                                            : r.paymentStatus === "UNPAID"
+                                              ? "bg-amber-50/50 text-amber-700 border border-amber-100/30"
+                                              : "bg-red-50/50 text-red-700 border border-red-100/30",
+                                        )}
+                                      >
+                                        {r.paymentStatus.toLowerCase()}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
+                                    No payments found
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {totalPaymentPages > 1 && (
+                          <div className="flex justify-end pt-2">
+                            <Pagination
+                              currentPage={paymentPage}
+                              totalPages={totalPaymentPages}
+                              onPageChange={setPaymentPage}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </div>
-        </div>
-      );
+              </div>
+            </div>
+          );
     })()}
       </Modal>
 
-      <CreateOrganiserWizard 
-        isOpen={isWizardOpen}
-        onClose={() => {
-          setIsWizardOpen(false);
-          setEditingUser(null);
-        }}
-        onSuccess={reloadOrganizers}
-        editingUser={editingUser}
-      />
+
     </div>
   );
 }

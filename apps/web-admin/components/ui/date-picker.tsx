@@ -19,6 +19,8 @@ type DatePickerProps = {
   onInvalidSelect?: (args: { ymd: string; reason: "minDate" | "maxDate" | "past" | "future" | "custom" | "today" }) => void;
   className?: string;
   buttonClassName?: string;
+  rangeStart?: string;
+  rangeEnd?: string;
 };
 
 function pad2(n: number) {
@@ -58,6 +60,8 @@ export function DatePicker({
   onInvalidSelect,
   className,
   buttonClassName,
+  rangeStart,
+  rangeEnd,
 }: DatePickerProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -216,6 +220,7 @@ export function DatePicker({
                 if (!cell) return <div key={`e-${idx}`} className="h-8" />;
                 const isSelected = cell.ymd === value;
                 const isToday = cell.ymd === todayYMD;
+                const inRange = rangeStart && rangeEnd && cell.ymd >= rangeStart && cell.ymd <= rangeEnd && !isSelected;
                 const disabledReason = getDisabledReason(cell.ymd);
                 const isDisabled = disabledReason != null;
                 return (
@@ -228,10 +233,12 @@ export function DatePicker({
                       isDisabled
                         ? "text-gray-300 cursor-not-allowed opacity-40"
                         : isSelected
-                          ? "bg-[#10b981] text-white ring-2 ring-emerald-400 ring-offset-1"
-                          : isToday
-                            ? "text-emerald-600 ring-2 ring-emerald-300 ring-offset-1 hover:bg-emerald-50"
-                            : "text-gray-700 hover:bg-emerald-50",
+                          ? "bg-[#10b981] text-white ring-2 ring-emerald-400 ring-offset-1 z-10"
+                          : inRange
+                            ? "bg-emerald-50 text-emerald-700 rounded-none first-of-type:rounded-l-lg last-of-type:rounded-r-lg"
+                            : isToday
+                              ? "text-emerald-600 ring-2 ring-emerald-300 ring-offset-1 hover:bg-emerald-50"
+                              : "text-gray-700 hover:bg-emerald-50",
                     )}
                     onClick={() => {
                       onValueChange(cell.ymd);

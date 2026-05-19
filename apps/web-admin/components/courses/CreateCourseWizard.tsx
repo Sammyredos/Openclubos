@@ -8,7 +8,7 @@ import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy } from "lucide-react";
+import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy, ArrowLeft } from "lucide-react";
 import { createCourse, updateCourse, getCourse, TeeBox } from "@/lib/api/courses";
 import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas";
 
@@ -20,10 +20,11 @@ interface HoleDetail {
 }
 
 interface WizardProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: () => void;
   courseId?: string | null;
+  isPageMode?: boolean;
 }
 
 const STEPS = ["General", "Specifications", "Amenities", "Tee Boxes", "Hole Details", "Branding & Status"];
@@ -92,12 +93,13 @@ const Field = ({ label, required, children, error }: { label: string; required?:
   </div>
 );
 
-export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: WizardProps) {
+export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPageMode }: WizardProps) {
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,7 +133,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
   }, [formData.country]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isPageMode) {
       setStep(1);
       setShowValidation(false);
       if (courseId) {
@@ -140,7 +142,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
         setFormData(DEFAULT_FORM);
       }
     }
-  }, [isOpen, courseId]);
+  }, [isOpen, courseId, isPageMode]);
 
   // Sync holeDetails when holes count changes
   useEffect(() => {
@@ -281,6 +283,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
       return;
     }
     setLoading(true);
+    const toastId = toast.loading(courseId ? "Saving course..." : "Creating course...");
     try {
       const payload = {
         ...formData,
@@ -294,15 +297,24 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
 
       if (courseId) {
         await updateCourse(courseId, payload);
-        toast.success("Course updated successfully");
+        toast.success("Course updated successfully", { id: toastId });
       } else {
         await createCourse(payload);
-        toast.success("Course created successfully");
+        toast.success("Course created successfully", { id: toastId });
       }
-      onSuccess();
-      onClose();
+      
+      if (isPageMode) {
+        setIsRedirecting(true);
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 150);
+      } else {
+        onSuccess();
+        onClose();
+      }
     } catch (e: any) {
-      toast.error(e.message || "Failed to save course");
+      toast.error(e.message || "Failed to save course", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -867,9 +879,131 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId }: Wiz
     }
   };
 
+  if (isPageMode) {
+    return (
+      <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
+        {/* Page Header */}
+        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{courseId ? "Edit Golf Course" : "Add Golf Course"}</h1>
+              <p className="text-[13px] text-gray-500 mt-0.5">
+                {courseId ? "Update and configure the course details step by step" : "Setup and configure a new golf course step by step"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Column - Steps Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+              {STEPS.map((name, i) => {
+                const active = step === i + 1;
+                const past = step > i + 1;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (!loading) setStep(i + 1);
+                    }}
+                    className={cn(
+                      "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                      active
+                        ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
+                        : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                        active
+                          ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
+                          : past
+                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                          : "bg-gray-100 text-gray-400 border border-gray-200"
+                      )}
+                    >
+                      {past ? "✓" : i + 1}
+                    </div>
+                    <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column - Active Step Content */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="min-h-[400px]">
+              {fetching ? (
+                <div className="space-y-6 bg-white border border-gray-100 rounded-2xl p-6 animate-pulse">
+                  <div className="h-5 w-32 bg-gray-100 rounded-lg" />
+                  <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  </div>
+                  <div className="h-32 w-full bg-gray-50 rounded-xl" />
+                </div>
+              ) : (
+                renderStep()
+              )}
+            </div>
+
+            {/* Form Actions Footer */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={step === 1 || loading}
+                className="h-10 rounded-xl px-5 text-[13px] font-bold"
+              >
+                ← Back
+              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="h-10 rounded-xl px-5 text-[13px] font-bold"
+                >
+                  Cancel
+                </Button>
+                {step < STEPS.length ? (
+                  <Button
+                    onClick={handleNext}
+                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  >
+                    Next Step →
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  >
+                    {loading ? (courseId ? "Saving..." : "Creating...") : (courseId ? "Save Changes" : "Save Golf Course")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={!!isOpen}
       onClose={onClose}
       title={courseId ? "Edit Golf Course" : "Add Golf Course"}
       className="max-w-4xl"

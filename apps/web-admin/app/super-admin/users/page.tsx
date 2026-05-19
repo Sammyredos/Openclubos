@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   MapPin,
+  BarChart3,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,13 +46,7 @@ import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import dynamic from "next/dynamic";
 import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
 
-const CreateUserWizard = dynamic(
-  () => import("@/components/users/CreateUserWizard").then(mod => mod.CreateUserWizard),
-  { 
-    ssr: false, 
-    loading: () => <WizardSkeleton steps={5} /> 
-  }
-);
+
 
 function fullName(firstName: string | null, lastName: string | null) {
   const name = `${firstName || ""} ${lastName || ""}`.trim();
@@ -379,9 +374,8 @@ export default function SuperAdminUsersPage() {
   };
 
   const openEditModal = (u: AdminUser) => {
-    setSelectedUser(u);
-    setIsCreateWizardOpen(true);
     closeDropdown();
+    router.push(`/super-admin/users/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -395,6 +389,10 @@ export default function SuperAdminUsersPage() {
 
   const handleMoreAction = (action: string, u: AdminUser) => {
     closeDropdown();
+    if (action === "view-analytics") {
+      openViewModal(u);
+      return;
+    }
     if (action === "force-logout") {
       if (!canManageUser(u)) {
         toast.error("You can't force logout this account");
@@ -402,6 +400,14 @@ export default function SuperAdminUsersPage() {
       }
       setSelectedUser(u);
       setIsForceLogoutModalOpen(true);
+      return;
+    }
+    if (action === "reset-password") {
+      openResetPasswordModal(u);
+      return;
+    }
+    if (action === "audit-logs") {
+      toast.success("Opening audit logs");
       return;
     }
     if (action === "export") {
@@ -415,10 +421,6 @@ export default function SuperAdminUsersPage() {
       a.remove();
       URL.revokeObjectURL(url);
       toast.success("User data exported");
-      return;
-    }
-    if (action === "reset-password") {
-      openResetPasswordModal(u);
       return;
     }
     if (action === "delete") {
@@ -622,10 +624,7 @@ export default function SuperAdminUsersPage() {
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button 
-              onClick={() => {
-                setSelectedUser(null);
-                setIsCreateWizardOpen(true);
-              }}
+              onClick={() => router.push("/super-admin/users/create")}
               className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
             >
               <UserPlus className="w-4 h-4" /> Add User
@@ -959,14 +958,14 @@ export default function SuperAdminUsersPage() {
             </button>
             <button
               disabled={!canManageUser(dropdownUser)}
-              onClick={() => openResetPasswordModal(dropdownUser)}
+              onClick={() => handleMoreAction("view-analytics", dropdownUser)}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <KeyRound className="w-4 h-4 text-gray-400" />
-              Reset Password
+              <BarChart3 className="w-4 h-4 text-gray-400" />
+              View Analytics
             </button>
             <button
               disabled={!canManageUser(dropdownUser) || mutating}
@@ -978,6 +977,28 @@ export default function SuperAdminUsersPage() {
             >
               <LogOut className="w-4 h-4 text-gray-400" />
               Force Logout
+            </button>
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => handleMoreAction("reset-password", dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+              )}
+            >
+              <KeyRound className="w-4 h-4 text-gray-400" />
+              Reset Password
+            </button>
+            <button
+              disabled={!canManageUser(dropdownUser)}
+              onClick={() => handleMoreAction("audit-logs", dropdownUser)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+              )}
+            >
+              <Clock className="w-4 h-4 text-gray-400" />
+              Audit Logs
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownUser)}
@@ -1111,42 +1132,72 @@ export default function SuperAdminUsersPage() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete User Permanently?"
+        title={selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? "Cannot Delete Organizer Administrator" : "Delete User Permanently?"}
         footer={
-          <>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
-              onClick={confirmDelete}
-            >
-              Delete User
-            </Button>
-          </>
+          selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? null : (
+            <>
+              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+                Cancel
+              </Button>
+              <Button
+                disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+                onClick={confirmDelete}
+              >
+                Delete User
+              </Button>
+            </>
+          )
         }
       >
-        <div className="space-y-6">
-          <div className="flex flex-col items-center text-center py-2">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
-              <Trash2 className="h-10 w-10" />
+        {selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center text-center py-2">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
+                <AlertTriangle className="h-10 w-10" />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 mb-2">Cannot Delete Administrator</h4>
+              <p className="text-gray-500 max-w-sm">
+                This user is currently the primary administrator for organizer <span className="font-bold text-gray-800">&quot;{selectedUser.club.name}&quot;</span>. Never leave an organizer blank without an administrator.
+              </p>
+              <p className="text-gray-500 max-w-sm mt-3 text-sm">
+                Please edit and update the organizer account with a new administrator under <strong>Super Admin &gt; Organizers</strong> before deleting this user.
+              </p>
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete User Permanently?</h4>
-            <p className="text-gray-500 max-w-sm">This action cannot be undone.</p>
+            <div className="flex justify-center pt-2">
+              <Button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  router.push("/super-admin/organizers");
+                }}
+                className="bg-[#10b981] hover:bg-[#0da673] text-white rounded-lg font-bold px-8 h-11"
+              >
+                Go to Organizers
+              </Button>
+            </div>
           </div>
-          <div className="space-y-3">
-            <Label className="font-bold text-gray-700">
-              Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
-            </Label>
-            <Input
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="DELETE"
-              className="rounded-xl border-gray-200 focus:border-red-500"
-            />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center text-center py-2">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+                <Trash2 className="h-10 w-10" />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 mb-2">Delete User Permanently?</h4>
+              <p className="text-gray-500 max-w-sm">This action cannot be undone.</p>
+            </div>
+            <div className="space-y-3">
+              <Label className="font-bold text-gray-700">
+                Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
+              </Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="rounded-xl border-gray-200 focus:border-red-500"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
 
@@ -1627,15 +1678,7 @@ export default function SuperAdminUsersPage() {
     })()}
       </Modal>
 
-      <CreateUserWizard 
-        isOpen={isCreateWizardOpen} 
-        onClose={() => {
-          setIsCreateWizardOpen(false);
-          setSelectedUser(null);
-        }} 
-        onSuccess={reload}
-        editingUser={selectedUser}
-      />
+
     </div>
   );
 }
