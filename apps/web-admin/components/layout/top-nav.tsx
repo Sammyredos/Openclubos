@@ -160,15 +160,15 @@ export function TopNav() {
 
   const pageTitle = (() => {
     if (isOrganizerAdmin) {
-      if (pathname === "/organizer-admin/dashboard") return "Organizer";
-      return "Organizer";
+      if (pathname === "/organizer-admin/dashboard") return "";
+      return "";
     }
-    if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview";
+    if (pathname === "/" || pathname === "/super-admin/dashboard") return "";
     if (pathname === "/super-admin/users") return "Users";
     if (pathname === "/super-admin/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
     if (pathname === "/super-admin/tournaments") return "Tournaments";
-    return "Overview";
+    return "";
   })();
 
   return (
@@ -242,7 +242,7 @@ export function TopNav() {
             />
           </div>
           <div className="text-left hidden sm:block">
-            <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "John Admin"}</p>
+            <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "Samuel Obadina"}</p>
             <p className="text-[12px] text-gray-400 font-medium mt-1.5">{isOrganizerAdmin ? "Organizer Admin" : "Super Admin"}</p>
           </div>
           <ChevronDown className="h-4.5 w-4.5 text-gray-400 ml-1" />

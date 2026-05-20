@@ -417,10 +417,7 @@ export default function SuperAdminGolfCoursesPage() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setIsViewModalOpen(true);
-                            }}
+                            onClick={() => router.push(`/super-admin/golf-courses/${course.id}`)}
                             title="View Course"
                           >
                             <Eye className="w-4.5 h-4.5" />

@@ -258,6 +258,9 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       if (!formData.latitude) return "Latitude is required";
       if (!formData.longitude) return "Longitude is required";
     }
+    if (s === 6) {
+      if (!formData.coverImage.trim()) return "Club Logo is required";
+    }
     return null;
   };
 
@@ -273,6 +276,26 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
 
   const handleBack = () => {
     setStep((p) => Math.max(p - 1, 1));
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep < step) {
+      setStep(targetStep);
+      setShowValidation(false);
+      return;
+    }
+    
+    for (let s = 1; s < targetStep; s++) {
+      const err = validateStep(s);
+      if (err) {
+        setShowValidation(true);
+        toast.error(`Please complete Step ${s} before proceeding.`);
+        setStep(s);
+        return;
+      }
+    }
+    setStep(targetStep);
+    setShowValidation(false);
   };
 
   const handleSubmit = async () => {
@@ -349,24 +372,37 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: "coverImage" | "galleryImages") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "coverImage" | "galleryImages") => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size must be less than 2MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (field === "coverImage") {
-        set(field, reader.result as string);
-      } else {
-        set(field, [...formData.galleryImages, reader.result as string]);
+    if (field === "coverImage") {
+      const file = files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image size must be less than 2MB");
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onloadend = () => set(field, reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      let currentImages = [...formData.galleryImages];
+      for (const file of files) {
+        if (currentImages.length >= 4) break;
+        if (file.size > 2 * 1024 * 1024) {
+          toast.error(`Image size must be less than 2MB`);
+          continue;
+        }
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        currentImages.push(dataUrl);
+      }
+      set(field, currentImages);
+    }
+    e.target.value = "";
   };
 
   const renderStep = () => {
@@ -801,11 +837,11 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <p className="text-[13px] font-semibold text-gray-600">Course Branding</p>
-                    <Field label="Club Logo" required>
+                    <Field label="Club Logo" required error={showValidation && !formData.coverImage.trim() ? "Club Logo is required" : undefined}>
                       <div 
                         className={cn(
                           "aspect-square w-40 mx-auto border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-emerald-50/30 overflow-hidden relative group",
-                          formData.coverImage ? "border-emerald-200" : "border-gray-200 hover:border-emerald-400"
+                          formData.coverImage ? "border-emerald-200" : (showValidation ? "border-red-400 bg-red-50/30" : "border-gray-200 hover:border-emerald-400")
                         )}
                       >
                         {formData.coverImage ? (
@@ -835,27 +871,33 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     <div className="space-y-2">
                       <Label className="text-[13px] font-semibold text-gray-600">Gallery (Max 4)</Label>
                       <div className="grid grid-cols-4 gap-2">
-                        {formData.galleryImages.map((img, i) => (
-                          <div key={i} className="aspect-square rounded-lg overflow-hidden relative group border border-gray-100">
-                            <img src={img} className="w-full h-full object-cover" />
-                            <button 
-                              onClick={() => set("galleryImages", formData.galleryImages.filter((_, idx) => idx !== i))}
-                              className="absolute top-1 right-1 p-1 bg-white/90 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-red-500"
+                        {Array.from({ length: 4 }).map((_, i) => {
+                          const img = formData.galleryImages[i];
+                          if (img) {
+                            return (
+                              <div key={i} className="aspect-square rounded-lg overflow-hidden relative group border border-gray-100">
+                                <img src={img} className="w-full h-full object-cover" />
+                                <button 
+                                  onClick={() => set("galleryImages", formData.galleryImages.filter((_, idx) => idx !== i))}
+                                  className="absolute top-1 right-1 p-1 bg-white/90 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-red-500"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div 
+                              key={i}
+                              onClick={() => galleryInputRef.current?.click()}
+                              className="aspect-square border border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
                             >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        {formData.galleryImages.length < 4 && (
-                          <div 
-                            onClick={() => galleryInputRef.current?.click()}
-                            className="aspect-square border border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                          >
-                            <Plus className="w-4 h-4 text-gray-400" />
-                          </div>
-                        )}
+                              <Plus className="w-4 h-4 text-gray-400" />
+                            </div>
+                          );
+                        })}
                       </div>
-                      <input ref={galleryInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "galleryImages")} />
+                      <input ref={galleryInputRef} type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleImageUpload(e, "galleryImages")} />
                     </div>
                   </div>
 
@@ -912,7 +954,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                   <button
                     key={i}
                     onClick={() => {
-                      if (!loading) setStep(i + 1);
+                      if (!loading) handleStepClick(i + 1);
                     }}
                     className={cn(
                       "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",

@@ -11,6 +11,14 @@ export interface TeeBox {
   slope?: number;
 }
 
+export interface HoleDetail {
+  id?: string;
+  number: number;
+  par: number;
+  index: number;
+  distance: number;
+}
+
 export interface Course {
   id: string;
   name: string;
@@ -46,6 +54,7 @@ export interface Course {
   clubId?: string;
   club?: { id: string; name: string };
   teeBoxes?: TeeBox[];
+  holeDetails?: HoleDetail[];
   createdAt: string;
   tournamentCount?: number;
 }

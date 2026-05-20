@@ -85,6 +85,8 @@ export class AuthService {
         id: user.id,
         role: effectiveRole,
         clubId: user.clubId,
+        email: user.email,
+        name: user.firstName || user.lastName ? `${user.firstName} ${user.lastName}`.trim() : undefined,
       },
     };
   }

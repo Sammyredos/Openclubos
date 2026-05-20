@@ -457,6 +457,35 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     if (prevStep >= 1) setStep(prevStep);
   };
 
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep < step) {
+      setStep(targetStep);
+      setShowValidation(false);
+      return;
+    }
+
+    const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
+    
+    for (let s = 1; s < targetStep; s++) {
+      if (s === 3 && !needsOrg) continue;
+      const err = validateStep(s);
+      if (err) {
+        setShowValidation(true);
+        toast.error(`Please complete Step ${s} before proceeding.`);
+        setStep(s);
+        return;
+      }
+    }
+
+    if (targetStep === 3 && !needsOrg) {
+      toast.error("Organization step is not required for this role");
+      return;
+    }
+
+    setStep(targetStep);
+    setShowValidation(false);
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     const toastId = toast.loading(editingUser ? "Saving changes..." : "Creating user...");
@@ -1340,7 +1369,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <button
                     key={i}
                     onClick={() => {
-                      if (!loading) setStep(i + 1);
+                      if (!loading) handleStepClick(i + 1);
                     }}
                     className={cn(
                       "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",

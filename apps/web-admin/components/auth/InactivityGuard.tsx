@@ -11,6 +11,7 @@ const COUNTDOWN_SECS = 60;              // 60-second countdown before auto-logou
 export function InactivityGuard() {
   const { isAuthenticated, logout } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const showModalRef = useRef(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECS);
 
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,6 +41,7 @@ export function InactivityGuard() {
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
+      showModalRef.current = true;
       setShowModal(true);
       startCountdown();
     }, INACTIVITY_MS);
@@ -49,6 +51,7 @@ export function InactivityGuard() {
   useEffect(() => {
     if (showModal && countdown === 0) {
       stopCountdown();
+      showModalRef.current = false;
       setShowModal(false);
       logout();
     }
@@ -59,6 +62,7 @@ export function InactivityGuard() {
     if (!isAuthenticated) {
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       stopCountdown();
+      showModalRef.current = false;
       setShowModal(false);
       return;
     }
@@ -66,7 +70,7 @@ export function InactivityGuard() {
     const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
 
     const onActivity = () => {
-      if (!showModal) resetInactivityTimer();
+      if (!showModalRef.current) resetInactivityTimer();
     };
 
     events.forEach((evt) => window.addEventListener(evt, onActivity, { passive: true }));
@@ -77,17 +81,18 @@ export function InactivityGuard() {
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       stopCountdown();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, showModal]);
+  }, [isAuthenticated, resetInactivityTimer, stopCountdown]);
 
   const handleContinue = () => {
     stopCountdown();
+    showModalRef.current = false;
     setShowModal(false);
     resetInactivityTimer();
   };
 
   const handleLogout = () => {
     stopCountdown();
+    showModalRef.current = false;
     setShowModal(false);
     logout();
   };
@@ -122,7 +127,7 @@ export function InactivityGuard() {
                 strokeDasharray={circumference}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="round"
-                className="transition-all duration-1000"
+                className="transition-all duration-1000 ease-linear"
               />
             </svg>
             <span

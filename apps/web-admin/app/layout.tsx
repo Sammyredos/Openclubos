@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-dmsans",
-});
 
 export const metadata: Metadata = {
   title: "Openclub Admin",
@@ -23,9 +16,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${dmSans.variable}`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster 
@@ -33,7 +31,7 @@ export default function RootLayout({
           position="top-right" 
           closeButton
           toastOptions={{
-            className: `${dmSans.className} text-[15px] font-medium leading-snug shadow-lg rounded-2xl border border-gray-100`,
+            className: `font-sans text-[15px] font-medium leading-snug shadow-lg rounded-2xl border border-gray-100`,
             duration: 4000,
           }}
         />

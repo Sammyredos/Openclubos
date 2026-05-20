@@ -142,8 +142,8 @@ async function main() {
     data: {
       email: superAdminEmail,
       password: passwordHash,
-      firstName: 'Admin',
-      lastName: 'Primary',
+      firstName: 'Samuel',
+      lastName: 'Obadina',
       role: UserRole.SUPER_ADMIN,
     },
   });

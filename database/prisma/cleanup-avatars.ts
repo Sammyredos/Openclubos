@@ -33,6 +33,23 @@ async function main() {
     });
   }
 
+  // Also update superadmin name
+  const superadmin = await prisma.user.findFirst({
+    where: {
+      email: {
+        contains: 'superadmin',
+        mode: 'insensitive',
+      },
+    },
+  });
+  if (superadmin) {
+    console.log(`Found superadmin: ${superadmin.email}. Updating name to Samuel Obadina.`);
+    await prisma.user.update({
+      where: { id: superadmin.id },
+      data: { firstName: 'Samuel', lastName: 'Obadina' },
+    });
+  }
+
   console.log('Cleanup completed successfully!');
 }
 
