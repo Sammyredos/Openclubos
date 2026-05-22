@@ -392,7 +392,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       if (formData.roles.includes("PLAYER")) {
         if (!formData.handicap) return "Playing handicap is required";
         const h = parseFloat(formData.handicap);
-        if (h > 36) return "Handicap cannot exceed the maximum limit (36.0)";
+        const maxHandicap = formData.gender === "Female" ? 36 : 28;
+        if (h > maxHandicap) return `Handicap cannot exceed the maximum limit (${maxHandicap}.0) for ${formData.gender} players`;
       }
     }
     if (s === 2) {
@@ -771,7 +772,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           onChange={(e) => setFormData({...formData, handicap: e.target.value})} 
                           className={cn("pr-16 font-bold text-emerald-600", showValidation && !formData.handicap && "border-red-400 bg-red-50/30")}
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">MAX 36</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "Female" ? 36 : 28}</span>
                       </div>
                     </Field>
                   ) : <div />}

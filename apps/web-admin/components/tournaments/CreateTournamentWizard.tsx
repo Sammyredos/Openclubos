@@ -14,7 +14,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send } from "lucide-react";
+import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle } from "lucide-react";
 
 type WizardProps = {
   isOpen: boolean;
@@ -159,6 +159,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentId }: WizardProps) {
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
@@ -387,11 +388,20 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
   const handleBack = () => setStep((s) => s - 1);
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     for (let s = 1; s <= STEPS.length; s++) {
       const err = validateStep(s, formData, isMultiDay);
       if (err) { setShowValidation(true); toast.error(`Step ${s}: ${err}`); setStep(s); return; }
     }
+    const isPublishing = formData.publishImmediately && (!tournamentId || originalStatus === "DRAFT");
+    if (isPublishing) {
+      setShowPublishConfirm(true);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
     try {
       const f = formData;
@@ -1164,8 +1174,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           {/* ── Publishing ── */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
-              onClick={() => set("publishImmediately", !formData.publishImmediately)}>
+            <div className={cn("px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between", originalStatus !== "DRAFT" ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+              onClick={() => {
+                if (originalStatus !== "DRAFT") return;
+                set("publishImmediately", !formData.publishImmediately);
+              }}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Send className="w-4 h-4" />
@@ -1209,7 +1222,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               ? <Button onClick={handleNext} disabled={nameCheckLoading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
                 {nameCheckLoading ? "Checking..." : "Next →"}
               </Button>
-              : <Button onClick={handleSubmit} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
+              : <Button onClick={handleSubmitClick} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
                 {loading ? (tournamentId ? "Updating..." : "Creating...") : (tournamentId ? "Update Tournament" : "Create Tournament")}
               </Button>
             }
@@ -1258,6 +1271,28 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
         ) : stepContent()}
       </div>
+
+      {showPublishConfirm && (
+        <Modal isOpen={showPublishConfirm} onClose={() => setShowPublishConfirm(false)} title="Confirm Publishing" className="max-w-md z-[100]">
+          <div className="space-y-4 py-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[#10b981] mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h4 className="text-lg font-bold text-gray-900">Publish Tournament?</h4>
+              <p className="text-sm text-gray-500">
+                Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPublishConfirm(false)} disabled={loading}>Cancel</Button>
+              <Button className="flex-1 bg-[#10b981] hover:bg-[#0da673] text-white" onClick={() => { setShowPublishConfirm(false); handleSubmit(); }} disabled={loading}>
+                {loading ? "Publishing..." : "Yes, Publish"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }

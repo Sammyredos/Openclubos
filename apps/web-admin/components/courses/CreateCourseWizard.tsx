@@ -8,7 +8,7 @@ import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy, ArrowLeft } from "lucide-react";
+import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy, ArrowLeft, Building2, ShoppingBag, Coffee, Shirt, Users, Car } from "lucide-react";
 import { createCourse, updateCourse, getCourse, TeeBox } from "@/lib/api/courses";
 import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas";
 
@@ -38,8 +38,15 @@ const COURSE_TYPES = [
 ];
 
 const AMENITIES = [
-  "Driving Range", "Practice Green", "Club House", "Pro Shop", 
-  "Restaurant / Bar", "Changing Room", "Caddies Available", "Golf Cart", "Other"
+  { name: "Driving Range", icon: Target },
+  { name: "Practice Green", icon: Flag },
+  { name: "Club House", icon: Building2 },
+  { name: "Pro Shop", icon: ShoppingBag },
+  { name: "Restaurant / Bar", icon: Coffee },
+  { name: "Changing Room", icon: Shirt },
+  { name: "Caddies Available", icon: Users },
+  { name: "Golf Cart", icon: Car },
+  { name: "Other", icon: Plus },
 ];
 
 const DEFAULT_FORM = {
@@ -242,7 +249,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       if (!formData.country) return "Country is required";
       if (!formData.state) return "State is required";
       if (!formData.city.trim()) return formData.country === "NG" ? "LGA is required" : "City is required";
-      if (!formData.address.trim()) return "Full address is required";
+      if (!formData.address.trim()) return "Street address is required";
       
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email) return "Email is required";
@@ -257,6 +264,17 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       if (!formData.slopeRating) return "Slope rating is required";
       if (!formData.latitude) return "Latitude is required";
       if (!formData.longitude) return "Longitude is required";
+    }
+    if (s === 4) {
+      const colors = formData.teeBoxes.map(t => t.color);
+      const uniqueColors = new Set(colors);
+      if (colors.length !== uniqueColors.size) {
+        return "Tee box colors must be unique. You cannot use the same color for multiple tee boxes.";
+      }
+      for (const tb of formData.teeBoxes) {
+        if (!tb.name.trim()) return "All tee boxes must have a name";
+        if (!tb.color) return "All tee boxes must have a color";
+      }
     }
     if (s === 6) {
       if (!formData.coverImage.trim()) return "Club Logo is required";
@@ -472,8 +490,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       <Input value={formData.city} onChange={(e) => set("city", e.target.value)} placeholder="Enter city" className={req(formData.city)} />
                     )}
                   </Field>
-                  <Field label="Full Address" required>
-                    <Input value={formData.address} onChange={(e) => set("address", e.target.value)} placeholder="Enter full address" className={req(formData.address)} />
+                  <Field label="Street Address" required>
+                    <Input value={formData.address} onChange={(e) => set("address", e.target.value)} placeholder="Enter street address" className={req(formData.address)} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-5">
@@ -642,7 +660,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
               <div className="p-5">
                 <p className="text-[13px] font-semibold text-gray-600 mb-4">Select Available Amenities</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {AMENITIES.map((a) => (
+                  {AMENITIES.map(({ name: a, icon: Icon }) => (
                     <div 
                       key={a}
                       onClick={() => toggleAmenity(a)}
@@ -654,12 +672,18 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       )}
                     >
                       <div className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                        formData.amenities.includes(a) ? "bg-emerald-500 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-400 group-hover:text-gray-600"
+                      )}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-[13px] font-medium flex-1">{a}</span>
+                      <div className={cn(
                         "w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors",
                         formData.amenities.includes(a) ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 bg-white"
                       )}>
                         {formData.amenities.includes(a) && <Check className="w-3.5 h-3.5" />}
                       </div>
-                      <span className="text-[13px] font-medium">{a}</span>
                     </div>
                   ))}
                 </div>
@@ -705,8 +729,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           </Field>
                           <Field label="Color">
                             <SearchableSelect value={tb.color} onValueChange={(v) => updateTeeBox(i, "color", v)} options={[
-                              {value: "Black", label: "Black"}, {value: "Blue", label: "Blue"}, {value: "White", label: "White"},
-                              {value: "Red", label: "Red"}, {value: "Yellow", label: "Yellow"}, {value: "Gold", label: "Gold"},
+                              {value: "Black", label: "⚫ Black"}, {value: "Blue", label: "🔵 Blue"}, {value: "White", label: "⚪ White"},
+                              {value: "Red", label: "🔴 Red"}, {value: "Yellow", label: "🟡 Yellow"}, {value: "Gold", label: "🟠 Gold"},
                             ]} />
                           </Field>
                           <Field label="Yardage">
@@ -743,8 +767,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
               <div className="p-5 space-y-6">
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
                   <p className="text-[14px] font-bold text-gray-900 text-center">How many holes does this course have?</p>
-                  <div className="flex justify-center gap-3">
-                    {[9, 18, 27, 36].map((count) => (
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {[6, 9, 12, 18, 27, 36].map((count) => (
                       <button
                         key={count}
                         onClick={() => set("holes", count)}
@@ -777,9 +801,9 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {formData.holeDetails.map((h, i) => (
-                    <div key={i} className="p-3 rounded-xl border border-gray-100 bg-white shadow-sm space-y-3 relative group hover:border-emerald-200 transition-colors">
+                    <div key={i} className="p-3 rounded-xl border border-[#efefef] bg-white shadow-sm space-y-3 relative group hover:border-emerald-200 transition-colors">
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-bold text-gray-900 bg-gray-50 w-6 h-6 rounded-lg flex items-center justify-center border border-gray-100">
+                        <span className="text-[12px] font-bold text-white bg-slate-800 w-6 h-6 rounded-lg flex items-center justify-center shadow-sm">
                           {h.number}
                         </span>
                       </div>

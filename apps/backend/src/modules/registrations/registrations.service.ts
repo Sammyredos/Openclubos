@@ -74,7 +74,12 @@ export class RegistrationsService {
     }
 
     // 6. Validate Eligibility (Handicap)
-    if (!isAdmin && user.handicap !== null) {
+    if (!isAdmin && tournament.hasHandicapRestriction) {
+      if (user.handicap === null) {
+        throw new BadRequestException(
+          'A handicap index is required to register for this tournament',
+        );
+      }
       if (
         tournament.minHandicap !== null &&
         user.handicap < tournament.minHandicap
@@ -180,7 +185,7 @@ export class RegistrationsService {
         orderBy: { registeredAt: 'desc' },
         include: {
           user: {
-            select: { id: true, email: true, firstName: true, lastName: true },
+            select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true },
           },
           tournament: {
             select: {

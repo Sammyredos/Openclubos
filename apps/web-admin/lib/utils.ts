@@ -1,8 +1,82 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Country } from "country-state-city";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function formatAddress(
+  address?: string | null,
+  city?: string | null,
+  state?: string | null,
+  countryCode?: string | null
+): string {
+  const countryName = countryCode
+    ? Country.getCountryByCode(countryCode)?.name || countryCode
+    : "";
+
+  const addressParts = address
+    ? address.split(/[,.]+/).map((t) => t.trim()).filter(Boolean)
+    : [];
+  const cityParts = city
+    ? city.split(/[,.]+/).map((t) => t.trim()).filter(Boolean)
+    : [];
+  const stateParts = state
+    ? state.split(/[,.]+/).map((t) => t.trim()).filter(Boolean)
+    : [];
+  const countryParts = countryName
+    ? countryName.split(/[,.]+/).map((t) => t.trim()).filter(Boolean)
+    : [];
+
+  const uniqueTokens: string[] = [];
+  const seen = new Set<string>();
+
+  const addTokens = (parts: string[]) => {
+    for (const part of parts) {
+      const lower = part.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        uniqueTokens.push(part);
+      }
+    }
+  };
+
+  addTokens(addressParts);
+  addTokens(cityParts);
+  addTokens(stateParts);
+  addTokens(countryParts);
+
+  const lowerCityParts = new Set(cityParts.map((c) => c.toLowerCase()));
+  const lowerStateParts = new Set(stateParts.map((s) => s.toLowerCase()));
+  const lowerCountryParts = new Set(countryParts.map((c) => c.toLowerCase()));
+
+  const streetTokens: string[] = [];
+  const matchedCityTokens: string[] = [];
+  const matchedStateTokens: string[] = [];
+  const matchedCountryTokens: string[] = [];
+
+  for (const token of uniqueTokens) {
+    const lower = token.toLowerCase();
+    if (lowerCountryParts.has(lower) || lower === countryCode?.toLowerCase()) {
+      matchedCountryTokens.push(token);
+    } else if (lowerStateParts.has(lower)) {
+      matchedStateTokens.push(token);
+    } else if (lowerCityParts.has(lower)) {
+      matchedCityTokens.push(token);
+    } else {
+      streetTokens.push(token);
+    }
+  }
+
+  const orderedParts = [
+    ...streetTokens,
+    ...matchedCityTokens,
+    ...matchedStateTokens,
+    ...matchedCountryTokens,
+  ];
+
+  return orderedParts.join(", ");
 }
 
 export function formatThousandsInput(raw: string): string {

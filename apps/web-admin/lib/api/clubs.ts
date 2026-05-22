@@ -55,6 +55,7 @@ export type Club = {
   id: string;
   name: string;
   address?: string;
+  logo?: string;
   plan: 'PRO' | 'BASIC';
   status: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
   adminName?: string;

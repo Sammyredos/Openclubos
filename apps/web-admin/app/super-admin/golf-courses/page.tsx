@@ -57,9 +57,8 @@ function StatusPill({ status }: { status: Course["status"] }) {
 export default function SuperAdminGolfCoursesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<CourseStats | null>(null);
-  const [total, setTotal] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [countryFilter, setCountryFilter] = useState("All Countries");
@@ -93,19 +92,38 @@ export default function SuperAdminGolfCoursesPage() {
     }, 160);
   };
 
+  const filteredCourses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return allCourses.filter((c) => {
+      const name = (c.name || "").toLowerCase();
+      const city = (c.city || "").toLowerCase();
+      const state = (c.state || "").toLowerCase();
+      const countryName = (Country.getCountryByCode(c.country)?.name || c.country || "").toLowerCase();
+      const matchesSearch =
+        q.length === 0 || name.includes(q) || city.includes(q) || state.includes(q) || countryName.includes(q);
+      const matchesCountry = countryFilter === "All Countries" || c.country === countryFilter;
+      const matchesStatus = statusFilter === "All Status" || c.status === statusFilter;
+      const matchesType = typeFilter === "All Types" || c.type === typeFilter;
+      return matchesSearch && matchesCountry && matchesStatus && matchesType;
+    });
+  }, [allCourses, searchQuery, countryFilter, statusFilter, typeFilter]);
+
+  const total = filteredCourses.length;
+  const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+  const pageSafe = Math.min(currentPage, totalPages);
+  const paginatedCourses = useMemo(
+    () => filteredCourses.slice((pageSafe - 1) * itemsPerPage, pageSafe * itemsPerPage),
+    [filteredCourses, pageSafe, itemsPerPage],
+  );
+
   const fetchCourses = async () => {
     setLoading(true);
     try {
       const res = await getAdminCourses({
-        skip: (currentPage - 1) * itemsPerPage,
-        take: itemsPerPage,
-        search: searchQuery || undefined,
-        country: countryFilter === "All Countries" ? undefined : countryFilter,
-        status: statusFilter === "All Status" ? undefined : statusFilter,
-        type: typeFilter === "All Types" ? undefined : typeFilter,
+        skip: 0,
+        take: 10000,
       });
-      setCourses(res.items);
-      setTotal(res.total);
+      setAllCourses(res.items);
       if (res.stats) setStats(res.stats);
     } catch (e: any) {
       toast.error(e.message || "Failed to load golf courses");
@@ -116,13 +134,7 @@ export default function SuperAdminGolfCoursesPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, [currentPage, countryFilter, statusFilter, typeFilter]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchCourses();
-  };
+  }, []);
 
   const openStatusModal = (c: Course) => {
     setSelectedCourse(c);
@@ -263,15 +275,18 @@ export default function SuperAdminGolfCoursesPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-            <form onSubmit={handleSearch} className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-[280px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search courses by name, LGA, or country..."
                 className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
-            </form>
+            </div>
             <SearchableSelect
               value={countryFilter}
               onValueChange={setCountryFilter}
@@ -358,8 +373,8 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                     </tr>
                   ))
-                ) : courses.length > 0 ? (
-                  courses.map((course) => (
+                ) : paginatedCourses.length > 0 ? (
+                  paginatedCourses.map((course) => (
                     <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[220px]">
@@ -475,11 +490,11 @@ export default function SuperAdminGolfCoursesPage() {
 
           <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between">
             <p className="text-[13px] text-gray-500">
-              Showing <strong>{courses.length}</strong> of <strong>{total}</strong> courses
+              Showing <strong>{paginatedCourses.length}</strong> of <strong>{total}</strong> courses
             </p>
             <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(total / itemsPerPage)}
+              currentPage={pageSafe}
+              totalPages={totalPages}
               onPageChange={setCurrentPage}
             />
           </div>

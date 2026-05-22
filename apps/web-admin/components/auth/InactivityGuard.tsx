@@ -27,13 +27,18 @@ export function InactivityGuard() {
   const startCountdown = useCallback(() => {
     setCountdown(COUNTDOWN_SECS);
     stopCountdown();
+    
+    const endTime = Date.now() + COUNTDOWN_SECS * 1000;
+    
     countdownTimer.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
+      const remaining = Math.ceil((endTime - Date.now()) / 1000);
+      
+      setCountdown(() => {
+        if (remaining <= 0) {
           stopCountdown();
           return 0;
         }
-        return prev - 1;
+        return remaining;
       });
     }, 1000);
   }, [stopCountdown]);

@@ -6,6 +6,7 @@ import { Input, SearchableSelect } from "@/components/ui/input";
 import { Country, State } from "country-state-city";
 import { getNigerianStates } from "@/lib/nigerian-states-lgas";
 import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import { createTournament, getTournament, getTournaments, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
@@ -31,6 +32,7 @@ import {
   Send,
   ArrowLeft,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 
 type FormProps = {
@@ -190,15 +192,17 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
 }
 
 const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
-  <label className="flex items-center gap-3 cursor-pointer select-none group">
+  <div
+    onClick={() => onChange(!checked)}
+    className="flex items-center gap-3 cursor-pointer select-none group"
+  >
     <div
-      onClick={() => onChange(!checked)}
       className={cn("relative w-10 h-6 rounded-full transition-colors flex-shrink-0", checked ? "bg-emerald-500" : "bg-gray-200")}
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
-  </label>
+  </div>
 );
 
 const Field = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
@@ -215,6 +219,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
@@ -453,7 +458,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
   const handleBack = () => setStep((s) => s - 1);
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     for (let s = 1; s <= STEPS.length; s++) {
       const err = validateStep(s, formData, isMultiDay);
       if (err) {
@@ -463,6 +468,15 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         return;
       }
     }
+    const isPublishing = formData.publishImmediately && (!tournamentId || originalStatus === "DRAFT");
+    if (isPublishing) {
+      setShowPublishConfirm(true);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
     const toastId = toast.loading(tournamentId ? "Saving changes..." : "Creating tournament...");
     try {
@@ -1426,8 +1440,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
             <div className="rounded-2xl border border-gray-100 bg-white p-6 space-y-6">
               <div
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => set("publishImmediately", !formData.publishImmediately)}
+                className={cn("flex items-center justify-between", originalStatus !== "DRAFT" ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+                onClick={() => {
+                  if (originalStatus !== "DRAFT") return;
+                  set("publishImmediately", !formData.publishImmediately);
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -1575,7 +1592,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </Button>
               ) : (
                 <Button
-                  onClick={handleSubmit}
+                  onClick={handleSubmitClick}
                   disabled={loading}
                   className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
                 >
@@ -1586,6 +1603,28 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           </div>
         </div>
       </div>
+
+      {showPublishConfirm && (
+        <Modal isOpen={showPublishConfirm} onClose={() => setShowPublishConfirm(false)} title="Confirm Publishing" className="max-w-md z-[100]">
+          <div className="space-y-4 py-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[#10b981] mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h4 className="text-lg font-bold text-gray-900">Publish Tournament?</h4>
+              <p className="text-sm text-gray-500">
+                Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPublishConfirm(false)} disabled={loading}>Cancel</Button>
+              <Button className="flex-1 bg-[#10b981] hover:bg-[#0da673] text-white" onClick={() => { setShowPublishConfirm(false); handleSubmit(); }} disabled={loading}>
+                {loading ? "Publishing..." : "Yes, Publish"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

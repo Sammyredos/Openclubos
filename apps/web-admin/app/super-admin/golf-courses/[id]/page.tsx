@@ -23,14 +23,22 @@ import {
   ArrowRight,
   ArrowLeft,
   ChevronDown,
-  Trophy
+  Trophy,
+  AlertCircle,
+  Trash2,
+  Download,
+  Ban,
+  Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { getCourse, Course } from "@/lib/api/courses";
+import { getCourse, updateCourse, deleteCourse, Course } from "@/lib/api/courses";
 import { Country } from "country-state-city";
-import { cn } from "@/lib/utils";
+import { cn, formatAddress } from "@/lib/utils";
+import { Modal } from "@/components/ui/modal";
+import { FloatingMenu } from "@/components/ui/floating-menu";
+import { Input } from "@/components/ui/input";
 
 export default function GolfCourseDetailPage() {
   const params = useParams();
@@ -48,6 +56,60 @@ export default function GolfCourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<Course | null>(null);
   const [activeTab, setActiveTab] = useState("Overview");
+
+  // State for modals & action dropdown
+  const [statusAction, setStatusAction] = useState<"activate" | "deactivate">("activate");
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [mutating, setMutating] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(false);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+  const openStatusModal = () => {
+    if (!course) return;
+    setStatusAction(course.status === "ACTIVE" ? "deactivate" : "activate");
+    setIsStatusModalOpen(true);
+    setActiveDropdown(false);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!course?.id) return;
+    setMutating(true);
+    try {
+      const nextStatus = statusAction === "activate" ? "ACTIVE" : "INACTIVE";
+      const updated = await updateCourse(course.id, { status: nextStatus });
+      setCourse(updated);
+      toast.success(statusAction === "activate" ? "Course activated" : "Course deactivated");
+      setIsStatusModalOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update course status");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const openDeleteModal = () => {
+    setDeleteConfirmText("");
+    setIsDeleteModalOpen(true);
+    setActiveDropdown(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!course?.id) return;
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") return;
+    setMutating(true);
+    try {
+      await deleteCourse(course.id);
+      toast.success("Course deleted successfully");
+      setIsDeleteModalOpen(false);
+      router.push("/super-admin/golf-courses");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete course");
+    } finally {
+      setMutating(false);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -120,9 +182,7 @@ export default function GolfCourseDetailPage() {
     ? Math.max(...course.teeBoxes.map(t => t.yardage)) 
     : 0;
 
-  const formattedAddress = [course.address, course.city, course.state, Country.getCountryByCode(course.country)?.name || course.country]
-    .filter(Boolean)
-    .join(", ");
+  const formattedAddress = formatAddress(course.address, course.city, course.state, course.country);
 
   const getAmenityIcon = (name: string) => {
     const n = name.toLowerCase();
@@ -172,17 +232,90 @@ export default function GolfCourseDetailPage() {
           </Button>
           <Button 
             variant="outline" 
-            className="h-10 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-medium text-sm flex items-center gap-2"
+            className={cn(
+              "h-10 px-4 rounded-xl font-medium text-sm flex items-center gap-2 transition-all",
+              course.status === 'ACTIVE' 
+                ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" 
+                : "border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+            )}
+            onClick={openStatusModal}
           >
             <Power className="w-4 h-4" />
             {course.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
           </Button>
-          <Button 
-            variant="outline" 
-            className="h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          <div className="relative">
+            <Button 
+              variant="outline" 
+              className="h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+              onClick={(e) => {
+                setActiveDropdown(!activeDropdown);
+                setDropdownAnchorEl(e.currentTarget);
+              }}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+            {activeDropdown && (
+              <FloatingMenu
+                anchorEl={dropdownAnchorEl}
+                open={activeDropdown}
+                onClose={() => setActiveDropdown(false)}
+                placement="bottom-end"
+                className="w-48"
+              >
+                <button
+                  onClick={openStatusModal}
+                  className={cn(
+                    "w-full text-left px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-3 text-gray-700",
+                    course.status === "INACTIVE" 
+                      ? "hover:bg-emerald-50" 
+                      : "hover:bg-red-50"
+                  )}
+                >
+                  {course.status === "INACTIVE" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Ban className="w-4 h-4 text-red-600" />
+                  )}
+                  {course.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
+                </button>
+                <div className="h-px bg-gray-50 my-1 mx-2" />
+                <button
+                  onClick={() => {
+                    setActiveDropdown(false);
+                    router.push(`/super-admin/golf-courses/${course.id}/edit`);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                >
+                  <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveDropdown(false);
+                    const blob = new Blob([JSON.stringify(course, null, 2)], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${(course.name || "course").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    toast.success("Course exported");
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                >
+                  <Download className="w-4 h-4 text-gray-400" /> Export Data
+                </button>
+                <div className="h-px bg-gray-50 my-1 mx-2" />
+                <button
+                  onClick={openDeleteModal}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
+                </button>
+              </FloatingMenu>
+            )}
+          </div>
         </div>
       </div>
 
@@ -335,9 +468,68 @@ export default function GolfCourseDetailPage() {
               )}
 
               {activeTab === "Holes" && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                  <Flag className="w-12 h-12 mb-4 text-gray-300" />
-                  <p>Hole details will be displayed here.</p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Hole-by-Hole Details</h2>
+                      <p className="text-sm text-gray-500 mt-1">Hole specification, par configuration and handicap index.</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 text-[12px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                        <Flag className="w-3.5 h-3.5" />
+                        {course.holes} Holes
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
+                        <Target className="w-3.5 h-3.5" />
+                        Total Par: {course.par}
+                      </div>
+                    </div>
+                  </div>
+
+                  {course.holeDetails && course.holeDetails.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                      {[...course.holeDetails].sort((a, b) => a.number - b.number).map((hole) => (
+                        <div 
+                          key={hole.number} 
+                          className="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm space-y-3 hover:border-emerald-200 transition-colors"
+                        >
+                          <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                            <span className="text-[12px] font-bold text-gray-400 uppercase">Hole</span>
+                            <span className="text-[14px] font-black text-emerald-600 bg-emerald-50 w-7 h-7 rounded-lg flex items-center justify-center border border-emerald-100">
+                              {hole.number}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="p-1.5 bg-gray-50 rounded-lg">
+                              <span className="text-[9px] font-bold text-gray-400 uppercase block">Par</span>
+                              <span className="text-[13px] font-extrabold text-gray-700">{hole.par}</span>
+                            </div>
+                            <div className="p-1.5 bg-gray-50 rounded-lg">
+                              <span className="text-[9px] font-bold text-gray-400 uppercase block">Index</span>
+                              <span className="text-[13px] font-extrabold text-gray-700">{hole.index || "—"}</span>
+                            </div>
+                          </div>
+                          <div className="pt-1.5 border-t border-gray-50 text-center">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase block">Distance</span>
+                            <span className="text-[12px] font-extrabold text-gray-800">{hole.distance ? `${hole.distance}m` : "—"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50">
+                      <Flag className="w-12 h-12 mb-4 text-gray-300 animate-pulse" />
+                      <p className="font-bold text-gray-700">No hole configuration details available</p>
+                      <p className="text-sm mt-1">Configure the per-hole details by editing the course.</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4 rounded-xl font-bold border-gray-200"
+                        onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
+                      >
+                        Configure Holes
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
               {activeTab === "Tee Boxes" && (
@@ -386,33 +578,197 @@ export default function GolfCourseDetailPage() {
                 </div>
               )}
               {activeTab === "Amenities" && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                  <Activity className="w-12 h-12 mb-4 text-gray-300" />
-                  <p>Amenities details are available in the Overview tab.</p>
+                <div className="space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">Amenities</h2>
+                    <p className="text-sm text-gray-500 mt-1">Available facilities and services at {course.name}.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {course.amenities && course.amenities.length > 0 ? (
+                      course.amenities.map(amenity => (
+                        <div key={amenity} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-sm transition-all hover:border-emerald-100">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                            {getAmenityIcon(amenity)}
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-gray-800">{amenity}</span>
+                            <span className="text-[10px] text-emerald-600 bg-emerald-50/50 px-1.5 py-0.5 rounded font-bold block w-fit mt-1">Available</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-3 text-center py-12 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50 text-gray-500">
+                        No amenities listed for this course.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               {activeTab === "Tournaments" && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                  <Trophy className="w-12 h-12 mb-4 text-gray-300" />
-                  <p>Tournaments held at this course will be displayed here.</p>
+                <div className="space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">Tournaments</h2>
+                    <p className="text-sm text-gray-500 mt-1">Tournaments hosted at {course.name}.</p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50">
+                    <Trophy className="w-12 h-12 mb-4 text-gray-300" />
+                    <p className="font-bold text-gray-700">No Tournaments Scheduled</p>
+                    <p className="text-sm mt-1">There are currently no active or past tournaments recorded for this golf course.</p>
+                  </div>
                 </div>
               )}
               {activeTab === "Course Settings" && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                  <Building2 className="w-12 h-12 mb-4 text-gray-300" />
-                  <p>Settings for this course will be displayed here.</p>
+                <div className="space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">Course Settings</h2>
+                    <p className="text-sm text-gray-500 mt-1">Configure regional and booking settings for this course.</p>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-4">
+                    <div className="flex items-center justify-between py-3 border-b border-gray-50">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Featured Course</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Showcase this course on the homepage dashboard</p>
+                      </div>
+                      <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border", course.isFeatured ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-gray-50 text-gray-600 border-gray-150")}>
+                        {course.isFeatured ? "Featured" : "Regular"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-gray-50">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Booking URL</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Redirect URL for booking tee times</p>
+                      </div>
+                      <span className="text-xs text-gray-600 truncate max-w-[200px]">{course.bookingUrl || "None configured"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-gray-50">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Coordinates</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Latitude and longitude coordinates for map pinning</p>
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {course.latitude && course.longitude ? `${course.latitude}, ${course.longitude}` : "Not configured"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === "Activity Logs" && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                  <Activity className="w-12 h-12 mb-4 text-gray-300" />
-                  <p>Recent activities for this course will be displayed here.</p>
+                <div className="space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">Activity Logs</h2>
+                    <p className="text-sm text-gray-500 mt-1">Audit trail of modifications made to this course.</p>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-4">
+                    <div className="flex gap-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Course Created</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{course.createdAt ? formatDate(course.createdAt) : "—"}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Status Confirm Modal */}
+      <Modal 
+        isOpen={isStatusModalOpen} 
+        onClose={() => setIsStatusModalOpen(false)} 
+        title=""
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className={cn(
+                "text-white rounded-lg font-bold px-8",
+                statusAction === "activate"
+                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
+                  : "bg-red-500 hover:bg-red-600 border-red-600/30",
+              )}
+              onClick={confirmStatusChange}
+              disabled={mutating}
+            >
+              {statusAction === "activate" ? "Yes, Activate" : "Yes, Deactivate"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center pt-2">
+            <div
+              className={cn(
+                "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+                statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-red-50 text-red-500",
+              )}
+            >
+              {statusAction === "activate" ? (
+                <CheckCircle2 className="h-10 w-10" />
+              ) : (
+                <AlertCircle className="h-10 w-10" />
+              )}
+            </div>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">
+              {statusAction === "activate" ? "Activate Course?" : "Deactivate Course?"}
+            </h4>
+            <p className="text-gray-500 max-w-sm">
+              {statusAction === "activate"
+                ? "This golf course will become visible and active on the platform."
+                : "This golf course will be hidden from users until reactivated."}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirm Modal */}
+      <Modal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        title=""
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="text-white rounded-lg font-bold px-8 bg-red-600 hover:bg-red-700"
+              onClick={confirmDelete}
+              disabled={mutating || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+            >
+              Delete Permanently
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center pt-2">
+            <div className="w-20 h-20 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-6">
+              <Trash2 className="h-10 w-10" />
+            </div>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Golf Course?</h4>
+            <p className="text-gray-500 max-w-sm mb-4">
+              This action is permanent and cannot be undone. All data related to this course will be deleted.
+            </p>
+            <div className="w-full text-left space-y-2 mt-4">
+              <label className="text-[12px] font-bold text-gray-500 uppercase">Type "DELETE" to confirm</label>
+              <Input 
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full border-red-200 focus-visible:ring-red-500"
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

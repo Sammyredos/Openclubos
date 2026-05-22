@@ -24,6 +24,7 @@ type SearchableSelectOption = {
   label: string
   disabled?: boolean
   image?: string
+  icon?: React.ElementType
 }
 
 type SearchableSelectProps = {
@@ -92,9 +93,9 @@ function SearchableSelect({
         <div className="flex items-center gap-2.5 truncate">
           {selected?.image ? (
             <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-gray-100" alt="" />
-          ) : selected ? (
-            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-100">
-              <Building2 className="w-3 h-3 text-gray-400" />
+          ) : selected?.icon ? (
+            <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+              <selected.icon className="w-3 h-3 text-emerald-600" />
             </div>
           ) : null}
           <span className={cn(!value ? "text-gray-400" : undefined, "truncate")}>
@@ -159,11 +160,11 @@ function SearchableSelect({
                   <div className="flex items-center gap-2.5 flex-1 truncate">
                     {o.image ? (
                       <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-gray-100" alt="" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center shrink-0 border border-gray-100">
-                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                    ) : o.icon ? (
+                      <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+                        <o.icon className="w-3.5 h-3.5 text-emerald-600" />
                       </div>
-                    )}
+                    ) : null}
                     <span className="truncate">{o.label}</span>
                   </div>
                   {o.value === value && (

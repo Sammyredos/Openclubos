@@ -578,24 +578,7 @@ export default function TournamentsPage() {
 
   const openView = (tournament: TournamentRow) => {
     closeDropdown();
-    setSelectedTournament(tournament);
-    setDetailsTab("players");
-    setStrokesMenuRegistration(null);
-    setStrokesMenuAnchorEl(null);
-    setRegistrationsLoading(true);
-    setRegistrationsPage(1);
-    setRegistrationsSearch("");
-    setRegistrationsDebouncedSearch("");
-    setRegistrationsStatusFilter("All Status");
-    setRegistrationsPaymentFilter("All Payments");
-    setRegistrationsDisqualifiedFilter("All Players");
-    setRegistrationsMode("server");
-    setRegistrationsInitialized(false);
-    setRegistrations([]);
-    setRegistrationsAll([]);
-    setRegistrationsTotal(0);
-    setRegistrationsTournamentTotal(0);
-    setIsViewModalOpen(true);
+    router.push(`/organizer-admin/tournaments/${tournament.id}`);
   };
 
   useEffect(() => {
@@ -748,7 +731,7 @@ export default function TournamentsPage() {
     let cancelled = false;
 
     setIsSearchingPlayers(true);
-    getAdminUsers({ search: q, take: 10 })
+    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
       .then(({ items }) => {
         if (!cancelled) {
           setRegisterPlayerResults(Array.isArray(items) ? items : []);

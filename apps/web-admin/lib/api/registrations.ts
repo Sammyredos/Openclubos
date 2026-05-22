@@ -16,7 +16,7 @@ export interface Registration {
 
 export type RegistrationListItem = Registration & {
   paymentReference?: string | null;
-  user?: { id: string; email: string; firstName: string | null; lastName: string | null };
+  user?: { id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null };
   tournament?: { id: string; name: string; entryFee: number | null; startDate: string; club?: { id: string; name: string } };
 };
 
@@ -183,5 +183,24 @@ export async function deleteRegistration(registrationId: string) {
     throw new Error(getErrorMessage(error) || 'Failed to delete registration');
   }
   return true;
+}
+
+export async function confirmRegistrationPayment(registrationId: string, paymentReference: string): Promise<Registration> {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}/payment`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+    body: JSON.stringify({ paymentReference }),
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error: unknown = await res.json().catch(() => null);
+    throw new Error(getErrorMessage(error) || 'Failed to confirm payment');
+  }
+  return res.json();
 }
 

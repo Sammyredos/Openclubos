@@ -185,6 +185,7 @@ export interface GroupingPlayer {
     firstName: string | null;
     lastName: string | null;
     handicap: number | null;
+    profilePhoto?: string | null;
   } | null;
 }
 
@@ -223,6 +224,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
           firstName: reg.user.firstName || null,
           lastName: reg.user.lastName || null,
           handicap: reg.user.handicap != null ? Number(reg.user.handicap) : null,
+          profilePhoto: reg.user.profilePhoto || null,
         } : null,
       }));
     }
