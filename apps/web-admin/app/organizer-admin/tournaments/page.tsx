@@ -163,7 +163,7 @@ function formatPlayers(current: number, maxPlayers: number | null) {
 }
 
 function formatNaira(value: number | null) {
-  if (value == null) return "—";
+  if (value == null || value === 0) return "FREE";
   return `₦${formatWithCommas(Math.round(value))}`;
 }
 
@@ -1240,12 +1240,12 @@ export default function TournamentsPage() {
                                 onClick={() => openEdit(t)}
                                 className={cn(
                                   "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
-                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"
+                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
                                     ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-gray-100"
                                     : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
                                 )}
                                 title="Edit Tournament"
-                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED" || t.statusKey === "ONGOING"}
+                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
                               >
                                 <Edit2 className="w-4.5 h-4.5" />
                               </button>

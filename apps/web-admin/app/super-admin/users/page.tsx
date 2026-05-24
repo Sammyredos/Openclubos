@@ -207,10 +207,21 @@ export default function SuperAdminUsersPage() {
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const tokens = q.split(/[\s-]+/).filter(Boolean);
+
     return allUsers.filter((u) => {
-      const name = fullName(u.firstName, u.lastName).toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      const matchesSearch = q.length === 0 || name.includes(q) || email.includes(q);
+      const searchableFields = [
+        u.firstName,
+        u.lastName,
+        u.email,
+        `${u.firstName} ${u.lastName}`,
+        `${u.lastName} ${u.firstName}`
+      ];
+
+      const matchesSearch = tokens.length === 0 || tokens.every(token => 
+        searchableFields.some(field => field?.toLowerCase().includes(token))
+      );
+
       const matchesRole = roleFilter === "All Roles" || u.role === roleFilter;
       const matchesStatus = statusFilter === "All Status" || u.status === statusFilter;
       const matchesHandicap = (() => {

@@ -16,7 +16,17 @@ export interface Registration {
 
 export type RegistrationListItem = Registration & {
   paymentReference?: string | null;
-  user?: { id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null; division?: string | null };
+  user?: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    profilePhoto?: string | null;
+    division?: string | null;
+    gender?: string | null;
+    dob?: string | null;
+    handicap?: number | null;
+  };
   tournament?: { id: string; name: string; entryFee: number | null; startDate: string; club?: { id: string; name: string } };
 };
 

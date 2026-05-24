@@ -1100,14 +1100,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     />
                     <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
                   </Field>
-                  <Field label="Players Per Group" required>
-                    <Input
-                      type="number"
-                      value={formData.maxPlayersPerGroup}
-                      min={1}
-                      onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))}
-                    />
-                  </Field>
                 </div>
 
                 <div
@@ -1286,6 +1278,14 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
               <div className="pt-4 border-t border-gray-100 animate-in slide-in-from-top-2 fade-in duration-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Players Per Group" required>
+                    <Input
+                      type="number"
+                      value={formData.maxPlayersPerGroup}
+                      min={1}
+                      onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))}
+                    />
+                  </Field>
                   <Field label="Tee Off Start Time" required>
                     <TimePicker
                       value={formData.teeStartTime}
@@ -1293,6 +1293,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       placeholder="--:--  "
                     />
                   </Field>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <Field label="Tee Interval (min)" required>
                     <Input
                       type="number"
@@ -1428,9 +1430,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
             <div className="rounded-2xl border border-gray-100 bg-white p-6 space-y-6">
               <div
-                className={cn("flex items-center justify-between", originalStatus !== "DRAFT" ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+                className={cn("flex items-center justify-between", (originalStatus && originalStatus !== "DRAFT") ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
                 onClick={() => {
-                  if (originalStatus !== "DRAFT") return;
+                  if (originalStatus && originalStatus !== "DRAFT") return;
                   set("publishImmediately", !formData.publishImmediately);
                 }}
               >

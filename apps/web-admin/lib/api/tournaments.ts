@@ -188,6 +188,8 @@ export interface GroupingPlayer {
     handicap: number | null;
     profilePhoto?: string | null;
     division?: string | null;
+    gender?: string | null;
+    dob?: string | null;
   } | null;
 }
 
@@ -217,6 +219,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
       const list = Array.isArray(data) ? data : data.items || [];
       return list.map((reg: any) => ({
         id: reg.id,
+        paymentStatus: reg.paymentStatus,
         user: reg.user ? {
           id: reg.user.id || reg.userId,
           email: reg.user.email || '',
@@ -224,6 +227,8 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
           lastName: reg.user.lastName || null,
           handicap: reg.user.handicap != null ? Number(reg.user.handicap) : null,
           profilePhoto: reg.user.profilePhoto || null,
+          gender: reg.user.gender || null,
+          dob: reg.user.dob || null,
         } : null,
       }));
     }

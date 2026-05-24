@@ -106,20 +106,32 @@ export class MembersService {
     status?: MemberStatus;
     clubId?: string;
   }) {
-    const { skip, take, search, status } = query;
+    const { skip, take, search, status, clubId } = query;
 
     const where: any = { role: UserRole.PLAYER };
 
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+      const q = search.trim();
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+      
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { firstName: { contains: token, mode: 'insensitive' } },
+            { lastName: { contains: token, mode: 'insensitive' } },
+            { email: { contains: token, mode: 'insensitive' } },
+            { club: { name: { contains: token, mode: 'insensitive' } } },
+          ],
+        }));
+      }
     }
 
     if (status) {
       where.status = status;
+    }
+
+    if (clubId) {
+      where.clubId = clubId;
     }
 
     const [items, total] = await Promise.all([
@@ -160,11 +172,19 @@ export class MembersService {
     const where: any = { deletedAt: null };
 
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+      const q = search.trim();
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+      
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { firstName: { contains: token, mode: 'insensitive' } },
+            { lastName: { contains: token, mode: 'insensitive' } },
+            { email: { contains: token, mode: 'insensitive' } },
+            { club: { name: { contains: token, mode: 'insensitive' } } },
+          ],
+        }));
+      }
     }
 
     if (status) where.status = status;

@@ -99,7 +99,6 @@ export class RegistrationsService {
     }
 
     // 7. Check Capacity & Waitlist
-    // 7. Check Capacity & Waitlist
     const approvedCount = tournament.registrations.filter(
       (r) => r.status === RegistrationStatus.APPROVED,
     ).length;
@@ -170,11 +169,19 @@ export class RegistrationsService {
     if (query.userId) where.userId = query.userId;
     if (query.q?.trim()) {
       const q = query.q.trim();
-      where.OR = [
-        { user: { email: { contains: q, mode: 'insensitive' } } },
-        { user: { firstName: { contains: q, mode: 'insensitive' } } },
-        { user: { lastName: { contains: q, mode: 'insensitive' } } },
-      ];
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { user: { email: { contains: token, mode: 'insensitive' } } },
+            { user: { firstName: { contains: token, mode: 'insensitive' } } },
+            { user: { lastName: { contains: token, mode: 'insensitive' } } },
+            { tournament: { name: { contains: token, mode: 'insensitive' } } },
+            { tournament: { club: { name: { contains: token, mode: 'insensitive' } } } },
+          ],
+        }));
+      }
     }
 
     const [items, total] = await Promise.all([
@@ -185,7 +192,7 @@ export class RegistrationsService {
         orderBy: { registeredAt: 'desc' },
         include: {
           user: {
-            select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true },
+            select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, gender: true, dob: true, handicap: true },
           },
           tournament: {
             select: {
@@ -248,7 +255,7 @@ export class RegistrationsService {
     }
   }
 
-  async addStrokes(registrationId: string, delta: number) {
+  async addStrokes(registrationId: string, delta: number): Promise<any> {
     if (!Number.isFinite(delta) || !Number.isInteger(delta)) {
       throw new BadRequestException('Delta must be an integer');
     }

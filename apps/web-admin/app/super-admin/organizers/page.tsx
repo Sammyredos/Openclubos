@@ -322,10 +322,20 @@ export default function OrganizersPage() {
   }, []);
 
   const filteredOrganizers = organizersData.filter((organizer) => {
-    const matchesSearch =
-      organizer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      organizer.admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      organizer.admin.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.trim().toLowerCase();
+    const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+    const searchableFields = [
+      organizer.name,
+      organizer.location,
+      organizer.admin.name,
+      organizer.admin.email,
+      `${organizer.admin.name} ${organizer.admin.email}`,
+    ];
+
+    const matchesSearch = tokens.length === 0 || tokens.every(token => 
+      searchableFields.some(field => field?.toLowerCase().includes(token))
+    );
 
     const matchesStatus = statusFilter === "All Status" || organizer.status === statusFilter;
     const matchesPlan = planFilter === "All Plans" || organizer.plan === planFilter;

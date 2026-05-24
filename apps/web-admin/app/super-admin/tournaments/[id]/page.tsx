@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
   Trophy,
@@ -95,6 +96,7 @@ type TournamentRow = {
   startDate: string;
   endDate: string | null;
   maxPlayers: number | null;
+  maxPlayersPerGroup: number | null;
   statusKey: TournamentStatus;
   visibility: string;
   visibilityKey: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
@@ -142,7 +144,7 @@ function formatPlayers(current: number, maxPlayers: number | null) {
 }
 
 function formatNaira(value: number | null) {
-  if (value == null) return "—";
+  if (value == null || value === 0) return "FREE";
   return `₦${formatWithCommas(Math.round(value))}`;
 }
 
@@ -296,6 +298,7 @@ function ViewTournamentPageInner() {
     try {
       const data = await generateGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
+      setGroupingsSubTab("grouped");
       toast.success("Groupings generated successfully");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
@@ -310,7 +313,7 @@ function ViewTournamentPageInner() {
     // Capacity check
     if (targetGroupId && groupingsData) {
       const targetGroup = groupingsData.groups.find(g => g.id === targetGroupId);
-      const capacity = 4;
+      const capacity = selectedTournament?.maxPlayersPerGroup || 4;
       if (targetGroup && targetGroup.registrations.length >= capacity) {
         toast.error(`Group "${targetGroup.name}" is full!`, {
           description: `This group has reached its maximum capacity of ${capacity} players.`,
@@ -341,15 +344,25 @@ function ViewTournamentPageInner() {
     }
   };
 
+  const [isResetGroupingsModalOpen, setIsResetGroupingsModalOpen] = useState(false);
+
   const handleClearGroupings = async () => {
     if (!tournamentId) return;
-    if (!window.confirm("Are you sure you want to reset all groupings for this day? This will delete all groups and mark all players as unassigned.")) return;
+    setIsResetGroupingsModalOpen(true);
+  };
+
+  const confirmResetGroupings = async () => {
     try {
+      setGroupingsLoading(true);
       const data = await clearGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
+      setGroupingsSubTab("unassigned"); // Automatically switch to unassigned tab
+      setIsResetGroupingsModalOpen(false);
       toast.success("Groupings reset successfully");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to reset groupings");
+    } finally {
+      setGroupingsLoading(false);
     }
   };
 
@@ -492,6 +505,7 @@ function ViewTournamentPageInner() {
         startDate: t.startDate,
         endDate: t.endDate ?? null,
         maxPlayers: t.maxPlayers ?? null,
+        maxPlayersPerGroup: t.maxPlayersPerGroup ?? 4,
         statusKey: t.status as TournamentStatus,
         visibility: VISIBILITY_META[t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY"]?.label ?? t.visibility,
         visibilityKey: t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY",
@@ -552,6 +566,7 @@ function ViewTournamentPageInner() {
           startDate: t.startDate,
           endDate: t.endDate ?? null,
           maxPlayers: t.maxPlayers ?? null,
+          maxPlayersPerGroup: t.maxPlayersPerGroup ?? 4,
           statusKey: t.status as TournamentStatus,
           visibility: VISIBILITY_META[t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY"]?.label ?? t.visibility,
           visibilityKey: t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY",
@@ -577,8 +592,7 @@ function ViewTournamentPageInner() {
   }, [tournamentId]);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => setRegistrationsDebouncedSearch(registrationsSearch.trim()), 250);
-    return () => window.clearTimeout(handle);
+    setRegistrationsDebouncedSearch(registrationsSearch.trim());
   }, [registrationsSearch]);
 
   useEffect(() => {
@@ -685,10 +699,20 @@ function ViewTournamentPageInner() {
   const filteredRegistrationsAll =
     registrationsMode === "client"
       ? registrationsAll.filter((r) => {
-        const fullNameStr = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim().toLowerCase();
-        const email = (r.user?.email ?? "").toLowerCase();
-        const matchesSearch =
-          registrationsQuery.length === 0 || fullNameStr.includes(registrationsQuery) || email.includes(registrationsQuery);
+        const query = registrationsQuery.trim().toLowerCase();
+        const tokens = query.split(/[\s-]+/).filter(Boolean);
+        const searchableFields = [
+          r.user?.firstName,
+          r.user?.lastName,
+          r.user?.email,
+          `${r.user?.firstName} ${r.user?.lastName}`,
+          `${r.user?.lastName} ${r.user?.firstName}`
+        ];
+        
+        const matchesSearch = tokens.length === 0 || tokens.every(token => 
+          searchableFields.some(field => field?.toLowerCase().includes(token))
+        );
+
         const matchesStatus = registrationsStatusFilter === "All Status" || r.status === registrationsStatusFilter;
         const matchesPayment =
           registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
@@ -821,10 +845,19 @@ function ViewTournamentPageInner() {
   };
 
   const filteredWaitlist = waitlist.filter(item => {
-    const q = waitlistSearch.toLowerCase();
-    const fullNameStr = `${item.user?.firstName || ""} ${item.user?.lastName || ""}`.toLowerCase();
-    const email = (item.user?.email || "").toLowerCase();
-    return fullNameStr.includes(q) || email.includes(q);
+    const query = waitlistSearch.trim().toLowerCase();
+    const tokens = query.split(/[\s-]+/).filter(Boolean);
+    const searchableFields = [
+      item.user?.firstName,
+      item.user?.lastName,
+      item.user?.email,
+      `${item.user?.firstName} ${item.user?.lastName}`,
+      `${item.user?.lastName} ${item.user?.firstName}`
+    ];
+    
+    return tokens.length === 0 || tokens.every(token => 
+      searchableFields.some(field => field?.toLowerCase().includes(token))
+    );
   });
 
   const updateTournamentRegistrationStatus = async (
@@ -1125,7 +1158,7 @@ function ViewTournamentPageInner() {
 
           <Button
             onClick={() => openEdit(selectedTournament)}
-            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.statusKey === "ONGOING"}
+            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
             variant="outline"
             className="h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 rounded-xl"
           >
@@ -1339,18 +1372,19 @@ function ViewTournamentPageInner() {
                                 <p className="text-[14px] font-bold text-gray-900 truncate">
                                     {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
                                   </p>
-                                  <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email} • {r.user?.division || "Open"}</p>
-                                  <div className="flex items-center gap-2 mt-1.5">
+                                  <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
                                   <span className={cn(
                                     "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                                    r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                    (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                       r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                       r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                         r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
                                           r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
                                             "bg-gray-50 text-gray-600 border border-gray-200"
                                   )}>
-                                    {r.status}
-                                  </span>
+                                     {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
+                                   </span>
                                   <span className={cn(
                                     "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
                                     isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
@@ -1358,6 +1392,41 @@ function ViewTournamentPageInner() {
                                   )}>
                                     {r.paymentStatus}
                                   </span>
+
+                                  {/* Gender Badge */}
+                                  {r.user?.gender && (
+                                    <span className={cn(
+                                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                                      r.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                    )}>
+                                      {r.user.gender}
+                                    </span>
+                                  )}
+
+                                  {/* Age Badge */}
+                                  {r.user?.dob && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                      {(() => {
+                                        const birthDate = new Date(r.user.dob);
+                                        const today = new Date();
+                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                        const m = today.getMonth() - birthDate.getMonth();
+                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                        return `${age} YRS`;
+                                      })()}
+                                    </span>
+                                  )}
+
+                                  {/* Handicap Badge */}
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    HCP {r.user?.handicap ?? 0}
+                                  </span>
+
+                                  {/* PH Badge */}
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+                                    PH {r.user?.handicap ?? 0}
+                                  </span>
+
                                   {typeof r.extraStrokes === "number" && r.extraStrokes !== 0 && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider">
                                       {r.extraStrokes > 0 ? `+${r.extraStrokes}` : r.extraStrokes} Strokes
@@ -1558,11 +1627,20 @@ function ViewTournamentPageInner() {
                           const isAlreadyRegistered = registrationsAll.some(x => x.user?.id === player.id);
                           return (
                             <div key={player.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                              <div className="min-w-0">
-                                <p className="text-[14px] font-bold text-gray-900 truncate">
-                                  {fullName(player.firstName ?? null, player.lastName ?? null)}
-                                </p>
-                                <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+                                  <img
+                                    src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[14px] font-bold text-gray-900 truncate">
+                                    {fullName(player.firstName ?? null, player.lastName ?? null)}
+                                  </p>
+                                  <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                </div>
                               </div>
                               <Button
                                 disabled={isAlreadyRegistered || isRegistering}
@@ -1850,11 +1928,11 @@ function ViewTournamentPageInner() {
                       <div className="flex items-center gap-2">
                         <Button
                           onClick={handleGenerateGroupings}
-                          disabled={groupingsGenerating || groupingsLoading}
-                          className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20"
+                          disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                          className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                          Auto Allocate
+                          Random Grouping
                         </Button>
                         <Button
                           variant="outline"
@@ -1890,20 +1968,33 @@ function ViewTournamentPageInner() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                               {groupingsData.groups
                                 .filter(group => {
-                                  const q = groupsSearch.toLowerCase();
-                                  if (!q) return true;
-                                  const matchesGroupName = group.name.toLowerCase().includes(q);
-                                  const matchesPlayer = group.registrations.some(p => 
-                                    p.user?.firstName?.toLowerCase().includes(q) || 
-                                    p.user?.lastName?.toLowerCase().includes(q) || 
-                                    p.user?.email?.toLowerCase().includes(q)
+                                  const query = groupsSearch.trim().toLowerCase();
+                                  if (!query) return true;
+                                  const tokens = query.split(/[\s-]+/).filter(Boolean);
+                                  
+                                  const matchesGroupName = tokens.every(token => 
+                                    group.name.toLowerCase().includes(token)
                                   );
+
+                                  const matchesPlayer = group.registrations.some(p => {
+                                    const searchableFields = [
+                                      p.user?.firstName,
+                                      p.user?.lastName,
+                                      p.user?.email,
+                                      `${p.user?.firstName} ${p.user?.lastName}`,
+                                      `${p.user?.lastName} ${p.user?.firstName}`
+                                    ];
+                                    return tokens.every(token => 
+                                      searchableFields.some(field => field?.toLowerCase().includes(token))
+                                    );
+                                  });
+
                                   return matchesGroupName || matchesPlayer;
                                 })
                                 .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
                                 .map((group: GroupingItem) => {
                                   const occupancy = group.registrations.length;
-                                  const capacity = 4;
+                                  const capacity = selectedTournament?.maxPlayersPerGroup || 4;
                                   const isFull = occupancy >= capacity;
                                   
                                   return (
@@ -1956,14 +2047,14 @@ function ViewTournamentPageInner() {
                                           style={{ width: `${(occupancy / capacity) * 100}%` }}
                                         />
                                       </div>
-                                      <div className="p-3 flex-1 space-y-1">
+                                      <div className="p-3 flex-1 space-y-2">
                                         {group.registrations.map((player: GroupingPlayer) => (
                                           <div
                                             key={player.id}
-                                            className="flex items-center justify-between p-2 rounded-xl border border-transparent hover:bg-gray-50/50 transition-all group/player"
+                                            className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
                                           >
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-white">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-white shadow-sm">
                                                 <img
                                                   src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                   alt=""
@@ -1971,8 +2062,45 @@ function ViewTournamentPageInner() {
                                                 />
                                               </div>
                                               <div className="min-w-0">
-                                                <div className="text-[12px] text-gray-800 font-bold truncate">
-                                                  {player.user?.firstName} {player.user?.lastName}
+                                                <NextLink href="#" className="block">
+                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
+                                                    {player.user?.firstName} {player.user?.lastName}
+                                                  </div>
+                                                </NextLink>
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                  {/* Gender Badge */}
+                                                  {player.user?.gender && (
+                                                    <span className={cn(
+                                                      "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
+                                                      player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                    )}>
+                                                      {player.user.gender}
+                                                    </span>
+                                                  )}
+
+                                                  {/* Age Badge */}
+                                                  {player.user?.dob && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
+                                                      {(() => {
+                                                        const birthDate = new Date(player.user.dob);
+                                                        const today = new Date();
+                                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                                        const m = today.getMonth() - birthDate.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                        return `${age} YRS`;
+                                                      })()}
+                                                    </span>
+                                                  )}
+
+                                                  {/* Handicap Badge */}
+                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    HCP {player.user?.handicap ?? 0}
+                                                  </span>
+
+                                                  {/* PH Badge */}
+                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border-blue-100">
+                                                    PH {player.user?.handicap ?? 0}
+                                                  </span>
                                                 </div>
                                               </div>
                                             </div>
@@ -1982,17 +2110,17 @@ function ViewTournamentPageInner() {
                                                 const val = e.target.value;
                                                 handleMovePlayer(player.id, val === "unassigned" ? null : val);
                                               }}
-                                              className="bg-transparent border-none text-[10px] text-gray-400 font-bold cursor-pointer hover:text-emerald-600 focus:ring-0"
+                                              className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity"
                                             >
-                                              <option value={group.id}>Move</option>
+                                              <option value={group.id}>Move To...</option>
                                               <option value="unassigned">Unassign</option>
                                               {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
                                             </select>
                                           </div>
                                         ))}
                                         {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                          <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl border border-dashed border-gray-150/50 opacity-30">
-                                            <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100" />
+                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-gray-150/50 opacity-30">
+                                            <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100" />
                                             <div className="text-[11px] font-bold text-gray-300">Available Space</div>
                                           </div>
                                         ))}
@@ -2044,15 +2172,22 @@ function ViewTournamentPageInner() {
                               </div>
                               
                               {(() => {
-                                const filtered = groupingsData.unassigned.filter(p => {
-                                  const q = groupingsSearch.toLowerCase();
-                                  const matchesSearch = !q || 
-                                    p.user?.firstName?.toLowerCase().includes(q) || 
-                                    p.user?.lastName?.toLowerCase().includes(q) || 
-                                    p.user?.email?.toLowerCase().includes(q);
-                                  
-                                  return matchesSearch;
-                                });
+                            const filtered = groupingsData.unassigned.filter(p => {
+                              const query = groupingsSearch.trim().toLowerCase();
+                              if (!query) return true;
+                              const tokens = query.split(/[\s-]+/).filter(Boolean);
+                              const searchableFields = [
+                                p.user?.firstName,
+                                p.user?.lastName,
+                                p.user?.email,
+                                `${p.user?.firstName} ${p.user?.lastName}`,
+                                `${p.user?.lastName} ${p.user?.firstName}`
+                              ];
+                              
+                              return tokens.every(token => 
+                                searchableFields.some(field => field?.toLowerCase().includes(token))
+                              );
+                            });
 
                                 const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
 
@@ -2074,16 +2209,47 @@ function ViewTournamentPageInner() {
                                                 />
                                               </div>
                                               <div className="min-w-0">
-                                                <div className="text-[13px] text-gray-800 font-bold truncate">{player.user?.firstName} {player.user?.lastName}</div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">HCP: {player.user?.handicap ?? "—"}</div>
-                                                  {player.paymentStatus === "PAID" ? (
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Paid" />
-                                                  ) : (
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Unpaid" />
-                                                  )}
-                                                </div>
-                                              </div>
+                                                <NextLink href="#" className="block">
+                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
+                                                    {player.user?.firstName} {player.user?.lastName}
+                                                  </div>
+                                                </NextLink>
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                              {/* Gender Badge */}
+                                              {player.user?.gender && (
+                                                <span className={cn(
+                                                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
+                                                  player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                )}>
+                                                  {player.user.gender}
+                                                </span>
+                                              )}
+
+                                              {/* Age Badge */}
+                                              {player.user?.dob && (
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
+                                                  {(() => {
+                                                    const birthDate = new Date(player.user.dob);
+                                                    const today = new Date();
+                                                    let age = today.getFullYear() - birthDate.getFullYear();
+                                                    const m = today.getMonth() - birthDate.getMonth();
+                                                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                    return `${age} YRS`;
+                                                  })()}
+                                                </span>
+                                              )}
+
+                                              {/* Handicap Badge */}
+                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                HCP {player.user?.handicap ?? 0}
+                                              </span>
+
+                                              {/* PH Badge */}
+                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border border-blue-100">
+                                                PH {player.user?.handicap ?? 0}
+                                              </span>
+                                            </div>
+                                          </div>
                                             </div>
                                             <select
                                               value="unassigned"
@@ -2137,7 +2303,7 @@ function ViewTournamentPageInner() {
                           onClick={handleGenerateGroupings}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
                         >
-                          Start Auto Allocation
+                          Start Random Grouping
                         </Button>
                       </div>
                     )}
@@ -2716,6 +2882,35 @@ function ViewTournamentPageInner() {
           <h4 className="text-xl font-bold text-gray-900 mb-2">Re-enable Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isResetGroupingsModalOpen}
+        onClose={() => setIsResetGroupingsModalOpen(false)}
+        title="Reset All Groupings?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              onClick={confirmResetGroupings}
+            >
+              Yes, Reset All
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Reset Groupings?</h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
           </p>
         </div>
       </Modal>

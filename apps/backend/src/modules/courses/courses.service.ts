@@ -49,10 +49,17 @@ export class CoursesService {
 
     const where: any = {};
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { club: { name: { contains: search, mode: 'insensitive' } } },
-      ];
+      const q = search.trim();
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { name: { contains: token, mode: 'insensitive' } },
+            { club: { name: { contains: token, mode: 'insensitive' } } },
+          ],
+        }));
+      }
     }
     if (query.country) where.country = query.country;
     if (query.status) where.status = query.status as CourseStatus;

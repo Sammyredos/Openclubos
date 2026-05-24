@@ -94,13 +94,22 @@ export default function SuperAdminGolfCoursesPage() {
 
   const filteredCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const tokens = q.split(/[\s-]+/).filter(Boolean);
+
     return allCourses.filter((c) => {
-      const name = (c.name || "").toLowerCase();
-      const city = (c.city || "").toLowerCase();
-      const state = (c.state || "").toLowerCase();
       const countryName = (Country.getCountryByCode(c.country)?.name || c.country || "").toLowerCase();
-      const matchesSearch =
-        q.length === 0 || name.includes(q) || city.includes(q) || state.includes(q) || countryName.includes(q);
+      const searchableFields = [
+        c.name,
+        c.city,
+        c.state,
+        countryName,
+        c.club?.name || "Independent"
+      ];
+
+      const matchesSearch = tokens.length === 0 || tokens.every(token => 
+        searchableFields.some(field => field?.toLowerCase().includes(token))
+      );
+
       const matchesCountry = countryFilter === "All Countries" || c.country === countryFilter;
       const matchesStatus = statusFilter === "All Status" || c.status === statusFilter;
       const matchesType = typeFilter === "All Types" || c.type === typeFilter;

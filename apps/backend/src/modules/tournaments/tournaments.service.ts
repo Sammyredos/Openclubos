@@ -68,11 +68,25 @@ export class TournamentsService {
   }
 
   // Get all tournaments with optimized select to avoid over-fetching
-  async findAll(query: { clubId?: string; status?: string }) {
+  async findAll(query: { clubId?: string; status?: string; search?: string }) {
     await this.autoUpdateStatuses();
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
+    if (query.search?.trim()) {
+      const q = query.search.trim();
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { name: { contains: token, mode: 'insensitive' } },
+            { club: { name: { contains: token, mode: 'insensitive' } } },
+            { venue: { contains: token, mode: 'insensitive' } },
+          ],
+        }));
+      }
+    }
 
     return this.prisma.tournament.findMany({
       where,
@@ -105,6 +119,7 @@ export class TournamentsService {
   async findAllPaged(query: {
     clubId?: string;
     status?: string;
+    search?: string;
     skip?: number;
     take?: number;
   }) {
@@ -112,6 +127,20 @@ export class TournamentsService {
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
+    if (query.search?.trim()) {
+      const q = query.search.trim();
+      const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+      if (tokens.length > 0) {
+        where.AND = tokens.map(token => ({
+          OR: [
+            { name: { contains: token, mode: 'insensitive' } },
+            { club: { name: { contains: token, mode: 'insensitive' } } },
+            { venue: { contains: token, mode: 'insensitive' } },
+          ],
+        }));
+      }
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.tournament.findMany({

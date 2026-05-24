@@ -131,13 +131,37 @@ export class ClubsService {
 
   async findAll(query: { search?: string }) {
     const search = query.search?.trim();
+    const where: any = { deletedAt: null };
+    
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { address: { contains: search, mode: 'insensitive' } },
+      ];
+
+      if (search.includes(' ')) {
+        const parts = search.split(' ');
+        const first = parts[0];
+        const last = parts.slice(1).join(' ');
+        where.OR.push(
+          {
+            AND: [
+              { name: { contains: first, mode: 'insensitive' } },
+              { name: { contains: last, mode: 'insensitive' } },
+            ],
+          },
+          {
+            AND: [
+              { name: { contains: last, mode: 'insensitive' } },
+              { name: { contains: first, mode: 'insensitive' } },
+            ],
+          },
+        );
+      }
+    }
+
     return this.prisma.club.findMany({
-      where: {
-        deletedAt: null,
-        ...(search
-          ? { name: { contains: search, mode: 'insensitive' } }
-          : undefined),
-      },
+      where,
       include: {
         _count: { select: { tournaments: true, courses: true } },
         users: {
