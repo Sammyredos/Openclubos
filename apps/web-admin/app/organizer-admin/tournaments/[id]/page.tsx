@@ -35,14 +35,19 @@ import {
   Route,
   Activity,
   Award,
+  Sparkles,
+  RefreshCcw,
+  Home,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatWithCommas } from "@/lib/utils";
+import { cn, formatWithCommas, subscribeAdminEvents } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
+import { Badge } from "@/components/ui/badge";
 import {
   cancelTournament,
   deleteTournament,
@@ -55,8 +60,9 @@ import {
   clearGroupings,
   type GroupingData,
   type GroupingItem,
-  type GroupingPlayer
+  type GroupingPlayer,
 } from "@/lib/api/tournaments";
+import { getTournamentScores } from "@/lib/api/scores";
 import { getAdminUsers } from "@/lib/api/members";
 import { getCourse, type Course } from "@/lib/api/courses";
 import { getClub, type Club } from "@/lib/api/clubs";
@@ -97,17 +103,8 @@ type TournamentRow = {
   registrations: number;
 };
 
-function getErrorMessage(e: unknown) {
-  if (e instanceof Error) return e.message;
-  if (typeof e === "string") return e;
-  if (e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string") {
-    return (e as { message: string }).message;
-  }
-  return null;
-}
-
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
-  DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-slate-655" },
+  DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-slate-600" },
   REGISTRATION_OPEN: { label: "Upcoming", color: "#10b981", badge: "bg-emerald-50 text-emerald-600 border border-emerald-100" },
   ONGOING: { label: "Ongoing", color: "#3b82f6", badge: "bg-blue-50 text-blue-600 border border-blue-100" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600 border border-violet-100" },
@@ -125,6 +122,7 @@ const TABS = [
   { id: "register", label: "Register Player" },
   { id: "waitlist", label: "Waitlist Settings" },
   { id: "groupings", label: "Groupings (Tee Times)" },
+  { id: "leaderboard", label: "Live Leaderboard" },
   { id: "overview", label: "Overview" },
 ] as const;
 
@@ -226,12 +224,37 @@ function ViewTournamentPageInner() {
 
   // Groupings (Tee Times) Management States
   const [groupingsData, setGroupingsData] = useState<GroupingData | null>(null);
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [groupingsSubTab, setGroupingsSubTab] = useState<"unassigned" | "grouped">("unassigned");
   const [groupingsLoading, setGroupingsLoading] = useState(false);
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
   const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
   const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
+
+  // Groupings Search/Filter
+  const [groupingsSearch, setGroupingsSearch] = useState("");
+  const [groupsSearch, setGroupsSearch] = useState("");
+  const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
+  const [unassignedPage, setUnassignedPage] = useState(1);
+  const [groupsPage, setGroupsPage] = useState(1);
+  const unassignedPerPage = 12;
+  const groupsPerPage = 6;
+
+  // Leaderboard States
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
+
+  const getTournamentDays = () => {
+    if (!selectedTournament?.startDate) return 1;
+    const start = new Date(selectedTournament.startDate);
+    const end = selectedTournament.endDate ? new Date(selectedTournament.endDate) : start;
+    const d1 = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const d2 = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    return Math.floor(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+  };
 
   const closeDropdown = () => {
     setActiveDropdown(null);
@@ -258,10 +281,10 @@ function ViewTournamentPageInner() {
     if (!tournamentId) return;
     setGroupingsLoading(true);
     try {
-      const data = await getGroupings(tournamentId);
+      const data = await getGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to load groupings");
+      toast.error((err instanceof Error ? err.message : null) || "Failed to load groupings");
     } finally {
       setGroupingsLoading(false);
     }
@@ -271,11 +294,11 @@ function ViewTournamentPageInner() {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     try {
-      const data = await generateGroupings(tournamentId);
+      const data = await generateGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
       toast.success("Groupings generated successfully");
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to generate groupings");
+      toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
     } finally {
       setGroupingsGenerating(false);
     }
@@ -283,37 +306,141 @@ function ViewTournamentPageInner() {
 
   const handleMovePlayer = async (registrationId: string, targetGroupId: string | null) => {
     if (!tournamentId) return;
+    
+    // Capacity check
+    if (targetGroupId && groupingsData) {
+      const targetGroup = groupingsData.groups.find(g => g.id === targetGroupId);
+      const capacity = 4;
+      if (targetGroup && targetGroup.registrations.length >= capacity) {
+        toast.error(`Group "${targetGroup.name}" is full!`, {
+          description: `This group has reached its maximum capacity of ${capacity} players.`,
+        });
+        return;
+      }
+    }
+
     try {
-      const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId);
+      const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId, selectedDay);
       setGroupingsData(data);
       toast.success("Player reassigned successfully");
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to reassign player");
+      toast.error((err instanceof Error ? err.message : null) || "Failed to reassign player");
     }
   };
 
   const handleUpdateGroupDetails = async (groupId: string, payload: { name?: string; startTime?: string }) => {
     if (!tournamentId) return;
     try {
-      const data = await updateGroupingTime(tournamentId, groupId, payload);
+      const data = await updateGroupingTime(tournamentId, groupId, payload, selectedDay);
       setGroupingsData(data);
       setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
       toast.success("Group updated successfully");
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to update group");
+      toast.error((err instanceof Error ? err.message : null) || "Failed to update group");
     }
   };
 
   const handleClearGroupings = async () => {
     if (!tournamentId) return;
-    if (!window.confirm("Are you sure you want to reset all groupings? This will delete all groups and mark all players as unassigned.")) return;
+    if (!window.confirm("Are you sure you want to reset all groupings for this day? This will delete all groups and mark all players as unassigned.")) return;
     try {
-      const data = await clearGroupings(tournamentId);
+      const data = await clearGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
       toast.success("Groupings reset successfully");
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to reset groupings");
+      toast.error((err instanceof Error ? err.message : null) || "Failed to reset groupings");
+    }
+  };
+
+  const loadLeaderboardData = async () => {
+    if (!tournamentId || !selectedTournament) return;
+    setLeaderboardLoading(true);
+    try {
+      const scores = await getTournamentScores(tournamentId);
+      
+      // Get all approved & paid registrations to include in leaderboard even if no scores
+      const { items: allRegs } = await getRegistrations({
+        tournamentId,
+        status: "APPROVED",
+        paymentStatus: "PAID",
+        take: 500,
+      });
+
+      const playersMap: Record<string, any> = {};
+      
+      // Initialize map with all registered players
+      allRegs.forEach((reg: any) => {
+        if (reg.user) {
+          playersMap[reg.user.id] = {
+            user: reg.user,
+            grossStrokes: 0,
+            holesCompleted: new Set(),
+            points: 0,
+            extraStrokes: reg.extraStrokes || 0,
+          };
+        }
+      });
+
+      const startDate = new Date(selectedTournament.startDate);
+      const d2 = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+      scores.forEach((s: any) => {
+        const scoreDate = new Date(s.recordedAt);
+        const d1 = Date.UTC(scoreDate.getFullYear(), scoreDate.getMonth(), scoreDate.getDate());
+        const dayDiff = Math.floor((d1 - d2) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Filter by selected day if not "all"
+        if (selectedLeaderboardDay !== "all" && dayDiff !== selectedLeaderboardDay) {
+          return;
+        }
+
+        const uid = s.userId;
+        if (!playersMap[uid]) {
+          // If for some reason a player has scores but not in allRegs (unlikely if paid)
+          playersMap[uid] = {
+            user: s.user,
+            grossStrokes: 0,
+            holesCompleted: new Set(),
+            points: 0,
+            extraStrokes: 0,
+          };
+        }
+        
+        playersMap[uid].grossStrokes += s.strokes || 0;
+        playersMap[uid].points += s.points || 0;
+        // Track holes per day to avoid duplication in "all" view
+        playersMap[uid].holesCompleted.add(`${dayDiff}-${s.holeId}`);
+      });
+
+      const leaderboard = Object.values(playersMap)
+        .map((p: any) => {
+          const gross = p.grossStrokes;
+          const handicap = p.user?.handicap || 0;
+          const extra = p.extraStrokes || 0;
+          // Net = Gross - Handicap + Extra Strokes
+          const net = gross > 0 ? (gross - handicap + extra) : 0;
+
+          return {
+            ...p,
+            holesCount: p.holesCompleted.size,
+            netStrokes: net,
+          };
+        })
+        .sort((a, b) => {
+          // Sort: 0 strokes (haven't started) should be at the bottom
+          if (a.grossStrokes === 0 && b.grossStrokes > 0) return 1;
+          if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
+          if (a.grossStrokes === 0 && b.grossStrokes === 0) return 0;
+          
+          return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+        });
+
+      setLeaderboardData(leaderboard);
+    } catch (err) {
+      console.error("Failed to load leaderboard", err);
+    } finally {
+      setLeaderboardLoading(false);
     }
   };
 
@@ -322,7 +449,25 @@ function ViewTournamentPageInner() {
       fetchWaitlistData();
     } else if (activeTab === "groupings") {
       loadGroupingsData();
+    } else if (activeTab === "leaderboard") {
+      loadLeaderboardData();
     }
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeAdminEvents((event) => {
+      if (event.type === "users-changed") {
+        reloadSingleTournament();
+        if (activeTab === "players") {
+          setRegistrationsInitialized(false);
+        } else if (activeTab === "groupings") {
+          loadGroupingsData();
+        } else if (activeTab === "waitlist") {
+          fetchWaitlistData();
+        }
+      }
+    });
+    return () => unsubscribe();
   }, [activeTab, tournamentId]);
 
   async function reloadSingleTournament() {
@@ -342,7 +487,7 @@ function ViewTournamentPageInner() {
         dates: formatDateRange(t.startDate, t.endDate),
         players: formatPlayers(registrations, t.maxPlayers),
         status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
-        badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-505",
+        badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
         entryFee: t.entryFee ?? null,
         startDate: t.startDate,
         endDate: t.endDate ?? null,
@@ -402,7 +547,7 @@ function ViewTournamentPageInner() {
           dates: formatDateRange(t.startDate, t.endDate),
           players: formatPlayers(registrations, t.maxPlayers),
           status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
-          badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-550",
+          badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
           entryFee: t.entryFee ?? null,
           startDate: t.startDate,
           endDate: t.endDate ?? null,
@@ -619,7 +764,7 @@ function ViewTournamentPageInner() {
         setRegistrationsPage(1);
         setRegistrationsLoading(true);
         const { items, total } = await getRegistrations({
-          tournamentId: selectedTournament.id,
+          tournamentId,
           skip: 0,
           take: registrationsPerPage,
         });
@@ -740,10 +885,28 @@ function ViewTournamentPageInner() {
       await confirmRegistrationPayment(registrationId, "MANUAL_ADMIN_" + Date.now());
       toast.success("Player payment confirmed successfully!");
       await reloadSingleTournament();
+      // Refresh groupings data so the newly paid player appears in the unassigned pool
+      await loadGroupingsData();
       if (registrationsMode === "client") {
-        await initializeClientRegistrations();
+        setRegistrationsInitialized(false);
+        const { items: allItems } = await getRegistrations({
+          tournamentId,
+          skip: 0,
+          take: 999,
+        });
+        setRegistrationsAll(Array.isArray(allItems) ? allItems : []);
+        setRegistrationsInitialized(true);
       } else {
-        await reloadServerRegistrations();
+        setRegistrationsPage(1);
+        setRegistrationsLoading(true);
+        const { items, total } = await getRegistrations({
+          tournamentId: selectedTournament.id,
+          skip: 0,
+          take: registrationsPerPage,
+        });
+        setRegistrations(Array.isArray(items) ? items : []);
+        setRegistrationsTotal(typeof total === "number" ? total : 0);
+        setRegistrationsLoading(false);
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to mark player as paid");
@@ -931,13 +1094,35 @@ function ViewTournamentPageInner() {
                 {selectedTournament.status}
               </span>
             </div>
-            <p className="text-[13px] text-gray-505 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               Hosted at {selectedTournament.clubName} • {selectedTournament.dates}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {selectedTournament.statusKey === "DRAFT" && (
+            <Button
+              onClick={async () => {
+                try {
+                  setMutating(true);
+                  await updateTournament(selectedTournament.id, { publishImmediately: true });
+                  toast.success("Tournament published successfully!");
+                  await reloadSingleTournament();
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to publish tournament");
+                } finally {
+                  setMutating(false);
+                }
+              }}
+              disabled={mutating}
+              className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center gap-2 rounded-xl px-6 shadow-lg shadow-blue-100"
+            >
+              <Send className="w-4 h-4" />
+              Publish Now
+            </Button>
+          )}
+
           <Button
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.statusKey === "ONGOING"}
@@ -1144,23 +1329,18 @@ function ViewTournamentPageInner() {
                           >
                             <div className="flex items-center gap-3.5 min-w-0">
                               <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100">
-                                {r.user?.profilePhoto ? (
-                                  <img src={r.user.profilePhoto} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className={cn(
-                                    "w-full h-full flex items-center justify-center font-bold text-sm",
-                                    isDisqualified ? "bg-red-50 text-red-700" : "bg-emerald-50 text-[#10b981]"
-                                  )}>
-                                    {r.user?.firstName?.[0] || r.user?.email?.[0]?.toUpperCase() || "?"}
-                                  </div>
-                                )}
+                                <img
+                                  src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-[14px] font-bold text-gray-900 truncate">
-                                  {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
-                                </p>
-                                <p className="text-[12px] text-gray-555 truncate mt-0.5">{r.user?.email}</p>
-                                <div className="flex items-center gap-2 mt-1.5">
+                                    {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
+                                  </p>
+                                  <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email} • {r.user?.division || "Open"}</p>
+                                  <div className="flex items-center gap-2 mt-1.5">
                                   <span className={cn(
                                     "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
                                     r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
@@ -1268,7 +1448,7 @@ function ViewTournamentPageInner() {
 
                   {!registrationsLoading && registrationsFilteredTotal > 0 && (
                     <div className="pt-4 flex items-center justify-between gap-4">
-                      <p className="text-[13px] text-gray-505 font-medium">
+                      <p className="text-[13px] text-gray-500 font-medium">
                         Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
                         {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
                         {formatWithCommas(registrationsFilteredTotal)} registrations
@@ -1301,7 +1481,7 @@ function ViewTournamentPageInner() {
                   </div>
                   <div>
                     <h3 className="text-[14px] font-bold text-gray-900 leading-tight">Quick Registration</h3>
-                    <p className="text-[12px] text-gray-550 mt-1 leading-relaxed">
+                    <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
                       Register members directly into <span className="text-emerald-600 font-bold">{selectedTournament.name}</span>. Groupings and pairing calculations will be recalculated dynamically.
                     </p>
                   </div>
@@ -1317,7 +1497,7 @@ function ViewTournamentPageInner() {
                         "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                         manualPaymentType === 'UNPAID'
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-255"
+                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -1338,7 +1518,7 @@ function ViewTournamentPageInner() {
                         "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                         manualPaymentType === 'CASH'
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-255"
+                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -1450,7 +1630,7 @@ function ViewTournamentPageInner() {
                   />
                 </div>
 
-                <div className="border border-gray-155 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
@@ -1492,7 +1672,7 @@ function ViewTournamentPageInner() {
                                   <p className="text-[14px] font-bold text-gray-900 leading-tight">
                                     {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
                                   </p>
-                                  <p className="text-[12px] text-gray-550 mt-0.5">{item.user?.email}</p>
+                                  <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
                                 </div>
                               </div>
                             </td>
@@ -1531,7 +1711,7 @@ function ViewTournamentPageInner() {
                                   onClick={() => handleRemoveWaitlist(item.id)}
                                   disabled={waitlistActionId === item.id}
                                   variant="ghost"
-                                  className="h-8 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5"
+                                  className="h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5"
                                 >
                                   <UserMinus className="w-3.5 h-3.5" />
                                   Remove
@@ -1568,255 +1748,596 @@ function ViewTournamentPageInner() {
               </div>
             )}
 
-            {/* TABS 4: Groupings (Tee Times) */}
+            {/* TABS 1: Groupings & Tee Times */}
             {activeTab === "groupings" && (
-              <div className="space-y-6">
+              <div className="space-y-8 animate-in fade-in duration-500">
                 {groupingsLoading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="border border-gray-150 rounded-2xl p-5 space-y-3 bg-white">
-                        <Skeleton className="h-5 w-24 rounded-md" />
-                        <Skeleton className="h-4 w-16 rounded-md" />
-                        <div className="space-y-2 pt-2 border-t border-gray-50">
-                          <Skeleton className="h-10 w-full rounded-md" />
-                          <Skeleton className="h-10 w-full rounded-md" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : groupingsData?.groups && groupingsData.groups.length > 0 ? (
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100">
-                      <div>
-                        <h2 className="text-xl font-bold text-gray-900 font-sans">Groupings & Tee Times</h2>
-                        <p className="text-[13px] text-gray-500 font-normal mt-0.5">Manage pairings, custom tee-off schedules, and course division rosters.</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={handleGenerateGroupings}
-                          disabled={groupingsGenerating}
-                          variant="outline"
-                          className="border-emerald-100 hover:bg-emerald-50 text-[#10b981] rounded-xl h-10 px-4 text-[12px] font-bold"
-                        >
-                          Regenerate
-                        </Button>
-                        <Button
-                          onClick={handleClearGroupings}
-                          variant="outline"
-                          className="border-red-100 hover:bg-red-50 text-red-650 rounded-xl h-10 px-4 text-[12px] font-bold"
-                        >
-                          Reset Groupings
-                        </Button>
+                  <div className="space-y-8">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div className="flex gap-2">
+                        {[1, 2, 3].map(i => <div key={i} className="w-24 h-10 bg-gray-100 animate-pulse rounded-xl" />)}
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-2xl border border-gray-100" />)}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
+                    {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedDay(i + 1)}
+                        className={cn(
+                          "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                          selectedDay === i + 1
+                            ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                        )}
+                      >
+                        DAY {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {selectedDay} of {getTournamentDays()} Days Active
+                    </span>
+                  </div>
+                </div>
 
-                    <div className="flex flex-col lg:flex-row gap-6">
-                      <div className="flex-1 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {groupingsData.groups.map((group: GroupingItem) => (
-                            <div key={group.id} className="border border-gray-150 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex items-center justify-between gap-4 pb-2 border-b border-gray-50">
-                                {editingGroupNameId === group.id ? (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <Input
-                                      value={editingGroupNameValue}
-                                      onChange={(e) => setEditingGroupNameValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-full"
-                                    />
-                                    <button
-                                      onClick={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
-                                      className="text-[12px] text-[#10b981] hover:text-emerald-700 font-bold focus:outline-none shrink-0"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingGroupNameId(null)}
-                                      className="text-[12px] text-gray-400 hover:text-gray-600 font-bold focus:outline-none shrink-0"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[14px] text-gray-900 font-bold">{group.name}</span>
-                                    <button
-                                      onClick={() => {
-                                        setEditingGroupNameId(group.id);
-                                        setEditingGroupNameValue(group.name);
-                                      }}
-                                      className="text-gray-400 hover:text-[#10b981] transition-colors focus:outline-none"
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                )}
+                {/* Sub-tabs for Unassigned/Grouped */}
+                <div className="flex items-center gap-2 border-b border-gray-100 mb-6 bg-gray-50/30 rounded-t-2xl px-4 pt-2">
+                  <button
+                    onClick={() => setGroupingsSubTab("unassigned")}
+                    className={cn(
+                      "px-6 py-4 text-[13px] font-bold uppercase tracking-wider transition-all relative group",
+                      groupingsSubTab === "unassigned"
+                        ? "text-emerald-600"
+                        : "text-gray-400 hover:text-gray-600"
+                    )}
+                  >
+                    Unassigned Pool
+                    <Badge variant="outline" className={cn(
+                      "ml-2 font-black px-1.5 py-0 transition-all",
+                      groupingsSubTab === "unassigned" ? "bg-emerald-500 text-white border-emerald-600" : "bg-gray-100 text-gray-400 border-gray-200"
+                    )}>
+                      {groupingsData?.unassigned.length || 0}
+                    </Badge>
+                    {groupingsSubTab === "unassigned" && (
+                      <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full shadow-[0_-2px_8px_rgba(16,185,129,0.4)]" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setGroupingsSubTab("grouped")}
+                    className={cn(
+                      "px-6 py-4 text-[13px] font-bold uppercase tracking-wider transition-all relative group",
+                      groupingsSubTab === "grouped"
+                        ? "text-emerald-600"
+                        : "text-gray-400 hover:text-gray-600"
+                    )}
+                  >
+                    Grouped Players
+                    <Badge variant="outline" className={cn(
+                      "ml-2 font-black px-1.5 py-0 transition-all",
+                      groupingsSubTab === "grouped" ? "bg-emerald-500 text-white border-emerald-600" : "bg-gray-100 text-gray-400 border-gray-200"
+                    )}>
+                      {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0) || 0}
+                    </Badge>
+                    {groupingsSubTab === "grouped" && (
+                      <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full shadow-[0_-2px_8px_rgba(16,185,129,0.4)]" />
+                    )}
+                  </button>
+                </div>
 
-                                {editingGroupTimeId === group.id ? (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="text"
-                                      placeholder="e.g. 08:30 AM"
-                                      value={editingGroupTimeValue}
-                                      onChange={(e) => setEditingGroupTimeValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-24"
-                                    />
-                                    <button
-                                      onClick={() => handleUpdateGroupDetails(group.id, { startTime: editingGroupTimeValue })}
-                                      className="text-[12px] text-[#10b981] hover:text-emerald-700 font-bold focus:outline-none shrink-0"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingGroupTimeId(null)}
-                                      className="text-[12px] text-gray-400 hover:text-gray-600 font-bold focus:outline-none shrink-0"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1 text-gray-500">
-                                    <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                    <span className="text-[12px] font-bold">{group.startTime || "TBD"}</span>
-                                    <button
-                                      onClick={() => {
-                                        setEditingGroupTimeId(group.id);
-                                        setEditingGroupTimeValue(group.startTime || "");
-                                      }}
-                                      className="text-gray-400 hover:text-[#10b981] transition-colors focus:outline-none"
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                )}
+                {/* Groupings Dashboard Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-gray-900">Manage Grouping</h3>
+                    <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleGenerateGroupings}
+                      disabled={groupingsGenerating || groupingsLoading}
+                      className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20"
+                    >
+                      {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      Auto Allocate
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleClearGroupings}
+                      disabled={groupingsLoading || !groupingsData?.groups.length}
+                      className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all gap-2"
+                    >
+                      <RefreshCcw className="w-3.5 h-3.5" />
+                      Reset All
+                    </Button>
+                  </div>
+                </div>
+
+                {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
+                  <div className="space-y-6">
+                    {/* Groups Section */}
+                        {groupingsSubTab === "grouped" && (
+                          <div className="space-y-6">
+                            <div className="flex flex-col md:flex-row gap-4 mb-2">
+                              <div className="relative flex-1">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input 
+                                  placeholder="Search groups or players..." 
+                                  value={groupsSearch}
+                                  onChange={(e) => {
+                                    setGroupsSearch(e.target.value);
+                                    setGroupsPage(1);
+                                  }}
+                                  className="pl-11 h-12 text-[14px] rounded-2xl border-gray-150 bg-gray-50/50 focus:bg-white transition-all"
+                                />
                               </div>
+                            </div>
 
-                              {group.registrations && group.registrations.length > 0 ? (
-                                <div className="divide-y divide-gray-50 mt-3">
-                                  {group.registrations.map((player: GroupingPlayer) => (
-                                    <div key={player.id} className="flex items-center justify-between py-2">
-                                      <div className="flex items-center gap-2.5 min-w-0">
-                                        <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
-                                          {player.user?.profilePhoto ? (
-                                            <img src={player.user.profilePhoto} alt="" className="w-full h-full object-cover" />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#10b981]">
-                                              {player.user?.firstName?.[0] || player.user?.email?.[0]?.toUpperCase() || "?"}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="min-w-0">
-                                          <div className="text-[13px] text-gray-800 font-bold truncate">
-                                            {player.user?.firstName || ""} {player.user?.lastName || ""}
-                                          </div>
-                                          <div className="text-[10px] text-gray-450 font-bold">
-                                            HCP: {player.user?.handicap !== null && player.user?.handicap !== undefined ? player.user.handicap : "—"}
-                                          </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                              {groupingsData.groups
+                                .filter(group => {
+                                  const q = groupsSearch.toLowerCase();
+                                  if (!q) return true;
+                                  const matchesGroupName = group.name.toLowerCase().includes(q);
+                                  const matchesPlayer = group.registrations.some(p => 
+                                    p.user?.firstName?.toLowerCase().includes(q) || 
+                                    p.user?.lastName?.toLowerCase().includes(q) || 
+                                    p.user?.email?.toLowerCase().includes(q)
+                                  );
+                                  return matchesGroupName || matchesPlayer;
+                                })
+                                .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
+                                .map((group: GroupingItem) => {
+                              const occupancy = group.registrations.length;
+                              const capacity = 4;
+                              const isFull = occupancy >= capacity;
+                              
+                              return (
+                                <div
+                                  key={group.id}
+                                  className={cn(
+                                    "group bg-white rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
+                                    isFull ? "border-emerald-100 bg-emerald-50/5" : "border-gray-150 hover:border-emerald-200 hover:shadow-md"
+                                  )}
+                                >
+                                  {/* Group Header */}
+                                  <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className={cn(
+                                        "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
+                                        isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-gray-150 text-gray-400"
+                                      )}>
+                                        <Flag className="w-5 h-5" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        {editingGroupNameId === group.id ? (
+                                          <Input
+                                            autoFocus
+                                            value={editingGroupNameValue}
+                                            onChange={(e) => setEditingGroupNameValue(e.target.value)}
+                                            onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
+                                            className="h-7 py-0 px-2 text-[13px] font-bold rounded-lg border-emerald-500"
+                                          />
+                                        ) : (
+                                          <h4
+                                            onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
+                                            className="text-[14px] font-bold text-gray-900 truncate cursor-pointer hover:text-emerald-600"
+                                          >
+                                            {group.name}
+                                          </h4>
+                                        )}
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                          <Clock className="w-3 h-3 text-gray-400" />
+                                          <span className="text-[11px] font-bold text-gray-400 uppercase">{group.startTime || "TBD"}</span>
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-2 shrink-0">
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-[12px] font-black text-gray-900">{occupancy}/{capacity}</div>
+                                      <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Group Size</div>
+                                    </div>
+                                  </div>
+
+                                  {/* Progress Bar */}
+                                  <div className="h-1 w-full bg-gray-100">
+                                    <div 
+                                      className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-blue-500")}
+                                      style={{ width: `${(occupancy / capacity) * 100}%` }}
+                                    />
+                                  </div>
+
+                                  {/* Group Players */}
+                                  <div className="p-3 flex-1 space-y-1">
+                                    {group.registrations.map((player: GroupingPlayer) => (
+                                      <div
+                                        key={player.id}
+                                        className="flex items-center justify-between p-2 rounded-xl border border-transparent hover:bg-gray-50/50 transition-all group/player"
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-white">
+                                            <img
+                                              src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="text-[12px] text-gray-800 font-bold truncate">
+                                              {player.user?.firstName} {player.user?.lastName}
+                                            </div>
+                                          </div>
+                                        </div>
                                         <select
                                           value={group.id}
                                           onChange={(e) => {
                                             const val = e.target.value;
                                             handleMovePlayer(player.id, val === "unassigned" ? null : val);
                                           }}
-                                          className="bg-transparent border-none text-[11px] text-gray-400 hover:bg-gray-100 rounded px-2 py-1 focus:outline-none font-bold cursor-pointer transition-colors"
+                                          className="bg-transparent border-none text-[10px] text-gray-400 font-bold cursor-pointer hover:text-emerald-600 focus:ring-0"
                                         >
-                                          <option value={group.id}>Move To...</option>
-                                          <option value="unassigned">Unassigned Pool</option>
-                                          {groupingsData.groups.map((g: GroupingItem) => (
-                                            g.id !== group.id && (
-                                              <option key={g.id} value={g.id}>{g.name}</option>
-                                            )
-                                          ))}
+                                          <option value={group.id}>Move</option>
+                                          <option value="unassigned">Unassign</option>
+                                          {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
                                         </select>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                    {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
+                                      <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl border border-dashed border-gray-150/50 opacity-30">
+                                        <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100" />
+                                        <div className="text-[11px] font-bold text-gray-300">Available Space</div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              ) : (
-                                <p className="text-[11px] text-gray-400 italic mt-3 font-normal">No players in this group.</p>
-                              )}
+                              );
+                            })}
+                        </div>
+                        {groupingsData.groups.length > groupsPerPage && (
+                          <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100">
+                            <p className="text-[13px] text-gray-500 font-medium">
+                              Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
+                            </p>
+                            <Pagination
+                              currentPage={groupsPage}
+                              totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
+                              onPageChange={setGroupsPage}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Unassigned Pool Section */}
+                    {groupingsSubTab === "unassigned" && (
+                      <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
+                          <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-blue-500" />
+                            Unassigned Participants
+                          </h4>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 font-black px-2 py-0.5">
+                            {groupingsData.unassigned.length}
+                          </Badge>
+                        </div>
+                        <div className="p-6">
+                          <div className="flex flex-col md:flex-row gap-4 mb-6">
+                            <div className="relative flex-1">
+                              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input 
+                                placeholder="Search participants..." 
+                                value={groupingsSearch}
+                                onChange={(e) => {
+                                  setGroupingsSearch(e.target.value);
+                                  setUnassignedPage(1); // Reset to first page on search
+                                }}
+                                className="pl-11 h-12 text-[14px] rounded-2xl border-gray-150 bg-gray-50/50 focus:bg-white transition-all"
+                              />
                             </div>
-                          ))}
+                          </div>
+                          
+                          {(() => {
+                            const filtered = groupingsData.unassigned.filter(p => {
+                              const q = groupingsSearch.toLowerCase();
+                              const matchesSearch = !q || 
+                                p.user?.firstName?.toLowerCase().includes(q) || 
+                                p.user?.lastName?.toLowerCase().includes(q) || 
+                                p.user?.email?.toLowerCase().includes(q);
+                              
+                              return matchesSearch;
+                            });
+
+                            const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
+
+                            return (
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {paginated.length > 0 ? (
+                                    paginated.map((player: GroupingPlayer) => (
+                                      <div
+                                        key={player.id}
+                                        className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
+                                      >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                          <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                                            <img
+                                              src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="text-[13px] text-gray-800 font-bold truncate">{player.user?.firstName} {player.user?.lastName}</div>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">HCP: {player.user?.handicap ?? "—"}</div>
+                                              {player.paymentStatus === "PAID" ? (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Paid" />
+                                              ) : (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Unpaid" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <select
+                                          value="unassigned"
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val !== "unassigned") handleMovePlayer(player.id, val);
+                                          }}
+                                          className="bg-emerald-50 text-emerald-600 border-none text-[11px] font-black rounded-lg px-3 py-1.5 cursor-pointer focus:ring-0"
+                                        >
+                                          <option value="unassigned">Assign To...</option>
+                                          {groupingsData.groups.map((g: GroupingItem) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                        </select>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="col-span-full py-20 text-center opacity-30">
+                                      <CheckCircle2 className="w-16 h-16 mx-auto text-emerald-500 mb-4" />
+                                      <p className="text-lg font-bold">No players found matching filters</p>
+                                    </div>
+                                  )}
+                                </div>
+                                {filtered.length > unassignedPerPage && (
+                                  <div className="pt-4 flex items-center justify-between border-t border-gray-100">
+                                    <p className="text-[13px] text-gray-500 font-medium">
+                                      Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
+                                    </p>
+                                    <Pagination
+                                      currentPage={unassignedPage}
+                                      totalPages={Math.ceil(filtered.length / unassignedPerPage)}
+                                      onPageChange={setUnassignedPage}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
+                    )}
+                  </div>
+                    ) : (
+                  <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
+                    <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                      <Users className="w-10 h-10 text-gray-200" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-gray-900">No Allocation Data</h3>
+                      <p className="text-[14px] text-gray-500 max-w-sm">Use auto-allocate to distribute players into groups for Day {selectedDay}.</p>
+                    </div>
+                    <Button
+                      onClick={handleGenerateGroupings}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
+                    >
+                      Start Auto Allocation
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
-                      <div className="w-full lg:w-[300px] shrink-0 bg-gray-50/50 border border-gray-150 rounded-2xl p-4 shadow-sm self-start">
-                        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                          <span className="text-[13px] text-gray-600 font-bold flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-gray-400" /> Unassigned Pool
-                          </span>
-                          <span className="text-[11px] font-bold text-gray-450 bg-gray-100 border px-2 py-0.5 rounded-lg">
-                            {groupingsData.unassigned.length}
-                          </span>
-                        </div>
-                        {groupingsData.unassigned && groupingsData.unassigned.length > 0 ? (
-                          <div className="divide-y divide-gray-100 max-h-[480px] overflow-y-auto pr-1 -mr-1 custom-scrollbar bg-white rounded-xl border border-gray-150/40 p-2 mt-3">
-                            {groupingsData.unassigned.map((player: GroupingPlayer) => (
-                              <div key={player.id} className="flex items-center justify-between py-2.5 hover:bg-gray-50/30 px-2 rounded-lg transition-colors">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-emerald-50">
-                                    {player.user?.profilePhoto ? (
-                                      <img src={player.user.profilePhoto} alt="" className="w-full h-full object-cover" />
+            {/* TABS 5: Leaderboard */}
+            {activeTab === "leaderboard" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Day Filtering for Leaderboard */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
+                    <button
+                      onClick={() => setSelectedLeaderboardDay("all")}
+                      className={cn(
+                        "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                        selectedLeaderboardDay === "all"
+                          ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                      )}
+                    >
+                      ALL DAYS
+                    </button>
+                    {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedLeaderboardDay(i + 1)}
+                        className={cn(
+                          "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                          selectedLeaderboardDay === i + 1
+                            ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                        )}
+                      >
+                        DAY {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
+                      <Activity className="w-3.5 h-3.5" />
+                      Viewing: {selectedLeaderboardDay === "all" ? "Tournament Total" : `Day ${selectedLeaderboardDay} Results`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      Live Standings
+                      <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                        Live
+                      </span>
+                    </h3>
+                    <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={loadLeaderboardData}
+                    disabled={leaderboardLoading}
+                    className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-all gap-2 shadow-sm"
+                  >
+                    <RefreshCcw className={cn("w-3.5 h-3.5", leaderboardLoading && "animate-spin")} />
+                    Refresh Results
+                  </Button>
+                </div>
+
+                {leaderboardLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                    <p className="text-sm text-gray-500 font-medium">Updating rankings...</p>
+                  </div>
+                ) : leaderboardData.length > 0 ? (
+                  <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50/50 border-b border-gray-100">
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Gross</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {leaderboardData.map((entry, index) => {
+                            const rank = index + 1;
+                            return (
+                              <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
+                                <td className="px-6 py-4 text-center">
+                                  <div className="flex items-center justify-center">
+                                    {rank === 1 ? (
+                                      <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                        <Trophy className="w-4 h-4 text-yellow-600" />
+                                      </div>
+                                    ) : rank === 2 ? (
+                                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                        <Award className="w-4 h-4 text-slate-400" />
+                                      </div>
+                                    ) : rank === 3 ? (
+                                      <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
+                                        <Award className="w-4 h-4 text-orange-600" />
+                                      </div>
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center font-bold text-[10px] text-[#10b981]">
-                                        {player.user?.firstName?.[0] || player.user?.email?.[0]?.toUpperCase() || "?"}
+                                      <span className="text-[13px] font-bold text-gray-400">{rank}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-100 bg-white shadow-sm shrink-0">
+                                      <img
+                                        src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[13px] font-bold text-gray-900 truncate">
+                                        {entry.user.firstName} {entry.user.lastName}
+                                      </div>
+                                      <div className="text-[10px] text-gray-400 font-medium truncate">
+                                        {entry.user.email}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100 uppercase">
+                                    {entry.user?.division || "Open"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <div className="space-y-1.5">
+                                    <span className="text-[12px] font-bold text-gray-600">
+                                      {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
+                                    </span>
+                                    {entry.grossStrokes > 0 && (
+                                      <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                          className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                                          style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                        />
                                       </div>
                                     )}
                                   </div>
-                                  <div className="min-w-0">
-                                    <div className="text-[12px] text-gray-800 font-bold truncate">
-                                      {player.user?.firstName || ""} {player.user?.lastName || ""}
-                                    </div>
-                                    <div className="text-[9px] text-gray-400 font-bold">
-                                      HCP: {player.user?.handicap !== null && player.user?.handicap !== undefined ? player.user.handicap : "—"}
-                                    </div>
-                                  </div>
-                                </div>
-                                <select
-                                  value="unassigned"
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val !== "unassigned") {
-                                      handleMovePlayer(player.id, val);
-                                    }
-                                  }}
-                                  className="bg-transparent border-none text-[11px] text-[#10b981] hover:bg-emerald-55/10 rounded px-1.5 py-1 focus:outline-none font-bold cursor-pointer transition-colors"
-                                >
-                                  <option value="unassigned">Assign...</option>
-                                  {groupingsData.groups.map((g: GroupingItem) => (
-                                    <option key={g.id} value={g.id}>{g.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-gray-450 italic text-center py-10 font-normal">All players have been grouped.</p>
-                        )}
-                      </div>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                    {entry.user.handicap || 0}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="text-[15px] font-black text-emerald-600">
+                                    {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  {entry.grossStrokes > 0 ? (
+                                    entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
+                                      <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                    )
+                                  ) : (
+                                    <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-200 rounded-2xl">
-                    <Route className="w-12 h-12 text-gray-200 mb-4" />
-                    <h3 className="text-lg font-bold text-gray-900 font-sans">No Groupings Calculated</h3>
-                    <p className="text-sm text-gray-400 mt-1 max-w-sm">Tee times groupings have not been compiled for this tournament yet.</p>
-                    <Button
-                      onClick={handleGenerateGroupings}
-                      disabled={groupingsGenerating}
-                      className="mt-6 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl h-10 px-6 text-[13px] font-bold"
-                    >
-                      {groupingsGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Generate Initial Pairings
-                    </Button>
+                      <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
+                    <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
+                      <Trophy className="w-10 h-10 text-gray-200" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-gray-900">Leaderboard Empty</h3>
+                      <p className="text-[14px] text-gray-500 font-normal max-w-sm">No scores have been recorded for {selectedLeaderboardDay === "all" ? "any day of this tournament" : `Day ${selectedLeaderboardDay}`} yet.</p>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* TABS 5: Overview (Course & Organiser Details) */}
+            {/* TABS 6: Overview */}
             {activeTab === "overview" && (
               <div className="space-y-8">
                 {/* Statistics Cards Row */}
@@ -1826,7 +2347,7 @@ function ViewTournamentPageInner() {
                     <div className="flex items-end justify-between">
                       <div>
                         <p className="text-2xl font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
-                        <p className="text-[11px] text-gray-505 font-medium mt-0.5">Total Players</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Total Players</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                         <Users className="w-5 h-5" />
@@ -1839,7 +2360,7 @@ function ViewTournamentPageInner() {
                     <div className="flex items-end justify-between">
                       <div>
                         <p className="text-2xl font-bold text-gray-900">{formatNaira(selectedTournament.entryFee)}</p>
-                        <p className="text-[11px] text-gray-550 font-medium mt-0.5">Per Registration</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Per Registration</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                         <Wallet className="w-5 h-5" />
@@ -1854,7 +2375,7 @@ function ViewTournamentPageInner() {
                         <p className="text-2xl font-bold text-gray-900">
                           {selectedTournament.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
                         </p>
-                        <p className="text-[11px] text-gray-550 font-medium mt-0.5">Player Limit</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Player Limit</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
                         <Lock className="w-5 h-5" />
@@ -1888,7 +2409,7 @@ function ViewTournamentPageInner() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Holes</span>
-                        <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.holesCount || "—"} Holes</span>
+                        <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.holes || "—"} Holes</span>
                       </div>
                       <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Par</span>
@@ -1905,14 +2426,62 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  {/* Organiser Box */}
+                  {/* Scoring Rules Box */}
+                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
+                        <Activity className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-[16px] font-bold text-gray-900 leading-tight">
+                          Scoring Rules
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Configuration for format and scoring verification
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Format</span>
+                        <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Scoring Type</span>
+                        <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Live Scoring</span>
+                        <span className={cn(
+                          "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).enableLiveScoring ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                        )}>
+                          {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Marker Verification</span>
+                        <span className={cn(
+                          "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).requireMarkerVerification ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                        )}>
+                          {(selectedTournament as any).requireMarkerVerification ? "REQUIRED" : "NOT REQUIRED"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organiser Box */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
                     <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {clubDetails?.logo ? (
                           <img src={clubDetails.logo} className="w-full h-full object-cover" />
                         ) : (
-                          <Trophy className="w-7 h-7 text-emerald-650" />
+                          <Trophy className="w-7 h-7 text-emerald-600" />
                         )}
                       </div>
                       <div>
@@ -1975,7 +2544,7 @@ function ViewTournamentPageInner() {
                   addTournamentRegistrationStrokes(reg, delta);
                 }}
               >
-                <Plus className="w-4 h-4 text-gray-455" /> +{delta} {delta === 1 ? "stroke" : "strokes"}
+                <Plus className="w-4 h-4 text-gray-450" /> +{delta} {delta === 1 ? "stroke" : "strokes"}
               </button>
             ))}
           </>
@@ -2006,7 +2575,7 @@ function ViewTournamentPageInner() {
             <AlertTriangle className="h-10 w-10 animate-bounce" />
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
-          <p className="text-gray-550 max-w-sm">
+          <p className="text-gray-500 max-w-sm">
             This will set the tournament status to Cancelled. Are you sure you want to cancel {selectedTournament.name}?
           </p>
         </div>
@@ -2037,7 +2606,7 @@ function ViewTournamentPageInner() {
               <Trash2 className="h-10 w-10 animate-pulse" />
             </div>
             <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
-            <p className="text-gray-550 max-w-sm">
+            <p className="text-gray-500 max-w-sm">
               This action cannot be undone. All database records associated with the tournament will be deleted.
             </p>
           </div>
@@ -2082,7 +2651,7 @@ function ViewTournamentPageInner() {
             <Ban className="h-10 w-10" />
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">Disqualify Player?</h4>
-          <p className="text-gray-550 max-w-sm">
+          <p className="text-gray-500 max-w-sm">
             Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
         </div>
@@ -2101,7 +2670,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30"
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
               onClick={confirmRemovePlayer}
             >
               Remove
@@ -2114,7 +2683,7 @@ function ViewTournamentPageInner() {
             <UserMinus className="h-10 w-10" />
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">Remove Player?</h4>
-          <p className="text-gray-550 max-w-sm">
+          <p className="text-gray-500 max-w-sm">
             Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
           </p>
         </div>
@@ -2133,7 +2702,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-650 border-emerald-655/30"
+              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
               onClick={confirmEnablePlayer}
             >
               Enable
@@ -2146,7 +2715,7 @@ function ViewTournamentPageInner() {
             <CheckCircle2 className="h-10 w-10 animate-bounce" />
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">Re-enable Player?</h4>
-          <p className="text-gray-550 max-w-sm">
+          <p className="text-gray-500 max-w-sm">
             Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
         </div>
@@ -2158,15 +2727,15 @@ function ViewTournamentPageInner() {
 export default function ViewTournamentPage() {
   return (
     <Suspense fallback={
-      <div className="space-y-8 w-full max-w-full px-4 py-8 font-sans animate-pulse">
-        <div className="flex flex-col gap-6">
-          <Skeleton className="h-5 w-36 rounded-md" />
+      <div className="space-y-8 w-full max-w-full px-4 py-8 font-sans">
+        <div className="flex flex-col gap-6 animate-pulse">
+          <div className="h-5 w-36 bg-gray-100 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <Skeleton className="h-20 w-20 rounded-3xl" />
+              <div className="h-20 w-20 bg-gray-100 rounded-3xl" />
               <div className="space-y-3">
-                <Skeleton className="h-8 w-72 rounded-lg" />
-                <Skeleton className="h-4 w-80 rounded-md" />
+                <div className="h-8 w-72 bg-gray-100 rounded-lg" />
+                <div className="h-4 w-80 bg-gray-100 rounded-md" />
               </div>
             </div>
           </div>

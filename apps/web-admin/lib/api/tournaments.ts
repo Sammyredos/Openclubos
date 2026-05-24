@@ -179,6 +179,7 @@ export async function deleteTournament(id: string) {
 
 export interface GroupingPlayer {
   id: string;
+  paymentStatus?: 'UNPAID' | 'PAID' | 'REFUNDED';
   user?: {
     id: string;
     email: string;
@@ -186,6 +187,7 @@ export interface GroupingPlayer {
     lastName: string | null;
     handicap: number | null;
     profilePhoto?: string | null;
+    division?: string | null;
   } | null;
 }
 
@@ -201,17 +203,14 @@ export interface GroupingData {
   unassigned: GroupingPlayer[];
 }
 
-function getStorageKey(tId: string) {
-  return `openclub_groupings_${tId}`;
+function getStorageKey(tId: string, day: number = 1) {
+  return `openclub_groupings_${tId}_day_${day}`;
 }
 
 async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   try {
-    const token = getAuthToken();
-    const res = await fetch(`${API_BASE}/registrations?tournamentId=${tId}`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : undefined),
-      },
+    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&take=1000`, {
+      method: 'GET',
     });
     if (res.ok) {
       const data = await res.json();
@@ -234,37 +233,44 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   return [];
 }
 
-export async function getGroupings(tournamentId: string): Promise<GroupingData> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/groupings`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
-    },
+export async function getGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings?day=${day}`, {
+    method: 'GET',
   }).catch(() => null);
 
   if (res && res.ok) {
     return res.json();
   }
 
-  // Local Mock fallback
+  // Local Mock fallback with non-destructive merge
+  const allPaidPlayers = await getFallbackPlayers(tournamentId);
+  
   if (typeof window !== 'undefined') {
-    const cached = localStorage.getItem(getStorageKey(tournamentId));
+    const cached = localStorage.getItem(getStorageKey(tournamentId, day));
     if (cached) {
-      return JSON.parse(cached);
+      const data: GroupingData = JSON.parse(cached);
+      
+      // Identify players who are PAID but not in any group or unassigned list
+      const assignedIds = new Set<string>();
+      data.groups.forEach(g => g.registrations.forEach(p => assignedIds.add(p.id)));
+      data.unassigned.forEach(p => assignedIds.add(p.id));
+      
+      const missingPlayers = allPaidPlayers.filter(p => !assignedIds.has(p.id));
+      
+      if (missingPlayers.length > 0) {
+        data.unassigned = [...data.unassigned, ...missingPlayers];
+        localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(data));
+      }
+      return data;
     }
   }
 
-  const players = await getFallbackPlayers(tournamentId);
-  return { groups: [], unassigned: players };
+  return { groups: [], unassigned: allPaidPlayers };
 }
 
-export async function generateGroupings(tournamentId: string): Promise<GroupingData> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/groupings/generate`, {
+export async function generateGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings/generate?day=${day}`, {
     method: 'POST',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
-    },
   }).catch(() => null);
 
   if (res && res.ok) {
@@ -281,8 +287,8 @@ export async function generateGroupings(tournamentId: string): Promise<GroupingD
   let interval = 10;
   let startTimeStr = "08:00";
   try {
-    const tRes = await fetch(`${API_BASE}/tournaments/${tournamentId}`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : undefined) }
+    const tRes = await authedFetch(`/tournaments/${tournamentId}`, {
+      method: 'GET',
     });
     if (tRes.ok) {
       const t = await tRes.json();
@@ -309,7 +315,7 @@ export async function generateGroupings(tournamentId: string): Promise<GroupingD
     const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
 
     groups.push({
-      id: `group-${i + 1}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `group-${day}-${i + 1}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Group ${i + 1}`,
       startTime: timeStr,
       registrations: groupPlayers,
@@ -324,7 +330,7 @@ export async function generateGroupings(tournamentId: string): Promise<GroupingD
 
   const result = { groups, unassigned };
   if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId), JSON.stringify(result));
+    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(result));
   }
   return result;
 }
@@ -332,16 +338,15 @@ export async function generateGroupings(tournamentId: string): Promise<GroupingD
 export async function movePlayerInGroupings(
   tournamentId: string,
   registrationId: string,
-  targetGroupId: string | null
+  targetGroupId: string | null,
+  day: number = 1
 ): Promise<GroupingData> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/groupings/move`, {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings/move`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    body: JSON.stringify({ registrationId, targetGroupId }),
+    body: JSON.stringify({ registrationId, targetGroupId, day }),
   }).catch(() => null);
 
   if (res && res.ok) {
@@ -349,7 +354,7 @@ export async function movePlayerInGroupings(
   }
 
   // Local Mock fallback
-  const current = await getGroupings(tournamentId);
+  const current = await getGroupings(tournamentId, day);
   let playerToMove: GroupingPlayer | null = null;
 
   current.groups = current.groups.map(g => {
@@ -382,7 +387,7 @@ export async function movePlayerInGroupings(
   }
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId), JSON.stringify(current));
+    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(current));
   }
   return current;
 }
@@ -390,16 +395,15 @@ export async function movePlayerInGroupings(
 export async function updateGroupingTime(
   tournamentId: string,
   groupId: string,
-  payload: { name?: string; startTime?: string }
+  payload: { name?: string; startTime?: string },
+  day: number = 1
 ): Promise<GroupingData> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/groupings/${groupId}`, {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings/${groupId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, day }),
   }).catch(() => null);
 
   if (res && res.ok) {
@@ -407,7 +411,7 @@ export async function updateGroupingTime(
   }
 
   // Local Mock fallback
-  const current = await getGroupings(tournamentId);
+  const current = await getGroupings(tournamentId, day);
   const targetGroup = current.groups.find(g => g.id === groupId);
   if (!targetGroup) {
     throw new Error("Group not found.");
@@ -417,18 +421,14 @@ export async function updateGroupingTime(
   if (payload.startTime !== undefined) targetGroup.startTime = payload.startTime;
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId), JSON.stringify(current));
+    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(current));
   }
   return current;
 }
 
-export async function clearGroupings(tournamentId: string): Promise<GroupingData> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/groupings`, {
+export async function clearGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings?day=${day}`, {
     method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
-    },
   }).catch(() => null);
 
   if (res && res.ok) {
@@ -437,7 +437,7 @@ export async function clearGroupings(tournamentId: string): Promise<GroupingData
 
   // Local Mock fallback
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(getStorageKey(tournamentId));
+    localStorage.removeItem(getStorageKey(tournamentId, day));
   }
   const players = await getFallbackPlayers(tournamentId);
   return { groups: [], unassigned: players };

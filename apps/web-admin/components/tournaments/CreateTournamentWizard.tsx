@@ -79,7 +79,7 @@ const DEFAULT_FORM = {
   hasHandicapRestriction: false, minHandicap: "", maxHandicap: "",
   maxPlayers: "", maxPlayersPerGroup: 4, enableWaitlist: false,
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
-  autoGrouping: false, teeStartTime: "", teeIntervalMinutes: 10,
+  autoGrouping: true, teeStartTime: "", teeIntervalMinutes: 10,
   enableLiveScoring: false, requireMarkerVerification: false, enableHoleScoring: true,
   publishImmediately: false, visibility: "PUBLIC" as const,
 };
@@ -1055,8 +1055,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       case 6: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
-              onClick={() => set("autoGrouping", !formData.autoGrouping)}>
+            <div className="px-5 py-4 border-b border-gray-100 bg-emerald-50/50 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <LayoutGrid className="w-4 h-4" />
@@ -1066,31 +1065,32 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
                 </div>
               </div>
-              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.autoGrouping ? "bg-emerald-500" : "bg-gray-200")}>
-                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.autoGrouping ? "left-6" : "left-1")} />
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
+                <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-emerald-500")}>
+                  <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
+                </div>
               </div>
             </div>
 
-            {formData.autoGrouping && (
-              <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Tee Off Start Time" required>
-                    <TimePicker
-                      value={formData.teeStartTime}
-                      onValueChange={(v) => set("teeStartTime", v)}
-                      placeholder="--:--  "
-                    />
-                  </Field>
-                  <Field label="Tee Interval (min)" required>
-                    <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
-                  </Field>
-                </div>
-                <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5" />
-                  Players will be assigned sequential tee times based on these settings.
-                </p>
+            <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Tee Off Start Time" required>
+                  <TimePicker
+                    value={formData.teeStartTime}
+                    onValueChange={(v) => set("teeStartTime", v)}
+                    placeholder="--:--  "
+                  />
+                </Field>
+                <Field label="Tee Interval (min)" required>
+                  <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
+                </Field>
               </div>
-            )}
+              <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
+                Players will be assigned sequential tee times based on these settings.
+              </p>
+            </div>
           </div>
         </div>
       );
@@ -1174,9 +1174,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           {/* ── Publishing ── */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className={cn("px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between", originalStatus !== "DRAFT" ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+            <div className={cn("px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between", (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
               onClick={() => {
-                if (originalStatus !== "DRAFT") return;
+                if (originalStatus !== "DRAFT" && originalStatus !== undefined) return;
                 set("publishImmediately", !formData.publishImmediately);
               }}>
               <div className="flex items-center gap-3">
@@ -1188,8 +1188,13 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
                 </div>
               </div>
-              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.publishImmediately ? "bg-emerald-500" : "bg-gray-200")}>
-                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.publishImmediately ? "left-6" : "left-1")} />
+              <div className="flex items-center gap-2">
+                {(originalStatus !== "DRAFT" && originalStatus !== undefined) && (
+                  <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase">Published</span>
+                )}
+                <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.publishImmediately ? "bg-emerald-500" : "bg-gray-200")}>
+                  <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.publishImmediately ? "left-6" : "left-1")} />
+                </div>
               </div>
             </div>
 
