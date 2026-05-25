@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ElementType } from "react";
+import { useState, useSyncExternalStore, useEffect, type ElementType } from "react";
 import {
   Users,
   Trophy,
@@ -30,57 +30,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { getClubStats } from "@/lib/api/clubs";
+import { getTournaments } from "@/lib/api/tournaments";
+import { toast } from "sonner";
 
+// Mock data for trends (since backend doesn't provide them yet)
 const registrationData = [
-  { month: "Jan", count: 40 },
-  { month: "Feb", count: 60 },
-  { month: "Mar", count: 50 },
-  { month: "Apr", count: 80 },
-  { month: "May", count: 100 },
-  { month: "Jun", count: 90 },
-  { month: "Jul", count: 110 },
-  { month: "Aug", count: 85 },
-  { month: "Sep", count: 120 },
-  { month: "Oct", count: 140 },
-  { month: "Nov", count: 160 },
-  { month: "Dec", count: 175 },
+  { month: "Jan", count: 0 },
+  { month: "Feb", count: 0 },
+  { month: "Mar", count: 0 },
+  { month: "Apr", count: 0 },
+  { month: "May", count: 0 },
+  { month: "Jun", count: 0 },
+  { month: "Jul", count: 0 },
+  { month: "Aug", count: 0 },
+  { month: "Sep", count: 0 },
+  { month: "Oct", count: 0 },
+  { month: "Nov", count: 0 },
+  { month: "Dec", count: 0 },
 ];
 
 const revenueData = [
-  { month: "Jan", amount: 1000000 },
-  { month: "Feb", amount: 1200000 },
-  { month: "Mar", amount: 1500000 },
-  { month: "Apr", amount: 1800000 },
-  { month: "May", amount: 2000000 },
-  { month: "Jun", amount: 2200000 },
-  { month: "Jul", amount: 2500000 },
-  { month: "Aug", amount: 2800000 },
-  { month: "Sep", amount: 3200000 },
-  { month: "Oct", amount: 3500000 },
-  { month: "Nov", amount: 4000000 },
-  { month: "Dec", amount: 4500000 },
-];
-
-const paymentStatusData = [
-  { name: "Paid", value: 120, color: "#10b981" },
-  { name: "Pending", value: 24, color: "#f59e0b" },
-  { name: "Overdue", value: 8, color: "#ef4444" },
-  { name: "Refunded", value: 4, color: "#94a3b8" },
-];
-
-const upcomingTournaments = [
-  { name: "Easter Championship", date: "Apr 20 - Apr 22, 2026", status: "Registration Open", statusColor: "text-emerald-600 bg-emerald-50" },
-  { name: "Captain's Cup", date: "May 10 - May 12, 2026", status: "Registration Open", statusColor: "text-emerald-600 bg-emerald-50" },
-  { name: "Monthly Medal", date: "May 25, 2026", status: "Upcoming", statusColor: "text-blue-600 bg-blue-50" },
-  { name: "Independence Tournament", date: "Oct 1 - Oct 3, 2026", status: "Upcoming", statusColor: "text-blue-600 bg-blue-50" },
-];
-
-const recentActivity = [
-  { title: "New member registered", subtitle: "Mike Anderson", time: "2 hours ago", icon: User, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
-  { title: "Payment received", subtitle: "Easter Championship - Registration", time: "5 hours ago", amount: "₦50,000", icon: CreditCard, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
-  { title: "Score submitted", subtitle: "John Doe - Hole 18", time: "1 day ago", icon: CheckSquare, iconBg: "bg-orange-50", iconColor: "text-orange-600" },
-  { title: "New registration", subtitle: "Sarah Johnson - Captain's Cup", time: "1 day ago", icon: User, iconBg: "bg-purple-50", iconColor: "text-purple-600" },
-  { title: "Tournament created", subtitle: "Independence Tournament", time: "2 days ago", icon: Trophy, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
+  { month: "Jan", amount: 0 },
+  { month: "Feb", amount: 0 },
+  { month: "Mar", amount: 0 },
+  { month: "Apr", amount: 0 },
+  { month: "May", amount: 0 },
+  { month: "Jun", amount: 0 },
+  { month: "Jul", amount: 0 },
+  { month: "Aug", amount: 0 },
+  { month: "Sep", amount: 0 },
+  { month: "Oct", amount: 0 },
+  { month: "Nov", amount: 0 },
+  { month: "Dec", amount: 0 },
 ];
 
 interface ActivityItemProps {
@@ -94,54 +77,108 @@ interface ActivityItemProps {
 }
 
 export default function OrganizerAdminDashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const isMounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
   );
+
+  useEffect(() => {
+    if (user?.clubId) {
+      setLoading(true);
+      Promise.all([
+        getClubStats(user.clubId),
+        getTournaments({ clubId: user.clubId, take: 5, status: "REGISTRATION_OPEN" })
+      ])
+        .then(([statsData, tournamentsData]: [any, any]) => {
+          setStats(statsData);
+          setUpcomingTournaments(Array.isArray(tournamentsData) ? tournamentsData : []);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch dashboard data:", err);
+          toast.error("Failed to load dashboard data");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [user?.clubId]);
+
   const [registrationsRange, setRegistrationsRange] = useState("This Year");
   const [revenueRange, setRevenueRange] = useState("This Year");
+
+  if (loading) {
+    return (
+      <div className="space-y-8 w-full max-w-full px-2 pb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-2xl shadow-sm" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[400px] w-full rounded-2xl shadow-sm" />
+          <Skeleton className="h-[400px] w-full rounded-2xl shadow-sm" />
+        </div>
+      </div>
+    );
+  }
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      maximumFractionDigits: 0
+    }).format(val);
+  };
+
+  const paymentStatusData = [
+    { name: "Paid", value: stats?.paidRegistrations || 0, color: "#10b981" },
+    { name: "Pending", value: stats?.unpaidRegistrations || 0, color: "#f59e0b" },
+  ];
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title="Total Users"
-          value="320"
-          change="+12"
+          value={stats?.totalMembers?.toString() || "0"}
+          change={stats?.membersGrowth || "0"}
           icon={Users}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
         />
         <StatCard
           title="Active Tournaments"
-          value="8"
-          subValue="2 ongoing"
+          value={stats?.activeTournaments?.toString() || "0"}
+          subValue={`${stats?.ongoingTournaments || 0} ongoing`}
           icon={Trophy}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
         />
         <StatCard
           title="Total Registrations"
-          value="156"
-          change="+18"
+          value={stats?.paidRegistrations?.toString() || "0"}
+          subValue={stats?.unpaidRegistrations ? `${stats.unpaidRegistrations} pending` : "0 pending"}
           icon={CheckSquare}
           iconBg="bg-orange-50"
           iconColor="text-orange-600"
         />
         <StatCard
-          title="Total Revenue"
-          value="₦4,250,000"
-          change="+15.6%"
+          title="Total Entry Fees"
+          value={formatCurrency(stats?.totalRevenue || 0)}
+          change={stats?.revenueGrowth || "0"}
           icon={TrendingUp}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
         />
         <StatCard
           title="Pending Payments"
-          value="24"
-          change="₦620,000"
-          changeType="neutral"
+          value={stats?.unpaidRegistrations?.toString() || "0"}
+          subValue={formatCurrency(stats?.unpaidAmount || 0)}
           icon={Wallet}
           iconBg="bg-red-50"
           iconColor="text-red-600"
@@ -236,15 +273,30 @@ export default function OrganizerAdminDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
-            {upcomingTournaments.map((t) => (
-              <div key={t.name} className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <p className="text-[14px] font-bold text-gray-800">{t.name}</p>
-                  <p className="text-[12px] text-gray-500 font-medium mt-1">{t.date}</p>
+            {upcomingTournaments.length > 0 ? (
+              upcomingTournaments.map((t) => (
+                <div key={t.id} className="flex items-center justify-between">
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-[14px] font-bold text-gray-800 truncate">{t.name}</p>
+                    <p className="text-[12px] text-gray-500 font-medium mt-1">
+                      {new Date(t.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[12px] font-bold text-gray-900">
+                      {t.entryFee === 0 || !t.entryFee ? "FREE" : `₦${t.entryFee.toLocaleString()}`}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
+                      Upcoming
+                    </span>
+                  </div>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1 rounded-xl ${t.statusColor}`}>{t.status}</span>
+              ))
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-[13px] text-gray-400 font-medium">No upcoming tournaments</p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -277,9 +329,15 @@ export default function OrganizerAdminDashboard() {
             <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {recentActivity.map((a) => (
-              <ActivityItem key={`${a.title}-${a.time}`} {...(a as ActivityItemProps)} />
-            ))}
+            {recentActivity.length > 0 ? (
+              recentActivity.map((a) => (
+                <ActivityItem key={`${a.title}-${a.time}`} {...(a as ActivityItemProps)} />
+              ))
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-[13px] text-gray-400 font-medium">No recent activity</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

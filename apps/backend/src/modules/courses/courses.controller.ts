@@ -2,67 +2,107 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CoursesService } from './courses.service';
+import { CreateCourseDto } from './dto/create-course.dto';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Controller('courses')
 @UseGuards(JwtAuthGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
-  // Admin paginated list — used by the Golf Courses management page
-  @Get('admin')
-  findAllAdmin(
+  @Post()
+  create(@Body() createCourseDto: CreateCourseDto) {
+    return this.coursesService.create(createCourseDto);
+  }
+
+  @Get()
+  findAll(@Request() req: any, @Query('clubId') clubId?: string) {
+    const role = req.user?.role as UserRole | undefined;
+    const userClubId = req.user?.clubId as string | undefined;
+
+    const effectiveClubId =
+      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+
+    return this.coursesService.findAll(effectiveClubId);
+  }
+
+  @Get('paged')
+  findAllPaged(
+    @Request() req: any,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('search') search?: string,
     @Query('country') country?: string,
     @Query('status') status?: string,
     @Query('type') type?: string,
+    @Query('clubId') clubId?: string,
   ) {
+    const role = req.user?.role as UserRole | undefined;
+    const userClubId = req.user?.clubId as string | undefined;
+
+    const effectiveClubId =
+      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+
     return this.coursesService.findAllAdmin({
-      skip: skip ? +skip : 0,
-      take: take ? +take : 10,
+      skip: skip ? parseInt(skip) : undefined,
+      take: take ? parseInt(take) : undefined,
       search,
       country,
       status,
       type,
+      clubId: effectiveClubId,
     });
   }
 
-  // Club-scoped list — used by tournament wizard course dropdown
-  @Get()
-  findAll(@Query('clubId') clubId?: string) {
-    return this.coursesService.findAll(clubId);
-  }
-
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
-  }
+  async findOne(@Request() req: any, @Param('id') id: string) {
+    const course = await this.coursesService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
 
-  @Post()
-  create(@Body() body: any) {
-    return this.coursesService.create(body);
+    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this course');
+    }
+    return course;
   }
 
   @Patch(':id')
-  update(
+  async update(
+    @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() updateCourseDto: UpdateCourseDto,
   ) {
-    return this.coursesService.update(id, body);
+    const course = await this.coursesService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this course');
+    }
+    return this.coursesService.update(id, updateCourseDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Request() req: any, @Param('id') id: string) {
+    const course = await this.coursesService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this course');
+    }
     return this.coursesService.remove(id);
   }
 }

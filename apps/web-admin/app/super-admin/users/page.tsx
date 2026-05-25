@@ -31,6 +31,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -840,15 +841,11 @@ export default function SuperAdminUsersPage() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-20 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-                          <Users className="w-8 h-8 text-gray-200" />
-                        </div>
-                        <div className="space-y-1 text-center">
-                          <p className="text-[15px] font-bold text-gray-900">No users found</p>
-                          <p className="text-[13px] text-gray-400">Try adjusting your filters or search query.</p>
-                        </div>
-                      </div>
+                      <EmptyState
+                        icon={Users}
+                        title="No users found"
+                        description="Try adjusting your filters or search query to find what you're looking for."
+                      />
                     </td>
                   </tr>
                 )}

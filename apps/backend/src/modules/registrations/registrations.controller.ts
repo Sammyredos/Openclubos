@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { RegistrationsService } from './registrations.service';
 import { RegisterTournamentDto } from './dto/register-tournament.dto';
@@ -74,35 +75,76 @@ export class RegistrationsController {
   }
 
   @Patch(':id/status')
-  updateStatus(
+  async updateStatus(
+    @Request() req: any,
     @Param('id') id: string,
     @Body('status') status: RegistrationStatus,
   ) {
+    const registration = await this.registrationsService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this registration');
+    }
     return this.registrationsService.updateStatus(id, status);
   }
 
   @Patch(':id/strokes')
-  addStrokes(@Param('id') id: string, @Body('delta') delta: number) {
+  async addStrokes(
+    @Request() req: any,
+    @Param('id') id: string, 
+    @Body('delta') delta: number
+  ) {
+    const registration = await this.registrationsService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this registration');
+    }
     return this.registrationsService.addStrokes(id, Number(delta));
   }
 
   @Patch(':id/strokes/clear')
-  clearStrokes(@Param('id') id: string) {
+  async clearStrokes(@Request() req: any, @Param('id') id: string) {
+    const registration = await this.registrationsService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this registration');
+    }
     return this.registrationsService.clearStrokes(id);
   }
 
   @Patch(':id/payment')
-  confirmPayment(
+  async confirmPayment(
+    @Request() req: any,
     @Param('id') id: string,
     @Body('paymentReference') paymentReference: string,
   ) {
+    const registration = await this.registrationsService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this registration');
+    }
     return this.registrationsService.confirmPayment(id, paymentReference);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
-  remove(@Param('id') id: string) {
+  async remove(@Request() req: any, @Param('id') id: string) {
+    const registration = await this.registrationsService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this registration');
+    }
     return this.registrationsService.remove(id);
   }
 }

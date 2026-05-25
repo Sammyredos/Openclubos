@@ -32,6 +32,8 @@ export class ClubsService {
       ongoingTournaments,
       paidRegistrations,
       unpaidRegistrations,
+      totalMembers,
+      membersThisMonth,
     ] = await Promise.all([
       this.prisma.tournament.count({ where: { deletedAt: null, clubId: id } }),
       this.prisma.tournament.count({
@@ -60,6 +62,16 @@ export class ClubsService {
         where: {
           paymentStatus: 'UNPAID',
           tournament: { deletedAt: null, clubId: id },
+        },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, clubId: id },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          clubId: id,
+          createdAt: { gte: startThisMonth, lt: startNextMonth },
         },
       }),
     ]);
@@ -115,8 +127,8 @@ export class ClubsService {
     const unpaidAmount = Number(unpaidAmountRow?.[0]?.amount ?? 0);
 
     return {
-      totalMembers: 0,
-      membersThisMonth: 0,
+      totalMembers,
+      membersThisMonth,
       totalTournaments,
       activeTournaments,
       ongoingTournaments,

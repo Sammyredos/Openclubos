@@ -49,6 +49,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   cancelTournament,
   deleteTournament,
@@ -1417,13 +1418,8 @@ function ViewTournamentPageInner() {
                                     </span>
                                   )}
 
-                                  {/* Handicap Badge */}
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                    HCP {r.user?.handicap ?? 0}
-                                  </span>
-
                                   {/* PH Badge */}
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                     PH {r.user?.handicap ?? 0}
                                   </span>
 
@@ -1510,9 +1506,10 @@ function ViewTournamentPageInner() {
                       })}
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/40 p-8 text-center text-[13px] text-gray-500 font-medium">
-                      No registrations found matching these filters.
-                    </div>
+                    <EmptyState
+                      title="No registrations found"
+                      description="Try adjusting your filters or search query to find what you're looking for."
+                    />
                   )}
 
                   {!registrationsLoading && registrationsFilteredTotal > 0 && (
@@ -1660,21 +1657,19 @@ function ViewTournamentPageInner() {
                         })}
                       </div>
                     ) : registerPlayerSearch.trim().length >= 2 ? (
-                      <div className="h-[300px] flex flex-col items-center justify-center text-center p-8">
-                        <Search className="w-10 h-10 text-gray-300 mb-3" />
-                        <p className="text-[14px] font-bold text-gray-900">No players found</p>
-                        <p className="text-[12px] text-gray-400 mt-1 max-w-xs">
-                          We couldn't find anyone in OpenClub matching "{registerPlayerSearch}"
-                        </p>
-                      </div>
+                      <EmptyState
+                        variant="minimal"
+                        icon={Search}
+                        title="No players found"
+                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
+                      />
                     ) : (
-                      <div className="h-[300px] flex flex-col items-center justify-center text-center p-8">
-                        <Users className="w-10 h-10 text-emerald-200 mb-3 animate-pulse" />
-                        <p className="text-[14px] font-bold text-gray-950">Start Enrolling</p>
-                        <p className="text-[12px] text-gray-500 mt-1 max-w-xs leading-relaxed">
-                          Type 2 or more characters of a member's name or email to retrieve matches.
-                        </p>
-                      </div>
+                      <EmptyState
+                        variant="minimal"
+                        icon={Users}
+                        title="Start Enrolling"
+                        description="Type 2 or more characters of a member's name or email to retrieve matches."
+                      />
                     )}
                   </div>
                 </div>
@@ -1801,15 +1796,11 @@ function ViewTournamentPageInner() {
                       ) : (
                         <tr>
                           <td colSpan={3} className="px-6 py-20 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-dashed border-gray-200">
-                                <Clock className="w-8 h-8 text-gray-200" />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-[15px] font-bold text-gray-900">Waitlist is empty</p>
-                                <p className="text-[13px] text-gray-400">No players currently in the queue for this tournament.</p>
-                              </div>
-                            </div>
+                            <EmptyState
+                              icon={Clock}
+                              title="Waitlist is empty"
+                              description="No players currently in the queue for this tournament."
+                            />
                           </td>
                         </tr>
                       )}
@@ -2092,13 +2083,10 @@ function ViewTournamentPageInner() {
                                                     </span>
                                                   )}
 
-                                                  {/* Handicap Badge */}
-                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    HCP {player.user?.handicap ?? 0}
-                                                  </span>
+
 
                                                   {/* PH Badge */}
-                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border-blue-100">
+                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
                                                     PH {player.user?.handicap ?? 0}
                                                   </span>
                                                 </div>
@@ -2239,15 +2227,10 @@ function ViewTournamentPageInner() {
                                                 </span>
                                               )}
 
-                                              {/* Handicap Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                HCP {player.user?.handicap ?? 0}
-                                              </span>
-
                                               {/* PH Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border border-blue-100">
-                                                PH {player.user?.handicap ?? 0}
-                                              </span>
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                  PH {player.user?.handicap ?? 0}
+                                                </span>
                                             </div>
                                           </div>
                                             </div>
@@ -2265,9 +2248,12 @@ function ViewTournamentPageInner() {
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="col-span-full py-20 text-center opacity-30">
-                                          <CheckCircle2 className="w-16 h-16 mx-auto text-emerald-500 mb-4" />
-                                          <p className="text-lg font-bold">No players found matching filters</p>
+                                        <div className="col-span-full py-12">
+                                          <EmptyState
+                                            variant="minimal"
+                                            title="No players found"
+                                            description="No unassigned players matching your search query."
+                                          />
                                         </div>
                                       )}
                                     </div>
@@ -2291,21 +2277,19 @@ function ViewTournamentPageInner() {
                         )}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
-                        <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                          <Users className="w-10 h-10 text-gray-200" />
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="text-xl font-bold text-gray-900">No Allocation Data</h3>
-                          <p className="text-[14px] text-gray-500 max-w-sm">Use auto-allocate to distribute players into groups for Day {selectedDay}.</p>
-                        </div>
-                        <Button
-                          onClick={handleGenerateGroupings}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
-                        >
-                          Start Random Grouping
-                        </Button>
-                      </div>
+                      <EmptyState
+                        icon={Users}
+                        title="No Allocation Data"
+                        description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
+                        action={
+                          <Button
+                            onClick={handleGenerateGroupings}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
+                          >
+                            Start Random Grouping
+                          </Button>
+                        }
+                      />
                     )}
                   </>
                 )}

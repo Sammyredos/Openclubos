@@ -8,15 +8,16 @@ import {
   Delete,
   Query,
   UseGuards,
+  Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { MemberStatus } from '@prisma/client';
+import { MemberStatus, UserRole } from '@prisma/client';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
 
 @Controller('members')
 @UseGuards(JwtAuthGuard)
@@ -30,13 +31,26 @@ export class MembersController {
 
   @Get()
   findAll(
+    @Request() req: any,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
     @Query('search') search?: string,
     @Query('status') status?: MemberStatus,
     @Query('clubId') clubId?: string,
   ) {
-    return this.membersService.findAll({ skip, take, search, status, clubId });
+    const role = req.user?.role as UserRole | undefined;
+    const userClubId = req.user?.clubId as string | undefined;
+
+    const effectiveClubId =
+      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+
+    return this.membersService.findAll({ 
+      skip, 
+      take, 
+      search, 
+      status, 
+      clubId: effectiveClubId 
+    });
   }
 
   @Get('all')
@@ -61,12 +75,30 @@ export class MembersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.membersService.findOne(id);
+  async findOne(@Request() req: any, @Param('id') id: string) {
+    const member = await this.membersService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && member.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this member');
+    }
+    return member;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMemberDto: UpdateMemberDto) {
+  async update(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() updateMemberDto: UpdateMemberDto,
+  ) {
+    const member = await this.membersService.findOne(id);
+    const role = req.user?.role as UserRole;
+    const userClubId = req.user?.clubId;
+
+    if (role === UserRole.CLUB_ADMIN && member.clubId !== userClubId) {
+      throw new ForbiddenException('You do not have access to this member');
+    }
     return this.membersService.update(id, updateMemberDto);
   }
 

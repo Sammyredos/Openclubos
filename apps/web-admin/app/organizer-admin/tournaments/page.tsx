@@ -38,7 +38,9 @@ import {
   Tooltip,
 } from "recharts";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -305,11 +307,13 @@ export default function TournamentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const { user } = useAuth();
+
   async function reloadTournaments() {
     setLoading(true);
     setError(null);
     try {
-      const data = (await getTournaments()) as ApiTournament[];
+      const data = (await getTournaments({ clubId: user?.clubId })) as ApiTournament[];
       setTournaments(Array.isArray(data) ? data : []);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to fetch tournaments");
@@ -439,10 +443,16 @@ export default function TournamentsPage() {
 
   const filteredTournaments = rows.filter((t) => {
     const q = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      q.length === 0 ||
-      t.name.toLowerCase().includes(q) ||
-      t.clubName.toLowerCase().includes(q);
+    const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+    const searchableFields = [
+       t.name,
+       t.clubName,
+     ];
+
+    const matchesSearch = tokens.length === 0 || tokens.every(token => 
+      searchableFields.some(field => field?.toLowerCase().includes(token))
+    );
 
     const matchesClub = clubFilter === "All Organizers" || t.clubName === clubFilter;
     const matchesStatus = statusFilter === "All Status" || t.status === statusFilter;
@@ -731,7 +741,7 @@ export default function TournamentsPage() {
     let cancelled = false;
 
     setIsSearchingPlayers(true);
-    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
+    getAdminUsers({ search: q, take: 10, role: "PLAYER", clubId: user?.clubId })
       .then(({ items }) => {
         if (!cancelled) {
           setRegisterPlayerResults(Array.isArray(items) ? items : []);
@@ -1277,15 +1287,11 @@ export default function TournamentsPage() {
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-6 py-20 text-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-                              <Trophy className="w-8 h-8 text-gray-200" />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-[15px] font-bold text-gray-900">No tournaments found</p>
-                              <p className="text-[13px] text-gray-400">Try adjusting your filters or search query.</p>
-                            </div>
-                          </div>
+                          <EmptyState
+                            icon={Trophy}
+                            title="No tournaments found"
+                            description="Try adjusting your filters or search query to find what you're looking for."
+                          />
                         </td>
                       </tr>
                     )}

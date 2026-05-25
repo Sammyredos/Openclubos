@@ -42,6 +42,7 @@ export class CoursesService {
     country?: string;
     status?: string;
     type?: string;
+    clubId?: string;
   }) {
     const skip = query.skip ?? 0;
     const take = query.take ?? 10;
@@ -64,6 +65,7 @@ export class CoursesService {
     if (query.country) where.country = query.country;
     if (query.status) where.status = query.status as CourseStatus;
     if (query.type) where.type = query.type;
+    if (query.clubId) where.clubId = query.clubId;
 
     const [courses, total] = await Promise.all([
       this.prisma.course.findMany({

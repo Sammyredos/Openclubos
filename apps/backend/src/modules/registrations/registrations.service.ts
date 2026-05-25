@@ -255,6 +255,19 @@ export class RegistrationsService {
     }
   }
 
+  async findOne(id: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id },
+      include: {
+        tournament: {
+          select: { id: true, clubId: true },
+        },
+      },
+    });
+    if (!registration) throw new NotFoundException('Registration not found');
+    return registration;
+  }
+
   async addStrokes(registrationId: string, delta: number): Promise<any> {
     if (!Number.isFinite(delta) || !Number.isInteger(delta)) {
       throw new BadRequestException('Delta must be an integer');

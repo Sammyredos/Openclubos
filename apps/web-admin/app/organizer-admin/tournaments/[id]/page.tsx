@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -11,34 +11,25 @@ import {
   Wallet,
   Search,
   Plus,
-  Download,
-  Filter,
   Eye,
   Edit2,
   MoreHorizontal,
-  ArrowUpRight,
   Ban,
   CheckCircle2,
   Trash2,
   AlertTriangle,
-  Link,
   Globe,
   Lock,
   Shield,
-  Check,
-  Eraser,
   UserMinus,
   Clock,
-  X,
   ArrowLeft,
   Loader2,
   Flag,
-  Route,
   Activity,
   Award,
   Sparkles,
   RefreshCcw,
-  Home,
   Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +40,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   cancelTournament,
   deleteTournament,
@@ -64,12 +56,10 @@ import {
   type GroupingPlayer,
 } from "@/lib/api/tournaments";
 import { getTournamentScores } from "@/lib/api/scores";
-import { getAdminUsers } from "@/lib/api/members";
 import { getCourse, type Course } from "@/lib/api/courses";
 import { getClub, type Club } from "@/lib/api/clubs";
 import {
   addRegistrationStrokes,
-  clearRegistrationStrokes,
   getRegistrations,
   updateRegistrationStatus,
   deleteRegistration,
@@ -121,7 +111,6 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 
 const TABS = [
   { id: "players", label: "Registered Players" },
-  { id: "register", label: "Register Player" },
   { id: "waitlist", label: "Waitlist Settings" },
   { id: "groupings", label: "Groupings (Tee Times)" },
   { id: "leaderboard", label: "Live Leaderboard" },
@@ -197,20 +186,13 @@ function ViewTournamentPageInner() {
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
   >("All Status");
   const [registrationsPaymentFilter, setRegistrationsPaymentFilter] = useState<"All Payments" | "PAID" | "UNPAID" | "REFUNDED">("All Payments");
-  const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
+  const [registrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
 
   const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
   const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
   const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
-
-  // Manual register options
-  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
-  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
-  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
 
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
@@ -230,15 +212,12 @@ function ViewTournamentPageInner() {
   const [groupingsSubTab, setGroupingsSubTab] = useState<"unassigned" | "grouped">("unassigned");
   const [groupingsLoading, setGroupingsLoading] = useState(false);
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
-  const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
-  const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
 
   // Groupings Search/Filter
   const [groupingsSearch, setGroupingsSearch] = useState("");
   const [groupsSearch, setGroupsSearch] = useState("");
-  const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
   const unassignedPerPage = 12;
@@ -313,7 +292,7 @@ function ViewTournamentPageInner() {
     // Capacity check
     if (targetGroupId && groupingsData) {
       const targetGroup = groupingsData.groups.find(g => g.id === targetGroupId);
-      const capacity = selectedTournament?.maxPlayersPerGroup;
+      const capacity = selectedTournament?.maxPlayersPerGroup || 4;
       if (targetGroup && targetGroup.registrations.length >= capacity) {
         toast.error(`Group "${targetGroup.name}" is full!`, {
           description: `This group has reached its maximum capacity of ${capacity} players.`,
@@ -336,7 +315,6 @@ function ViewTournamentPageInner() {
     try {
       const data = await updateGroupingTime(tournamentId, groupId, payload, selectedDay);
       setGroupingsData(data);
-      setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
       toast.success("Group updated successfully");
     } catch (err) {
@@ -734,86 +712,6 @@ function ViewTournamentPageInner() {
       )
       : registrations;
 
-  // Search & Register Logic inside tab
-  useEffect(() => {
-    if (activeTab !== "register") {
-      setRegisterPlayerResults([]);
-      return;
-    }
-    const q = registerPlayerSearch.trim();
-    if (q.length < 2) {
-      setRegisterPlayerResults([]);
-      return;
-    }
-
-    let cancelled = false;
-    setIsSearchingPlayers(true);
-    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
-      .then(({ items }) => {
-        if (!cancelled) {
-          setRegisterPlayerResults(Array.isArray(items) ? items : []);
-        }
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          console.error("Player search failed", e);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsSearchingPlayers(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, registerPlayerSearch]);
-
-  const handleRegisterPlayer = async (userId: string) => {
-    if (!selectedTournament?.id) return;
-    setIsRegistering(true);
-    try {
-      const { registerForTournament } = await import("@/lib/api/registrations");
-      await registerForTournament({
-        tournamentId: selectedTournament.id,
-        userId,
-        paymentStatus: manualPaymentType === "CASH" ? "PAID" : "UNPAID",
-        status: manualPaymentType === "CASH" ? "APPROVED" : "PENDING",
-      });
-      toast.success("Player registered successfully");
-      setRegisterPlayerSearch("");
-
-      await reloadSingleTournament();
-
-      if (registrationsMode === "server") {
-        setRegistrationsPage(1);
-        setRegistrationsLoading(true);
-        const { items, total } = await getRegistrations({
-          tournamentId,
-          skip: 0,
-          take: registrationsPerPage,
-        });
-        setRegistrations(Array.isArray(items) ? items : []);
-        setRegistrationsTotal(typeof total === "number" ? total : 0);
-        setRegistrationsLoading(false);
-      } else {
-        setRegistrationsInitialized(false);
-        getRegistrations({
-          tournamentId: selectedTournament.id,
-          skip: 0,
-          take: CLIENT_REGISTRATIONS_MAX,
-        }).then(({ items, total }) => {
-          setRegistrationsAll(Array.isArray(items) ? items : []);
-          setRegistrationsTotal(typeof total === "number" ? total : 0);
-          setRegistrationsInitialized(true);
-        });
-      }
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to register player");
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
   // Waitlist Action methods
   const handleApproveWaitlist = async (regId: string) => {
     setWaitlistActionId(regId);
@@ -933,7 +831,7 @@ function ViewTournamentPageInner() {
         setRegistrationsPage(1);
         setRegistrationsLoading(true);
         const { items, total } = await getRegistrations({
-          tournamentId: selectedTournament.id,
+          tournamentId: tournamentId,
           skip: 0,
           take: registrationsPerPage,
         });
@@ -972,7 +870,7 @@ function ViewTournamentPageInner() {
     router.push(`/organizer-admin/tournaments/${tournament.id}/edit`);
   };
 
-  const openCancel = (tournament: TournamentRow) => {
+  const openCancel = () => {
     closeDropdown();
     setIsCancelModalOpen(true);
   };
@@ -990,7 +888,7 @@ function ViewTournamentPageInner() {
   const handleMenuAction = (tournament: TournamentRow, action: string) => {
     closeDropdown();
     if (action === "cancel") {
-      openCancel(tournament);
+      openCancel();
       return;
     }
     if (action === "delete") {
@@ -1279,13 +1177,6 @@ function ViewTournamentPageInner() {
                     <h2 className="text-xl font-bold text-gray-900">Registered Players</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
-                  <Button
-                    disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-                    onClick={() => setActiveTab("register")}
-                    className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-xl px-4 text-[13px] font-bold"
-                  >
-                    <UserPlus className="w-4 h-4" /> Register Player
-                  </Button>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -1417,13 +1308,8 @@ function ViewTournamentPageInner() {
                                     </span>
                                   )}
 
-                                  {/* Handicap Badge */}
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                    HCP {r.user?.handicap ?? 0}
-                                  </span>
-
                                   {/* PH Badge */}
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                     PH {r.user?.handicap ?? 0}
                                   </span>
 
@@ -1510,9 +1396,10 @@ function ViewTournamentPageInner() {
                       })}
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/40 p-8 text-center text-[13px] text-gray-500 font-medium">
-                      No registrations found matching these filters.
-                    </div>
+                    <EmptyState
+                      title="No registrations found"
+                      description="Try adjusting your filters or search query to find what you're looking for."
+                    />
                   )}
 
                   {!registrationsLoading && registrationsFilteredTotal > 0 && (
@@ -1532,151 +1419,6 @@ function ViewTournamentPageInner() {
                       />
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* TABS 2: Register Player Inline */}
-            {activeTab === "register" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 font-sans">Manual Player Registration</h2>
-                  <p className="text-sm text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-[14px] font-bold text-gray-900 leading-tight">Quick Registration</h3>
-                    <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      Register members directly into <span className="text-emerald-600 font-bold">{selectedTournament.name}</span>. Groupings and pairing calculations will be recalculated dynamically.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Initial Payment Status</Label>
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setManualPaymentType('UNPAID')}
-                      className={cn(
-                        "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                        manualPaymentType === 'UNPAID'
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                          manualPaymentType === 'UNPAID' ? "border-emerald-500" : "border-gray-300"
-                        )}>
-                          {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
-                        </div>
-                        <span className="text-[13px] font-bold">Unpaid</span>
-                      </div>
-                      <p className="text-[10px] opacity-70 leading-tight mt-1">Player will not be confirmed for grouping until payment is recorded.</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setManualPaymentType('CASH')}
-                      className={cn(
-                        "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                        manualPaymentType === 'CASH'
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                          manualPaymentType === 'CASH' ? "border-emerald-500" : "border-gray-300"
-                        )}>
-                          {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
-                        </div>
-                        <span className="text-[13px] font-bold">Paid (Cash / Direct)</span>
-                      </div>
-                      <p className="text-[10px] opacity-70 leading-tight mt-1">Player will be marked as PAID and automatically APPROVED.</p>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Type player name or email to search..."
-                      value={registerPlayerSearch}
-                      onChange={(e) => setRegisterPlayerSearch(e.target.value)}
-                      className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
-                    />
-                  </div>
-
-                  <div className="border border-gray-150 rounded-2xl overflow-hidden min-h-[300px] bg-gray-50/20">
-                    {isSearchingPlayers ? (
-                      <div className="p-12 text-center text-gray-400 space-y-3">
-                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
-                        <p className="text-sm">Searching the openclub registry...</p>
-                      </div>
-                    ) : registerPlayerResults.length > 0 ? (
-                      <div className="divide-y divide-gray-100 bg-white">
-                        {registerPlayerResults.map((player) => {
-                          const isAlreadyRegistered = registrationsAll.some(x => x.user?.id === player.id);
-                          return (
-                            <div key={player.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
-                                  <img
-                                    src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
-                                    alt=""
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[14px] font-bold text-gray-900 truncate">
-                                    {fullName(player.firstName ?? null, player.lastName ?? null)}
-                                  </p>
-                                  <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
-                                </div>
-                              </div>
-                              <Button
-                                disabled={isAlreadyRegistered || isRegistering}
-                                size="sm"
-                                onClick={() => handleRegisterPlayer(player.id)}
-                                className={cn(
-                                  "rounded-xl font-bold text-[12px] px-4 h-9",
-                                  isAlreadyRegistered
-                                    ? "bg-gray-100 text-gray-400 border border-gray-200"
-                                    : "bg-[#10b981] hover:bg-[#0da673] text-white"
-                                )}
-                              >
-                                {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : registerPlayerSearch.trim().length >= 2 ? (
-                      <div className="h-[300px] flex flex-col items-center justify-center text-center p-8">
-                        <Search className="w-10 h-10 text-gray-300 mb-3" />
-                        <p className="text-[14px] font-bold text-gray-900">No players found</p>
-                        <p className="text-[12px] text-gray-400 mt-1 max-w-xs">
-                          We couldn't find anyone in OpenClub matching "{registerPlayerSearch}"
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="h-[300px] flex flex-col items-center justify-center text-center p-8">
-                        <Users className="w-10 h-10 text-emerald-200 mb-3 animate-pulse" />
-                        <p className="text-[14px] font-bold text-gray-950">Start Enrolling</p>
-                        <p className="text-[12px] text-gray-500 mt-1 max-w-xs leading-relaxed">
-                          Type 2 or more characters of a member's name or email to retrieve matches.
-                        </p>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             )}
@@ -1801,15 +1543,11 @@ function ViewTournamentPageInner() {
                       ) : (
                         <tr>
                           <td colSpan={3} className="px-6 py-20 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-dashed border-gray-200">
-                                <Clock className="w-8 h-8 text-gray-200" />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-[15px] font-bold text-gray-900">Waitlist is empty</p>
-                                <p className="text-[13px] text-gray-400">No players currently in the queue for this tournament.</p>
-                              </div>
-                            </div>
+                            <EmptyState
+                              icon={Clock}
+                              title="Waitlist is empty"
+                              description="No players currently in the queue for this tournament."
+                            />
                           </td>
                         </tr>
                       )}
@@ -2092,13 +1830,8 @@ function ViewTournamentPageInner() {
                                                 </span>
                                               )}
 
-                                              {/* Handicap Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                HCP {player.user?.handicap ?? 0}
-                                              </span>
-
                                               {/* PH Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border border-blue-100">
+                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
                                                 PH {player.user?.handicap ?? 0}
                                               </span>
                                             </div>
@@ -2240,13 +1973,8 @@ function ViewTournamentPageInner() {
                                                 </span>
                                               )}
 
-                                              {/* Handicap Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                HCP {player.user?.handicap ?? 0}
-                                              </span>
-
                                               {/* PH Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-blue-50 text-blue-700 border border-blue-100">
+                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
                                                 PH {player.user?.handicap ?? 0}
                                               </span>
                                             </div>
@@ -2266,11 +1994,14 @@ function ViewTournamentPageInner() {
                                       </div>
                                     ))
                                   ) : (
-                                    <div className="col-span-full py-20 text-center opacity-30">
-                                      <CheckCircle2 className="w-16 h-16 mx-auto text-emerald-500 mb-4" />
-                                      <p className="text-lg font-bold">No players found matching filters</p>
-                                    </div>
-                                  )}
+                                        <div className="col-span-full py-12">
+                                          <EmptyState
+                                            variant="minimal"
+                                            title="No players found"
+                                            description="No unassigned players matching your search query."
+                                          />
+                                        </div>
+                                      )}
                                 </div>
                                 {filtered.length > unassignedPerPage && (
                                   <div className="pt-4 flex items-center justify-between border-t border-gray-100">
@@ -2292,21 +2023,19 @@ function ViewTournamentPageInner() {
                     )}
                   </div>
                     ) : (
-                  <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
-                    <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                      <Users className="w-10 h-10 text-gray-200" />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-gray-900">No Allocation Data</h3>
-                      <p className="text-[14px] text-gray-500 max-w-sm">Use auto-allocate to distribute players into groups for Day {selectedDay}.</p>
-                    </div>
-                    <Button
-                          onClick={handleGenerateGroupings}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
-                        >
-                          Start Random Grouping
-                        </Button>
-                  </div>
+                  <EmptyState
+                    icon={Users}
+                    title="No Allocation Data"
+                    description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
+                    action={
+                      <Button
+                        onClick={handleGenerateGroupings}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
+                      >
+                        Start Random Grouping
+                      </Button>
+                    }
+                  />
                 )}
               </>
             )}

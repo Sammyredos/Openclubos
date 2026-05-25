@@ -38,6 +38,7 @@ import {
   Tooltip,
 } from "recharts";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -348,10 +349,16 @@ export default function TournamentsPage() {
 
   const filteredTournaments = rows.filter((t) => {
     const q = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      q.length === 0 ||
-      t.name.toLowerCase().includes(q) ||
-      t.clubName.toLowerCase().includes(q);
+    const tokens = q.split(/[\s-]+/).filter(Boolean);
+
+    const searchableFields = [
+       t.name,
+       t.clubName,
+     ];
+
+    const matchesSearch = tokens.length === 0 || tokens.every(token => 
+      searchableFields.some(field => field?.toLowerCase().includes(token))
+    );
 
     const matchesClub = clubFilter === "All Organizers" || t.clubName === clubFilter;
     const matchesStatus = statusFilter === "All Status" || t.status === statusFilter;
@@ -1186,15 +1193,11 @@ export default function TournamentsPage() {
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-6 py-20 text-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-                              <Trophy className="w-8 h-8 text-gray-200" />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-[15px] font-bold text-gray-900">No tournaments found</p>
-                              <p className="text-[13px] text-gray-400">Try adjusting your filters or search query.</p>
-                            </div>
-                          </div>
+                          <EmptyState
+                            icon={Trophy}
+                            title="No tournaments found"
+                            description="Try adjusting your filters or search query to find what you're looking for."
+                          />
                         </td>
                       </tr>
                     )}
