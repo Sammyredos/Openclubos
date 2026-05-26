@@ -132,9 +132,12 @@ export class ScoresService {
     });
   }
 
-  async findByGroup(groupId: string) {
+  async findByGroup(groupId: string, skip = 0, take = 100) {
+    const safeTake = Math.min(take, MAX_PAGE_SIZE);
     return this.prisma.score.findMany({
       where: { groupId },
+      skip,
+      take: safeTake,
       select: {
         id: true,
         strokes: true,
@@ -157,24 +160,20 @@ export class ScoresService {
             par: true,
           },
         },
-        group: {
-          select: {
-            id: true,
-            name: true,
-            startTime: true,
-          },
-        },
       },
     });
   }
 
-  async findByTournament(tournamentId: string) {
+  async findByTournament(tournamentId: string, skip = 0, take = 100) {
+    const safeTake = Math.min(take, MAX_PAGE_SIZE);
     return this.prisma.score.findMany({
       where: {
         group: {
           tournamentId,
         },
       },
+      skip,
+      take: safeTake,
       select: {
         id: true,
         strokes: true,

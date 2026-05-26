@@ -141,6 +141,41 @@ Resolved a mismatch between the web-admin frontend and the NestJS backend for fe
 3. **Verification:**
    - Verified that the backend compiles successfully and routes requests to `CoursesService.findAllAdmin()` correctly.
 
+---
+## Score Over-fetching and Pagination Refactor
+
+Addressed database over-fetching and implemented pagination guards for the score listings endpoints:
+
+1. **Service Optimizations (`ScoresService`):**
+   - Modified `findByTournament()` and `findByGroup()` to accept optional pagination query parameters (`skip = 0` and `take = 100`).
+   - Clamped `take` parameter value utilizing `MAX_PAGE_SIZE = 100` (`Math.min(take, 100)`) to guard the database from massive payload requests.
+   - Refactored broad relational object fetches with selective `select` clauses:
+     - Retrieves only primary fields (`id`, `strokes`, `putts`, `points`, `status`, `recordedAt`).
+     - Standardized user information sub-selection (`id`, `firstName`, `lastName`, `handicap`).
+     - Standardized hole information sub-selection (`id`, `number`, `par`).
+     - Standardized group information sub-selection for tournament queries (`id`, `name`, `startTime`).
+
+2. **Controller Integration (`ScoresController`):**
+   - Updated `findByGroup` and `findByTournament` handlers to fetch and pass `skip` and `take` queries safely.
+
+3. **Verification:**
+   - Ran `pnpm build` in the backend application, confirming successful compilation and type-safety.
+
+---
+## Jobs Module Resolution Cache Fix
+
+Resolved a persistent IDE TS compilation warning where TypeScript's `nodenext` configuration required explicit file extensions for programmatically generated local imports:
+
+1. **Resolution & Casing Fix:**
+   - Appended the `.js` extension explicitly to both local module imports inside `apps/backend/src/modules/jobs/jobs.module.ts`:
+     - `import { JobsService } from './jobs.service.js';`
+     - `import { JobsProcessor } from './jobs.processor.js';`
+
+2. **Verification:**
+   - Ran `pnpm build` in the backend application, confirming successful compilation under `nodenext` ESM rules.
+
+
+
 
 
 

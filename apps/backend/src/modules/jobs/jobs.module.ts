@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JobsService } from './jobs.service';
-import { JobsProcessor } from './jobs.processor';
+import { JobsService } from './jobs.service.js';
+import { JobsProcessor } from './jobs.processor.js';
 import { TournamentsModule } from '../tournaments/tournaments.module';
 
 @Module({
