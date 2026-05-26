@@ -45,7 +45,12 @@ export class RegistrationsService {
     if (!user) throw new NotFoundException('User not found');
 
     // 2. Validate Tournament Status
-    if (tournament.status !== TournamentStatus.REGISTRATION_OPEN) {
+    if (tournament.status === TournamentStatus.DRAFT) {
+      throw new BadRequestException(
+        'Cannot register players for a draft tournament. Please publish the tournament first.',
+      );
+    }
+    if (!isAdmin && tournament.status !== TournamentStatus.REGISTRATION_OPEN) {
       throw new BadRequestException(
         'Registration is currently closed for this tournament',
       );
@@ -83,7 +88,7 @@ export class RegistrationsService {
     }
 
     // 6. Validate Eligibility (Handicap)
-    if (!isAdmin && tournament.hasHandicapRestriction) {
+    if (tournament.hasHandicapRestriction) {
       if (user.handicap === null) {
         throw new BadRequestException(
           'A handicap index is required to register for this tournament',
@@ -142,17 +147,21 @@ export class RegistrationsService {
       },
     });
 
-    if (user && user.email) {
+    if (user?.email) {
       if (status === RegistrationStatus.APPROVED) {
-        this.jobsService.queueEmail('REGISTRATION', user.email, {
+        this.jobsService.queueEmail('REGISTRATION_APPROVED', user.email, {
           tournamentName: tournament.name,
-          status: 'approved',
-        }).catch(err => console.error('Failed to queue REGISTRATION APPROVED email:', err));
+        }).catch(err => console.error('Failed to queue registrationApproved email:', err));
       } else if (status === RegistrationStatus.WAITLISTED) {
-        this.jobsService.queueEmail('REGISTRATION', user.email, {
+        this.jobsService.queueEmail('WAITLIST_NOTIFICATION', user.email, {
           tournamentName: tournament.name,
-          status: 'waitlisted',
-        }).catch(err => console.error('Failed to queue REGISTRATION WAITLISTED email:', err));
+        }).catch(err => console.error('Failed to queue waitlistNotification email:', err));
+      } else if (status === RegistrationStatus.PENDING) {
+        this.jobsService.queueEmail('REGISTRATION_CONFIRMATION', user.email, {
+          tournamentName: tournament.name,
+          status: 'PENDING',
+          startDate: tournament.startDate,
+        }).catch(err => console.error('Failed to queue registrationConfirmation email:', err));
       }
     }
 
@@ -289,10 +298,27 @@ export class RegistrationsService {
         }
       }
 
-      return await this.prisma.registration.update({
+      const updated = await this.prisma.registration.update({
         where: { id: registrationId },
         data: { status },
       });
+
+      // Queue status-change emails
+      if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.REJECTED) {
+        const [statusUser, statusTournament] = await Promise.all([
+          this.prisma.user.findUnique({ where: { id: registration.userId }, select: { email: true, firstName: true } }),
+          this.prisma.tournament.findUnique({ where: { id: registration.tournamentId }, select: { name: true } }),
+        ]);
+
+        if (statusUser?.email && statusTournament) {
+          const template = status === RegistrationStatus.APPROVED ? 'REGISTRATION_APPROVED' : 'REGISTRATION_REJECTED';
+          this.jobsService.queueEmail(template, statusUser.email, {
+            tournamentName: statusTournament.name,
+          }).catch(err => console.error(`Failed to queue ${template} email:`, err));
+        }
+      }
+
+      return updated;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
       if (
@@ -350,17 +376,18 @@ export class RegistrationsService {
         paymentReference,
       },
       include: {
-        user: true,
-        tournament: true,
+        user: { select: { email: true } },
+        tournament: { select: { name: true, entryFee: true, currency: true } },
       },
     });
 
     if (registration.user?.email && registration.tournament) {
-      this.jobsService.queueEmail('PAYMENT', registration.user.email, {
-        amount: registration.tournament.entryFee || 0,
+      this.jobsService.queueEmail('PAYMENT_RECEIPT', registration.user.email, {
         tournamentName: registration.tournament.name,
+        amount: registration.tournament.entryFee || 0,
+        currency: registration.tournament.currency || 'USD',
         reference: paymentReference,
-      }).catch(err => console.error('Failed to queue PAYMENT email:', err));
+      }).catch(err => console.error('Failed to queue paymentReceipt email:', err));
     }
 
     return registration;

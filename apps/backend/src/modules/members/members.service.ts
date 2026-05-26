@@ -9,10 +9,14 @@ import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { MemberStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class MembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jobsService: JobsService,
+  ) {}
 
   async create(createMemberDto: CreateMemberDto) {
     createMemberDto.email = createMemberDto.email?.trim().toLowerCase();
@@ -44,7 +48,8 @@ export class MembersService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(createMemberDto.password, 10);
+    const plainPassword = createMemberDto.password;
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     let clubId = createMemberDto.clubId || null;
 
@@ -78,7 +83,7 @@ export class MembersService {
       clubId = newClub.id;
     }
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email: createMemberDto.email,
         firstName: createMemberDto.firstName,
@@ -97,6 +102,16 @@ export class MembersService {
         clubId,
       },
     });
+
+    // Queue member created email with temporary password
+    if (user.email) {
+      this.jobsService.queueEmail('MEMBER_CREATED', user.email, {
+        firstName: user.firstName,
+        tempPassword: plainPassword,
+      }).catch(err => console.error('Failed to queue memberCreated email:', err));
+    }
+
+    return user;
   }
 
   async findAll(query: {
@@ -291,7 +306,7 @@ export class MembersService {
   async forceLogout(id: string) {
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, updatedAt: true },
+      select: { id: true, email: true, updatedAt: true },
     });
     if (!existing) throw new NotFoundException('Member not found');
 
@@ -301,6 +316,13 @@ export class MembersService {
       where: { id },
       data: { updatedAt: new Date(nextUat) },
     });
+
+    // Queue security alert email
+    if (existing.email) {
+      this.jobsService.queueEmail('SECURITY_ALERT', existing.email, {
+        action: 'force_logout',
+      }).catch(err => console.error('Failed to queue securityAlert email:', err));
+    }
 
     return { success: true };
   }

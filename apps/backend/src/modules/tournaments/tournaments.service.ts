@@ -76,6 +76,25 @@ export class TournamentsService {
       include: { club: true, course: true },
     });
     await this.cacheService.reset();
+
+    // Queue tournament announcement emails to all club members
+    if (result.status === 'REGISTRATION_OPEN' || result.publishImmediately) {
+      const clubMembers = await this.prisma.user.findMany({
+        where: { clubId: result.clubId },
+        select: { email: true },
+      });
+
+      for (const member of clubMembers) {
+        if (member.email) {
+          this.jobsService.queueEmail('TOURNAMENT_ANNOUNCEMENT', member.email, {
+            tournamentName: result.name,
+            startDate: result.startDate,
+            venue: result.venue,
+          }).catch(err => console.error('Failed to queue tournamentAnnouncement email:', err));
+        }
+      }
+    }
+
     return result;
   }
 
@@ -209,7 +228,17 @@ export class TournamentsService {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    // 1. Mark as COMPLETED if endDate is in the past
+    // 1. Identify tournaments that will transition to COMPLETED
+    const completedCandidates = await this.prisma.tournament.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        endDate: { lt: now },
+      },
+      select: { id: true, name: true },
+    });
+    const completedIds = completedCandidates.map(t => t.id);
+
+    // Mark as COMPLETED if endDate is in the past
     await this.prisma.tournament.updateMany({
       where: {
         status: { not: 'CANCELLED' },
@@ -218,7 +247,33 @@ export class TournamentsService {
       data: { status: 'COMPLETED' },
     });
 
-    // 2. Mark as ONGOING if startDate is today or in the past AND (endDate is in the future OR endDate is null)
+    // Queue tournamentCompleted emails
+    if (completedIds.length > 0) {
+      const completedRegs = await this.prisma.registration.findMany({
+        where: { tournamentId: { in: completedIds }, status: 'APPROVED' },
+        select: { user: { select: { email: true } }, tournament: { select: { name: true } } },
+      });
+      for (const reg of completedRegs) {
+        if (reg.user?.email) {
+          this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
+            tournamentName: reg.tournament.name,
+          }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
+        }
+      }
+    }
+
+    // 2. Identify tournaments that will transition to ONGOING
+    const ongoingCandidates = await this.prisma.tournament.findMany({
+      where: {
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+        startDate: { lte: now },
+        OR: [{ endDate: { gte: now } }, { endDate: null }],
+      },
+      select: { id: true, name: true },
+    });
+    const ongoingIds = ongoingCandidates.map(t => t.id);
+
+    // Mark as ONGOING
     await this.prisma.tournament.updateMany({
       where: {
         status: { notIn: ['CANCELLED', 'COMPLETED'] },
@@ -227,6 +282,21 @@ export class TournamentsService {
       },
       data: { status: 'ONGOING' },
     });
+
+    // Queue tournamentStarted emails
+    if (ongoingIds.length > 0) {
+      const ongoingRegs = await this.prisma.registration.findMany({
+        where: { tournamentId: { in: ongoingIds }, status: 'APPROVED' },
+        select: { user: { select: { email: true } }, tournament: { select: { name: true } } },
+      });
+      for (const reg of ongoingRegs) {
+        if (reg.user?.email) {
+          this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
+            tournamentName: reg.tournament.name,
+          }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
+        }
+      }
+    }
 
     // 3. Mark as REGISTRATION_OPEN if startDate is in the future
     await this.prisma.tournament.updateMany({
@@ -380,10 +450,11 @@ export class TournamentsService {
   }
 
   /**
-   * Identifies tournaments starting in the next 24 hours and queues a REMINDER
-   * email job for each approved player registration.
+   * Daily at 9 AM: find tournaments starting in the next 24 hours and queue
+   * a TOURNAMENT_REMINDER email for each approved registration.
    */
-  async notifyUpcomingTournaments() {
+  @Cron('0 9 * * *')
+  async sendTournamentReminders() {
     const now = new Date();
     const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -394,16 +465,18 @@ export class TournamentsService {
           lte: twentyFourHoursLater,
         },
         status: {
-          in: ['DRAFT', 'REGISTRATION_OPEN', 'ONGOING'],
+          in: ['REGISTRATION_OPEN', 'ONGOING'],
         },
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        startDate: true,
+        venue: true,
         registrations: {
-          where: {
-            status: 'APPROVED',
-          },
-          include: {
-            user: true,
+          where: { status: 'APPROVED' },
+          select: {
+            user: { select: { email: true } },
           },
         },
       },
@@ -412,11 +485,12 @@ export class TournamentsService {
     for (const tournament of upcomingTournaments) {
       for (const registration of tournament.registrations) {
         if (registration.user?.email) {
-          this.jobsService.queueEmail('REMINDER', registration.user.email, {
+          this.jobsService.queueEmail('TOURNAMENT_REMINDER', registration.user.email, {
             tournamentName: tournament.name,
-            startDate: tournament.startDate.toISOString(),
-          }).catch((err) =>
-            console.error(`Failed to queue REMINDER email for user ${registration.user.id}:`, err),
+            startDate: tournament.startDate,
+            venue: tournament.venue,
+          }).catch(err =>
+            console.error('Failed to queue tournamentReminder email:', err),
           );
         }
       }

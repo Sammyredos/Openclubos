@@ -9,10 +9,14 @@ import { PrismaService } from '../../common/prisma.service';
 import { UpdateOrganizerDto } from './dto/update-organizer.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class OrganizersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jobsService: JobsService,
+  ) {}
 
   async stats(id: string) {
     const organizer = await this.prisma.club.findFirst({
@@ -271,6 +275,14 @@ export class OrganizersService {
                 clubId: id,
               },
             });
+
+            // Queue admin credentials email with the generated password
+            const targetName = dto.name?.trim();
+            this.jobsService.queueEmail('ADMIN_CREDENTIALS', email, {
+              clubName: targetName || existing.name,
+              email,
+              password: passwordPlain,
+            }).catch(err => console.error('Failed to queue adminCredentials email:', err));
           }
         }
       }
@@ -311,6 +323,19 @@ export class OrganizersService {
       });
     });
 
+    // Queue account suspended emails to all club admins
+    const suspendedAdmins = await this.prisma.user.findMany({
+      where: { clubId: id, role: UserRole.CLUB_ADMIN, deletedAt: null },
+      select: { email: true },
+    });
+    for (const admin of suspendedAdmins) {
+      if (admin.email) {
+        this.jobsService.queueEmail('ACCOUNT_SUSPENDED', admin.email, {
+          clubName: organizer.name,
+        }).catch(err => console.error('Failed to queue accountSuspended email:', err));
+      }
+    }
+
     return this.findOne(id);
   }
 
@@ -335,6 +360,19 @@ export class OrganizersService {
         data: { status: MemberStatus.ACTIVE },
       });
     });
+
+    // Queue account reactivated emails to all club admins
+    const reactivatedAdmins = await this.prisma.user.findMany({
+      where: { clubId: id, role: UserRole.CLUB_ADMIN, deletedAt: null },
+      select: { email: true },
+    });
+    for (const admin of reactivatedAdmins) {
+      if (admin.email) {
+        this.jobsService.queueEmail('ACCOUNT_REACTIVATED', admin.email, {
+          clubName: organizer.name,
+        }).catch(err => console.error('Failed to queue accountReactivated email:', err));
+      }
+    }
 
     return this.findOne(id);
   }
