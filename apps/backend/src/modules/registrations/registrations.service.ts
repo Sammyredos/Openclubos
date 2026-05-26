@@ -12,6 +12,8 @@ import {
   TournamentStatus,
 } from '@prisma/client';
 
+const MAX_PAGE_SIZE = 100;
+
 @Injectable()
 export class RegistrationsService {
   constructor(private prisma: PrismaService) {}
@@ -23,13 +25,15 @@ export class RegistrationsService {
   ) {
     const { tournamentId, playerType, paymentReference, status: requestedStatus, paymentStatus: requestedPaymentStatus } = dto;
 
-    // 1. Fetch tournament and user details
-    const [tournament, user] = await Promise.all([
+    // 1. Fetch tournament, user details, and approved registration count in parallel
+    const [tournament, user, approvedCount] = await Promise.all([
       this.prisma.tournament.findUnique({
         where: { id: tournamentId },
-        include: { registrations: true },
       }),
       this.prisma.user.findUnique({ where: { id: userId } }),
+      this.prisma.registration.count({
+        where: { tournamentId, status: RegistrationStatus.APPROVED },
+      }),
     ]);
 
     if (!tournament) throw new NotFoundException('Tournament not found');
@@ -99,9 +103,6 @@ export class RegistrationsService {
     }
 
     // 7. Check Capacity & Waitlist
-    const approvedCount = tournament.registrations.filter(
-      (r) => r.status === RegistrationStatus.APPROVED,
-    ).length;
 
     let status: RegistrationStatus = isAdmin && requestedStatus ? (requestedStatus as RegistrationStatus) : RegistrationStatus.PENDING;
 
@@ -188,7 +189,7 @@ export class RegistrationsService {
       this.prisma.registration.findMany({
         where,
         skip: query.skip ? +query.skip : 0,
-        take: query.take ? +query.take : 10,
+        take: query.take ? Math.min(+query.take, MAX_PAGE_SIZE) : 10,
         orderBy: { registeredAt: 'desc' },
         include: {
           user: {

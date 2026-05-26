@@ -242,6 +242,7 @@ model Tournament {
   @@index([clubId])
   @@index([status])
   @@index([name])
+  @@index([startDate, status])
 }
 
 enum TournamentStatus {
@@ -289,6 +290,7 @@ model Registration {
   @@unique([userId, tournamentId])
   @@index([userId])
   @@index([tournamentId])
+  @@index([tournamentId, status])
 }
 
 enum RegistrationStatus {
@@ -339,6 +341,7 @@ model Score {
   @@index([userId])
   @@index([groupId])
   @@index([holeId])
+  @@index([groupId, userId])
 }
 
 enum ScoreStatus {

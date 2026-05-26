@@ -38,7 +38,7 @@ export class CoursesController {
     return this.coursesService.findAll(effectiveClubId);
   }
 
-  @Get('paged')
+  @Get('admin')
   findAllPaged(
     @Request() req: any,
     @Query('skip') skip?: string,

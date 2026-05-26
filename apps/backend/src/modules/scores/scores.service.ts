@@ -8,6 +8,8 @@ import { PrismaService } from '../../common/prisma.service';
 import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoreStatus, UserRole } from '@prisma/client';
 
+const MAX_PAGE_SIZE = 100;
+
 @Injectable()
 export class ScoresService {
   constructor(private prisma: PrismaService) {}
@@ -133,7 +135,36 @@ export class ScoresService {
   async findByGroup(groupId: string) {
     return this.prisma.score.findMany({
       where: { groupId },
-      include: { user: true, hole: true },
+      select: {
+        id: true,
+        strokes: true,
+        putts: true,
+        points: true,
+        status: true,
+        recordedAt: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            handicap: true,
+          },
+        },
+        hole: {
+          select: {
+            id: true,
+            number: true,
+            par: true,
+          },
+        },
+        group: {
+          select: {
+            id: true,
+            name: true,
+            startTime: true,
+          },
+        },
+      },
     });
   }
 
@@ -144,7 +175,36 @@ export class ScoresService {
           tournamentId,
         },
       },
-      include: { user: true, hole: true, group: true },
+      select: {
+        id: true,
+        strokes: true,
+        putts: true,
+        points: true,
+        status: true,
+        recordedAt: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            handicap: true,
+          },
+        },
+        hole: {
+          select: {
+            id: true,
+            number: true,
+            par: true,
+          },
+        },
+        group: {
+          select: {
+            id: true,
+            name: true,
+            startTime: true,
+          },
+        },
+      },
     });
   }
 }

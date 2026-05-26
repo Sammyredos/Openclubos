@@ -1,11 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/prisma.service';
+import { CacheService } from '../../common/cache/cache.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
+const MAX_PAGE_SIZE = 100;
+
 @Injectable()
 export class TournamentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async create(dto: CreateTournamentDto) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,15 +68,16 @@ export class TournamentsService {
       visibility: dto.visibility ?? 'PUBLIC',
       status: dto.status ?? (dto.publishImmediately ? 'REGISTRATION_OPEN' : 'DRAFT'),
     } as any;
-    return this.prisma.tournament.create({
+    const result = await this.prisma.tournament.create({
       data,
       include: { club: true, course: true },
     });
+    await this.cacheService.reset();
+    return result;
   }
 
   // Get all tournaments with optimized select to avoid over-fetching
   async findAll(query: { clubId?: string; status?: string; search?: string }) {
-    await this.autoUpdateStatuses();
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
@@ -123,7 +131,18 @@ export class TournamentsService {
     skip?: number;
     take?: number;
   }) {
-    await this.autoUpdateStatuses();
+    const clubId = query.clubId ?? '';
+    const status = query.status ?? '';
+    const search = query.search ?? '';
+    const skip = query.skip ?? '';
+    const takeParam = query.take ?? '';
+    const cacheKey = `tournaments:list:${clubId}:${status}:${search}:${skip}:${takeParam}`;
+
+    const cached = await this.cacheService.get<{ items: any[]; total: number }>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
@@ -142,11 +161,14 @@ export class TournamentsService {
       }
     }
 
+    const limit = query.take ? +query.take : 10;
+    const take = Math.min(limit, MAX_PAGE_SIZE);
+
     const [items, total] = await Promise.all([
       this.prisma.tournament.findMany({
         where,
         skip: query.skip ? +query.skip : 0,
-        take: query.take ? +query.take : 10,
+        take,
         select: {
           id: true,
           name: true,
@@ -174,10 +196,13 @@ export class TournamentsService {
       this.prisma.tournament.count({ where }),
     ]);
 
-    return { items, total };
+    const result = { items, total };
+    await this.cacheService.set(cacheKey, result, 300);
+    return result;
   }
 
-  private async autoUpdateStatuses() {
+  @Cron('*/5 * * * *')
+  async autoUpdateStatuses() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -294,7 +319,7 @@ export class TournamentsService {
     if (dto.status !== undefined) data.status = dto.status;
 
     try {
-      return await this.prisma.tournament.update({
+      const result = await this.prisma.tournament.update({
         where: { id },
         data,
         include: {
@@ -309,6 +334,8 @@ export class TournamentsService {
           },
         },
       });
+      await this.cacheService.reset();
+      return result;
     } catch (error) {
       console.error(`[TournamentsService.update] Error updating tournament ${id}:`, error);
       // Prisma error for record not found is P2025
