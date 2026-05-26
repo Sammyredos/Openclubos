@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JobsService } from './jobs.service.js';
 import { JobsProcessor } from './jobs.processor.js';
 import { TournamentsModule } from '../tournaments/tournaments.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -36,10 +37,10 @@ import { TournamentsModule } from '../tournaments/tournaments.module';
     BullModule.registerQueue({
       name: 'background-jobs',
     }),
-    TournamentsModule,
+    forwardRef(() => TournamentsModule),
+    EmailModule,
   ],
   providers: [JobsService, JobsProcessor],
   exports: [BullModule, JobsService],
 })
 export class JobsModule {}
-// Force IDE cache refresh

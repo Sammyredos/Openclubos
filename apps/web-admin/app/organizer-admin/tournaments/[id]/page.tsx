@@ -863,10 +863,6 @@ function ViewTournamentPageInner() {
 
   const openEdit = (tournament: TournamentRow) => {
     closeDropdown();
-    if (tournament.statusKey === "ONGOING") {
-      toast.error("Ongoing tournaments cannot be edited");
-      return;
-    }
     router.push(`/organizer-admin/tournaments/${tournament.id}/edit`);
   };
 

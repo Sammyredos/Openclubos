@@ -28,32 +28,26 @@ export class PrismaService
         : 'postgresql://postgres:OpenClub2024@localhost:5432/openclub?schema=public';
     const pool = new pg.Pool({ connectionString });
     const adapter = new PrismaPg(pool);
-    super({ adapter });
-
-    this.$use(async (params, next) => {
-      const before = Date.now();
-      const result = await next(params);
-      const duration = Date.now() - before;
-
-      if (duration > 500) {
-        const query = `${params.model ? params.model + '.' : ''}${params.action}`;
-        console.log(
-          JSON.stringify({
-            query,
-            duration,
-            timestamp: new Date().toISOString(),
-          }),
-        );
-      }
-
-      return result;
-    });
+    super({ adapter, log: [{ emit: 'event', level: 'query' }] });
   }
 
   async onModuleInit() {
     try {
       await this.$connect();
       this.logger.log('Prisma connected');
+
+      (this as any).$on('query', (e: any) => {
+        if (e.duration > 500) {
+          console.log(
+            JSON.stringify({
+              query: e.query,
+              duration: e.duration,
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        }
+      });
+
       await this.user.updateMany({
         where: { role: UserRole.STAFF },
         data: { role: UserRole.PLAYER },

@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
+import { JobsService } from '../jobs/jobs.service';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -12,6 +13,8 @@ export class TournamentsService {
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
+    @Inject(forwardRef(() => JobsService))
+    private jobsService: JobsService,
   ) {}
 
   async create(dto: CreateTournamentDto) {
@@ -374,5 +377,49 @@ export class TournamentsService {
     });
 
     return { id, deleted: true };
+  }
+
+  /**
+   * Identifies tournaments starting in the next 24 hours and queues a REMINDER
+   * email job for each approved player registration.
+   */
+  async notifyUpcomingTournaments() {
+    const now = new Date();
+    const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const upcomingTournaments = await this.prisma.tournament.findMany({
+      where: {
+        startDate: {
+          gte: now,
+          lte: twentyFourHoursLater,
+        },
+        status: {
+          in: ['DRAFT', 'REGISTRATION_OPEN', 'ONGOING'],
+        },
+      },
+      include: {
+        registrations: {
+          where: {
+            status: 'APPROVED',
+          },
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    for (const tournament of upcomingTournaments) {
+      for (const registration of tournament.registrations) {
+        if (registration.user?.email) {
+          this.jobsService.queueEmail('REMINDER', registration.user.email, {
+            tournamentName: tournament.name,
+            startDate: tournament.startDate.toISOString(),
+          }).catch((err) =>
+            console.error(`Failed to queue REMINDER email for user ${registration.user.id}:`, err),
+          );
+        }
+      }
+    }
   }
 }

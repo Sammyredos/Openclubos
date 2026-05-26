@@ -12,11 +12,16 @@ import {
   TournamentStatus,
 } from '@prisma/client';
 
+import { JobsService } from '../jobs/jobs.service';
+
 const MAX_PAGE_SIZE = 100;
 
 @Injectable()
 export class RegistrationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jobsService: JobsService,
+  ) {}
 
   async register(
     userId: string,
@@ -126,7 +131,7 @@ export class RegistrationsService {
     }
 
     // 8. Create Registration
-    return this.prisma.registration.create({
+    const registration = await this.prisma.registration.create({
       data: {
         userId,
         tournamentId,
@@ -136,6 +141,22 @@ export class RegistrationsService {
         paymentReference,
       },
     });
+
+    if (user && user.email) {
+      if (status === RegistrationStatus.APPROVED) {
+        this.jobsService.queueEmail('REGISTRATION', user.email, {
+          tournamentName: tournament.name,
+          status: 'approved',
+        }).catch(err => console.error('Failed to queue REGISTRATION APPROVED email:', err));
+      } else if (status === RegistrationStatus.WAITLISTED) {
+        this.jobsService.queueEmail('REGISTRATION', user.email, {
+          tournamentName: tournament.name,
+          status: 'waitlisted',
+        }).catch(err => console.error('Failed to queue REGISTRATION WAITLISTED email:', err));
+      }
+    }
+
+    return registration;
   }
 
   async getMyRegistrations(userId: string, skip = 0, take = 100) {
@@ -322,13 +343,27 @@ export class RegistrationsService {
   }
 
   async confirmPayment(registrationId: string, paymentReference: string) {
-    return this.prisma.registration.update({
+    const registration = await this.prisma.registration.update({
       where: { id: registrationId },
       data: {
         paymentStatus: PaymentStatus.PAID,
         paymentReference,
       },
+      include: {
+        user: true,
+        tournament: true,
+      },
     });
+
+    if (registration.user?.email && registration.tournament) {
+      this.jobsService.queueEmail('PAYMENT', registration.user.email, {
+        amount: registration.tournament.entryFee || 0,
+        tournamentName: registration.tournament.name,
+        reference: paymentReference,
+      }).catch(err => console.error('Failed to queue PAYMENT email:', err));
+    }
+
+    return registration;
   }
 
   async remove(id: string) {

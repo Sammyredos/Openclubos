@@ -21,6 +21,7 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
+import { EmailModule } from './modules/email/email.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ClubGuard } from './common/guards/club.guard';
 import * as Sentry from '@sentry/nestjs';
@@ -74,6 +75,7 @@ if (process.env.SENTRY_DSN) {
     UploadsModule,
     JobsModule,
     HealthModule,
+    EmailModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'super-secret-key',
     }),

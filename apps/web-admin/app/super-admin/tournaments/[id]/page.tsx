@@ -212,6 +212,8 @@ function ViewTournamentPageInner() {
   const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
+  const [registeredUserIdsForSearch, setRegisteredUserIdsForSearch] = useState<string[]>([]);
+  const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
 
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
@@ -737,10 +739,11 @@ function ViewTournamentPageInner() {
 
   // Search & Register Logic inside tab
   useEffect(() => {
-    if (activeTab !== "register") {
+    if (activeTab !== "register" || !selectedTournament?.id) {
       setRegisterPlayerResults([]);
       return;
     }
+    const tId = selectedTournament.id;
     const q = registerPlayerSearch.trim();
     if (q.length < 2) {
       setRegisterPlayerResults([]);
@@ -750,10 +753,23 @@ function ViewTournamentPageInner() {
     let cancelled = false;
     setIsSearchingPlayers(true);
     getAdminUsers({ search: q, take: 10, role: "PLAYER" })
-      .then(({ items }) => {
-        if (!cancelled) {
-          setRegisterPlayerResults(Array.isArray(items) ? items : []);
+      .then(async ({ items }) => {
+        if (cancelled) return;
+        
+        try {
+          const { items: regItems } = await getRegistrations({
+            tournamentId: tId,
+            q,
+            take: 50,
+          });
+          if (cancelled) return;
+          const registeredIds = regItems.map(r => r.user?.id).filter((id): id is string => !!id);
+          setRegisteredUserIdsForSearch(registeredIds);
+        } catch (err) {
+          console.error("Failed to fetch registrations for search", err);
         }
+
+        setRegisterPlayerResults(Array.isArray(items) ? items : []);
       })
       .catch((e: unknown) => {
         if (!cancelled) {
@@ -781,7 +797,7 @@ function ViewTournamentPageInner() {
         status: manualPaymentType === "CASH" ? "APPROVED" : "PENDING",
       });
       toast.success("Player registered successfully");
-      setRegisterPlayerSearch("");
+      setNewlyRegisteredUserIds(prev => [...prev, userId]);
 
       await reloadSingleTournament();
 
@@ -966,10 +982,6 @@ function ViewTournamentPageInner() {
 
   const openEdit = (tournament: TournamentRow) => {
     closeDropdown();
-    if (tournament.statusKey === "ONGOING") {
-      toast.error("Ongoing tournaments cannot be edited");
-      return;
-    }
     router.push(`/super-admin/tournaments/${tournament.id}/edit`);
   };
 
@@ -1621,7 +1633,11 @@ function ViewTournamentPageInner() {
                     ) : registerPlayerResults.length > 0 ? (
                       <div className="divide-y divide-gray-100 bg-white">
                         {registerPlayerResults.map((player) => {
-                          const isAlreadyRegistered = registrationsAll.some(x => x.user?.id === player.id);
+                          const isAlreadyRegistered =
+                            registrationsAll.some(x => x.user?.id === player.id) ||
+                            registrations.some(x => x.user?.id === player.id) ||
+                            registeredUserIdsForSearch.includes(player.id) ||
+                            newlyRegisteredUserIds.includes(player.id);
                           return (
                             <div key={player.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
                               <div className="flex items-center gap-3 min-w-0">
