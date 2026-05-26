@@ -231,77 +231,96 @@ export class TournamentsService {
     // 1. Identify tournaments that will transition to COMPLETED
     const completedCandidates = await this.prisma.tournament.findMany({
       where: {
-        status: { not: 'CANCELLED' },
+        status: 'ONGOING',
         endDate: { lt: now },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, emailsSent: true },
     });
     const completedIds = completedCandidates.map(t => t.id);
 
     // Mark as COMPLETED if endDate is in the past
-    await this.prisma.tournament.updateMany({
-      where: {
-        status: { not: 'CANCELLED' },
-        endDate: { lt: now },
-      },
-      data: { status: 'COMPLETED' },
-    });
-
-    // Queue tournamentCompleted emails
     if (completedIds.length > 0) {
+      await this.prisma.tournament.updateMany({
+        where: { id: { in: completedIds } },
+        data: { status: 'COMPLETED' },
+      });
+
+      // Queue tournamentCompleted emails
       const completedRegs = await this.prisma.registration.findMany({
         where: { tournamentId: { in: completedIds }, status: 'APPROVED' },
-        select: { user: { select: { email: true } }, tournament: { select: { name: true } } },
+        select: { user: { select: { email: true } }, tournamentId: true },
       });
-      for (const reg of completedRegs) {
-        if (reg.user?.email) {
-          this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
-            tournamentName: reg.tournament.name,
-          }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
+
+      for (const t of completedCandidates) {
+        const emailsSent = (t.emailsSent as any) || {};
+        if (emailsSent.completed) continue;
+
+        const regs = completedRegs.filter(r => r.tournamentId === t.id);
+        for (const reg of regs) {
+          if (reg.user?.email) {
+            this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
+              tournamentName: t.name,
+            }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
+          }
         }
+
+        // Mark as completed in JSON tracking
+        await this.prisma.tournament.update({
+          where: { id: t.id },
+          data: { emailsSent: { ...emailsSent, completed: true } },
+        });
       }
     }
 
     // 2. Identify tournaments that will transition to ONGOING
     const ongoingCandidates = await this.prisma.tournament.findMany({
       where: {
-        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+        status: { in: ['DRAFT', 'REGISTRATION_OPEN'] },
         startDate: { lte: now },
         OR: [{ endDate: { gte: now } }, { endDate: null }],
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, emailsSent: true },
     });
     const ongoingIds = ongoingCandidates.map(t => t.id);
 
     // Mark as ONGOING
-    await this.prisma.tournament.updateMany({
-      where: {
-        status: { notIn: ['CANCELLED', 'COMPLETED'] },
-        startDate: { lte: now },
-        OR: [{ endDate: { gte: now } }, { endDate: null }],
-      },
-      data: { status: 'ONGOING' },
-    });
-
-    // Queue tournamentStarted emails
     if (ongoingIds.length > 0) {
+      await this.prisma.tournament.updateMany({
+        where: { id: { in: ongoingIds } },
+        data: { status: 'ONGOING' },
+      });
+
+      // Queue tournamentStarted emails
       const ongoingRegs = await this.prisma.registration.findMany({
         where: { tournamentId: { in: ongoingIds }, status: 'APPROVED' },
-        select: { user: { select: { email: true } }, tournament: { select: { name: true } } },
+        select: { user: { select: { email: true } }, tournamentId: true },
       });
-      for (const reg of ongoingRegs) {
-        if (reg.user?.email) {
-          this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
-            tournamentName: reg.tournament.name,
-          }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
+
+      for (const t of ongoingCandidates) {
+        const emailsSent = (t.emailsSent as any) || {};
+        if (emailsSent.started) continue;
+
+        const regs = ongoingRegs.filter(r => r.tournamentId === t.id);
+        for (const reg of regs) {
+          if (reg.user?.email) {
+            this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
+              tournamentName: t.name,
+            }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
+          }
         }
+
+        // Mark as started in JSON tracking
+        await this.prisma.tournament.update({
+          where: { id: t.id },
+          data: { emailsSent: { ...emailsSent, started: true } },
+        });
       }
     }
 
     // 3. Mark as REGISTRATION_OPEN if startDate is in the future
     await this.prisma.tournament.updateMany({
       where: {
-        status: { notIn: ['CANCELLED', 'COMPLETED', 'ONGOING', 'DRAFT'] },
+        status: 'DRAFT',
         startDate: { gt: now },
       },
       data: { status: 'REGISTRATION_OPEN' },
@@ -473,6 +492,7 @@ export class TournamentsService {
         name: true,
         startDate: true,
         venue: true,
+        emailsSent: true,
         registrations: {
           where: { status: 'APPROVED' },
           select: {
@@ -483,6 +503,9 @@ export class TournamentsService {
     });
 
     for (const tournament of upcomingTournaments) {
+      const emailsSent = (tournament.emailsSent as any) || {};
+      if (emailsSent.reminded) continue; // Skip if already reminded
+
       for (const registration of tournament.registrations) {
         if (registration.user?.email) {
           this.jobsService.queueEmail('TOURNAMENT_REMINDER', registration.user.email, {
@@ -494,6 +517,12 @@ export class TournamentsService {
           );
         }
       }
+
+      // Update the DB to mark as reminded
+      await this.prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { emailsSent: { ...emailsSent, reminded: true } },
+      });
     }
   }
 }

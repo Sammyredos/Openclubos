@@ -13,6 +13,7 @@ export function InactivityGuard() {
   const [showModal, setShowModal] = useState(false);
   const showModalRef = useRef(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECS);
+  const deadline = useRef(0);
 
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -25,21 +26,21 @@ export function InactivityGuard() {
   }, []);
 
   const startCountdown = useCallback(() => {
-    setCountdown(COUNTDOWN_SECS);
     stopCountdown();
+    deadline.current = Date.now() + COUNTDOWN_SECS * 1000;
     
-    const endTime = Date.now() + COUNTDOWN_SECS * 1000;
+    // Update immediately so it doesn't stay stuck on 60
+    setCountdown(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
     
     countdownTimer.current = setInterval(() => {
-      const remaining = Math.ceil((endTime - Date.now()) / 1000);
+      const remaining = Math.ceil((deadline.current - Date.now()) / 1000);
       
-      setCountdown(() => {
-        if (remaining <= 0) {
-          stopCountdown();
-          return 0;
-        }
-        return remaining;
-      });
+      if (remaining <= 0) {
+        stopCountdown();
+        setCountdown(0);
+      } else {
+        setCountdown(remaining);
+      }
     }, 1000);
   }, [stopCountdown]);
 

@@ -18,7 +18,7 @@ export class EmailService {
 
   private wrap(title: string, body: string, gradient = '#10b981, #059669'): string {
     return `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
         <div style="background: linear-gradient(135deg, ${gradient}); padding: 32px; border-radius: 12px 12px 0 0;">
           <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">${title}</h1>
         </div>

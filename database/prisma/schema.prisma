@@ -231,6 +231,9 @@ model Tournament {
   publishImmediately   Boolean          @default(false)
   visibility           TournamentVisibility @default(PUBLIC)
 
+  // Tracking
+  emailsSent           Json?
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
