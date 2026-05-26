@@ -138,10 +138,38 @@ export class RegistrationsService {
     });
   }
 
-  async getMyRegistrations(userId: string) {
+  async getMyRegistrations(userId: string, skip = 0, take = 100) {
+    const safeTake = Math.min(take, 100);
     return this.prisma.registration.findMany({
       where: { userId },
-      include: { tournament: true },
+      skip,
+      take: safeTake,
+      select: {
+        id: true,
+        registeredAt: true,
+        status: true,
+        playerType: true,
+        paymentStatus: true,
+        paymentReference: true,
+        extraStrokes: true,
+        userId: true,
+        tournamentId: true,
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+            club: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -216,19 +244,22 @@ export class RegistrationsService {
     try {
       const registration = await this.prisma.registration.findUnique({
         where: { id: registrationId },
-        include: { tournament: { include: { registrations: true } } },
       });
 
       if (!registration) throw new NotFoundException('Registration not found');
 
       // If moving to APPROVED status, check capacity
       if (status === RegistrationStatus.APPROVED && registration.status !== RegistrationStatus.APPROVED) {
-        const tournament = registration.tournament;
-        const approvedCount = tournament.registrations.filter(
-          (r) => r.status === RegistrationStatus.APPROVED,
-        ).length;
+        const [tournament, approvedCount] = await Promise.all([
+          this.prisma.tournament.findUnique({
+            where: { id: registration.tournamentId },
+          }),
+          this.prisma.registration.count({
+            where: { tournamentId: registration.tournamentId, status: RegistrationStatus.APPROVED },
+          }),
+        ]);
 
-        if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+        if (tournament && tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
           // Auto-increment maxPlayers if at capacity
           await this.prisma.tournament.update({
             where: { id: tournament.id },

@@ -29,6 +29,25 @@ export class PrismaService
     const pool = new pg.Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     super({ adapter });
+
+    this.$use(async (params, next) => {
+      const before = Date.now();
+      const result = await next(params);
+      const duration = Date.now() - before;
+
+      if (duration > 500) {
+        const query = `${params.model ? params.model + '.' : ''}${params.action}`;
+        console.log(
+          JSON.stringify({
+            query,
+            duration,
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      }
+
+      return result;
+    });
   }
 
   async onModuleInit() {

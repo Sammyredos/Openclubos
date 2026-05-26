@@ -21,6 +21,21 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ClubGuard } from './common/guards/club.guard';
+import * as Sentry from '@sentry/nestjs';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { LoggerModule } from 'nestjs-pino';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+  });
+}
 
 @Module({
   imports: [
@@ -59,6 +74,19 @@ import { HealthModule } from './modules/health/health.module';
     UploadsModule,
     JobsModule,
     HealthModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'super-secret-key',
+    }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        redact: [
+          'req.headers.authorization',
+          'req.body.password',
+          'req.body.token',
+        ],
+      },
+    }),
+    ...(process.env.SENTRY_DSN ? [SentryModule.forRoot()] : []),
   ],
   controllers: [AppController],
   providers: [
@@ -66,6 +94,10 @@ import { HealthModule } from './modules/health/health.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ClubGuard,
     },
   ],
 })

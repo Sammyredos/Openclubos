@@ -174,6 +174,27 @@ Resolved a persistent IDE TS compilation warning where TypeScript's `nodenext` c
 2. **Verification:**
    - Ran `pnpm build` in the backend application, confirming successful compilation under `nodenext` ESM rules.
 
+---
+## Registrations Service Performance Optimization
+
+Addressed the remaining performance bottlenecks inside the `RegistrationsService` to prevent database write amplification and payload over-fetching:
+
+1. **Optimized `updateStatus()`:**
+   - Removed the deep relation lookup `include: { tournament: { include: { registrations: true } } }` that previously pulled all tournament registrations into memory.
+   - Replaced it with a lightweight, direct `this.prisma.registration.count()` query targeted specifically at the count of `APPROVED` registrations for the tournament.
+   - Shifted to checking `approvedCount` directly against `maxPlayers` to determine capacity.
+
+2. **Optimized `getMyRegistrations()`:**
+   - Added support for pagination using optional parameters `skip = 0` and `take = 100`, clamping `take` to a maximum of 100.
+   - Replaced the generic `include: { tournament: true }` relation fetch with a selective projection using a precise `select` clause (retrieving `id`, `name`, `startDate`, `status`, and only club `id` & `name` from the nested club relation).
+
+3. **Controller Integration:**
+   - Updated the `getMyRegistrations` handler in `RegistrationsController` to fetch and pass `skip` and `take` query parameters safely.
+
+4. **Verification:**
+   - Ran `pnpm build` in the backend application, confirming successful compilation and type safety.
+
+
 
 
 

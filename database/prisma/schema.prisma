@@ -40,6 +40,7 @@ model User {
   @@index([clubId])
   @@index([role])
   @@index([firstName, lastName])
+  @@index([email])
 }
 
 enum MemberStatus {
@@ -243,6 +244,8 @@ model Tournament {
   @@index([status])
   @@index([name])
   @@index([startDate, status])
+  @@index([clubId, createdAt])
+  @@index([clubId, status])
 }
 
 enum TournamentStatus {

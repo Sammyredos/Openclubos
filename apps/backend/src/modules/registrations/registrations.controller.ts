@@ -32,8 +32,12 @@ export class RegistrationsController {
   }
 
   @Get('my')
-  getMyRegistrations(@Request() req: any) {
-    return this.registrationsService.getMyRegistrations(req.user.userId);
+  getMyRegistrations(
+    @Request() req: any,
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+  ) {
+    return this.registrationsService.getMyRegistrations(req.user.userId, skip, take);
   }
 
   @Get()
