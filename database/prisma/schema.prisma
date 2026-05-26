@@ -31,6 +31,9 @@ model User {
   city          String?
   address       String?
 
+  // Password reset
+  passwordResetToken String?
+
   // Relations
   club          Club?     @relation(fields: [clubId], references: [id])
   clubId        String?

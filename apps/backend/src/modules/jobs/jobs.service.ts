@@ -31,28 +31,17 @@ export class JobsService implements OnModuleInit {
 
   /**
    * Enqueues an email sending job into the background-jobs queue.
-   * 
-   * @param type 'REMINDER' | 'REGISTRATION' | 'PAYMENT'
-   * @param to The recipient's email address
-   * @param data The payload data for the selected email template
+   *
+   * @param template Template name matching a case in JobsProcessor.dispatchEmail()
+   * @param to Recipient email address
+   * @param data Payload data for the selected email template
    */
-  async queueEmail(
-    type: 'REMINDER' | 'REGISTRATION' | 'PAYMENT',
-    to: string,
-    data: {
-      tournamentName?: string;
-      startDate?: string;
-      status?: string;
-      amount?: number;
-      reference?: string;
-      [key: string]: any;
-    },
-  ) {
-    this.logger.log(`Enqueuing SEND_EMAIL job (Type: ${type}, Recipient: ${to})`);
+  async queueEmail(template: string, to: string, data: Record<string, any> = {}) {
+    this.logger.log(`Enqueuing SEND_EMAIL job (template=${template}, to=${to})`);
     try {
       const job = await this.queue.add(
         'SEND_EMAIL',
-        { type, to, data },
+        { template, to, data },
         {
           removeOnComplete: true,
           removeOnFail: false,

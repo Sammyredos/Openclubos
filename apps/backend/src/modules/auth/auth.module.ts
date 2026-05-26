@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
+import { JobsModule } from '../jobs/jobs.module';
 
 @Module({
   imports: [
@@ -12,8 +13,7 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
       secret: process.env.JWT_SECRET || 'super-secret-key', // In production, use ConfigModule
       signOptions: { expiresIn: '1d' },
     }),
-    // Assuming UsersModule exists and exports UsersService for database lookups
-    // UsersModule,
+    JobsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

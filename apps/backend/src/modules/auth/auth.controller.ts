@@ -9,7 +9,6 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { IsEmail } from 'class-validator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -43,14 +42,33 @@ export class AuthController {
     return this.authService.login(user);
   }
 
+  /**
+   * POST /api/auth/forgot-password
+   * Body: { email: string }
+   * Always returns success to prevent email enumeration.
+   * Sends a reset link to the user's email if the account exists.
+   * FRONTEND_URL env var controls the base URL in the reset link.
+   */
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() body: { email: string }) {
-    // Always return success to prevent email enumeration
-    // In production: trigger password reset email via email service
     await this.authService.initiatePasswordReset(body.email).catch(() => null);
     return {
       message: 'If this email is registered, a reset link has been sent.',
     };
+  }
+
+  /**
+   * POST /api/auth/reset-password
+   * Body: { token: string, newPassword: string }
+   * Verifies the JWT reset token and updates the user's password.
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body() body: { token: string; newPassword: string },
+  ) {
+    await this.authService.resetPassword(body.token, body.newPassword);
+    return { success: true, message: 'Password has been reset successfully.' };
   }
 }

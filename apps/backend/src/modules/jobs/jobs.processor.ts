@@ -5,16 +5,9 @@ import { TournamentsService } from '../tournaments/tournaments.service';
 import { EmailService } from '../email/email.service';
 
 export interface SendEmailJobPayload {
-  type: 'REMINDER' | 'REGISTRATION' | 'PAYMENT';
+  template: string;
   to: string;
-  data: {
-    tournamentName?: string;
-    startDate?: string;
-    status?: string;
-    amount?: number;
-    reference?: string;
-    [key: string]: any;
-  };
+  data: Record<string, any>;
 }
 
 @Processor('background-jobs')
@@ -39,36 +32,11 @@ export class JobsProcessor extends WorkerHost {
           break;
 
         case 'SEND_EMAIL': {
-          const payload = job.data as SendEmailJobPayload;
-          const { type, to, data } = payload;
-          this.logger.log(`Processing email job ${type} to ${to} (ID: ${job.id})`);
-
-          let result;
-          if (type === 'REMINDER') {
-            result = await this.emailService.sendTournamentReminder(
-              to,
-              data.tournamentName || 'Tournament',
-              data.startDate || new Date().toISOString(),
-            );
-          } else if (type === 'REGISTRATION') {
-            result = await this.emailService.sendRegistrationConfirmation(
-              to,
-              data.tournamentName || 'Tournament',
-              data.status || 'APPROVED',
-            );
-          } else if (type === 'PAYMENT') {
-            result = await this.emailService.sendPaymentReceipt(
-              to,
-              data.amount || 0,
-              data.tournamentName || 'Tournament',
-              data.reference || `REF-${Date.now()}`,
-            );
-          } else {
-            throw new Error(`Unsupported email type: ${type}`);
-          }
-
+          const { template, to, data } = job.data as SendEmailJobPayload;
+          this.logger.log(`Processing email job "${template}" to ${to} (ID: ${job.id})`);
+          const result = await this.dispatchEmail(template, to, data);
           this.logger.log(
-            `Completed email job ${type} to ${to} successfully (ID: ${job.id}) | Message ID: ${result.messageId}`,
+            `Completed email job "${template}" to ${to} (ID: ${job.id}) | messageId=${result.messageId}`,
           );
           return result;
         }
@@ -82,6 +50,66 @@ export class JobsProcessor extends WorkerHost {
         error.stack,
       );
       throw error;
+    }
+  }
+
+  private async dispatchEmail(template: string, to: string, data: Record<string, any>) {
+    switch (template) {
+      case 'WELCOME':
+        return this.emailService.sendWelcome(to, data.firstName || 'User');
+
+      case 'PASSWORD_RESET':
+        return this.emailService.sendPasswordReset(to, data.resetToken || '', data.resetUrl || '');
+
+      case 'REGISTRATION':
+        return this.emailService.sendRegistrationConfirmation(
+          to, data.tournamentName || 'Tournament', data.status || 'APPROVED', data.startDate,
+        );
+
+      case 'REGISTRATION_APPROVED':
+        return this.emailService.sendRegistrationApproved(to, data.tournamentName || 'Tournament');
+
+      case 'REGISTRATION_REJECTED':
+        return this.emailService.sendRegistrationRejected(to, data.tournamentName || 'Tournament');
+
+      case 'WAITLIST':
+        return this.emailService.sendWaitlistNotification(to, data.tournamentName || 'Tournament');
+
+      case 'PAYMENT':
+        return this.emailService.sendPaymentReceipt(
+          to, data.tournamentName || 'Tournament', data.amount || 0, data.currency || 'NGN', data.reference || `REF-${Date.now()}`,
+        );
+
+      case 'REMINDER':
+        return this.emailService.sendTournamentReminder(
+          to, data.tournamentName || 'Tournament', data.startDate || new Date().toISOString(), data.venue,
+        );
+
+      case 'TOURNAMENT_STARTED':
+        return this.emailService.sendTournamentStarted(to, data.tournamentName || 'Tournament');
+
+      case 'TOURNAMENT_COMPLETED':
+        return this.emailService.sendTournamentCompleted(to, data.tournamentName || 'Tournament');
+
+      case 'ADMIN_CREDENTIALS':
+        return this.emailService.sendAdminCredentials(
+          to, data.clubName || 'Club', data.email || to, data.password || '',
+        );
+
+      case 'ACCOUNT_SUSPENDED':
+        return this.emailService.sendAccountSuspended(to, data.clubName || 'Club');
+
+      case 'ACCOUNT_REACTIVATED':
+        return this.emailService.sendAccountReactivated(to, data.clubName || 'Club');
+
+      case 'MEMBER_CREATED':
+        return this.emailService.sendMemberCreated(to, data.firstName || 'User', data.tempPassword || '');
+
+      case 'SECURITY_ALERT':
+        return this.emailService.sendSecurityAlert(to, data.action || 'Unknown action');
+
+      default:
+        throw new Error(`Unsupported email template: ${template}`);
     }
   }
 }
