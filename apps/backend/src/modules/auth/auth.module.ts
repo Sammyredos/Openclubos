@@ -4,14 +4,19 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JobsModule } from '../jobs/jobs.module';
 
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'super-secret-key', // In production, use ConfigModule
-      signOptions: { expiresIn: '1d' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'super-secret-key',
+        signOptions: { expiresIn: '1d' },
+      }),
     }),
     JobsModule,
   ],

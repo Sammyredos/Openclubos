@@ -110,7 +110,7 @@ export class EmailService {
     const html = this.wrap('Password Reset', `
       ${this.p('Hello,')}
       ${this.p('We received a request to reset your password. Click the button below to set a new password.')}
-      ${this.button('Reset Password', `${resetUrl}?token=${resetToken}`)}
+      ${this.button('Reset Password', resetUrl)}
       ${this.p('<small style="color: #6b7280;">If you did not request this, you can safely ignore this email. The link expires in 1 hour.</small>')}
     `);
     return this.send(to, 'Password Reset — OpenClubOS', html, `Password reset email sent to ${to}`);

@@ -97,6 +97,21 @@ export async function forgotPasswordRequest(email: string): Promise<{ message: s
   return res.json();
 }
 
+export async function resetPasswordRequest(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to reset password. The link might be invalid or expired.');
+  }
+
+  return res.json();
+}
+
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {

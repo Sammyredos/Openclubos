@@ -68,8 +68,8 @@ export class ClubGuard implements CanActivate {
       clubId: payload.clubId,
     };
 
-    // 4. Skip validation for SUPER_ADMIN role
-    if (payload.role === 'SUPER_ADMIN') {
+    // 4. Only enforce club ownership validation for CLUB_ADMIN role
+    if (payload.role !== 'CLUB_ADMIN') {
       return true;
     }
 

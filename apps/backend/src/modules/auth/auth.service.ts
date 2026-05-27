@@ -34,9 +34,16 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    const { name, ...rest } = registerDto;
+    const nameParts = (name || '').trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
+
     const user = await this.prisma.user.create({
       data: {
-        ...registerDto,
+        ...rest,
+        firstName,
+        lastName,
         password: hashedPassword,
         handicap: registerDto.handicap ?? 0,
         gender: registerDto.gender ?? undefined,
@@ -141,7 +148,7 @@ export class AuthService {
     // Verify the JWT reset token
     let payload: any;
     try {
-      payload = this.jwtService.verify(token);
+      try { payload = this.jwtService.verify(token); } catch(e) { console.error('JWT Verify Error:', e); throw e; }
     } catch {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
