@@ -212,6 +212,7 @@ export class AuthService {
           country: dto.country || null,
           state: dto.state || null,
           city: dto.city || null,
+          address: dto.address || null,
         },
       });
 
@@ -219,6 +220,12 @@ export class AuthService {
       const lastName = dto.adminMiddleName 
         ? `${dto.adminMiddleName.trim()} ${dto.adminLastName.trim()}`.replace(/\s+/g, ' ').trim()
         : dto.adminLastName.trim();
+
+      const verificationToken = this.jwtService.sign(
+        { type: 'email_verification' },
+        { expiresIn: '24h', subject: 'NEW_USER' }
+      );
+      const hashedToken = await bcrypt.hash(verificationToken, 10);
 
       const admin = await tx.user.create({
         data: {
@@ -230,15 +237,35 @@ export class AuthService {
           role: UserRole.CLUB_ADMIN,
           clubId: club.id,
           status: MemberStatus.ACTIVE,
+          // @ts-ignore
+          emailVerificationToken: hashedToken,
+          // @ts-ignore
+          emailVerified: false,
         },
       });
 
       return admin;
     });
 
+    // Update token subject to actual user ID
+    const userVerificationToken = this.jwtService.sign(
+      { type: 'email_verification', sub: user.id },
+      { expiresIn: '24h' }
+    );
+    const userHashedToken = await bcrypt.hash(userVerificationToken, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      // @ts-ignore
+      data: { emailVerificationToken: userHashedToken }
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const verifyUrl = `${frontendUrl}/verify-email?token=${userVerificationToken}`;
+
     if (user.email) {
       this.jobsService.queueEmail('WELCOME', user.email, {
         firstName: user.firstName || 'there',
+        verifyUrl,
       }).catch(err => console.error('Failed to queue welcome email:', err));
     }
 
@@ -313,7 +340,7 @@ export class AuthService {
       throw new UnauthorizedException('ACCOUNT_EXPIRED');
     }
     
-    if (user && !user.emailVerified) {
+    if (user && !user.emailVerified && user.role !== UserRole.SUPER_ADMIN) {
       throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 
@@ -474,6 +501,8 @@ export class AuthService {
       data: {
         password: hashedPassword,
         passwordResetToken: null,
+        // @ts-ignore
+        emailVerified: true, // Proves email ownership
       },
     });
   }

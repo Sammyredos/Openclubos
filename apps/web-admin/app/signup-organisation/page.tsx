@@ -61,6 +61,7 @@ const schema = z.object({
   organizationCountry: z.string().min(1, "Country is required"),
   organizationState: z.string().min(1, "State is required"),
   organizationCity: z.string().min(1, "City/LGA is required"),
+  organizationAddress: z.string().min(5, "Full address is required"),
   adminFirstName: z.string().min(2, "First name is required"),
   adminMiddleName: z.string().optional(),
   adminLastName: z.string().min(2, "Last name is required"),
@@ -102,6 +103,7 @@ export default function SignupOrganisationPage() {
       organizationCountry: "NG",
       organizationState: "",
       organizationCity: "",
+      organizationAddress: "",
       adminFirstName: "",
       adminMiddleName: "",
       adminLastName: "",
@@ -163,7 +165,7 @@ export default function SignupOrganisationPage() {
       fieldsToValidate = ["organizationLogo"];
     }
     if (step === 3) {
-      fieldsToValidate = ["organizationCountry", "organizationState", "organizationCity"];
+      fieldsToValidate = ["organizationCountry", "organizationState", "organizationCity", "organizationAddress"];
     }
     if (step === 4) {
       fieldsToValidate = [
@@ -227,6 +229,7 @@ export default function SignupOrganisationPage() {
         country: data.organizationCountry,
         state: data.organizationState,
         city: data.organizationCity,
+        address: data.organizationAddress,
       })
       toast.success("Organization created successfully! Please log in.")
       router.push("/login")
@@ -238,7 +241,7 @@ export default function SignupOrganisationPage() {
 
   const isStep1Valid = !!watch("organizationName") && !!watch("organizationType") && (watch("organizationType") !== "Other" || !!watch("customOrganizationType"));
   const isStep2Valid = !!watch("organizationLogo");
-  const isStep3Valid = !!watch("organizationCountry") && !!watch("organizationState") && !!watch("organizationCity") && !errors.organizationCity && !errors.organizationState && !errors.organizationCountry;
+  const isStep3Valid = !!watch("organizationCountry") && !!watch("organizationState") && !!watch("organizationCity") && !!watch("organizationAddress") && !errors.organizationCity && !errors.organizationState && !errors.organizationCountry && !errors.organizationAddress;
   const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail;
   const isStep5Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
 
@@ -499,8 +502,12 @@ export default function SignupOrganisationPage() {
               {/* STEP 3: Organization Location */}
               <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 3 ? 'hidden' : 'block'}`}>
                 
+                <div className="text-left mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Organization Location</h3>
+                  <p className="text-sm text-gray-500 mt-1">Set up your organization's primary location.</p>
+                </div>
+
                 <div className="space-y-4 mb-6">
-                  <h4 className="text-[14px] font-bold text-gray-900 mb-4">Organization Location</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[14px] font-semibold text-gray-700 block">Country</label>
@@ -557,6 +564,31 @@ export default function SignupOrganisationPage() {
                       <p className="text-[12px] text-red-500 font-medium">{errors.organizationCity.message}</p>
                     )}
                   </div>
+
+                  <div className="space-y-2 mt-4 col-span-2">
+                    <label className="text-[14px] font-semibold text-gray-700 block">Full Address</label>
+                    <div className="relative">
+                      <textarea
+                        {...form.register("organizationAddress", {
+                          onChange: (e) => {
+                            if (e.target.value.length > 200) {
+                              e.target.value = e.target.value.slice(0, 200);
+                            }
+                          }
+                        })}
+                        maxLength={200}
+                        placeholder="Enter full address"
+                        className={`w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-[15px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] resize-none pr-12 text-gray-900 transition-all ${errors.organizationAddress ? "border-red-400 bg-red-50/30" : "border-gray-200 focus:border-[#10b981]"}`}
+                        disabled={isLoading}
+                      />
+                      <div className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-medium bg-white/80 px-1">
+                        {(watch("organizationAddress") || "").length}/200
+                      </div>
+                    </div>
+                    {errors.organizationAddress && (
+                      <p className="text-[12px] text-red-500 font-medium">{errors.organizationAddress.message}</p>
+                    )}
+                  </div>
                 </div>
 
                 <Button
@@ -571,7 +603,11 @@ export default function SignupOrganisationPage() {
 
               {/* STEP 4: Administrator Profile */}
               <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 4 ? 'hidden' : 'block'}`}>
-                <h4 className="text-[14px] font-bold text-gray-900 mb-4">Administrator Profile</h4>
+                <div className="text-left mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Administrator Profile</h3>
+                  <p className="text-sm text-gray-500 mt-1">Set up the primary administrator account.</p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label htmlFor="adminFirstName" className="text-[14px] font-semibold text-gray-700 block">First Name</label>
@@ -692,6 +728,10 @@ export default function SignupOrganisationPage() {
 
               {/* STEP 5: Security */}
               <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 5 ? 'hidden' : 'block'}`}>
+                <div className="text-left mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Security</h3>
+                  <p className="text-sm text-gray-500 mt-1">Secure your organization's account with a password.</p>
+                </div>
                 <div className="space-y-2">
                   <label htmlFor="adminPassword" className="text-[14px] font-semibold text-gray-700 block">Password</label>
                   <div className="relative group">

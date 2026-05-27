@@ -46,4 +46,8 @@ export class RegisterOrganizationDto {
   @IsString()
   @IsOptional()
   city?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
 }

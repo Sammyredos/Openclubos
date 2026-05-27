@@ -127,6 +127,7 @@ export async function registerOrganizationRequest(payload: {
   country?: string;
   state?: string;
   city?: string;
+  address?: string;
 }): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/auth/register-organization`, {
     method: 'POST',
