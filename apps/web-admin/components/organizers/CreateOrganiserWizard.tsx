@@ -196,6 +196,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
   const [orgProfile, setOrgProfile] = useState({
     name: "",
     type: "Golf Club",
+    customType: "",
     website: "",
     phone: "",
     countryCode: "234",
@@ -410,6 +411,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
     if (s === 2) {
       if (!orgProfile.name.trim()) return "Organization Name is required";
       if (!orgProfile.type.trim()) return "Organization Type is required";
+      if (orgProfile.type === "Other" && !orgProfile.customType?.trim()) return "Custom organization type is required";
       if (!editingUser && !orgProfile.logo.trim()) return "Organization Logo is required";
     }
     return null;
@@ -789,7 +791,8 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       options={[
                         { value: "Golf Club", label: "Golf Club" },
                         { value: "Tournament Organizer", label: "Tournament Organizer" },
-                        { value: "Sports Association", label: "Sports Association" }
+                        { value: "Sports Association", label: "Sports Association" },
+                        { value: "Other", label: "Other" }
                       ]}
                       triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "border-red-400 bg-red-50/30")}
                     />
@@ -806,6 +809,19 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                     />
                   </Field>
                 </div>
+
+                {orgProfile.type === "Other" && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Field label="Specify Organization Type" required>
+                      <Input 
+                        value={orgProfile.customType} 
+                        onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
+                        placeholder="Enter organization type"
+                        className={cn("bg-white", showValidation && !orgProfile.customType.trim() && "border-red-400 bg-red-50/30")}
+                      />
+                    </Field>
+                  </div>
+                )}
 
                 {/* Logo & Website */}
                 <div className="grid grid-cols-2 gap-4">

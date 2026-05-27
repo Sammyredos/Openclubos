@@ -112,6 +112,31 @@ export async function resetPasswordRequest(token: string, newPassword: string): 
   return res.json();
 }
 
+export async function registerOrganizationRequest(payload: {
+  organizationName: string;
+  organizationType: string;
+  customOrganizationType?: string;
+  organizationLogo: string;
+  adminFirstName: string;
+  adminMiddleName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPassword: string;
+}): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/auth/register-organization`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to register organization');
+  }
+
+  return res.json();
+}
+
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {

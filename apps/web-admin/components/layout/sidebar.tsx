@@ -182,12 +182,10 @@ export function Sidebar() {
 
       <div className="px-4 py-6 border-t border-white/10 bg-[#161e2b]">
         <div className="flex items-center gap-4 px-4 py-3 mb-4">
-          <div className="h-12 w-12 rounded-full border-2 border-emerald-500/30 p-0.5 flex-shrink-0 overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-              alt="User"
-              className="h-full w-full rounded-full object-cover"
-            />
+          <div className="h-12 w-12 rounded-full border-2 border-emerald-500/30 p-0.5 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <div className="h-full w-full rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#10b981] font-bold text-[18px]">
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            </div>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[16px] font-bold text-white truncate">{user?.name || "Admin User"}</p>

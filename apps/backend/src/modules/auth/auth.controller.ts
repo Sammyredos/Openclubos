@@ -29,6 +29,11 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Post('register-organization')
+  async registerOrganization(@Body() dto: import('./dto/register-organization.dto').RegisterOrganizationDto) {
+    return this.authService.registerOrganization(dto);
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {

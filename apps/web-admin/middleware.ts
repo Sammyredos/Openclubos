@@ -23,6 +23,7 @@ export function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname === '/forgot-password' ||
     pathname.startsWith('/reset-password') ||
+    pathname === '/signup-organisation' ||
     pathname === '/' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||

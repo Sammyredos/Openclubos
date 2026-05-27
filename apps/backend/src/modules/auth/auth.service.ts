@@ -61,6 +61,65 @@ export class AuthService {
     return result;
   }
 
+  async registerOrganization(dto: import('./dto/register-organization.dto').RegisterOrganizationDto) {
+    const normalizedEmail = dto.adminEmail?.trim().toLowerCase();
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' },
+        deletedAt: null,
+      },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.adminPassword, 10);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      // Create the organization
+      const club = await tx.club.create({
+        data: {
+          name: dto.organizationName,
+          type: dto.organizationType === "Other" && dto.customOrganizationType 
+            ? dto.customOrganizationType 
+            : dto.organizationType,
+          logo: dto.organizationLogo || null,
+          status: 'ACTIVE',
+          plan: 'BASIC',
+        },
+      });
+
+      // Create the club admin
+      const lastName = dto.adminMiddleName 
+        ? `${dto.adminMiddleName.trim()} ${dto.adminLastName.trim()}`.replace(/\s+/g, ' ').trim()
+        : dto.adminLastName.trim();
+
+      const admin = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          password: hashedPassword,
+          firstName: dto.adminFirstName,
+          lastName: lastName,
+          role: UserRole.CLUB_ADMIN,
+          status: MemberStatus.ACTIVE,
+          clubId: club.id,
+        },
+      });
+
+      return admin;
+    });
+
+    if (user.email) {
+      this.jobsService.queueEmail('WELCOME', user.email, {
+        firstName: user.firstName || 'there',
+      }).catch(err => console.error('Failed to queue welcome email:', err));
+    }
+
+    const { password, ...result } = user;
+    return result;
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     let user: any;
     const normalizedEmail = email?.trim().toLowerCase();

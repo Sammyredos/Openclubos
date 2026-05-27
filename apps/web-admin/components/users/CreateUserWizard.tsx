@@ -196,6 +196,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
   const [orgProfile, setOrgProfile] = useState({
     name: "",
     type: "Golf Club",
+    customType: "",
     website: "",
     phone: "",
     countryCode: "234",
@@ -403,6 +404,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       if (formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER")) {
         if (!orgProfile.name.trim()) return "Organization Name is required";
         if (!orgProfile.type.trim()) return "Organization Type is required";
+        if (orgProfile.type === "Other" && !orgProfile.customType.trim()) return "Custom organization type is required";
         if (!editingUser && !orgProfile.logo.trim()) return "Organization Logo is required";
         if (!orgProfile.address.trim()) return "Organization Address is required";
         if (!orgProfile.contactEmail.trim()) return "Contact Person Email is required";
@@ -968,12 +970,26 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       options={[
                         { value: "Golf Club", label: "Golf Club" },
                         { value: "Tournament Organizer", label: "Tournament Organizer" },
-                        { value: "Sports Association", label: "Sports Association" }
+                        { value: "Sports Association", label: "Sports Association" },
+                        { value: "Other", label: "Other" }
                       ]}
                       triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "border-red-400 bg-red-50/30")}
                     />
                   </Field>
                 </div>
+
+                {orgProfile.type === "Other" && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Field label="Specify Organization Type" required>
+                      <Input 
+                        value={orgProfile.customType} 
+                        onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
+                        placeholder="Enter organization type"
+                        className={cn("bg-white", showValidation && !orgProfile.customType.trim() && "border-red-400 bg-red-50/30")}
+                      />
+                    </Field>
+                  </div>
+                )}
 
                 {/* Logo & Website */}
                 <div className="grid grid-cols-2 gap-4">
@@ -1300,7 +1316,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           </div>
                           <div>
                             <span className="text-[8px] font-bold text-gray-400 uppercase block">Type</span>
-                            <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{orgProfile.type || "—"}</span>
+                            <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">
+                              {orgProfile.type === "Other" ? orgProfile.customType : orgProfile.type || "—"}
+                            </span>
                           </div>
                         </div>
                         <div>

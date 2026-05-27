@@ -234,12 +234,10 @@ export function TopNav() {
           </span>
         </button>
         <div className="flex items-center gap-3 pl-4 border-l h-8 ml-2">
-          <div className="h-10 w-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
-            <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-              alt="User"
-              className="h-full w-full object-cover"
-            />
+          <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 flex-shrink-0">
+            <span className="text-emerald-600 font-bold text-[15px]">
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            </span>
           </div>
           <div className="text-left hidden sm:block">
             <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "Samuel Obadina"}</p>
