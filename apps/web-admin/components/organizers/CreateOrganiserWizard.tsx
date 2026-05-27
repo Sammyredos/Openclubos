@@ -289,6 +289,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         setOrgProfile({
           name: editingUser.club?.name || "",
           type: editingUser.club?.type || "Golf Club",
+          customType: editingUser.club?.type === "Other" ? editingUser.club?.type : "",
           plan: editingUser.club?.plan || "PRO",
           website: editingUser.club?.website || "",
           phone: editingUser.club?.phone || "",
@@ -309,6 +310,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         setOrgProfile({
           name: "",
           type: "Golf Club",
+          customType: "",
           plan: "PRO",
           website: "",
           phone: "",

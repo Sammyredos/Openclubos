@@ -15,6 +15,7 @@ export interface AuthUser {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
 }
 
@@ -120,8 +121,12 @@ export async function registerOrganizationRequest(payload: {
   adminFirstName: string;
   adminMiddleName: string;
   adminLastName: string;
+  adminPhone: string;
   adminEmail: string;
   adminPassword: string;
+  country?: string;
+  state?: string;
+  city?: string;
 }): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/auth/register-organization`, {
     method: 'POST',
@@ -162,4 +167,28 @@ export function getAuthToken(): string | null {
   } catch {
     return null;
   }
+}
+
+export async function validateOrganizationRequest(organizationName: string): Promise<{ available: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/auth/validate-organization`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organizationName }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to validate organization name');
+  }
+  return res.json();
+}
+
+export async function validateAdminRequest(adminEmail?: string, adminPhone?: string): Promise<{ available: boolean; message?: string; field?: string }> {
+  const res = await fetch(`${API_BASE}/auth/validate-admin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminEmail, adminPhone }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to validate admin details');
+  }
+  return res.json();
 }

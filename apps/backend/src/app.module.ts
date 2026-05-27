@@ -29,6 +29,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { validate } from './config/env.validation';
 
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
@@ -43,6 +44,7 @@ if (process.env.SENTRY_DSN) {
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../../.env',
+      validate,
     }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
@@ -80,7 +82,7 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'super-secret-key',
+        secret: configService.get<string>('JWT_SECRET'),
       }),
     }),
     LoggerModule.forRoot({

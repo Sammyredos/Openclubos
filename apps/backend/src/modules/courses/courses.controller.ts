@@ -13,16 +13,19 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/guards/roles.decorator';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Post()
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createCourseDto: CreateCourseDto) {
     return this.coursesService.create(createCourseDto);
   }
@@ -68,14 +71,7 @@ export class CoursesController {
 
   @Get(':id')
   async findOne(@Request() req: any, @Param('id') id: string) {
-    const course = await this.coursesService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this course');
-    }
-    return course;
+    return this.coursesService.findOne(id);
   }
 
   @Patch(':id')
@@ -84,25 +80,11 @@ export class CoursesController {
     @Param('id') id: string,
     @Body() updateCourseDto: UpdateCourseDto,
   ) {
-    const course = await this.coursesService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this course');
-    }
     return this.coursesService.update(id, updateCourseDto);
   }
 
   @Delete(':id')
   async remove(@Request() req: any, @Param('id') id: string) {
-    const course = await this.coursesService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && course.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this course');
-    }
     return this.coursesService.remove(id);
   }
 }

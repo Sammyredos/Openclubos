@@ -9,11 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
 import {
   Mail, Lock, User, Building2, Eye, EyeOff, Sun, ChevronDown,
-  Trophy, LineChart, PieChart, ShieldCheck, ArrowRight, ArrowLeft, Upload, X
+  Trophy, LineChart, PieChart, ShieldCheck, ArrowRight, ArrowLeft, Upload, X, Phone
 } from "lucide-react"
-import { registerOrganizationRequest } from "@/lib/api/auth"
+import { registerOrganizationRequest, validateOrganizationRequest, validateAdminRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { Country, State } from "country-state-city"
+import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas"
+import { SearchableSelect } from "@/components/ui/input"
 
 async function compressImage(file: File, targetKB = 50): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -55,9 +58,13 @@ const schema = z.object({
   organizationName: z.string().min(2, "Organization name is required"),
   organizationType: z.string().min(1, "Organization type is required"),
   customOrganizationType: z.string().optional(),
+  organizationCountry: z.string().min(1, "Country is required"),
+  organizationState: z.string().min(1, "State is required"),
+  organizationCity: z.string().min(1, "City/LGA is required"),
   adminFirstName: z.string().min(2, "First name is required"),
-  adminMiddleName: z.string().min(1, "Middle name is required"),
+  adminMiddleName: z.string().optional(),
   adminLastName: z.string().min(2, "Last name is required"),
+  adminPhone: z.string().min(10, "Please enter a valid phone number"),
   adminEmail: z.string().email("Please enter a valid email address"),
   adminPassword: z.string().min(8, "Password must be at least 8 chars"),
   confirmPassword: z.string(),
@@ -84,6 +91,7 @@ export default function SignupOrganisationPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const router = useRouter()
 
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -91,9 +99,13 @@ export default function SignupOrganisationPage() {
       organizationName: "",
       organizationType: "",
       customOrganizationType: "",
+      organizationCountry: "NG",
+      organizationState: "",
+      organizationCity: "",
       adminFirstName: "",
       adminMiddleName: "",
       adminLastName: "",
+      adminPhone: "",
       adminEmail: "",
       adminPassword: "",
       confirmPassword: "",
@@ -104,6 +116,31 @@ export default function SignupOrganisationPage() {
   const { watch, setValue, formState: { errors } } = form;
   const logo = watch("organizationLogo");
   const orgType = watch("organizationType");
+  const orgCountry = watch("organizationCountry");
+  const orgState = watch("organizationState");
+
+  const countryOptions = React.useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
+  
+  const stateOptions = React.useMemo(() => {
+    if (!orgCountry) return [];
+    if (orgCountry === "NG") {
+      return getNigerianStates();
+    }
+    return State.getStatesOfCountry(orgCountry).map(s => ({ value: s.isoCode, label: s.name }));
+  }, [orgCountry]);
+
+  const lgaOptions = React.useMemo(() => {
+    if (!orgCountry || !orgState) return [];
+    if (orgCountry === "NG") {
+      return getNigerianLGAs(orgState);
+    }
+    return [];
+  }, [orgCountry, orgState]);
+
+  const countryCode = React.useMemo(() => {
+    const c = Country.getCountryByCode(orgCountry || "NG");
+    return (c?.phonecode || "234").replace(/^\+/, "");
+  }, [orgCountry]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,11 +163,45 @@ export default function SignupOrganisationPage() {
       fieldsToValidate = ["organizationLogo"];
     }
     if (step === 3) {
-      fieldsToValidate = ["adminFirstName", "adminMiddleName", "adminLastName", "adminEmail"];
+      fieldsToValidate = ["organizationCountry", "organizationState", "organizationCity"];
+    }
+    if (step === 4) {
+      fieldsToValidate = [
+        "adminFirstName", "adminMiddleName", "adminLastName", "adminPhone", "adminEmail"
+      ];
     }
 
     const isValid = await form.trigger(fieldsToValidate)
-    if (isValid) setStep(s => s + 1)
+    
+    if (isValid) {
+      setIsLoading(true);
+      try {
+        if (step === 1) {
+          const res = await validateOrganizationRequest(form.getValues("organizationName"));
+          if (!res.available) {
+            form.setError("organizationName", { type: "manual", message: res.message });
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        if (step === 4) {
+          const phoneWithCode = `+${countryCode}${form.getValues("adminPhone").replace(/\\D/g, "")}`;
+          const res = await validateAdminRequest(form.getValues("adminEmail"), phoneWithCode);
+          if (!res.available) {
+            form.setError(res.field as any || "adminEmail", { type: "manual", message: res.message });
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        setStep(s => s + 1);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to validate. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
   }
 
   const handleBack = () => {
@@ -138,7 +209,7 @@ export default function SignupOrganisationPage() {
   }
 
   async function onSubmit(data: FormValues) {
-    if (step !== 4) return;
+    if (step !== 5) return;
 
     setIsLoading(true)
     try {
@@ -148,10 +219,14 @@ export default function SignupOrganisationPage() {
         organizationType: data.organizationType,
         customOrganizationType: data.organizationType === "Other" ? data.customOrganizationType : undefined,
         adminFirstName: data.adminFirstName,
-        adminMiddleName: data.adminMiddleName,
+        adminMiddleName: data.adminMiddleName || "",
         adminLastName: data.adminLastName,
+        adminPhone: data.adminPhone ? `+${countryCode}${data.adminPhone.replace(/\\D/g, "")}` : "",
         adminEmail: data.adminEmail,
         adminPassword: data.adminPassword,
+        country: data.organizationCountry,
+        state: data.organizationState,
+        city: data.organizationCity,
       })
       toast.success("Organization created successfully! Please log in.")
       router.push("/login")
@@ -163,8 +238,9 @@ export default function SignupOrganisationPage() {
 
   const isStep1Valid = !!watch("organizationName") && !!watch("organizationType") && (watch("organizationType") !== "Other" || !!watch("customOrganizationType"));
   const isStep2Valid = !!watch("organizationLogo");
-  const isStep3Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminEmail") && !errors.adminEmail;
-  const isStep4Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
+  const isStep3Valid = !!watch("organizationCountry") && !!watch("organizationState") && !!watch("organizationCity") && !errors.organizationCity && !errors.organizationState && !errors.organizationCountry;
+  const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail;
+  const isStep5Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
 
   return (
     <div className="min-h-screen w-full flex bg-white font-sans overflow-x-hidden">
@@ -284,6 +360,7 @@ export default function SignupOrganisationPage() {
                 <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 2 ? 'bg-[#10b981]' : 'bg-gray-100'}`} />
                 <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 3 ? 'bg-[#10b981]' : 'bg-gray-100'}`} />
                 <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 4 ? 'bg-[#10b981]' : 'bg-gray-100'}`} />
+                <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 5 ? 'bg-[#10b981]' : 'bg-gray-100'}`} />
               </div>
             </div>
 
@@ -419,8 +496,82 @@ export default function SignupOrganisationPage() {
                 </Button>
               </div>
 
-              {/* STEP 3: Admin Profile */}
+              {/* STEP 3: Organization Location */}
               <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 3 ? 'hidden' : 'block'}`}>
+                
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-[14px] font-bold text-gray-900 mb-4">Organization Location</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-semibold text-gray-700 block">Country</label>
+                      <SearchableSelect
+                        value={orgCountry}
+                        onValueChange={(v) => {
+                          setValue("organizationCountry", v, { shouldValidate: true });
+                          setValue("organizationState", "", { shouldValidate: true });
+                          setValue("organizationCity", "", { shouldValidate: true });
+                        }}
+                        options={countryOptions}
+                      />
+                      {errors.organizationCountry && (
+                        <p className="text-[12px] text-red-500 font-medium">{errors.organizationCountry.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-semibold text-gray-700 block">State / Province</label>
+                      <SearchableSelect
+                        value={orgState}
+                        onValueChange={(v) => {
+                          setValue("organizationState", v, { shouldValidate: true });
+                          setValue("organizationCity", "", { shouldValidate: true });
+                        }}
+                        options={stateOptions}
+                        disabled={!orgCountry}
+                      />
+                      {errors.organizationState && (
+                        <p className="text-[12px] text-red-500 font-medium">{errors.organizationState.message}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[14px] font-semibold text-gray-700 block">
+                      {orgCountry === "NG" ? "LGA" : "City"}
+                    </label>
+                    {orgCountry === "NG" ? (
+                      <SearchableSelect
+                        value={form.watch("organizationCity")}
+                        onValueChange={(v) => setValue("organizationCity", v, { shouldValidate: true })}
+                        options={lgaOptions}
+                        disabled={!orgState}
+                        placeholder="Select LGA"
+                      />
+                    ) : (
+                      <Input
+                        placeholder="Enter city"
+                        className="h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px]"
+                        disabled={isLoading}
+                        {...form.register("organizationCity")}
+                      />
+                    )}
+                    {errors.organizationCity && (
+                      <p className="text-[12px] text-red-500 font-medium">{errors.organizationCity.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!isStep3Valid}
+                  className="w-full h-12 bg-[#006A42] hover:bg-[#005233] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[10px] font-bold text-[15px] transition-colors flex items-center justify-center gap-2 mt-4"
+                >
+                  Continue <ArrowRight className="w-[18px] h-[18px]" />
+                </Button>
+              </div>
+
+              {/* STEP 4: Administrator Profile */}
+              <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 4 ? 'hidden' : 'block'}`}>
+                <h4 className="text-[14px] font-bold text-gray-900 mb-4">Administrator Profile</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label htmlFor="adminFirstName" className="text-[14px] font-semibold text-gray-700 block">First Name</label>
@@ -444,10 +595,13 @@ export default function SignupOrganisationPage() {
                   <div className="space-y-2">
                     <label htmlFor="adminMiddleName" className="text-[14px] font-semibold text-gray-700 block">Middle Name</label>
                     <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <User className="w-[18px] h-[18px]" />
+                      </div>
                       <Input
                         id="adminMiddleName"
                         placeholder="Edward"
-                        className="px-4 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("adminMiddleName")}
                       />
@@ -478,6 +632,35 @@ export default function SignupOrganisationPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <label htmlFor="adminPhone" className="text-[14px] font-semibold text-gray-700 block">Phone Number</label>
+                  <div className="flex gap-2">
+                    <div className="h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-[15px] font-medium text-gray-500 shrink-0 min-w-[60px]">
+                      +{countryCode}
+                    </div>
+                    <div className="relative flex-1 group">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
+                        <Phone className="w-5 h-5" />
+                      </div>
+                      <Input
+                        id="adminPhone"
+                        type="tel"
+                        placeholder="Enter phone number"
+                        className="pl-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        disabled={isLoading}
+                        {...form.register("adminPhone", {
+                          onChange: (e) => {
+                            e.target.value = e.target.value.replace(/\\D/g, "");
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                  {errors.adminPhone && (
+                    <p className="text-[12px] text-red-500 font-medium">{errors.adminPhone.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="adminEmail" className="text-[14px] font-semibold text-gray-700 block">Admin Email</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
@@ -500,15 +683,15 @@ export default function SignupOrganisationPage() {
                 <Button
                   type="button"
                   onClick={handleNext}
-                  disabled={!isStep3Valid}
+                  disabled={!isStep4Valid}
                   className="w-full h-12 bg-[#006A42] hover:bg-[#005233] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[10px] font-bold text-[15px] transition-colors flex items-center justify-center gap-2 mt-4"
                 >
                   Continue <ArrowRight className="w-[18px] h-[18px]" />
                 </Button>
               </div>
 
-              {/* STEP 4: Security */}
-              <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 4 ? 'hidden' : 'block'}`}>
+              {/* STEP 5: Security */}
+              <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 5 ? 'hidden' : 'block'}`}>
                 <div className="space-y-2">
                   <label htmlFor="adminPassword" className="text-[14px] font-semibold text-gray-700 block">Password</label>
                   <div className="relative group">
@@ -565,7 +748,7 @@ export default function SignupOrganisationPage() {
 
                 <Button
                   type="submit"
-                  disabled={isLoading || form.formState.isSubmitting || !isStep4Valid}
+                  disabled={isLoading || form.formState.isSubmitting || !isStep5Valid}
                   className="w-full h-12 bg-[#006A42] hover:bg-[#005233] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[10px] font-bold text-[15px] transition-colors flex items-center justify-center gap-2 mt-4 shadow-sm"
                 >
                   {isLoading ? (

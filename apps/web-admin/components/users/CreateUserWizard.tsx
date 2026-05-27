@@ -279,6 +279,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         setOrgProfile({
           name: editingUser.club?.name || "",
           type: editingUser.club?.type || "Golf Club",
+          customType: editingUser.club?.type === "Other" ? editingUser.club?.type : "",
           website: editingUser.club?.website || "",
           phone: editingUser.club?.phone || "",
           countryCode: "234",
@@ -298,6 +299,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         setOrgProfile({
           name: "",
           type: "Golf Club",
+          customType: "",
           website: "",
           phone: "",
           countryCode: "234",

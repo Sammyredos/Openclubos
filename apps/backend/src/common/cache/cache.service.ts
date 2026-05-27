@@ -26,6 +26,14 @@ export class CacheService {
     }
   }
 
+  async del(key: string): Promise<void> {
+    try {
+      await this.cacheManager.del(key);
+    } catch (err) {
+      console.error(`[CacheService.del] Error deleting key "${key}":`, err);
+    }
+  }
+
   async reset(): Promise<void> {
     try {
       await this.cacheManager.clear();

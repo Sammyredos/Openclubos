@@ -10,9 +10,9 @@ export class UploadsService {
   private cdnBaseUrl: string;
 
   constructor(private configService: ConfigService) {
-    const endpoint = this.configService.get<string>('R2_ENDPOINT') || 'https://example.compat.objectstorage.com';
-    const accessKeyId = this.configService.get<string>('R2_ACCESS_KEY') || 'dummy-access-key';
-    const secretAccessKey = this.configService.get<string>('R2_SECRET_KEY') || 'dummy-secret-key';
+    const endpoint = this.configService.get<string>('R2_ENDPOINT');
+    const accessKeyId = this.configService.get<string>('R2_ACCESS_KEY');
+    const secretAccessKey = this.configService.get<string>('R2_SECRET_KEY');
     this.bucket = this.configService.get<string>('R2_BUCKET') || 'openclub-assets';
     this.cdnBaseUrl = this.configService.get<string>('CDN_BASE_URL') || '';
 
@@ -20,8 +20,8 @@ export class UploadsService {
       region: 'auto',
       endpoint: endpoint,
       credentials: {
-        accessKeyId,
-        secretAccessKey,
+        accessKeyId: accessKeyId || '',
+        secretAccessKey: secretAccessKey || '',
       },
     });
   }

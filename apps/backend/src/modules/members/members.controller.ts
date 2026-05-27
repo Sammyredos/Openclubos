@@ -20,11 +20,12 @@ import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 
 @Controller('members')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   @Post()
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createMemberDto: CreateMemberDto) {
     return this.membersService.create(createMemberDto);
   }
@@ -54,7 +55,6 @@ export class MembersController {
   }
 
   @Get('all')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   findAllUsers(
     @Query('skip') skip?: number,
@@ -76,14 +76,7 @@ export class MembersController {
 
   @Get(':id')
   async findOne(@Request() req: any, @Param('id') id: string) {
-    const member = await this.membersService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && member.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this member');
-    }
-    return member;
+    return this.membersService.findOne(id);
   }
 
   @Patch(':id')
@@ -92,25 +85,16 @@ export class MembersController {
     @Param('id') id: string,
     @Body() updateMemberDto: UpdateMemberDto,
   ) {
-    const member = await this.membersService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && member.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this member');
-    }
     return this.membersService.update(id, updateMemberDto);
   }
 
   @Post(':id/force-logout')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   forceLogout(@Param('id') id: string) {
     return this.membersService.forceLogout(id);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);

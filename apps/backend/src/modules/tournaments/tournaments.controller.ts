@@ -13,16 +13,19 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/guards/roles.decorator';
 import { TournamentsService } from './tournaments.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
 @Controller('tournaments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TournamentsController {
   constructor(private readonly tournamentsService: TournamentsService) {}
 
   @Post()
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createTournamentDto: CreateTournamentDto) {
     return this.tournamentsService.create(createTournamentDto);
   }
@@ -68,14 +71,7 @@ export class TournamentsController {
 
   @Get(':id')
   async findOne(@Request() req: any, @Param('id') id: string) {
-    const tournament = await this.tournamentsService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this tournament');
-    }
-    return tournament;
+    return this.tournamentsService.findOne(id);
   }
 
   @Patch(':id')
@@ -84,25 +80,11 @@ export class TournamentsController {
     @Param('id') id: string,
     @Body() updateTournamentDto: UpdateTournamentDto,
   ) {
-    const tournament = await this.tournamentsService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this tournament');
-    }
     return this.tournamentsService.update(id, updateTournamentDto);
   }
 
   @Delete(':id')
   async remove(@Request() req: any, @Param('id') id: string) {
-    const tournament = await this.tournamentsService.findOne(id);
-    const role = req.user?.role as UserRole;
-    const userClubId = req.user?.clubId;
-
-    if (role === UserRole.CLUB_ADMIN && tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this tournament');
-    }
     return this.tournamentsService.remove(id);
   }
 }

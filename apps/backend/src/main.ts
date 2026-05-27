@@ -18,26 +18,34 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api');
 
-  // Security — helmet without CSP to avoid blocking API calls
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // Security — use strict CSP in production
+  if (process.env.NODE_ENV === 'production') {
+    app.use(helmet());
+  } else {
+    app.use(helmet({ contentSecurityPolicy: false }));
+  }
 
   // Increase JSON payload limit to handle Base64 image uploads safely
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
-  // CORS — allow the web-admin front end (dev & production)
+  // CORS — strict frontend URL in production, localhosts in development
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL]
+    : [
+        'http://localhost:3000',
+        'http://localhost:3002',
+        'http://localhost:3003',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3002',
+        'http://127.0.0.1:3003',
+        'http://127.0.0.1:3001',
+        process.env.FRONTEND_URL ?? 'http://localhost:3000',
+      ];
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3002',
-      'http://127.0.0.1:3003',
-      'http://127.0.0.1:3001',
-      process.env.FRONTEND_URL ?? 'http://localhost:3000',
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -55,20 +63,24 @@ async function bootstrap() {
   // Global Exception Filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Openclub API')
-    .setDescription('The Openclub Golf Tournament API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger — only in development
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Openclub API')
+      .setDescription('The Openclub Golf Tournament API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const preferredPort = Number(process.env.BACKEND_PORT ?? 3001);
   const port = await listenWithFallback(app, preferredPort);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+  }
 }
 bootstrap();
 

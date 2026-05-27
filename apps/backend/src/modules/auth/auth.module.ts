@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JobsModule } from '../jobs/jobs.module';
+import { CacheModule } from '../../common/cache/cache.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { JobsModule } from '../jobs/jobs.module';
       }),
     }),
     JobsModule,
+    CacheModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

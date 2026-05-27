@@ -5,21 +5,35 @@ import { PrismaService } from '../prisma.service';
 import { MemberStatus, UserRole } from '@prisma/client';
 
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../cache/cache.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private cacheService: CacheService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'super-secret-key',
+      secretOrKey: configService.get<string>('JWT_SECRET') as string,
+      passReqToCallback: true as const,
     });
   }
 
-  async validate(payload: any) {
+  async validate(req: any, payload: any) {
+    // Check if token is blacklisted in Redis
+    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    if (token) {
+      const accessHash = crypto.createHash('sha256').update(token).digest('hex');
+      const isBlacklisted = await this.cacheService.get(`auth:blacklist:${accessHash}`);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('TOKEN_REVOKED');
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });

@@ -34,6 +34,10 @@ model User {
   // Password reset
   passwordResetToken String?
 
+  // Email verification
+  emailVerified      Boolean   @default(false)
+  emailVerificationToken String?
+
   // Relations
   club          Club?     @relation(fields: [clubId], references: [id])
   clubId        String?

@@ -35,14 +35,20 @@ export class ClubGuard implements CanActivate {
     const controllerName = context.getClass().name;
     const { id } = request.params;
 
-    // 2. Only run checks for target controllers when id parameter is present
     const targetControllers = [
       'TournamentsController',
       'CoursesController',
       'RegistrationsController',
+      'MembersController',
+      'ClubsController',
     ];
 
-    if (!targetControllers.includes(controllerName) || !id) {
+    if (!targetControllers.includes(controllerName)) {
+      return true;
+    }
+
+    // Only run ID parameter checks if ID is present or if it's a POST request
+    if (!id && request.method !== 'POST') {
       return true;
     }
 
@@ -75,7 +81,22 @@ export class ClubGuard implements CanActivate {
 
     const userClubId = payload.clubId;
 
-    // 5. Verify the resource ownership
+    // 5. Verify POST create operations for clubId injection/validation
+    if (request.method === 'POST') {
+      // If the CLUB_ADMIN is creating a resource, ensure they pass their own clubId
+      if (request.body && request.body.clubId) {
+        if (request.body.clubId !== userClubId) {
+          throw new ForbiddenException('You cannot create resources for another club');
+        }
+      } else {
+        // If clubId is missing, inject it securely so they don't have to provide it
+        request.body = request.body || {};
+        request.body.clubId = userClubId;
+      }
+      return true;
+    }
+
+    // 6. Verify the resource ownership (Update/Delete operations)
     try {
       if (controllerName === 'TournamentsController') {
         const tournament = await this.prisma.tournament.findUnique({
@@ -104,6 +125,18 @@ export class ClubGuard implements CanActivate {
         });
         if (registration && registration.tournament?.clubId !== userClubId) {
           throw new ForbiddenException('You do not have access to this registration');
+        }
+      } else if (controllerName === 'MembersController') {
+        const member = await this.prisma.user.findUnique({
+          where: { id },
+          select: { clubId: true },
+        });
+        if (member && member.clubId !== userClubId) {
+          throw new ForbiddenException('You do not have access to this member');
+        }
+      } else if (controllerName === 'ClubsController') {
+        if (id !== userClubId) {
+          throw new ForbiddenException('You do not have access to this club');
         }
       }
     } catch (error) {

@@ -2,13 +2,12 @@ import {
   IsEmail,
   IsString,
   MinLength,
-  IsEnum,
-  IsOptional,
-  IsUUID,
   IsNumber,
   Min,
+  IsOptional,
+  IsUUID,
+  IsEnum,
 } from 'class-validator';
-import { UserRole } from '@openclubos/types';
 import { Gender } from '@prisma/client';
 
 export class RegisterDto {
@@ -21,9 +20,6 @@ export class RegisterDto {
 
   @IsString()
   name: string;
-
-  @IsEnum(UserRole)
-  role: UserRole;
 
   @IsOptional()
   @IsUUID()
