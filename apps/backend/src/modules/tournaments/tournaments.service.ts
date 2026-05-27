@@ -17,6 +17,9 @@ export class TournamentsService {
     private jobsService: JobsService,
   ) {}
 
+  private dailyRemindedTournaments = new Set<string>();
+  private lastRemindedDate: string | null = null;
+
   async create(dto: CreateTournamentDto) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
@@ -245,24 +248,11 @@ export class TournamentsService {
         data: { status: 'COMPLETED' },
       });
 
-      // Queue tournamentCompleted emails
-      const completedRegs = await this.prisma.registration.findMany({
-        where: { tournamentId: { in: completedIds }, status: 'APPROVED' },
-        select: { user: { select: { email: true } }, tournamentId: true },
-      });
-
       for (const t of completedCandidates) {
         const emailsSent = (t.emailsSent as any) || {};
         if (emailsSent.completed) continue;
 
-        const regs = completedRegs.filter(r => r.tournamentId === t.id);
-        for (const reg of regs) {
-          if (reg.user?.email) {
-            this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
-              tournamentName: t.name,
-            }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
-          }
-        }
+        await this.sendTournamentCompletedEmails(t.id, t.name);
 
         // Mark as completed in JSON tracking
         await this.prisma.tournament.update({
@@ -275,7 +265,7 @@ export class TournamentsService {
     // 2. Identify tournaments that will transition to ONGOING
     const ongoingCandidates = await this.prisma.tournament.findMany({
       where: {
-        status: { in: ['DRAFT', 'REGISTRATION_OPEN'] },
+        status: { in: ['REGISTRATION_OPEN', 'PENDING'] as any[] },
         startDate: { lte: now },
         OR: [{ endDate: { gte: now } }, { endDate: null }],
       },
@@ -290,24 +280,11 @@ export class TournamentsService {
         data: { status: 'ONGOING' },
       });
 
-      // Queue tournamentStarted emails
-      const ongoingRegs = await this.prisma.registration.findMany({
-        where: { tournamentId: { in: ongoingIds }, status: 'APPROVED' },
-        select: { user: { select: { email: true } }, tournamentId: true },
-      });
-
       for (const t of ongoingCandidates) {
         const emailsSent = (t.emailsSent as any) || {};
         if (emailsSent.started) continue;
 
-        const regs = ongoingRegs.filter(r => r.tournamentId === t.id);
-        for (const reg of regs) {
-          if (reg.user?.email) {
-            this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
-              tournamentName: t.name,
-            }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
-          }
-        }
+        await this.sendTournamentStartedEmails(t.id, t.name);
 
         // Mark as started in JSON tracking
         await this.prisma.tournament.update({
@@ -477,6 +454,12 @@ export class TournamentsService {
     const now = new Date();
     const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
+    const todayString = now.toISOString().split('T')[0];
+    if (this.lastRemindedDate !== todayString) {
+      this.dailyRemindedTournaments.clear();
+      this.lastRemindedDate = todayString;
+    }
+
     const upcomingTournaments = await this.prisma.tournament.findMany({
       where: {
         startDate: {
@@ -504,7 +487,9 @@ export class TournamentsService {
 
     for (const tournament of upcomingTournaments) {
       const emailsSent = (tournament.emailsSent as any) || {};
-      if (emailsSent.reminded) continue; // Skip if already reminded
+      if (emailsSent.reminded || this.dailyRemindedTournaments.has(tournament.id)) {
+        continue;
+      }
 
       for (const registration of tournament.registrations) {
         if (registration.user?.email) {
@@ -523,6 +508,37 @@ export class TournamentsService {
         where: { id: tournament.id },
         data: { emailsSent: { ...emailsSent, reminded: true } },
       });
+      this.dailyRemindedTournaments.add(tournament.id);
+    }
+  }
+
+  private async sendTournamentStartedEmails(tournamentId: string, tournamentName: string) {
+    const regs = await this.prisma.registration.findMany({
+      where: { tournamentId, status: 'APPROVED' },
+      select: { user: { select: { email: true } } },
+    });
+
+    for (const reg of regs) {
+      if (reg.user?.email) {
+        this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
+          tournamentName,
+        }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
+      }
+    }
+  }
+
+  private async sendTournamentCompletedEmails(tournamentId: string, tournamentName: string) {
+    const regs = await this.prisma.registration.findMany({
+      where: { tournamentId, status: 'APPROVED' },
+      select: { user: { select: { email: true } } },
+    });
+
+    for (const reg of regs) {
+      if (reg.user?.email) {
+        this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
+          tournamentName,
+        }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
+      }
     }
   }
 }

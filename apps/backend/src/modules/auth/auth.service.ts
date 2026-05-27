@@ -38,6 +38,8 @@ export class AuthService {
       data: {
         ...registerDto,
         password: hashedPassword,
+        handicap: registerDto.handicap ?? 0,
+        gender: registerDto.gender ?? undefined,
       },
     });
 

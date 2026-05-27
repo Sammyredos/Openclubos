@@ -18,56 +18,72 @@ export function InactivityGuard() {
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const stopCountdown = useCallback(() => {
+  const stopCountdownRef = useRef<() => void>(() => {});
+  const startCountdownRef = useRef<() => void>(() => {});
+
+  stopCountdownRef.current = useCallback(() => {
     if (countdownTimer.current) {
       clearInterval(countdownTimer.current);
       countdownTimer.current = null;
     }
   }, []);
 
-  const startCountdown = useCallback(() => {
-    stopCountdown();
+  startCountdownRef.current = useCallback(() => {
+    // GUARD: Clear any existing interval first
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
+      countdownTimer.current = null;
+    }
+
     deadline.current = Date.now() + COUNTDOWN_SECS * 1000;
-    
-    // Update immediately so it doesn't stay stuck on 60
-    setCountdown(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
-    
+
+    // Immediate update
+    const initialRemaining = Math.max(
+      0,
+      Math.ceil((deadline.current - Date.now()) / 1000)
+    );
+    setCountdown(initialRemaining);
+
+    // Interval reads from ref directly — no stale closure
     countdownTimer.current = setInterval(() => {
-      const remaining = Math.ceil((deadline.current - Date.now()) / 1000);
-      
+      const remaining = Math.max(
+        0,
+        Math.ceil((deadline.current - Date.now()) / 1000)
+      );
+      setCountdown(remaining);
       if (remaining <= 0) {
-        stopCountdown();
-        setCountdown(0);
-      } else {
-        setCountdown(remaining);
+        if (countdownTimer.current) {
+          clearInterval(countdownTimer.current);
+          countdownTimer.current = null;
+        }
       }
     }, 1000);
-  }, [stopCountdown]);
+  }, []); // NO dependencies
 
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
       showModalRef.current = true;
       setShowModal(true);
-      startCountdown();
+      startCountdownRef.current();
     }, INACTIVITY_MS);
-  }, [startCountdown]);
+  }, []);
 
   // Auto-logout when countdown hits 0
   useEffect(() => {
     if (showModal && countdown === 0) {
-      stopCountdown();
+      stopCountdownRef.current();
       showModalRef.current = false;
       setShowModal(false);
       logout();
     }
-  }, [showModal, countdown, stopCountdown, logout]);
+  }, [showModal, countdown, logout]);
 
   // Attach / detach activity listeners
   useEffect(() => {
     if (!isAuthenticated) {
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      stopCountdown();
+      stopCountdownRef.current();
       showModalRef.current = false;
       setShowModal(false);
       return;
@@ -85,19 +101,19 @@ export function InactivityGuard() {
     return () => {
       events.forEach((evt) => window.removeEventListener(evt, onActivity));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      stopCountdown();
+      stopCountdownRef.current();
     };
-  }, [isAuthenticated, resetInactivityTimer, stopCountdown]);
+  }, [isAuthenticated, resetInactivityTimer]);
 
   const handleContinue = () => {
-    stopCountdown();
+    stopCountdownRef.current();
     showModalRef.current = false;
     setShowModal(false);
     resetInactivityTimer();
   };
 
   const handleLogout = () => {
-    stopCountdown();
+    stopCountdownRef.current();
     showModalRef.current = false;
     setShowModal(false);
     logout();

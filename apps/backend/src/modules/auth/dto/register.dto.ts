@@ -5,8 +5,11 @@ import {
   IsEnum,
   IsOptional,
   IsUUID,
+  IsNumber,
+  Min,
 } from 'class-validator';
 import { UserRole } from '@openclubos/types';
+import { Gender } from '@prisma/client';
 
 export class RegisterDto {
   @IsEmail()
@@ -25,4 +28,13 @@ export class RegisterDto {
   @IsOptional()
   @IsUUID()
   clubId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  handicap?: number;
+
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
 }

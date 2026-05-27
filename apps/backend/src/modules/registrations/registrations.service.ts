@@ -111,6 +111,20 @@ export class RegistrationsService {
         );
       }
     }
+    // 6.5 Validate Platform Maximum Handicap
+    const userHandicap = user.handicap ?? 0;
+    let platformMax: number;
+    switch (user.gender) {
+      case 'MALE': platformMax = 28; break;
+      case 'FEMALE': platformMax = 36; break;
+      default: platformMax = 54;
+    }
+
+    if (userHandicap > platformMax) {
+      throw new BadRequestException(
+        `Your handicap (${userHandicap}) exceeds the platform maximum for ${user.gender?.toLowerCase() || 'unspecified'} golfers (${platformMax}). Please update your handicap in your profile.`
+      );
+    }
 
     // 7. Check Capacity & Waitlist
 

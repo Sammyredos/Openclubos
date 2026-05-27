@@ -5,8 +5,9 @@ import {
   IsEnum,
   IsNumber,
   MinLength,
+  Min,
 } from 'class-validator';
-import { MemberStatus, UserRole } from '@prisma/client';
+import { MemberStatus, UserRole, Gender } from '@prisma/client';
 
 export class CreateMemberDto {
   @IsEmail()
@@ -36,15 +37,16 @@ export class CreateMemberDto {
 
   @IsOptional()
   @IsNumber()
-  handicap?: number;
+  @Min(0)
+  handicap: number = 0;
 
   @IsOptional()
   @IsString()
   dob?: string;
 
   @IsOptional()
-  @IsString()
-  gender?: string;
+  @IsEnum(Gender)
+  gender?: Gender;
 
   @IsOptional()
   @IsString()

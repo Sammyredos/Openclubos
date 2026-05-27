@@ -2,12 +2,13 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 // Force TS cache refresh
 import { PrismaService } from '../../common/prisma.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
-import { MemberStatus, UserRole } from '@prisma/client';
+import { MemberStatus, UserRole, Gender } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { JobsService } from '../jobs/jobs.service';
 
@@ -17,6 +18,32 @@ export class MembersService {
     private prisma: PrismaService,
     private jobsService: JobsService,
   ) {}
+
+  private validateHandicap(
+    handicap: number,
+    gender: Gender | null | undefined,
+    currentHandicap?: number | null,
+  ): void {
+    if (handicap < 0) {
+      throw new BadRequestException('Handicap cannot be negative. Minimum is 0 (scratch).');
+    }
+    let max: number;
+    switch (gender) {
+      case Gender.MALE: max = 28; break;
+      case Gender.FEMALE: max = 36; break;
+      default: max = 54;
+    }
+    if (handicap > max) {
+      throw new BadRequestException(
+        `Handicap exceeds maximum for ${gender || 'unspecified gender'}. Max allowed: ${max}, Provided: ${handicap}`
+      );
+    }
+    if (currentHandicap !== null && currentHandicap !== undefined && handicap > currentHandicap) {
+      throw new BadRequestException(
+        `Handicap cannot be increased. Current: ${currentHandicap}, Requested: ${handicap}`
+      );
+    }
+  }
 
   async create(createMemberDto: CreateMemberDto) {
     createMemberDto.email = createMemberDto.email?.trim().toLowerCase();
@@ -82,6 +109,8 @@ export class MembersService {
       });
       clubId = newClub.id;
     }
+
+    this.validateHandicap(createMemberDto.handicap ?? 0, createMemberDto.gender as Gender);
 
     const user = await this.prisma.user.create({
       data: {
@@ -337,7 +366,7 @@ export class MembersService {
 
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, role: true, clubId: true },
+      select: { id: true, role: true, clubId: true, handicap: true, gender: true },
     });
     if (!existing) throw new NotFoundException('Member not found');
 
@@ -450,6 +479,12 @@ export class MembersService {
     delete data.clubFacebook;
     delete data.clubInstagram;
     delete data.clubCountry;
+
+    if (updateMemberDto.handicap !== undefined || updateMemberDto.gender !== undefined) {
+      const newHandicap = updateMemberDto.handicap ?? existing.handicap ?? 0;
+      const newGender = (updateMemberDto.gender as Gender) ?? (existing.gender as Gender);
+      this.validateHandicap(newHandicap, newGender, existing.handicap);
+    }
 
     try {
       return await this.prisma.user.update({
