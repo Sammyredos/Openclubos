@@ -9,6 +9,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  profilePhoto?: string;
+  gender?: string;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   clubId?: string;
 }
@@ -122,6 +124,7 @@ export async function registerOrganizationRequest(payload: {
   adminMiddleName: string;
   adminLastName: string;
   adminPhone: string;
+  adminGender?: string;
   adminEmail: string;
   adminPassword: string;
   country?: string;

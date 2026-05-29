@@ -9,6 +9,7 @@
     "format": "pnpm -r format"
   },
   "devDependencies": {
+    "@types/node-fetch": "^2.6.13",
     "turbo": "latest"
   }
 }

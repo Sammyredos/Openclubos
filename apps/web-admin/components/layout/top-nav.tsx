@@ -4,6 +4,7 @@ import { Bell, Menu, Search, ChevronDown, Clock, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getAvatarUrl } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
@@ -234,10 +235,8 @@ export function TopNav() {
           </span>
         </button>
         <div className="flex items-center gap-3 pl-4 border-l h-8 ml-2">
-          <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 flex-shrink-0">
-            <span className="text-emerald-600 font-bold text-[15px]">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-            </span>
+          <div className="h-10 w-10 rounded-full border border-emerald-100 flex-shrink-0 overflow-hidden bg-emerald-50 flex items-center justify-center">
+            <img src={getAvatarUrl(user || undefined)} alt={user?.name || "User Avatar"} className="h-full w-full object-cover" />
           </div>
           <div className="text-left hidden sm:block">
             <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "Samuel Obadina"}</p>

@@ -216,3 +216,29 @@ export function subscribeAdminEvents(handler: (event: AdminEvent) => void) {
     }
   };
 }
+
+export function getAvatarUrl(user?: {
+  profilePhoto?: string | null;
+  gender?: string | null;
+  email?: string | null;
+  id?: string | null;
+  name?: string | null;
+}): string {
+  if (!user) return `https://api.dicebear.com/7.x/avataaars/svg?seed=guest`;
+  
+  if (user.profilePhoto) {
+    return user.profilePhoto;
+  }
+
+  const seed = encodeURIComponent(user.email || user.id || user.name || "user");
+  const gender = user.gender?.toUpperCase();
+
+  if (gender === "MALE") {
+    return `https://avatar.iran.liara.run/public/boy?username=${seed}`;
+  }
+  if (gender === "FEMALE") {
+    return `https://avatar.iran.liara.run/public/girl?username=${seed}`;
+  }
+
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+}

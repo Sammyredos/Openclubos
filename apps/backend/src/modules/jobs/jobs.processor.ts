@@ -56,7 +56,7 @@ export class JobsProcessor extends WorkerHost {
   private async dispatchEmail(template: string, to: string, data: Record<string, any>) {
     switch (template) {
       case 'WELCOME':
-        return this.emailService.sendWelcome(to, data.firstName || 'User');
+        return this.emailService.sendWelcome(to, data.firstName || 'User', data.verifyUrl);
 
       case 'PASSWORD_RESET':
         return this.emailService.sendPasswordReset(to, data.resetToken || '', data.resetUrl || '');

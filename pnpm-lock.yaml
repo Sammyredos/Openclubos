@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@types/node-fetch':
+        specifier: ^2.6.13
+        version: 2.6.13
       turbo:
         specifier: latest
         version: 2.9.6
@@ -2218,6 +2221,9 @@ packages:
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+
+  '@types/node-fetch@2.6.13':
+    resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
 
   '@types/node@20.19.39':
     resolution: {integrity: sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw==}
@@ -8924,6 +8930,11 @@ snapshots:
     optional: true
 
   '@types/ms@2.1.0': {}
+
+  '@types/node-fetch@2.6.13':
+    dependencies:
+      '@types/node': 24.12.2
+      form-data: 4.0.5
 
   '@types/node@20.19.39':
     dependencies:

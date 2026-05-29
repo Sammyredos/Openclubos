@@ -26,6 +26,10 @@ export class RegisterOrganizationDto {
 
   @IsString()
   @IsOptional()
+  adminGender?: string;
+
+  @IsString()
+  @IsOptional()
   adminPhone?: string;
 
   @IsEmail()

@@ -1213,7 +1213,7 @@ export default function TournamentsPage() {
                           <td className="px-4 py-4">
                             <div className="flex flex-col min-w-0">
                               <span className="text-[13px] text-gray-700 font-medium truncate leading-tight">{t.dates}</span>
-                              <div className={cn("inline-flex items-center gap-1 mt-1 text-[9px] font-bold uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
+                              <div className={cn("inline-flex items-center w-fit px-1.5 py-0.5 rounded gap-1 mt-1 text-[9px] font-bold uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
                                 {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-2.5 h-2.5 flex-shrink-0" })}
                                 <span>{t.visibility}</span>
                               </div>

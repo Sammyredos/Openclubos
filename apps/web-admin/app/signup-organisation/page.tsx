@@ -65,6 +65,7 @@ const schema = z.object({
   adminFirstName: z.string().min(2, "First name is required"),
   adminMiddleName: z.string().optional(),
   adminLastName: z.string().min(2, "Last name is required"),
+  adminGender: z.string().min(1, "Gender is required"),
   adminPhone: z.string().min(10, "Please enter a valid phone number"),
   adminEmail: z.string().email("Please enter a valid email address"),
   adminPassword: z.string().min(8, "Password must be at least 8 chars"),
@@ -107,6 +108,7 @@ export default function SignupOrganisationPage() {
       adminFirstName: "",
       adminMiddleName: "",
       adminLastName: "",
+      adminGender: "",
       adminPhone: "",
       adminEmail: "",
       adminPassword: "",
@@ -169,7 +171,7 @@ export default function SignupOrganisationPage() {
     }
     if (step === 4) {
       fieldsToValidate = [
-        "adminFirstName", "adminMiddleName", "adminLastName", "adminPhone", "adminEmail"
+        "adminFirstName", "adminMiddleName", "adminLastName", "adminGender", "adminPhone", "adminEmail"
       ];
     }
 
@@ -223,6 +225,7 @@ export default function SignupOrganisationPage() {
         adminFirstName: data.adminFirstName,
         adminMiddleName: data.adminMiddleName || "",
         adminLastName: data.adminLastName,
+        adminGender: data.adminGender,
         adminPhone: data.adminPhone ? `+${countryCode}${data.adminPhone.replace(/\\D/g, "")}` : "",
         adminEmail: data.adminEmail,
         adminPassword: data.adminPassword,
@@ -242,7 +245,7 @@ export default function SignupOrganisationPage() {
   const isStep1Valid = !!watch("organizationName") && !!watch("organizationType") && (watch("organizationType") !== "Other" || !!watch("customOrganizationType"));
   const isStep2Valid = !!watch("organizationLogo");
   const isStep3Valid = !!watch("organizationCountry") && !!watch("organizationState") && !!watch("organizationCity") && !!watch("organizationAddress") && !errors.organizationCity && !errors.organizationState && !errors.organizationCountry && !errors.organizationAddress;
-  const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail;
+  const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminGender") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail && !errors.adminGender;
   const isStep5Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
 
   return (
@@ -664,6 +667,24 @@ export default function SignupOrganisationPage() {
                   </div>
                   {errors.adminLastName && (
                     <p className="text-[12px] text-red-500 font-medium">{errors.adminLastName.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[14px] font-semibold text-gray-700 block">Gender</label>
+                  <SearchableSelect 
+                    value={form.watch("adminGender")}
+                    onValueChange={v => setValue("adminGender", v, { shouldValidate: true })}
+                    options={[
+                      { value: "Male", label: "Male" },
+                      { value: "Female", label: "Female" },
+                      { value: "Other", label: "Other" },
+                    ]}
+                    triggerClassName={errors.adminGender ? "border-red-400 bg-red-50/30" : "border-gray-200"}
+                    placeholder="Select gender"
+                  />
+                  {errors.adminGender && (
+                    <p className="text-[12px] text-red-500 font-medium">{errors.adminGender.message}</p>
                   )}
                 </div>
 

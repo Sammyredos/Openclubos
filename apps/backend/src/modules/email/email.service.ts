@@ -92,11 +92,12 @@ export class EmailService {
   // 1. Welcome
   // ────────────────────────────────────────────────────────────────
 
-  async sendWelcome(to: string, firstName: string): Promise<EmailResult> {
+  async sendWelcome(to: string, firstName: string, verifyUrl?: string): Promise<EmailResult> {
     const html = this.wrap('Welcome to OpenClubOS', `
       ${this.p(`Hello <strong>${firstName}</strong>,`)}
       ${this.p('Welcome to OpenClubOS! Your account has been created successfully.')}
       ${this.p('You can now browse tournaments, register for events, and track your scores — all in one place.')}
+      ${verifyUrl ? this.button('Verify Email Address', verifyUrl) : ''}
       ${this.infoBox('🎉 <strong>Your account is ready.</strong> Log in to get started!')}
     `);
     return this.send(to, 'Welcome to OpenClubOS', html, `Welcome email sent to ${to}`);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { cn } from "@/lib/utils";
+import { cn, getAvatarUrl } from "@/lib/utils";
 import {
   Home,
   User,
@@ -183,8 +183,8 @@ export function Sidebar() {
       <div className="px-4 py-6 border-t border-white/10 bg-[#161e2b]">
         <div className="flex items-center gap-4 px-4 py-3 mb-4">
           <div className="h-12 w-12 rounded-full border-2 border-emerald-500/30 p-0.5 flex-shrink-0 flex items-center justify-center overflow-hidden">
-            <div className="h-full w-full rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#10b981] font-bold text-[18px]">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            <div className="h-full w-full rounded-full bg-[#10b981]/20 overflow-hidden">
+              <img src={getAvatarUrl(user || undefined)} alt={user?.name || "User Avatar"} className="h-full w-full object-cover" />
             </div>
           </div>
           <div className="flex-1 min-w-0">

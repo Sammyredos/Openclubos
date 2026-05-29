@@ -234,6 +234,7 @@ export class AuthService {
           firstName: dto.adminFirstName,
           lastName: lastName,
           phone: dto.adminPhone,
+          gender: dto.adminGender ? (dto.adminGender.toUpperCase() as any) : null,
           role: UserRole.CLUB_ADMIN,
           clubId: club.id,
           status: MemberStatus.ACTIVE,
@@ -391,6 +392,8 @@ export class AuthService {
         clubId: user.clubId,
         email: user.email,
         name: user.firstName || user.lastName ? `${user.firstName} ${user.lastName}`.trim() : undefined,
+        profilePhoto: user.profilePhoto || undefined,
+        gender: user.gender || undefined,
       },
     };
   }
