@@ -1,4 +1,5 @@
 import { getAuthToken, handleAuthFailure } from './auth';
+import { getTournamentScores } from './scores';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -273,7 +274,11 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
   return { groups: [], unassigned: allPaidPlayers };
 }
 
-export async function generateGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
+export async function generateGroupings(
+  tournamentId: string,
+  day: number = 1,
+  rule: 'RANDOM' | 'LEADERBOARD_REVERSE' | 'LEADERBOARD_DIRECT' | 'CATEGORY_RANDOM' = 'RANDOM'
+): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings/generate?day=${day}`, {
     method: 'POST',
   }).catch(() => null);
@@ -312,9 +317,104 @@ export async function generateGroupings(tournamentId: string, day: number = 1): 
   let currentHour = isNaN(startHour) ? 8 : startHour;
   let currentMin = isNaN(startMin) ? 0 : startMin;
 
-  const totalGroups = Math.ceil(players.length / maxPerGroup);
+  // Apply grouping rules
+  let sortedPlayers = [...players];
+  if (rule === 'RANDOM') {
+    // Shuffle players
+    sortedPlayers.sort(() => Math.random() - 0.5);
+  } else if (rule === 'CATEGORY_RANDOM') {
+    // Balanced groups: Pick one from each category sequentially
+    const getCategory = (hcap: number | null | undefined) => {
+      if (hcap === null || hcap === undefined) return 99;
+      if (hcap >= 0 && hcap <= 5) return 1;
+      if (hcap >= 6 && hcap <= 12) return 2;
+      if (hcap >= 13 && hcap <= 20) return 3;
+      if (hcap >= 21 && hcap <= 28) return 4;
+      return 5;
+    };
+    
+    const buckets: Record<number, any[]> = {};
+    players.forEach(p => {
+      const cat = getCategory(p.user?.handicap);
+      if (!buckets[cat]) buckets[cat] = [];
+      buckets[cat].push(p);
+    });
+
+    // Shuffle each bucket internally
+    Object.values(buckets).forEach(b => b.sort(() => Math.random() - 0.5));
+
+    const catKeys = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+    const balancedPlayers: any[] = [];
+    
+    let playersRemaining = true;
+    while (playersRemaining) {
+      playersRemaining = false;
+      for (const cat of catKeys) {
+        if (buckets[cat] && buckets[cat].length > 0) {
+          balancedPlayers.push(buckets[cat].shift());
+          playersRemaining = true;
+        }
+      }
+    }
+    sortedPlayers = balancedPlayers;
+  } else if (rule === 'LEADERBOARD_REVERSE' || rule === 'LEADERBOARD_DIRECT') {
+    try {
+      // Fetch scores to sort by leaderboard
+      const scores = await getTournamentScores(tournamentId);
+      const playerScores: Record<string, number> = {};
+      const playerLastRecorded: Record<string, number> = {};
+      
+      scores.forEach((score: any) => {
+        if (!playerScores[score.userId]) {
+          playerScores[score.userId] = 0;
+          playerLastRecorded[score.userId] = 0;
+        }
+        playerScores[score.userId] += score.strokes || 0;
+        
+        const recordedTime = new Date(score.recordedAt).getTime();
+        if (recordedTime > playerLastRecorded[score.userId]) {
+          playerLastRecorded[score.userId] = recordedTime;
+        }
+      });
+
+      sortedPlayers.sort((a, b) => {
+        // Players with no score are considered to have 9999 (worst possible score)
+        const scoreA = playerScores[a.user?.id || ''] ?? 9999;
+        const scoreB = playerScores[b.user?.id || ''] ?? 9999;
+        
+        if (scoreA !== scoreB) {
+          if (rule === 'LEADERBOARD_REVERSE') {
+            // Worst scores (highest) go first, leaders go last
+            return scoreB - scoreA;
+          } else {
+            // Leaders (lowest) go first
+            return scoreA - scoreB;
+          }
+        }
+
+        // TIE-BREAKER: First In, Last Out (FILO)
+        // The player who finished earliest (smaller recorded time) tees off later.
+        const timeA = playerLastRecorded[a.user?.id || ''] ?? 0;
+        const timeB = playerLastRecorded[b.user?.id || ''] ?? 0;
+
+        if (rule === 'LEADERBOARD_REVERSE') {
+          // In reverse leaderboard, later tee time means LARGER index.
+          // So if timeA < timeB (A finished earlier), A should have a LARGER index, so return positive.
+          return timeB - timeA;
+        } else {
+          // In direct leaderboard, later tee time means LARGER index.
+          // So if timeA < timeB, A should have a LARGER index, so return positive.
+          return timeB - timeA;
+        }
+      });
+    } catch (err) {
+      console.error('Failed to apply leaderboard grouping rules:', err);
+    }
+  }
+
+  const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
   for (let i = 0; i < totalGroups; i++) {
-    const groupPlayers = players.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
+    const groupPlayers = sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
     
     const pad = (n: number) => n < 10 ? `0${n}` : String(n);
     const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;

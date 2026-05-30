@@ -641,6 +641,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     options={organizers.map((o) => ({ value: o.id, label: o.name }))}
                     placeholder="Select organizer..."
                     triggerClassName={req(formData.clubId)}
+                    disabled={!!tournamentId}
                   />
                 </Field>
 
@@ -914,11 +915,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           key={value}
                           type="button"
                           onClick={() => set("format", value)}
+                          disabled={!!tournamentId}
                           className={cn(
                             "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
                             active
                               ? "border-emerald-500 bg-emerald-50/60"
-                              : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                              : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50",
+                            !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
                           )}
                         >
                           <div
@@ -960,9 +963,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             key={value}
                             type="button"
                             onClick={() => set("scoringType", value)}
+                            disabled={!!tournamentId}
                             className={cn(
                               "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-bold transition-all",
-                              active ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                              active ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50",
+                              !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
                             )}
                           >
                             {label}
@@ -1489,7 +1494,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
+            <h1 className="text-2xl font-black text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
             <p className="text-[13px] text-gray-500 mt-0.5">
               {tournamentId ? "Update and configure the tournament details step by step" : "Setup and configure a new golf tournament step by step"}
             </p>

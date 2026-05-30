@@ -215,6 +215,7 @@ export class EmailService {
     tournamentName: string,
     status: string,
     startDate?: string,
+    organizerName?: string,
   ): Promise<EmailResult> {
     const statusLabel = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     const colorMap: Record<string, string> = {
@@ -238,7 +239,7 @@ export class EmailService {
       ])}
       
       ${this.p('You will continue to receive updates regarding your participation status. If you have any inquiries regarding this change, please reach out to the tournament organizers directly.')}
-      ${this.p('Best regards,<br/><strong>The OpenClubOS Tournament Team</strong>')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `);
     return this.send(to, `Registration Update: ${tournamentName}`, html,
       `Registration confirmation sent to ${to} for "${tournamentName}" (${status})`);
@@ -248,7 +249,7 @@ export class EmailService {
   // 5. Registration Approved
   // ────────────────────────────────────────────────────────────────
 
-  async sendRegistrationApproved(to: string, tournamentName: string): Promise<EmailResult> {
+  async sendRegistrationApproved(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Registration Approved', `
       ${this.p('Dear Player,')}
       ${this.p(`We are pleased to inform you that your registration for <strong>${tournamentName}</strong> has been officially <strong style="color: #059669;">approved</strong>.`)}
@@ -263,7 +264,7 @@ export class EmailService {
       ])}
       
       ${this.p('Should you need to withdraw or have any questions regarding the itinerary, please contact the organizers as soon as possible.')}
-      ${this.p('Best of luck,<br/><strong>The OpenClubOS Tournament Team</strong>')}
+      ${this.p(`Best of luck,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `);
     return this.send(to, `Approved: You're in for ${tournamentName}`, html, `Registration approved email sent to ${to}`);
   }
@@ -272,7 +273,7 @@ export class EmailService {
   // 6. Registration Rejected
   // ────────────────────────────────────────────────────────────────
 
-  async sendRegistrationRejected(to: string, tournamentName: string): Promise<EmailResult> {
+  async sendRegistrationRejected(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Registration Update', `
       ${this.p('Dear Player,')}
       ${this.p(`Thank you for your interest in participating in <strong>${tournamentName}</strong>. After careful review, we regret to inform you that we are unable to approve your registration at this time.`)}
@@ -282,7 +283,7 @@ export class EmailService {
       ${this.infoBox('If you believe this decision was made in error or if you require further clarification, please reach out to the tournament organizers directly. We apologize for any disappointment this may cause.', '#fef2f2', '#fecaca', '#991b1b')}
       
       ${this.p('We hope to welcome you to future events on the OpenClubOS platform.')}
-      ${this.p('Sincerely,<br/><strong>The OpenClubOS Tournament Team</strong>')}
+      ${this.p(`Sincerely,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#991b1b, #7f1d1d');
     return this.send(to, `Registration Update: ${tournamentName}`, html, `Registration rejected email sent to ${to}`);
   }
@@ -291,7 +292,7 @@ export class EmailService {
   // 7. Waitlist Notification
   // ────────────────────────────────────────────────────────────────
 
-  async sendWaitlistNotification(to: string, tournamentName: string): Promise<EmailResult> {
+  async sendWaitlistNotification(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Waitlist Notification', `
       ${this.p('Dear Player,')}
       ${this.p(`Thank you for registering for <strong>${tournamentName}</strong>. At this time, the tournament has reached its maximum capacity.`)}
@@ -307,6 +308,7 @@ export class EmailService {
       ])}
       
       ${this.p('We appreciate your patience and enthusiasm for the event.')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#5b21b6, #4c1d95');
     return this.send(to, `Waitlisted: ${tournamentName}`, html, `Waitlist notification sent to ${to}`);
   }
@@ -354,6 +356,7 @@ export class EmailService {
     tournamentName: string,
     startDate: string,
     venue?: string,
+    organizerName?: string,
   ): Promise<EmailResult> {
     const formattedDate = this.formatDate(startDate);
     
@@ -378,6 +381,7 @@ export class EmailService {
       ])}
       
       ${this.p('Punctuality is critical for maintaining the tournament pace of play. We wish you the best of luck on the course!')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `);
     return this.send(to, `Action Required: Upcoming Tournament - ${tournamentName}`, html,
       `Tournament reminder sent to ${to} for "${tournamentName}"`);
@@ -387,7 +391,7 @@ export class EmailService {
   // 10. Tournament Started
   // ────────────────────────────────────────────────────────────────
 
-  async sendTournamentStarted(to: string, tournamentName: string): Promise<EmailResult> {
+  async sendTournamentStarted(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Tournament Underway', `
       ${this.p('Dear Player,')}
       ${this.p(`Please be advised that <strong>${tournamentName}</strong> has officially commenced.`)}
@@ -397,6 +401,7 @@ export class EmailService {
       ${this.p('Live scoring is now enabled on the platform. We encourage you to input your scores progressively via the OpenClubOS mobile interface to keep the live leaderboard updated for all participants and spectators.')}
       
       ${this.p('Play well and enjoy the competition.')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#1e40af, #1d4ed8');
     return this.send(to, `Now Active: ${tournamentName}`, html, `Tournament started email sent to ${to}`);
   }
@@ -405,7 +410,7 @@ export class EmailService {
   // 11. Tournament Completed
   // ────────────────────────────────────────────────────────────────
 
-  async sendTournamentCompleted(to: string, tournamentName: string): Promise<EmailResult> {
+  async sendTournamentCompleted(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Tournament Concluded', `
       ${this.p('Dear Player,')}
       ${this.p(`<strong>${tournamentName}</strong> has officially concluded. We would like to extend our gratitude to all participants for making this a successful and competitive event.`)}
@@ -420,6 +425,7 @@ export class EmailService {
       ])}
       
       ${this.p('Thank you once again for your participation. We look forward to hosting you at our future events.')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#3730a3, #312e81');
     return this.send(to, `Official Results: ${tournamentName} Concluded`, html, `Tournament completed email sent to ${to}`);
   }
@@ -534,7 +540,7 @@ export class EmailService {
   // 17. Tournament Updated
   // ────────────────────────────────────────────────────────────────
 
-  async sendTournamentUpdate(to: string, tournamentName: string, updateDetails?: string): Promise<EmailResult> {
+  async sendTournamentUpdate(to: string, tournamentName: string, updateDetails?: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Tournament Update', `
       ${this.p('Dear Player,')}
       ${this.p(`This is a formal notification that there has been an update to the details or schedule of <strong>${tournamentName}</strong>.`)}
@@ -543,7 +549,7 @@ export class EmailService {
       
       ${this.p('Please log in to your OpenClubOS account to view the full updated tournament details, tee times, and guidelines.')}
       ${this.p('If you have any questions, please reach out to the tournament organizers directly.')}
-      ${this.p('Best regards,<br/><strong>The OpenClubOS Tournament Team</strong>')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#059669, #10b981');
     return this.send(to, `Important Update: ${tournamentName}`, html, `Tournament update email sent to ${to} for ${tournamentName}`);
   }
@@ -551,7 +557,7 @@ export class EmailService {
   // 18. Tee Time Published
   // ────────────────────────────────────────────────────────────────
 
-  async sendTeeTimePublished(to: string, tournamentName: string, roundName: string, teeTime: string, groupName: string): Promise<EmailResult> {
+  async sendTeeTimePublished(to: string, tournamentName: string, roundName: string, teeTime: string, groupName: string, organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Tee Time Published', `
       ${this.p('Dear Player,')}
       ${this.p(`Your official tee time and grouping for <strong>${roundName}</strong> of the <strong>${tournamentName}</strong> have been published.`)}
@@ -567,7 +573,7 @@ export class EmailService {
       ${this.infoBox('<strong>Arrival Note:</strong> Please ensure you arrive at the tee box at least 15 minutes prior to your scheduled tee time.', '#eff6ff', '#bfdbfe', '#1e3a8a')}
       
       ${this.p('We wish you the best of luck on the course!')}
-      ${this.p('Best regards,<br/><strong>The OpenClubOS Tournament Team</strong>')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#2563eb, #3b82f6');
     return this.send(to, `Tee Time Published: ${tournamentName}`, html, `Tee time email sent to ${to} for ${tournamentName}`);
   }

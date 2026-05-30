@@ -237,7 +237,7 @@ export class TournamentsService {
         status: 'ONGOING',
         endDate: { lt: now },
       },
-      select: { id: true, name: true, emailsSent: true },
+      select: { id: true, name: true, emailsSent: true, club: { select: { name: true } } },
     });
     const completedIds = completedCandidates.map(t => t.id);
 
@@ -252,7 +252,7 @@ export class TournamentsService {
         const emailsSent = (t.emailsSent as any) || {};
         if (emailsSent.completed) continue;
 
-        await this.sendTournamentCompletedEmails(t.id, t.name);
+        await this.sendTournamentCompletedEmails(t.id, t.name, t.club?.name);
 
         // Mark as completed in JSON tracking
         await this.prisma.tournament.update({
@@ -269,7 +269,7 @@ export class TournamentsService {
         startDate: { lte: now },
         OR: [{ endDate: { gte: now } }, { endDate: null }],
       },
-      select: { id: true, name: true, emailsSent: true },
+      select: { id: true, name: true, emailsSent: true, club: { select: { name: true } } },
     });
     const ongoingIds = ongoingCandidates.map(t => t.id);
 
@@ -284,7 +284,7 @@ export class TournamentsService {
         const emailsSent = (t.emailsSent as any) || {};
         if (emailsSent.started) continue;
 
-        await this.sendTournamentStartedEmails(t.id, t.name);
+        await this.sendTournamentStartedEmails(t.id, t.name, t.club?.name);
 
         // Mark as started in JSON tracking
         await this.prisma.tournament.update({
@@ -387,6 +387,51 @@ export class TournamentsService {
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.status !== undefined) data.status = dto.status;
 
+    const existing = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Tournament not found');
+    }
+
+    // Dynamic Status Recalculation based on dates
+    const intendedStatus = dto.status !== undefined ? dto.status : existing.status;
+    if (!['DRAFT', 'CANCELLED'].includes(intendedStatus)) {
+      const targetStartDate = data.startDate || existing.startDate;
+      const targetEndDate = data.endDate !== undefined ? data.endDate : existing.endDate;
+      
+      // Use strictly UTC dates for comparison to avoid timezone drift
+      const today = new Date();
+      const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+      const startUTC = new Date(Date.UTC(targetStartDate.getUTCFullYear(), targetStartDate.getUTCMonth(), targetStartDate.getUTCDate()));
+      const endUTC = targetEndDate ? new Date(Date.UTC(targetEndDate.getUTCFullYear(), targetEndDate.getUTCMonth(), targetEndDate.getUTCDate())) : null;
+
+      if (endUTC && endUTC.getTime() < todayUTC.getTime()) {
+        data.status = 'COMPLETED';
+      } else if (startUTC.getTime() <= todayUTC.getTime() && (!endUTC || endUTC.getTime() >= todayUTC.getTime())) {
+        data.status = 'ONGOING';
+      } else if (startUTC.getTime() > todayUTC.getTime()) {
+        data.status = 'REGISTRATION_OPEN';
+      }
+    }
+
+    const changedFields: string[] = [];
+    if (data.name !== undefined && data.name !== existing.name) changedFields.push(`<strong>Tournament Name:</strong> ${data.name}`);
+    if (data.startDate !== undefined && existing.startDate && data.startDate.getTime() !== existing.startDate.getTime()) changedFields.push(`<strong>Start Date:</strong> ${data.startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+    if (data.endDate !== undefined && ((data.endDate?.getTime() || 0) !== (existing.endDate?.getTime() || 0))) changedFields.push(`<strong>End Date:</strong> ${data.endDate ? data.endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'None'}`);
+    if (data.venue !== undefined && data.venue !== existing.venue) changedFields.push(`<strong>Location:</strong> ${data.venue}`);
+    if (data.courseId !== undefined && data.courseId !== existing.courseId) changedFields.push(`<strong>Golf Course:</strong> Updated`);
+    if (data.maxPlayers !== undefined && data.maxPlayers !== existing.maxPlayers) changedFields.push(`<strong>Player Capacity:</strong> ${data.maxPlayers === null ? 'Unlimited' : data.maxPlayers}`);
+    if (data.entryFee !== undefined && data.entryFee !== existing.entryFee) changedFields.push(`<strong>Entry Fee:</strong> ${data.entryFee === null ? 'Free' : data.entryFee}`);
+    if (data.format !== undefined && data.format !== existing.format) changedFields.push(`<strong>Format:</strong> ${data.format}`);
+    if (data.scoringType !== undefined && data.scoringType !== existing.scoringType) changedFields.push(`<strong>Scoring Type:</strong> ${data.scoringType}`);
+    if (data.holes !== undefined && data.holes !== existing.holes) changedFields.push(`<strong>Holes Per Round:</strong> ${data.holes}`);
+    if (data.teeStartTime !== undefined && data.teeStartTime !== existing.teeStartTime) changedFields.push(`<strong>Tee Start Time:</strong> ${data.teeStartTime || 'None'}`);
+    if (data.description !== undefined && data.description !== existing.description) changedFields.push(`<strong>Description:</strong> Updated`);
+
+    let updateDetails = '';
+    if (changedFields.length > 0) {
+      updateDetails = `The tournament organizers have made updates to the following details:<br/><ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;"><li>${changedFields.join('</li><li>')}</li></ul><br/>Please review these changes to ensure you are up to date.`;
+    }
+
     try {
       const result = await this.prisma.tournament.update({
         where: { id },
@@ -406,7 +451,7 @@ export class TournamentsService {
       await this.cacheService.reset();
 
       // Queue tournament update emails to all approved players
-      if (Object.keys(data).length > 0 && result.status !== 'DRAFT') {
+      if (changedFields.length > 0 && result.status !== 'DRAFT') {
         const approvedRegistrations = await this.prisma.registration.findMany({
           where: { tournamentId: id, status: 'APPROVED' },
           select: { user: { select: { email: true } } },
@@ -416,7 +461,8 @@ export class TournamentsService {
           if (reg.user?.email) {
             this.jobsService.queueEmail('TOURNAMENT_UPDATED', reg.user.email, {
               tournamentName: result.name,
-              updateDetails: 'The tournament organizers have updated the tournament details. Please review the updated information.',
+              updateDetails,
+              organizerName: result.club?.name,
             }).catch(err => console.error('Failed to queue TOURNAMENT_UPDATED email:', err));
           }
         }
@@ -494,6 +540,7 @@ export class TournamentsService {
         startDate: true,
         venue: true,
         emailsSent: true,
+        club: { select: { name: true } },
         registrations: {
           where: { status: 'APPROVED' },
           select: {
@@ -515,6 +562,7 @@ export class TournamentsService {
             tournamentName: tournament.name,
             startDate: tournament.startDate,
             venue: tournament.venue,
+            organizerName: tournament.club?.name,
           }).catch(err =>
             console.error('Failed to queue tournamentReminder email:', err),
           );
@@ -530,7 +578,7 @@ export class TournamentsService {
     }
   }
 
-  private async sendTournamentStartedEmails(tournamentId: string, tournamentName: string) {
+  private async sendTournamentStartedEmails(tournamentId: string, tournamentName: string, organizerName?: string) {
     const regs = await this.prisma.registration.findMany({
       where: { tournamentId, status: 'APPROVED' },
       select: { user: { select: { email: true } } },
@@ -540,12 +588,13 @@ export class TournamentsService {
       if (reg.user?.email) {
         this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
           tournamentName,
+          organizerName,
         }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
       }
     }
   }
 
-  private async sendTournamentCompletedEmails(tournamentId: string, tournamentName: string) {
+  private async sendTournamentCompletedEmails(tournamentId: string, tournamentName: string, organizerName?: string) {
     const regs = await this.prisma.registration.findMany({
       where: { tournamentId, status: 'APPROVED' },
       select: { user: { select: { email: true } } },
@@ -555,6 +604,7 @@ export class TournamentsService {
       if (reg.user?.email) {
         this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
           tournamentName,
+          organizerName,
         }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
       }
     }

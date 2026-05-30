@@ -66,17 +66,17 @@ export class JobsProcessor extends WorkerHost {
 
       case 'REGISTRATION':
         return this.emailService.sendRegistrationConfirmation(
-          to, data.tournamentName || 'Tournament', data.status || 'APPROVED', data.startDate,
+          to, data.tournamentName || 'Tournament', data.status || 'APPROVED', data.startDate, data.organizerName
         );
 
       case 'REGISTRATION_APPROVED':
-        return this.emailService.sendRegistrationApproved(to, data.tournamentName || 'Tournament');
+        return this.emailService.sendRegistrationApproved(to, data.tournamentName || 'Tournament', data.organizerName);
 
       case 'REGISTRATION_REJECTED':
-        return this.emailService.sendRegistrationRejected(to, data.tournamentName || 'Tournament');
+        return this.emailService.sendRegistrationRejected(to, data.tournamentName || 'Tournament', data.organizerName);
 
       case 'WAITLIST':
-        return this.emailService.sendWaitlistNotification(to, data.tournamentName || 'Tournament');
+        return this.emailService.sendWaitlistNotification(to, data.tournamentName || 'Tournament', data.organizerName);
 
       case 'PAYMENT':
         return this.emailService.sendPaymentReceipt(
@@ -85,14 +85,14 @@ export class JobsProcessor extends WorkerHost {
 
       case 'REMINDER':
         return this.emailService.sendTournamentReminder(
-          to, data.tournamentName || 'Tournament', data.startDate || new Date().toISOString(), data.venue,
+          to, data.tournamentName || 'Tournament', data.startDate || new Date().toISOString(), data.venue, data.organizerName
         );
 
       case 'TOURNAMENT_STARTED':
-        return this.emailService.sendTournamentStarted(to, data.tournamentName || 'Tournament');
+        return this.emailService.sendTournamentStarted(to, data.tournamentName || 'Tournament', data.organizerName);
 
       case 'TOURNAMENT_COMPLETED':
-        return this.emailService.sendTournamentCompleted(to, data.tournamentName || 'Tournament');
+        return this.emailService.sendTournamentCompleted(to, data.tournamentName || 'Tournament', data.organizerName);
 
       case 'ADMIN_CREDENTIALS':
         return this.emailService.sendAdminCredentials(
@@ -112,7 +112,7 @@ export class JobsProcessor extends WorkerHost {
         return this.emailService.sendSecurityAlert(to, data.action || 'Unknown action');
 
       case 'TOURNAMENT_UPDATED':
-        return this.emailService.sendTournamentUpdate(to, data.tournamentName || 'Tournament', data.updateDetails);
+        return this.emailService.sendTournamentUpdate(to, data.tournamentName || 'Tournament', data.updateDetails, data.organizerName);
 
       case 'TEE_TIME_PUBLISHED':
         return this.emailService.sendTeeTimePublished(
@@ -120,7 +120,8 @@ export class JobsProcessor extends WorkerHost {
           data.tournamentName || 'Tournament', 
           data.roundName || 'Round 1', 
           data.teeTime || 'TBA', 
-          data.groupName || 'Group 1'
+          data.groupName || 'Group 1',
+          data.organizerName
         );
 
       default:

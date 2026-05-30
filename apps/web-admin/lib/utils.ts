@@ -217,6 +217,16 @@ export function subscribeAdminEvents(handler: (event: AdminEvent) => void) {
   };
 }
 
+export function getGolfCategory(handicap: number | null | undefined): string {
+  if (handicap === null || handicap === undefined) return "Open";
+  if (handicap >= 0 && handicap <= 5) return "Category 1";
+  if (handicap >= 6 && handicap <= 12) return "Category 2";
+  if (handicap >= 13 && handicap <= 20) return "Category 3";
+  if (handicap >= 21 && handicap <= 28) return "Category 4";
+  if (handicap >= 29) return "Category 5/6";
+  return "Open";
+}
+
 export function getAvatarUrl(user?: {
   profilePhoto?: string | null;
   gender?: string | null;

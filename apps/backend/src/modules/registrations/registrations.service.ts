@@ -34,6 +34,7 @@ export class RegistrationsService {
     const [tournament, user, approvedCount] = await Promise.all([
       this.prisma.tournament.findUnique({
         where: { id: tournamentId },
+        include: { club: { select: { name: true } } }
       }),
       this.prisma.user.findUnique({ where: { id: userId } }),
       this.prisma.registration.count({
@@ -165,16 +166,19 @@ export class RegistrationsService {
       if (status === RegistrationStatus.APPROVED) {
         this.jobsService.queueEmail('REGISTRATION_APPROVED', user.email, {
           tournamentName: tournament.name,
+          organizerName: tournament.club?.name,
         }).catch(err => console.error('Failed to queue registrationApproved email:', err));
       } else if (status === RegistrationStatus.WAITLISTED) {
         this.jobsService.queueEmail('WAITLIST_NOTIFICATION', user.email, {
           tournamentName: tournament.name,
+          organizerName: tournament.club?.name,
         }).catch(err => console.error('Failed to queue waitlistNotification email:', err));
       } else if (status === RegistrationStatus.PENDING) {
         this.jobsService.queueEmail('REGISTRATION_CONFIRMATION', user.email, {
           tournamentName: tournament.name,
           status: 'PENDING',
           startDate: tournament.startDate,
+          organizerName: tournament.club?.name,
         }).catch(err => console.error('Failed to queue registrationConfirmation email:', err));
       }
     }
@@ -331,13 +335,14 @@ export class RegistrationsService {
       if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.REJECTED) {
         const [statusUser, statusTournament] = await Promise.all([
           this.prisma.user.findUnique({ where: { id: registration.userId }, select: { email: true, firstName: true } }),
-          this.prisma.tournament.findUnique({ where: { id: registration.tournamentId }, select: { name: true } }),
+          this.prisma.tournament.findUnique({ where: { id: registration.tournamentId }, select: { name: true, club: { select: { name: true } } } }),
         ]);
 
         if (statusUser?.email && statusTournament) {
           const template = status === RegistrationStatus.APPROVED ? 'REGISTRATION_APPROVED' : 'REGISTRATION_REJECTED';
           this.jobsService.queueEmail(template, statusUser.email, {
             tournamentName: statusTournament.name,
+            organizerName: statusTournament.club?.name,
           }).catch(err => console.error(`Failed to queue ${template} email:`, err));
         }
       }
@@ -422,7 +427,7 @@ export class RegistrationsService {
       where: { id },
       include: {
         user: { select: { email: true } },
-        tournament: { select: { name: true } },
+        tournament: { select: { name: true, club: { select: { name: true } } } },
       },
     });
 
@@ -434,6 +439,7 @@ export class RegistrationsService {
       if (registration.status === RegistrationStatus.WAITLISTED || registration.status === RegistrationStatus.PENDING || registration.status === RegistrationStatus.APPROVED) {
         this.jobsService.queueEmail('REGISTRATION_REJECTED', registration.user.email, {
           tournamentName: registration.tournament.name,
+          organizerName: registration.tournament.club?.name,
         }).catch(err => console.error('Failed to queue REGISTRATION_REJECTED email on removal:', err));
       }
     }

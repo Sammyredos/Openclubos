@@ -31,11 +31,13 @@ import {
   Sparkles,
   RefreshCcw,
   Send,
+  ChevronDown,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatWithCommas, subscribeAdminEvents } from "@/lib/utils";
+import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -273,11 +275,11 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleGenerateGroupings = async () => {
+  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE" | "LEADERBOARD_DIRECT" = "RANDOM") => {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     try {
-      const data = await generateGroupings(tournamentId, selectedDay);
+      const data = await generateGroupings(tournamentId, selectedDay, rule);
       setGroupingsData(data);
       setGroupingsSubTab("grouped");
       toast.success("Groupings generated successfully");
@@ -379,7 +381,9 @@ function ViewTournamentPageInner() {
       const d2 = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
 
       scores.forEach((s: any) => {
-        const scoreDate = new Date(s.recordedAt);
+        // Use group's scheduled startTime if available to ensure late score submissions 
+        // are still mapped to the correct round. Fallback to recordedAt.
+        const scoreDate = s.group?.startTime ? new Date(s.group.startTime) : new Date(s.recordedAt);
         const d1 = Date.UTC(scoreDate.getFullYear(), scoreDate.getMonth(), scoreDate.getDate());
         const dayDiff = Math.floor((d1 - d2) / (1000 * 60 * 60 * 24)) + 1;
         
@@ -409,10 +413,17 @@ function ViewTournamentPageInner() {
       const leaderboard = Object.values(playersMap)
         .map((p: any) => {
           const gross = p.grossStrokes;
-          const handicap = p.user?.handicap || 0;
+          const handicapIndex = p.user?.handicap || 0;
           const extra = p.extraStrokes || 0;
-          // Net = Gross - Handicap + Extra Strokes
-          const net = gross > 0 ? (gross - handicap + extra) : 0;
+          const holesPlayed = p.holesCompleted.size;
+          
+          // In golf, Playing Handicap is rounded to the nearest integer.
+          // For multi-round tournaments, the handicap is scaled based on holes played (e.g., 2x for 36 holes).
+          const playingHandicap = Math.round(handicapIndex);
+          const totalHandicap = Math.round(playingHandicap * (holesPlayed / 18));
+          
+          // Net = Gross - Total Handicap + Extra Strokes
+          const net = gross > 0 ? (gross - totalHandicap + extra) : 0;
 
           return {
             ...p,
@@ -445,7 +456,7 @@ function ViewTournamentPageInner() {
     } else if (activeTab === "leaderboard") {
       loadLeaderboardData();
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay]);
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -1042,7 +1053,7 @@ function ViewTournamentPageInner() {
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
             variant="outline"
-            className="h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 rounded-xl"
+            className="h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm flex items-center gap-2 rounded-xl"
           >
             <Edit2 className="w-4 h-4 text-gray-400" />
             Edit Tournament
@@ -1624,10 +1635,71 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
+                {/* Groupings Dashboard Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-gray-900">Manage Groupings</h3>
+                    <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative inline-block">
+                      <Button
+                        disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                        className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        Grouping Rules
+                        <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                      </Button>
+                      <select
+                        disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                        onChange={(e) => handleGenerateGroupings(e.target.value as any)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        title="Select Grouping Rule"
+                      >
+                        <option value="">Select Rule...</option>
+                        <option value="RANDOM">Random Grouping</option>
+                        <option value="CATEGORY_RANDOM">Category Balanced</option>
+                        <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
+                        <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
+                      </select>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleClearGroupings}
+                      disabled={groupingsLoading || !groupingsData?.groups.length}
+                      className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all gap-2"
+                    >
+                      <RefreshCcw className="w-3.5 h-3.5" />
+                      Reset All
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search groups or players..."
+                      value={groupingsSearch}
+                      onChange={(e) => {
+                        setGroupingsSearch(e.target.value);
+                        setGroupsPage(1);
+                        setUnassignedPage(1);
+                      }}
+                      className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                    />
+                  </div>
+                </div>
+
                 {/* Sub-tabs for Unassigned/Grouped */}
-                <div className="flex gap-2 mb-6 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
+                <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
                   <button
-                    onClick={() => setGroupingsSubTab("unassigned")}
+                    onClick={() => {
+                      setGroupingsSubTab("unassigned");
+                      setUnassignedPage(1);
+                    }}
                     className={cn(
                       "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
                       groupingsSubTab === "unassigned"
@@ -1644,7 +1716,10 @@ function ViewTournamentPageInner() {
                     </Badge>
                   </button>
                   <button
-                    onClick={() => setGroupingsSubTab("grouped")}
+                    onClick={() => {
+                      setGroupingsSubTab("grouped");
+                      setGroupsPage(1);
+                    }}
                     className={cn(
                       "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
                       groupingsSubTab === "grouped"
@@ -1662,58 +1737,16 @@ function ViewTournamentPageInner() {
                   </button>
                 </div>
 
-                {/* Groupings Dashboard Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-gray-900">Manage Grouping</h3>
-                    <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                        <Button
-                          onClick={handleGenerateGroupings}
-                          disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                          className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                          Random Grouping
-                        </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleClearGroupings}
-                      disabled={groupingsLoading || !groupingsData?.groups.length}
-                      className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all gap-2"
-                    >
-                      <RefreshCcw className="w-3.5 h-3.5" />
-                      Reset All
-                    </Button>
-                  </div>
-                </div>
-
                 {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
                   <div className="space-y-6">
                     {/* Groups Section */}
                         {groupingsSubTab === "grouped" && (
                           <div className="space-y-6">
-                            <div className="flex flex-col md:flex-row gap-4 mb-2">
-                              <div className="relative flex-1">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <Input 
-                                  placeholder="Search groups or players..." 
-                                  value={groupsSearch}
-                                  onChange={(e) => {
-                                    setGroupsSearch(e.target.value);
-                                    setGroupsPage(1);
-                                  }}
-                                  className="pl-11 h-12 text-[14px] rounded-2xl border-gray-150 bg-gray-50/50 focus:bg-white transition-all"
-                                />
-                              </div>
-                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                               {groupingsData.groups
                                 .filter(group => {
-                                  const query = groupsSearch.trim().toLowerCase();
+                                  const query = groupingsSearch.trim().toLowerCase();
                                   if (!query) return true;
                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
                                   
@@ -1902,20 +1935,6 @@ function ViewTournamentPageInner() {
                           </Badge>
                         </div>
                         <div className="p-6">
-                          <div className="flex flex-col md:flex-row gap-4 mb-6">
-                            <div className="relative flex-1">
-                              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <Input 
-                                placeholder="Search participants..." 
-                                value={groupingsSearch}
-                                onChange={(e) => {
-                                  setGroupingsSearch(e.target.value);
-                                  setUnassignedPage(1); // Reset to first page on search
-                                }}
-                                className="pl-11 h-12 text-[14px] rounded-2xl border-gray-150 bg-gray-50/50 focus:bg-white transition-all"
-                              />
-                            </div>
-                          </div>
                           
                           {(() => {
                             const filtered = groupingsData.unassigned.filter(p => {
@@ -1970,6 +1989,12 @@ function ViewTournamentPageInner() {
                                                   {player.user.gender}
                                                 </span>
                                               )}
+                                              {/* Category Badge */}
+                                              {player.user?.handicap !== undefined && (
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100">
+                                                  {getGolfCategory(player.user.handicap)}
+                                                </span>
+                                              )}
 
                                               {/* Age Badge */}
                                               {player.user?.dob && (
@@ -1992,18 +2017,7 @@ function ViewTournamentPageInner() {
                                             </div>
                                           </div>
                                         </div>
-                                        <select
-                                          value="unassigned"
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val !== "unassigned") handleMovePlayer(player.id, val);
-                                          }}
-                                          className="bg-emerald-50 text-emerald-600 border-none text-[11px] font-black rounded-lg px-3 py-1.5 cursor-pointer focus:ring-0"
-                                        >
-                                          <option value="unassigned">Assign To...</option>
-                                          {groupingsData.groups.map((g: GroupingItem) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                                        </select>
-                                      </div>
+                                        </div>
                                     ))
                                   ) : (
                                         <div className="col-span-full py-12">
@@ -2040,15 +2054,35 @@ function ViewTournamentPageInner() {
                     title="No Allocation Data"
                     description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
                     action={
-                      <Button
-                        onClick={handleGenerateGroupings}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg"
-                      >
-                        Start Random Grouping
-                      </Button>
+                      <div className="relative inline-block">
+                        <Button
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
+                        >
+                          Grouping Rules
+                          <ChevronDown className="w-4 h-4 ml-1" />
+                        </Button>
+                        <select
+                          onChange={(e) => handleGenerateGroupings(e.target.value as any)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          title="Select Grouping Rule"
+                        >
+                          <option value="">Select Rule...</option>
+                          <option value="RANDOM">Random Grouping</option>
+                          <option value="CATEGORY_RANDOM">Category Balanced</option>
+                          <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
+                          <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
+                        </select>
+                      </div>
                     }
                   />
                 )}
+                
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-4 mt-6">
+                  <Sparkles className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <p className="text-[12px] text-emerald-700 leading-relaxed font-medium">
+                    <strong>Grouping Rules Guide:</strong> <strong>Random:</strong> Shuffles purely by chance. <strong>Category Balanced:</strong> Mixes handicaps evenly. <strong>Reverse:</strong> FILO - Highest scores first, leaders last. <strong>Direct:</strong> Tournament leaders tee off first.
+                  </p>
+                </div>
               </>
             )}
           </div>
