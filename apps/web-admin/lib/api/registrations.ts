@@ -89,6 +89,8 @@ export async function getRegistrations(params?: {
   status?: string;
   disqualified?: boolean;
   paymentStatus?: string;
+  excludeWaitlist?: boolean;
+  waitlistOnly?: boolean;
   skip?: number;
   take?: number;
 }): Promise<{ items: RegistrationListItem[]; total: number }> {
@@ -102,6 +104,8 @@ export async function getRegistrations(params?: {
   if (params?.status) searchParams.append('status', params.status);
   if (typeof params?.disqualified === 'boolean') searchParams.append('disqualified', String(params.disqualified));
   if (params?.paymentStatus) searchParams.append('paymentStatus', params.paymentStatus);
+  if (params?.excludeWaitlist) searchParams.append('excludeWaitlist', 'true');
+  if (params?.waitlistOnly) searchParams.append('waitlistOnly', 'true');
   if (params?.skip != null) searchParams.append('skip', String(params.skip));
   if (params?.take != null) searchParams.append('take', String(params.take));
 

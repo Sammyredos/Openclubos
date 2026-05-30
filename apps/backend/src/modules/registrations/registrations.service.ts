@@ -225,6 +225,8 @@ export class RegistrationsService {
     disqualified?: boolean;
     paymentStatus?: PaymentStatus;
     userId?: string;
+    excludeWaitlist?: boolean;
+    waitlistOnly?: boolean;
     skip?: number;
     take?: number;
   }) {
@@ -232,9 +234,17 @@ export class RegistrationsService {
     if (query.status) {
       where.status = query.status;
     } else if (typeof query.disqualified === 'boolean') {
-      where.status = query.disqualified
-        ? RegistrationStatus.DISQUALIFIED
-        : { not: RegistrationStatus.DISQUALIFIED };
+      if (query.disqualified) {
+        where.status = RegistrationStatus.DISQUALIFIED;
+      } else {
+        where.status = query.excludeWaitlist
+          ? { notIn: [RegistrationStatus.DISQUALIFIED, RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] }
+          : { not: RegistrationStatus.DISQUALIFIED };
+      }
+    } else if (query.waitlistOnly) {
+      where.status = { in: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] };
+    } else if (query.excludeWaitlist) {
+      where.status = { notIn: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] };
     }
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.clubId) where.tournament = { clubId: query.clubId };
@@ -408,8 +418,26 @@ export class RegistrationsService {
   }
 
   async remove(id: string) {
-    return this.prisma.registration.delete({
+    const registration = await this.prisma.registration.findUnique({
+      where: { id },
+      include: {
+        user: { select: { email: true } },
+        tournament: { select: { name: true } },
+      },
+    });
+
+    const deleted = await this.prisma.registration.delete({
       where: { id },
     });
+
+    if (registration?.user?.email && registration?.tournament?.name) {
+      if (registration.status === RegistrationStatus.WAITLISTED || registration.status === RegistrationStatus.PENDING || registration.status === RegistrationStatus.APPROVED) {
+        this.jobsService.queueEmail('REGISTRATION_REJECTED', registration.user.email, {
+          tournamentName: registration.tournament.name,
+        }).catch(err => console.error('Failed to queue REGISTRATION_REJECTED email on removal:', err));
+      }
+    }
+
+    return deleted;
   }
 }

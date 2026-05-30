@@ -831,7 +831,7 @@ export default function SuperAdminGolfCoursesPage() {
               <Trash2 className="h-10 w-10" />
             </div>
             <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Course Permanently?</h4>
-            <p className="text-gray-500 max-w-sm">This action cannot be undone and will permanently remove this golf course.</p>
+            <p className="text-gray-500 max-w-sm">Deleting this golf course will permanently remove its hole data, tees, ratings, and course details. Past tournaments played here may lose course reference data. This action cannot be undone.</p>
           </div>
           <div className="space-y-3">
             <Label className="font-bold text-gray-700">

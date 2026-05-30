@@ -53,6 +53,8 @@ export class RegistrationsController {
     @Query('disqualified') disqualified?: string,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
     @Query('userId') userId?: string,
+    @Query('excludeWaitlist') excludeWaitlist?: string,
+    @Query('waitlistOnly') waitlistOnly?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
@@ -73,6 +75,8 @@ export class RegistrationsController {
             : undefined,
       paymentStatus,
       userId,
+      excludeWaitlist: excludeWaitlist === 'true',
+      waitlistOnly: waitlistOnly === 'true',
       skip,
       take,
     });

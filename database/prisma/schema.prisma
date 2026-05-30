@@ -37,6 +37,7 @@ model User {
   // Email verification
   emailVerified      Boolean   @default(false)
   emailVerificationToken String?
+  emailVerificationExpires DateTime?
 
   // Relations
   club          Club?     @relation(fields: [clubId], references: [id])

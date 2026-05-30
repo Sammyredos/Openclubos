@@ -115,6 +115,21 @@ export async function resetPasswordRequest(token: string, newPassword: string): 
   return res.json();
 }
 
+export async function resendVerificationRequest(email: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to resend verification email.');
+  }
+
+  return res.json();
+}
+
 export async function registerOrganizationRequest(payload: {
   organizationName: string;
   organizationType: string;
@@ -185,11 +200,11 @@ export async function validateOrganizationRequest(organizationName: string): Pro
   return res.json();
 }
 
-export async function validateAdminRequest(adminEmail?: string, adminPhone?: string): Promise<{ available: boolean; message?: string; field?: string }> {
+export async function validateAdminRequest(adminEmail?: string, adminPhone?: string, adminFirstName?: string, adminMiddleName?: string, adminLastName?: string): Promise<{ available: boolean; message?: string; field?: string }> {
   const res = await fetch(`${API_BASE}/auth/validate-admin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ adminEmail, adminPhone }),
+    body: JSON.stringify({ adminEmail, adminPhone, adminFirstName, adminMiddleName, adminLastName }),
   });
   if (!res.ok) {
     throw new Error('Failed to validate admin details');

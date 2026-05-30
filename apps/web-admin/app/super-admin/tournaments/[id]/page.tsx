@@ -121,12 +121,12 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 };
 
 const TABS = [
-  { id: "players", label: "Registered Players" },
-  { id: "register", label: "Register Player" },
-  { id: "waitlist", label: "Waitlist Settings" },
-  { id: "groupings", label: "Groupings (Tee Times)" },
-  { id: "leaderboard", label: "Live Leaderboard" },
-  { id: "overview", label: "Overview" },
+  { id: "players", label: "Registered Players", icon: Users },
+  { id: "register", label: "Register a Player", icon: UserPlus },
+  { id: "waitlist", label: "Waitlisted Players", icon: Clock },
+  { id: "groupings", label: "Groupings (Tee Times)", icon: Calendar },
+  { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
+  { id: "overview", label: "Overview", icon: Eye },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -201,6 +201,7 @@ function ViewTournamentPageInner() {
   const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
+  const [registrationsRefreshTrigger, setRegistrationsRefreshTrigger] = useState(0);
 
   const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
   const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
@@ -225,7 +226,17 @@ function ViewTournamentPageInner() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [waitlistSearch, setWaitlistSearch] = useState("");
+  const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
+  const [waitlistPage, setWaitlistPage] = useState(1);
+  const [waitlistTotal, setWaitlistTotal] = useState(0);
+  const waitlistPerPage = 5;
   const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
+  const [waitlistFilter, setWaitlistFilter] = useState<"PENDING" | "REJECTED">("PENDING");
+  
+  // Waitlist Multi-Select and Modals
+  const [selectedWaitlistIds, setSelectedWaitlistIds] = useState<string[]>([]);
+  const [isApproveWaitlistModalOpen, setIsApproveWaitlistModalOpen] = useState(false);
+  const [isRemoveWaitlistModalOpen, setIsRemoveWaitlistModalOpen] = useState(false);
 
   // Groupings (Tee Times) Management States
   const [groupingsData, setGroupingsData] = useState<GroupingData | null>(null);
@@ -251,6 +262,10 @@ function ViewTournamentPageInner() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [leaderboardSearch, setLeaderboardSearch] = useState("");
+  const leaderboardPerPage = 15;
+  const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
   const getTournamentDays = () => {
     if (!selectedTournament?.startDate) return 1;
@@ -270,15 +285,34 @@ function ViewTournamentPageInner() {
     if (!tournamentId) return;
     setWaitlistLoading(true);
     try {
-      const { items } = await getRegistrations({
+      const skip = (waitlistPage - 1) * waitlistPerPage;
+      const { items, total } = await getRegistrations({
         tournamentId,
-        status: "WAITLISTED",
+        status: waitlistFilter === "PENDING" ? "WAITLISTED" : "REJECTED",
+        q: waitlistDebouncedSearch || undefined,
+        skip,
+        take: waitlistPerPage,
       });
       setWaitlist(items || []);
+      setWaitlistTotal(typeof total === "number" ? total : 0);
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch waitlist queue");
     } finally {
       setWaitlistLoading(false);
+    }
+  };
+
+  const fetchPendingWaitlistCount = async () => {
+    if (!tournamentId) return;
+    try {
+      const { total } = await getRegistrations({
+        tournamentId,
+        status: "WAITLISTED",
+        take: 1,
+      });
+      setPendingWaitlistTotal(typeof total === "number" ? total : 0);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -391,9 +425,11 @@ function ViewTournamentPageInner() {
           playersMap[reg.user.id] = {
             user: reg.user,
             grossStrokes: 0,
+            toPar: 0,
             holesCompleted: new Set(),
             points: 0,
             extraStrokes: reg.extraStrokes || 0,
+            rounds: {}, // Track gross score per round
           };
         }
       });
@@ -417,16 +453,21 @@ function ViewTournamentPageInner() {
           playersMap[uid] = {
             user: s.user,
             grossStrokes: 0,
+            toPar: 0,
             holesCompleted: new Set(),
             points: 0,
             extraStrokes: 0,
+            rounds: {},
           };
         }
         
         playersMap[uid].grossStrokes += s.strokes || 0;
+        playersMap[uid].toPar += (s.strokes - (s.hole?.par || 4));
         playersMap[uid].points += s.points || 0;
         // Track holes per day to avoid duplication in "all" view
         playersMap[uid].holesCompleted.add(`${dayDiff}-${s.holeId}`);
+        // Track per round score
+        playersMap[uid].rounds[dayDiff] = (playersMap[uid].rounds[dayDiff] || 0) + (s.strokes || 0);
       });
 
       const leaderboard = Object.values(playersMap)
@@ -449,7 +490,7 @@ function ViewTournamentPageInner() {
           if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
           if (a.grossStrokes === 0 && b.grossStrokes === 0) return 0;
           
-          return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+          return a.toPar - b.toPar || a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
         });
 
       setLeaderboardData(leaderboard);
@@ -468,7 +509,8 @@ function ViewTournamentPageInner() {
     } else if (activeTab === "leaderboard") {
       loadLeaderboardData();
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay]);
+    fetchPendingWaitlistCount();
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -599,6 +641,11 @@ function ViewTournamentPageInner() {
   }, [registrationsSearch]);
 
   useEffect(() => {
+    const handler = setTimeout(() => setWaitlistDebouncedSearch(waitlistSearch.trim()), 300);
+    return () => clearTimeout(handler);
+  }, [waitlistSearch]);
+
+  useEffect(() => {
     if (!selectedTournament?.id) return;
     let cancelled = false;
     getRegistrations({
@@ -645,7 +692,7 @@ function ViewTournamentPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [selectedTournament?.id]);
+  }, [selectedTournament?.id, registrationsRefreshTrigger]);
 
   useEffect(() => {
     if (!selectedTournament?.id) return;
@@ -657,6 +704,7 @@ function ViewTournamentPageInner() {
       tournamentId: selectedTournament.id,
       q: registrationsDebouncedSearch || undefined,
       status: registrationsStatusFilter === "All Status" ? undefined : registrationsStatusFilter,
+      excludeWaitlist: registrationsStatusFilter === "All Status" ? true : undefined,
       disqualified:
         registrationsStatusFilter === "All Status"
           ? registrationsDisqualifiedFilter === "Disqualified Players"
@@ -693,9 +741,9 @@ function ViewTournamentPageInner() {
     registrationsMode,
     registrationsPage,
     registrationsDebouncedSearch,
-    registrationsStatusFilter,
     registrationsDisqualifiedFilter,
     registrationsPaymentFilter,
+    registrationsRefreshTrigger,
   ]);
 
   const registrationsQuery = registrationsSearch.trim().toLowerCase();
@@ -716,7 +764,7 @@ function ViewTournamentPageInner() {
           searchableFields.some(field => field?.toLowerCase().includes(token))
         );
 
-        const matchesStatus = registrationsStatusFilter === "All Status" || r.status === registrationsStatusFilter;
+        const matchesStatus = registrationsStatusFilter === "All Status" ? (r.status !== "WAITLISTED" && r.status !== "REJECTED") : r.status === registrationsStatusFilter;
         const matchesPayment =
           registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
         const matchesDisqualified =
@@ -800,30 +848,7 @@ function ViewTournamentPageInner() {
       setNewlyRegisteredUserIds(prev => [...prev, userId]);
 
       await reloadSingleTournament();
-
-      if (registrationsMode === "server") {
-        setRegistrationsPage(1);
-        setRegistrationsLoading(true);
-        const { items, total } = await getRegistrations({
-          tournamentId: selectedTournament.id,
-          skip: 0,
-          take: registrationsPerPage,
-        });
-        setRegistrations(Array.isArray(items) ? items : []);
-        setRegistrationsTotal(typeof total === "number" ? total : 0);
-        setRegistrationsLoading(false);
-      } else {
-        setRegistrationsInitialized(false);
-        getRegistrations({
-          tournamentId: selectedTournament.id,
-          skip: 0,
-          take: CLIENT_REGISTRATIONS_MAX,
-        }).then(({ items, total }) => {
-          setRegistrationsAll(Array.isArray(items) ? items : []);
-          setRegistrationsTotal(typeof total === "number" ? total : 0);
-          setRegistrationsInitialized(true);
-        });
-      }
+      setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to register player");
     } finally {
@@ -832,50 +857,45 @@ function ViewTournamentPageInner() {
   };
 
   // Waitlist Action methods
-  const handleApproveWaitlist = async (regId: string) => {
-    setWaitlistActionId(regId);
+  const handleApproveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await updateRegistrationStatus(regId, "APPROVED");
-      toast.success("Player approved from waitlist successfully");
-      setWaitlist(prev => prev.filter(item => item.id !== regId));
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "APPROVED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players approved from waitlist successfully` : "Player approved from waitlist successfully");
+      setSelectedWaitlistIds([]);
+      setIsApproveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
+      setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to approve player");
+      toast.error(err.message || "Failed to approve player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
 
-  const handleRemoveWaitlist = async (regId: string) => {
-    if (!confirm("Are you sure you want to remove this player from the waitlist?")) return;
-    setWaitlistActionId(regId);
+  const handleRemoveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await deleteRegistration(regId);
-      toast.success("Player removed from waitlist");
-      setWaitlist(prev => prev.filter(item => item.id !== regId));
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "REJECTED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players removed from waitlist` : "Player removed from waitlist");
+      setSelectedWaitlistIds([]);
+      setIsRemoveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
+      setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove player");
+      toast.error(err.message || "Failed to remove player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
-
-  const filteredWaitlist = waitlist.filter(item => {
-    const query = waitlistSearch.trim().toLowerCase();
-    const tokens = query.split(/[\s-]+/).filter(Boolean);
-    const searchableFields = [
-      item.user?.firstName,
-      item.user?.lastName,
-      item.user?.email,
-      `${item.user?.firstName} ${item.user?.lastName}`,
-      `${item.user?.lastName} ${item.user?.firstName}`
-    ];
-    
-    return tokens.length === 0 || tokens.every(token => 
-      searchableFields.some(field => field?.toLowerCase().includes(token))
-    );
-  });
 
   const updateTournamentRegistrationStatus = async (
     registrationId: string,
@@ -937,27 +957,7 @@ function ViewTournamentPageInner() {
       await reloadSingleTournament();
       // Refresh groupings data so the newly paid player appears in the unassigned pool
       await loadGroupingsData();
-      if (registrationsMode === "client") {
-        setRegistrationsInitialized(false);
-        const { items: allItems } = await getRegistrations({
-          tournamentId,
-          skip: 0,
-          take: 999,
-        });
-        setRegistrationsAll(Array.isArray(allItems) ? allItems : []);
-        setRegistrationsInitialized(true);
-      } else {
-        setRegistrationsPage(1);
-        setRegistrationsLoading(true);
-        const { items, total } = await getRegistrations({
-          tournamentId,
-          skip: 0,
-          take: registrationsPerPage,
-        });
-        setRegistrations(Array.isArray(items) ? items : []);
-        setRegistrationsTotal(typeof total === "number" ? total : 0);
-        setRegistrationsLoading(false);
-      }
+      setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
       toast.error(err.message || "Failed to mark player as paid");
     } finally {
@@ -1246,13 +1246,13 @@ function ViewTournamentPageInner() {
                 >
                   <div
                     className={cn(
-                      "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                      "w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all duration-300",
                       isActive
-                        ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"
                         : "bg-gray-100 text-gray-400 border border-gray-200"
                     )}
                   >
-                    {i + 1}
+                    <tab.icon className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{tab.label}</span>
                 </button>
@@ -1292,13 +1292,27 @@ function ViewTournamentPageInner() {
                     <h2 className="text-xl font-bold text-gray-900">Registered Players</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
-                  <Button
-                    disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-                    onClick={() => setActiveTab("register")}
-                    className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-xl px-4 text-[13px] font-bold"
-                  >
-                    <UserPlus className="w-4 h-4" /> Register Player
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => setActiveTab("waitlist")}
+                      variant="outline"
+                      className="h-10 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2 rounded-xl px-4 text-[13px] font-bold"
+                    >
+                      <Clock className="w-4 h-4 text-emerald-600" /> Waitlist Queue
+                      {pendingWaitlistTotal > 0 && (
+                        <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[11px] font-bold px-1.5 h-5 min-w-[20px] rounded-full">
+                          {pendingWaitlistTotal}
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+                      onClick={() => setActiveTab("register")}
+                      className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-xl px-4 text-[13px] font-bold"
+                    >
+                      <UserPlus className="w-4 h-4" /> Register a Player
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -1704,25 +1718,89 @@ function ViewTournamentPageInner() {
                     <h4 className="text-[15px] font-bold text-gray-900 truncate">Waitlist Queue</h4>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black text-emerald-600 leading-none">{formatWithCommas(waitlist.length)}</p>
+                    <p className="text-2xl font-black text-emerald-600 leading-none">{formatWithCommas(pendingWaitlistTotal)}</p>
                     <p className="text-[11px] text-emerald-650 font-bold uppercase tracking-widest mt-1">Waiting</p>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search waitlist by name or email..."
-                    className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
-                    value={waitlistSearch}
-                    onChange={(e) => setWaitlistSearch(e.target.value)}
-                  />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search waitlist by name or email..."
+                      className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      value={waitlistSearch}
+                      onChange={(e) => {
+                        setWaitlistSearch(e.target.value);
+                        setWaitlistPage(1);
+                      }}
+                    />
+                  </div>
+                  {selectedWaitlistIds.length > 0 && (
+                    <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100">
+                      <span className="text-[12px] font-bold text-emerald-700 mr-2">
+                        {selectedWaitlistIds.length} selected
+                      </span>
+                      <Button
+                        onClick={() => setIsApproveWaitlistModalOpen(true)}
+                        className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold px-4 rounded-lg shadow-sm gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Approve All
+                      </Button>
+                      <Button
+                        onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                        variant="ghost"
+                        className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-bold px-4 rounded-lg gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove All
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
+                  <button
+                    onClick={() => setWaitlistFilter("PENDING")}
+                    className={cn(
+                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                      waitlistFilter === "PENDING" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                    )}
+                  >
+                    Pending Queue
+                  </button>
+                  <button
+                    onClick={() => setWaitlistFilter("REJECTED")}
+                    className={cn(
+                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                      waitlistFilter === "REJECTED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                    )}
+                  >
+                    Rejected Players
+                  </button>
                 </div>
 
                 <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                        {waitlistFilter === "PENDING" && (
+                          <th className="px-6 py-4 w-12 text-center">
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              checked={waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedWaitlistIds(waitlist.map(i => i.id));
+                                } else {
+                                  setSelectedWaitlistIds([]);
+                                }
+                              }}
+                            />
+                          </th>
+                        )}
                         <th className="px-6 py-4">Player Details</th>
                         <th className="px-6 py-4">Joined Date</th>
                         <th className="px-6 py-4 text-right">Actions</th>
@@ -1732,6 +1810,11 @@ function ViewTournamentPageInner() {
                       {waitlistLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                           <tr key={i}>
+                            {waitlistFilter === "PENDING" && (
+                              <td className="px-6 py-4 text-center">
+                                <Skeleton className="w-4 h-4 rounded mx-auto" />
+                              </td>
+                            )}
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <Skeleton className="w-10 h-10 rounded-full" />
@@ -1749,18 +1832,45 @@ function ViewTournamentPageInner() {
                             </td>
                           </tr>
                         ))
-                      ) : filteredWaitlist.length > 0 ? (
-                        filteredWaitlist.map((item) => (
-                          <tr key={item.id} className="hover:bg-gray-50/30 transition-colors group">
+                        ) : waitlist.length > 0 ? (
+                          waitlist
+                            .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
+                            .map((item) => (
+                              <tr key={item.id} className={cn("transition-colors group", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30" : "hover:bg-gray-50/30")}>
+                                {waitlistFilter === "PENDING" && (
+                                  <td className="px-6 py-5 text-center">
+                                    <input 
+                                      type="checkbox" 
+                                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                      checked={selectedWaitlistIds.includes(item.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                        } else {
+                                          setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                        }
+                                      }}
+                                    />
+                                  </td>
+                                )}
                             <td className="px-6 py-5">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[14px] border border-emerald-100">
-                                  {item.user?.firstName?.[0] || item.user?.email?.[0]?.toUpperCase() || "?"}
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100 flex-shrink-0 relative">
+                                  <img 
+                                    src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`} 
+                                    alt="Avatar" 
+                                    className="w-full h-full object-cover" 
+                                  />
                                 </div>
                                 <div>
-                                  <p className="text-[14px] font-bold text-gray-900 leading-tight">
-                                    {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[14px] font-bold text-gray-900 leading-tight">
+                                      {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
+                                    </p>
+                                    {item.status === "REJECTED" && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
+                                    )}
+                                  </div>
                                   <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
                                 </div>
                               </div>
@@ -1784,26 +1894,34 @@ function ViewTournamentPageInner() {
                             </td>
                             <td className="px-6 py-5 text-right">
                               <div className="flex items-center justify-end gap-2">
+                                {item.status !== "REJECTED" && (
+                                  <Button
+                                    onClick={() => {
+                                      if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                      setIsApproveWaitlistModalOpen(true);
+                                    }}
+                                    disabled={waitlistActionId === item.id}
+                                    className="h-8 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[11px] font-bold gap-1.5 px-3.5"
+                                  >
+                                    {waitlistActionId === item.id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    )}
+                                    Approve
+                                  </Button>
+                                )}
                                 <Button
-                                  onClick={() => handleApproveWaitlist(item.id)}
-                                  disabled={waitlistActionId === item.id}
-                                  className="h-8 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[11px] font-bold gap-1.5 px-3.5"
-                                >
-                                  {waitlistActionId === item.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                  )}
-                                  Approve
-                                </Button>
-                                <Button
-                                  onClick={() => handleRemoveWaitlist(item.id)}
-                                  disabled={waitlistActionId === item.id}
+                                  onClick={() => {
+                                    if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                    setIsRemoveWaitlistModalOpen(true);
+                                  }}
+                                  disabled={waitlistActionId === item.id || item.status === "REJECTED"}
                                   variant="ghost"
-                                  className="h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5"
+                                  className="h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5 disabled:opacity-50"
                                 >
                                   <UserMinus className="w-3.5 h-3.5" />
-                                  Remove
+                                  {item.status === "REJECTED" ? "Rejected" : "Reject"}
                                 </Button>
                               </div>
                             </td>
@@ -1811,11 +1929,11 @@ function ViewTournamentPageInner() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={3} className="px-6 py-20 text-center">
+                          <td colSpan={waitlistFilter === "PENDING" ? 4 : 3} className="px-6 py-20 text-center">
                             <EmptyState
                               icon={Clock}
-                              title="Waitlist is empty"
-                              description="No players currently in the queue for this tournament."
+                              title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
+                              description={waitlistSearch ? "Try adjusting your search terms." : "No players currently in the queue for this tournament."}
                             />
                           </td>
                         </tr>
@@ -1823,11 +1941,21 @@ function ViewTournamentPageInner() {
                     </tbody>
                   </table>
                 </div>
+                
+                {waitlistTotal > waitlistPerPage && (
+                  <div className="mt-4 flex justify-end">
+                    <Pagination
+                      currentPage={waitlistPage}
+                      totalPages={Math.ceil(waitlistTotal / waitlistPerPage)}
+                      onPageChange={setWaitlistPage}
+                    />
+                  </div>
+                )}
 
                 <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
-                    <strong>Capacity Note:</strong> Approving a player from the waitlist will automatically increment the tournament's maximum player limit if the tournament is already full.
+                    <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
                   </p>
                 </div>
               </div>
@@ -1859,7 +1987,7 @@ function ViewTournamentPageInner() {
                             className={cn(
                               "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
                               selectedDay === i + 1
-                                ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                                 : "text-gray-500 hover:text-gray-900 hover:bg-white"
                             )}
                           >
@@ -1876,29 +2004,26 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {/* Sub-tabs for Unassigned/Grouped */}
-                    <div className="flex items-center gap-2 border-b border-gray-100 mb-6 bg-gray-50/30 rounded-t-2xl px-4 pt-2">
+                    <div className="flex gap-2 mb-6 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
                       <button
                         onClick={() => {
                           setGroupingsSubTab("unassigned");
                           setUnassignedPage(1);
                         }}
                         className={cn(
-                          "px-6 py-4 text-[13px] font-bold uppercase tracking-wider transition-all relative group",
+                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
                           groupingsSubTab === "unassigned"
-                            ? "text-emerald-600"
-                            : "text-gray-400 hover:text-gray-600"
+                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
                         Unassigned Pool
                         <Badge variant="outline" className={cn(
                           "ml-2 font-black px-1.5 py-0 transition-all",
-                          groupingsSubTab === "unassigned" ? "bg-emerald-500 text-white border-emerald-600" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
                         )}>
                           {groupingsData?.unassigned.length || 0}
                         </Badge>
-                        {groupingsSubTab === "unassigned" && (
-                          <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full shadow-[0_-2px_8px_rgba(16,185,129,0.4)]" />
-                        )}
                       </button>
                       <button
                         onClick={() => {
@@ -1906,22 +2031,19 @@ function ViewTournamentPageInner() {
                           setGroupsPage(1);
                         }}
                         className={cn(
-                          "px-6 py-4 text-[13px] font-bold uppercase tracking-wider transition-all relative group",
+                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
                           groupingsSubTab === "grouped"
-                            ? "text-emerald-600"
-                            : "text-gray-400 hover:text-gray-600"
+                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
                         Grouped Players
                         <Badge variant="outline" className={cn(
                           "ml-2 font-black px-1.5 py-0 transition-all",
-                          groupingsSubTab === "grouped" ? "bg-emerald-500 text-white border-emerald-600" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
                         )}>
                           {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0) || 0}
                         </Badge>
-                        {groupingsSubTab === "grouped" && (
-                          <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full shadow-[0_-2px_8px_rgba(16,185,129,0.4)]" />
-                        )}
                       </button>
                     </div>
 
@@ -2323,7 +2445,7 @@ function ViewTournamentPageInner() {
                       className={cn(
                         "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
                         selectedLeaderboardDay === "all"
-                          ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                          ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                           : "text-gray-500 hover:text-gray-900 hover:bg-white"
                       )}
                     >
@@ -2336,7 +2458,7 @@ function ViewTournamentPageInner() {
                         className={cn(
                           "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
                           selectedLeaderboardDay === i + 1
-                            ? "bg-[#10b981] text-white shadow-lg shadow-emerald-100 border border-emerald-600/20"
+                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                             : "text-gray-500 hover:text-gray-900 hover:bg-white"
                         )}
                       >
@@ -2362,23 +2484,19 @@ function ViewTournamentPageInner() {
                     </h3>
                     <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={loadLeaderboardData}
-                    disabled={leaderboardLoading}
-                    className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-all gap-2 shadow-sm"
-                  >
-                    <RefreshCcw className={cn("w-3.5 h-3.5", leaderboardLoading && "animate-spin")} />
-                    Refresh Results
-                  </Button>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Type player name or email to search..."
+                    value={leaderboardSearch}
+                    onChange={(e) => setLeaderboardSearch(e.target.value)}
+                    className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                  />
                 </div>
 
                 {leaderboardLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                    <p className="text-sm text-gray-500 font-medium">Updating rankings...</p>
-                  </div>
-                ) : leaderboardData.length > 0 ? (
                   <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
@@ -2387,16 +2505,100 @@ function ViewTournamentPageInner() {
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                            {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                              <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                            ))}
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Gross</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Total Gross</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">To Par</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                          {leaderboardData.map((entry, index) => {
-                            const rank = index + 1;
+                          {Array.from({ length: leaderboardPerPage }).map((_, i) => (
+                            <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-6 py-4"><Skeleton className="w-8 h-8 rounded-full mx-auto" /></td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <Skeleton className="w-9 h-9 rounded-full" />
+                                  <div className="space-y-1">
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-3 w-24" />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-12 rounded-full mx-auto" /></td>
+                              {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, j) => (
+                                <td key={`sk-r${j}`} className="px-6 py-4"><Skeleton className="h-4 w-6 mx-auto" /></td>
+                              ))}
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-10 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-8 rounded-full mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-10 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-16 rounded-full mx-auto" /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (() => {
+                    const q = leaderboardSearch.trim().toLowerCase();
+                    const filteredData = q 
+                      ? leaderboardData.filter(entry => 
+                          entry.user.firstName?.toLowerCase().includes(q) || 
+                          entry.user.lastName?.toLowerCase().includes(q) || 
+                          entry.user.email?.toLowerCase().includes(q) ||
+                          `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q)
+                        )
+                      : leaderboardData;
+                    
+                    if (filteredData.length === 0 && !q) {
+                      return (
+                        <EmptyState
+                          icon={Trophy}
+                          title="No Leaderboard Data"
+                          description="No scores have been recorded for this tournament yet."
+                        />
+                      );
+                    }
+
+                    if (filteredData.length === 0 && q) {
+                      return (
+                        <div className="bg-white border border-gray-150 rounded-2xl shadow-sm p-16 text-center">
+                          <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-bold text-gray-900">No players found</h3>
+                          <p className="text-gray-500 mt-1">We couldn't find anyone matching "{leaderboardSearch}"</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                  <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50/50 border-b border-gray-100">
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                            {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                              <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                            ))}
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Total Gross</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">To Par</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {filteredData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index) => {
+                            const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
                             return (
                               <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
                                 <td className="px-6 py-4 text-center">
@@ -2442,6 +2644,11 @@ function ViewTournamentPageInner() {
                                     {entry.user?.division || "Open"}
                                   </span>
                                 </td>
+                                {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                                  <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                    <span className="text-[13px] font-bold text-gray-700">{entry.rounds[i + 1] || "-"}</span>
+                                  </td>
+                                ))}
                                 <td className="px-6 py-4 text-center">
                                   <div className="space-y-1.5">
                                     <span className="text-[12px] font-bold text-gray-600">
@@ -2466,8 +2673,16 @@ function ViewTournamentPageInner() {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                  <span className="text-[15px] font-black text-emerald-600">
-                                    {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
+                                  <span className="text-[15px] font-bold text-gray-700">
+                                    {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className={cn(
+                                    "text-[15px] font-black",
+                                    entry.toPar < 0 ? "text-red-600" : entry.toPar > 0 ? "text-gray-900" : "text-emerald-600"
+                                  )}>
+                                    {entry.grossStrokes > 0 ? (entry.toPar > 0 ? `+${entry.toPar}` : entry.toPar === 0 ? "E" : entry.toPar) : "-"}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
@@ -2488,17 +2703,32 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
-                    <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
-                      <Trophy className="w-10 h-10 text-gray-200" />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-gray-900">Leaderboard Empty</h3>
-                      <p className="text-[14px] text-gray-500 font-normal max-w-sm">No scores have been recorded for {selectedLeaderboardDay === "all" ? "any day of this tournament" : `Day ${selectedLeaderboardDay}`} yet.</p>
-                    </div>
-                  </div>
-                )}
+                )})()}
+
+                {(() => {
+                  const q = leaderboardSearch.trim().toLowerCase();
+                  const filteredData = q 
+                    ? leaderboardData.filter(entry => 
+                        entry.user.firstName?.toLowerCase().includes(q) || 
+                        entry.user.lastName?.toLowerCase().includes(q) || 
+                        entry.user.email?.toLowerCase().includes(q) ||
+                        `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q)
+                      )
+                    : leaderboardData;
+                    
+                  if (filteredData.length > 0) {
+                    return (
+                      <div className="p-4 border-t border-gray-100 flex justify-end bg-gray-50/30">
+                        <Pagination 
+                          currentPage={leaderboardPage} 
+                          totalPages={Math.max(1, Math.ceil(filteredData.length / leaderboardPerPage))} 
+                          onPageChange={setLeaderboardPage} 
+                        />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
 
@@ -2772,7 +3002,7 @@ function ViewTournamentPageInner() {
             </div>
             <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
-              This action cannot be undone. All database records associated with the tournament will be deleted.
+              Deleting this tournament will permanently erase all associated rounds, leaderboards, player registrations, and payment records. This action cannot be undone.
             </p>
           </div>
 
@@ -2911,6 +3141,74 @@ function ViewTournamentPageInner() {
           <h4 className="text-xl font-bold text-gray-900 mb-2">Reset Groupings?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Waitlist Approve Modal */}
+      <Modal
+        isOpen={isApproveWaitlistModalOpen}
+        onClose={() => setIsApproveWaitlistModalOpen(false)}
+        title={selectedWaitlistIds.length > 1 ? "Approve Players?" : "Approve Player?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsApproveWaitlistModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
+              onClick={() => handleApproveWaitlist(selectedWaitlistIds)}
+              disabled={waitlistActionId === "processing"}
+            >
+              {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Approve
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500 border border-emerald-100">
+            <CheckCircle2 className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            Approve {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+          </h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to approve {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This will move them to the registered players list.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Waitlist Remove Modal */}
+      <Modal
+        isOpen={isRemoveWaitlistModalOpen}
+        onClose={() => setIsRemoveWaitlistModalOpen(false)}
+        title={selectedWaitlistIds.length > 1 ? "Remove Players?" : "Remove Player?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemoveWaitlistModalOpen(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              onClick={() => handleRemoveWaitlist(selectedWaitlistIds)}
+              disabled={waitlistActionId === "processing"}
+            >
+              {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <Trash2 className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            Remove {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+          </h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to remove {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This action cannot be undone.
           </p>
         </div>
       </Modal>

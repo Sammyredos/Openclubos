@@ -55,6 +55,9 @@ export class JobsProcessor extends WorkerHost {
 
   private async dispatchEmail(template: string, to: string, data: Record<string, any>) {
     switch (template) {
+      case 'emailVerification':
+        return this.emailService.sendEmailVerification(to, data.firstName || 'User', data.verifyUrl);
+
       case 'WELCOME':
         return this.emailService.sendWelcome(to, data.firstName || 'User', data.verifyUrl);
 
@@ -107,6 +110,18 @@ export class JobsProcessor extends WorkerHost {
 
       case 'SECURITY_ALERT':
         return this.emailService.sendSecurityAlert(to, data.action || 'Unknown action');
+
+      case 'TOURNAMENT_UPDATED':
+        return this.emailService.sendTournamentUpdate(to, data.tournamentName || 'Tournament', data.updateDetails);
+
+      case 'TEE_TIME_PUBLISHED':
+        return this.emailService.sendTeeTimePublished(
+          to, 
+          data.tournamentName || 'Tournament', 
+          data.roundName || 'Round 1', 
+          data.teeTime || 'TBA', 
+          data.groupName || 'Group 1'
+        );
 
       default:
         throw new Error(`Unsupported email template: ${template}`);

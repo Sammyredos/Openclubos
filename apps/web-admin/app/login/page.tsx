@@ -7,12 +7,13 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
-import { 
-  Mail, Lock, Eye, EyeOff, Sun, ChevronDown, Trophy, 
-  LineChart, PieChart, ShieldCheck, ArrowRight 
+import {
+  Mail, Lock, Eye, EyeOff, Sun, ChevronDown, Trophy,
+  LineChart, PieChart, ShieldCheck, ArrowRight, AlertCircle
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { loginRequest } from "@/lib/api/auth"
+import { loginRequest, resendVerificationRequest } from "@/lib/api/auth"
+import { Modal } from "@/components/ui/modal"
 import { toast } from "sonner"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -35,6 +36,8 @@ function LoginPageInner() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
   const [rememberMe, setRememberMe] = React.useState(true)
+  const [unverifiedEmail, setUnverifiedEmail] = React.useState<string | null>(null)
+  const [isResending, setIsResending] = React.useState(false)
   const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -83,24 +86,40 @@ function LoginPageInner() {
       // disabled while the router.replace() in login() is navigating.
     } catch (err: unknown) {
       console.error("Login error details:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Invalid email or password. Please check your credentials and try again.",
-      );
-      // Only re-enable on failure so the user can retry
+      const msg = err instanceof Error ? err.message : "Invalid email or password. Please check your credentials and try again.";
+      if (msg === "EMAIL_NOT_VERIFIED" || msg.toLowerCase() === "email not verified") {
+        setUnverifiedEmail(data.email);
+      } else {
+        toast.error(msg);
+      }
       setIsLoading(false)
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!unverifiedEmail || isResending) return;
+    setIsResending(true);
+    try {
+      await resendVerificationRequest(unverifiedEmail);
+      toast.success("Verification email sent! Please check your inbox.");
+      setUnverifiedEmail(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend email.");
+    } finally {
+      setIsResending(false);
     }
   }
 
   return (
     <div className="min-h-screen w-full flex bg-white font-sans overflow-hidden">
-      
+
       {/* LEFT COLUMN - Marketing & Branding (Hidden on mobile) */}
       <div className="hidden lg:flex w-1/2 relative flex-col justify-between p-12 text-white">
         {/* Background Image & Gradient */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop" 
-            alt="Golf Course" 
+          <img
+            src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop"
+            alt="Golf Course"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
@@ -117,7 +136,7 @@ function LoginPageInner() {
         {/* Center Content */}
         <div className="relative z-10 max-w-lg mt-12 mb-auto pb-10">
           <h1 className="text-[44px] leading-[1.1] font-bold mb-6">
-            The all-in-one<br />platform for golf<br />tournaments
+            The All-in-One<br />Platform for Golf<br />Tournaments
           </h1>
           <p className="text-[17px] text-gray-200 mb-12 font-medium leading-relaxed">
             Manage tournaments, players, courses and scores — all in one seamless platform.
@@ -177,7 +196,7 @@ function LoginPageInner() {
 
       {/* RIGHT COLUMN - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-between relative bg-white">
-        
+
         {/* Top Navigation (Mockup) */}
         <div className="absolute top-6 right-8 flex items-center gap-3">
           <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
@@ -253,7 +272,7 @@ function LoginPageInner() {
 
               {/* Options */}
               <div className="flex items-center justify-between pt-1 pb-2">
-                <button 
+                <button
                   type="button"
                   onClick={() => setRememberMe(!rememberMe)}
                   className="flex items-center gap-2.5 cursor-pointer group focus:outline-none"
@@ -333,6 +352,37 @@ function LoginPageInner() {
           </div>
         </div>
       </div>
+
+      {/* Unverified Email Modal */}
+      <Modal
+        isOpen={unverifiedEmail !== null}
+        onClose={() => setUnverifiedEmail(null)}
+        title="Email Not Verified"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setUnverifiedEmail(null)} className="rounded-lg font-bold border-gray-200">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResendVerification}
+              disabled={isResending}
+              className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+            >
+              {isResending ? <Icons.spinner className="w-5 h-5 animate-spin" /> : "Send New Link"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
+            <AlertCircle className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Check your email</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-bold text-gray-800">{unverifiedEmail}</span>?
+          </p>
+        </div>
+      </Modal>
 
     </div>
   )

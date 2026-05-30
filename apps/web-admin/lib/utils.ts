@@ -224,21 +224,14 @@ export function getAvatarUrl(user?: {
   id?: string | null;
   name?: string | null;
 }): string {
-  if (!user) return `https://api.dicebear.com/7.x/avataaars/svg?seed=guest`;
+  if (!user) return `https://api.dicebear.com/7.x/initials/svg?seed=guest&backgroundColor=10b981`;
   
   if (user.profilePhoto) {
     return user.profilePhoto;
   }
 
-  const seed = encodeURIComponent(user.email || user.id || user.name || "user");
-  const gender = user.gender?.toUpperCase();
+  const name = user.name || user.email || user.id || "user";
+  const seed = encodeURIComponent(name);
 
-  if (gender === "MALE") {
-    return `https://avatar.iran.liara.run/public/boy?username=${seed}`;
-  }
-  if (gender === "FEMALE") {
-    return `https://avatar.iran.liara.run/public/girl?username=${seed}`;
-  }
-
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=10b981`;
 }

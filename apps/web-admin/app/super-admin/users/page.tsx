@@ -1191,7 +1191,7 @@ export default function SuperAdminUsersPage() {
                 <Trash2 className="h-10 w-10" />
               </div>
               <h4 className="text-xl font-bold text-gray-900 mb-2">Delete User Permanently?</h4>
-              <p className="text-gray-500 max-w-sm">This action cannot be undone.</p>
+              <p className="text-gray-500 max-w-sm">Deleting this user will permanently remove their profile, authentication records, and all associated platform data. This action cannot be undone.</p>
             </div>
             <div className="space-y-3">
               <Label className="font-bold text-gray-700">

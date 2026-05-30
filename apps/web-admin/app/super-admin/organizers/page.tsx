@@ -1169,7 +1169,7 @@ export default function OrganizersPage() {
             </div>
             <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Organizer Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
-              This action cannot be undone.
+              Deleting this organization will permanently remove all of its tournaments, member records, and administrative access. This action cannot be undone.
               <br />
               All organizer data will be permanently deleted.
             </p>

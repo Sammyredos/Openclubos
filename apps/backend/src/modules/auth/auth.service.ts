@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   ServiceUnavailableException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -13,6 +14,7 @@ import { MemberStatus, UserRole } from '@prisma/client';
 import { JobsService } from '../jobs/jobs.service';
 import { CacheService } from '../../common/cache/cache.service';
 import * as crypto from 'crypto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +23,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
     private readonly cacheService: CacheService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
     registerDto.email = registerDto.email?.trim().toLowerCase();
@@ -43,11 +45,8 @@ export class AuthService {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
 
-    const verificationToken = this.jwtService.sign(
-      { type: 'email_verification' },
-      { expiresIn: '24h', subject: 'NEW_USER' }
-    );
-    const hashedToken = await bcrypt.hash(verificationToken, 10);
+    const token = randomBytes(32).toString('hex');
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await this.prisma.user.create({
       data: {
@@ -58,34 +57,22 @@ export class AuthService {
         handicap: registerDto.handicap ?? 0,
         gender: registerDto.gender ?? undefined,
         role: UserRole.PLAYER,
-        // @ts-ignore: Prisma schema is updated, IDE might need TS server restart
-        emailVerificationToken: hashedToken,
+        emailVerificationToken: token,
         // @ts-ignore
+        emailVerificationExpires,
         emailVerified: false,
       },
     });
 
-    // Update token subject to actual user ID
-    const userVerificationToken = this.jwtService.sign(
-      { type: 'email_verification', sub: user.id },
-      { expiresIn: '24h' }
-    );
-    const userHashedToken = await bcrypt.hash(userVerificationToken, 10);
-    await this.prisma.user.update({
-      where: { id: user.id },
-      // @ts-ignore
-      data: { emailVerificationToken: userHashedToken }
-    });
-
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const verifyUrl = `${frontendUrl}/verify-email?token=${userVerificationToken}`;
-
-    // Queue welcome/verification email
     if (user.email) {
-      this.jobsService.queueEmail('WELCOME', user.email, {
-        firstName: user.firstName || 'there',
-        verifyUrl,
-      }).catch(err => console.error('Failed to queue welcome email:', err));
+      await this.jobsService.queueEmail(
+        'emailVerification',
+        user.email,
+        {
+          firstName: user.firstName,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+        }
+      );
     }
 
     const { password, ...result } = user;
@@ -93,41 +80,64 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<void> {
-    let payload: any;
-    try {
-      payload = this.jwtService.verify(token);
-    } catch {
-      throw new UnauthorizedException('Invalid or expired verification token');
-    }
-
-    if (payload.type !== 'email_verification' || !payload.sub) {
-      throw new UnauthorizedException('Invalid token format');
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+    const user = await this.prisma.user.findFirst({
+      where: { emailVerificationToken: token },
     });
 
-    // @ts-ignore
-    if (!user || !user.emailVerificationToken) {
-      throw new UnauthorizedException('Token has already been used or user not found');
+    if (!user) {
+      throw new BadRequestException('Invalid verification token');
     }
-
     // @ts-ignore
-    const tokenValid = await bcrypt.compare(token, user.emailVerificationToken);
-    if (!tokenValid) {
-      throw new UnauthorizedException('Invalid verification token');
+    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+      throw new BadRequestException('Verification token has expired');
     }
 
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        // @ts-ignore
         emailVerified: true,
-        // @ts-ignore
         emailVerificationToken: null,
+        // @ts-ignore
+        emailVerificationExpires: null,
       },
     });
+  }
+
+  async resendVerification(email: string): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: email.trim(), mode: 'insensitive' },
+        emailVerified: false,
+        deletedAt: null
+      },
+    });
+
+    if (!user) {
+      return;
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken: token,
+        // @ts-ignore
+        emailVerificationExpires,
+      },
+    });
+
+    if (user.email) {
+      await this.jobsService.queueEmail(
+        'emailVerification',
+        user.email,
+        {
+          firstName: user.firstName,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+        }
+      );
+    }
   }
 
   async createAdmin(dto: CreateAdminDto) {
@@ -150,7 +160,6 @@ export class AuthService {
         lastName: dto.lastName,
         role: dto.role, // Admin assigns role directly
         clubId: dto.clubId,
-        // @ts-ignore
         emailVerified: true, // Auto-verify admin-created accounts
       },
     });
@@ -197,14 +206,16 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.adminPassword, 10);
+    const token = randomBytes(32).toString('hex');
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await this.prisma.$transaction(async (tx) => {
       // Create the organization
       const club = await tx.club.create({
         data: {
           name: dto.organizationName,
-          type: dto.organizationType === "Other" && dto.customOrganizationType 
-            ? dto.customOrganizationType 
+          type: dto.organizationType === "Other" && dto.customOrganizationType
+            ? dto.customOrganizationType
             : dto.organizationType,
           logo: dto.organizationLogo || null,
           status: 'ACTIVE',
@@ -217,15 +228,9 @@ export class AuthService {
       });
 
       // Create the club admin
-      const lastName = dto.adminMiddleName 
+      const lastName = dto.adminMiddleName
         ? `${dto.adminMiddleName.trim()} ${dto.adminLastName.trim()}`.replace(/\s+/g, ' ').trim()
         : dto.adminLastName.trim();
-
-      const verificationToken = this.jwtService.sign(
-        { type: 'email_verification' },
-        { expiresIn: '24h', subject: 'NEW_USER' }
-      );
-      const hashedToken = await bcrypt.hash(verificationToken, 10);
 
       const admin = await tx.user.create({
         data: {
@@ -238,9 +243,9 @@ export class AuthService {
           role: UserRole.CLUB_ADMIN,
           clubId: club.id,
           status: MemberStatus.ACTIVE,
+          emailVerificationToken: token,
           // @ts-ignore
-          emailVerificationToken: hashedToken,
-          // @ts-ignore
+          emailVerificationExpires,
           emailVerified: false,
         },
       });
@@ -248,26 +253,15 @@ export class AuthService {
       return admin;
     });
 
-    // Update token subject to actual user ID
-    const userVerificationToken = this.jwtService.sign(
-      { type: 'email_verification', sub: user.id },
-      { expiresIn: '24h' }
-    );
-    const userHashedToken = await bcrypt.hash(userVerificationToken, 10);
-    await this.prisma.user.update({
-      where: { id: user.id },
-      // @ts-ignore
-      data: { emailVerificationToken: userHashedToken }
-    });
-
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const verifyUrl = `${frontendUrl}/verify-email?token=${userVerificationToken}`;
-
     if (user.email) {
-      this.jobsService.queueEmail('WELCOME', user.email, {
-        firstName: user.firstName || 'there',
-        verifyUrl,
-      }).catch(err => console.error('Failed to queue welcome email:', err));
+      await this.jobsService.queueEmail(
+        'emailVerification',
+        user.email,
+        {
+          firstName: user.firstName,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+        }
+      );
     }
 
     const { password, ...result } = user;
@@ -288,7 +282,13 @@ export class AuthService {
     return { available: true };
   }
 
-  async validateAdminUniqueness(email?: string, phone?: string): Promise<{ available: boolean; message?: string; field?: string }> {
+  async validateAdminUniqueness(
+    email?: string, 
+    phone?: string, 
+    firstName?: string, 
+    middleName?: string, 
+    lastName?: string
+  ): Promise<{ available: boolean; message?: string; field?: string }> {
     if (email) {
       const existingEmail = await this.prisma.user.findFirst({
         where: { email: { equals: email.trim(), mode: 'insensitive' }, deletedAt: null },
@@ -307,13 +307,31 @@ export class AuthService {
       }
     }
 
+    if (firstName && lastName) {
+      const dbLastName = middleName
+        ? `${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, ' ').trim()
+        : lastName.trim();
+
+      const existingName = await this.prisma.user.findFirst({
+        where: {
+          firstName: { equals: firstName.trim(), mode: 'insensitive' },
+          lastName: { equals: dbLastName, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+
+      if (existingName) {
+        return { available: false, message: 'User with Same Name Exist', field: 'adminFirstName' };
+      }
+    }
+
     return { available: true };
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
     let user: any;
     const normalizedEmail = email?.trim().toLowerCase();
-    
+
     // 1. Check if Account is Locked Out
     const lockoutKey = `auth:lockout:${normalizedEmail}`;
     const failedKey = `auth:failed:${normalizedEmail}`;
@@ -333,22 +351,22 @@ export class AuthService {
     } catch {
       throw new ServiceUnavailableException('DATABASE_UNAVAILABLE');
     }
-    
+
     if (user && user.status === MemberStatus.SUSPENDED) {
       throw new UnauthorizedException('ACCOUNT_SUSPENDED');
     }
     if (user && user.status === MemberStatus.EXPIRED) {
       throw new UnauthorizedException('ACCOUNT_EXPIRED');
     }
-    
+
     if (user && !user.emailVerified && user.role !== UserRole.SUPER_ADMIN) {
-      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
+      throw new UnauthorizedException('Email not verified');
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       // Success! Clear failed attempts.
       await this.cacheService.del(failedKey);
-      
+
       const { password, ...result } = user;
       return result;
     }
@@ -375,11 +393,11 @@ export class AuthService {
       clubId: user.clubId,
       uat: user.updatedAt ? new Date(user.updatedAt).getTime() : undefined,
     };
-    
+
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = crypto.randomBytes(40).toString('hex');
     const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    
+
     // Store in Redis with 7 days TTL (7 * 24 * 60 * 60 = 604800 seconds)
     await this.cacheService.set(`auth:refresh:${refreshHash}`, user.id, 604800);
 
@@ -474,7 +492,7 @@ export class AuthService {
     // Verify the JWT reset token
     let payload: any;
     try {
-      try { payload = this.jwtService.verify(token); } catch(e) { console.error('JWT Verify Error:', e); throw e; }
+      try { payload = this.jwtService.verify(token); } catch (e) { console.error('JWT Verify Error:', e); throw e; }
     } catch {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
@@ -504,7 +522,6 @@ export class AuthService {
       data: {
         password: hashedPassword,
         passwordResetToken: null,
-        // @ts-ignore
         emailVerified: true, // Proves email ownership
       },
     });

@@ -404,6 +404,24 @@ export class TournamentsService {
         },
       });
       await this.cacheService.reset();
+
+      // Queue tournament update emails to all approved players
+      if (Object.keys(data).length > 0 && result.status !== 'DRAFT') {
+        const approvedRegistrations = await this.prisma.registration.findMany({
+          where: { tournamentId: id, status: 'APPROVED' },
+          select: { user: { select: { email: true } } },
+        });
+
+        for (const reg of approvedRegistrations) {
+          if (reg.user?.email) {
+            this.jobsService.queueEmail('TOURNAMENT_UPDATED', reg.user.email, {
+              tournamentName: result.name,
+              updateDetails: 'The tournament organizers have updated the tournament details. Please review the updated information.',
+            }).catch(err => console.error('Failed to queue TOURNAMENT_UPDATED email:', err));
+          }
+        }
+      }
+
       return result;
     } catch (error) {
       console.error(`[TournamentsService.update] Error updating tournament ${id}:`, error);

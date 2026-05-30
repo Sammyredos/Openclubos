@@ -9,7 +9,7 @@ import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoreStatus, UserRole } from '@prisma/client';
 import { JobsService } from '../jobs/jobs.service';
 
-const MAX_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 10000;
 
 @Injectable()
 export class ScoresService {
@@ -182,7 +182,7 @@ export class ScoresService {
     });
   }
 
-  async findByTournament(tournamentId: string, skip = 0, take = 100) {
+  async findByTournament(tournamentId: string, skip = 0, take = 10000) {
     const safeTake = Math.min(take, MAX_PAGE_SIZE);
     return this.prisma.score.findMany({
       where: {
@@ -199,12 +199,16 @@ export class ScoresService {
         points: true,
         status: true,
         recordedAt: true,
+        userId: true,
+        holeId: true,
         user: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             handicap: true,
+            email: true,
+            profilePhoto: true,
           },
         },
         hole: {

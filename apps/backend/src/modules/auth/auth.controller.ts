@@ -15,6 +15,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/guards/roles.decorator';
@@ -48,8 +50,8 @@ export class AuthController {
 
   @Post('validate-admin')
   @HttpCode(HttpStatus.OK)
-  async validateAdmin(@Body() body: { adminEmail?: string; adminPhone?: string }) {
-    return this.authService.validateAdminUniqueness(body.adminEmail, body.adminPhone);
+  async validateAdmin(@Body() body: { adminEmail?: string; adminPhone?: string; adminFirstName?: string; adminMiddleName?: string; adminLastName?: string }) {
+    return this.authService.validateAdminUniqueness(body.adminEmail, body.adminPhone, body.adminFirstName, body.adminMiddleName, body.adminLastName);
   }
 
   @Post('login')
@@ -86,9 +88,16 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Body() body: { token: string }) {
-    await this.authService.verifyEmail(body.token);
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    await this.authService.verifyEmail(verifyEmailDto.token);
     return { success: true, message: 'Email verified successfully' };
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
+    await this.authService.resendVerification(resendVerificationDto.email);
+    return { success: true, message: 'Verification email sent' };
   }
 
   @Post('create-admin')
