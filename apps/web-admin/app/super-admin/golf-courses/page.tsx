@@ -268,7 +268,7 @@ export default function SuperAdminGolfCoursesPage() {
         />
       </div>
 
-      <Card className="border-none shadow-sm overflow-hidden">
+      <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">Manage Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
@@ -388,7 +388,7 @@ export default function SuperAdminGolfCoursesPage() {
                     <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="w-12 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-12 h-10 rounded-lg overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
                             {course.coverImage ? (
                               <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                             ) : (
@@ -533,7 +533,7 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
               <div className="relative">
-                <div className="h-24 w-24 rounded-3xl border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
+                <div className="h-24 w-24 rounded-xl border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
                   {selectedCourse.coverImage ? (
                     <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
                   ) : (
@@ -575,21 +575,21 @@ export default function SuperAdminGolfCoursesPage() {
 
             {/* Course Metrics Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 shadow-sm">
+              <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Course Type</p>
                 <div className="flex items-end justify-between">
                   <p className="text-xl font-bold text-blue-900">{selectedCourse.type}</p>
                   <Trophy className="w-5 h-5 text-blue-300" />
                 </div>
               </div>
-              <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 shadow-sm">
+              <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Total Holes</p>
                 <div className="flex items-end justify-between">
                   <p className="text-xl font-bold text-emerald-900">{selectedCourse.holes} Holes</p>
                   <Flag className="w-5 h-5 text-emerald-300" />
                 </div>
               </div>
-              <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 shadow-sm">
+              <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Course Par</p>
                 <div className="flex items-end justify-between">
                   <p className="text-xl font-bold text-purple-900">Par {selectedCourse.par}</p>
@@ -600,7 +600,7 @@ export default function SuperAdminGolfCoursesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Location Card */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
                   <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-gray-400" />
@@ -620,7 +620,7 @@ export default function SuperAdminGolfCoursesPage() {
               </div>
 
               {/* Contact Card */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
                   <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-400" />
@@ -648,14 +648,14 @@ export default function SuperAdminGolfCoursesPage() {
 
             {/* Amenities Section */}
             {selectedCourse.amenities && selectedCourse.amenities.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+              <div className="bg-white rounded-xl border border-[#efefef] p-6 shadow-sm">
                 <h5 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-gray-400" />
                   Available Amenities
                 </h5>
                 <div className="flex flex-wrap gap-2.5">
                   {selectedCourse.amenities.map(a => (
-                    <span key={a} className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[12px] font-bold text-gray-700 shadow-sm flex items-center gap-2">
+                    <span key={a} className="px-4 py-2 bg-gray-50 border border-[#efefef] rounded-xl text-[12px] font-bold text-gray-700 shadow-sm flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                       {a}
                     </span>
@@ -680,7 +680,7 @@ export default function SuperAdminGolfCoursesPage() {
           open={Boolean(dropdownAnchorEl)}
           anchorEl={dropdownAnchorEl}
           onClose={closeDropdown}
-          className="w-60 bg-white border border-gray-100 shadow-xl rounded-2xl py-2"
+          className="w-60 bg-white border border-[#efefef] shadow-xl rounded-xl py-2"
         >
           <button
             onClick={() => openStatusModal(dropdownCourse)}
@@ -785,8 +785,8 @@ export default function SuperAdminGolfCoursesPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-4 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl overflow-hidden border border-gray-100 bg-white flex-shrink-0 flex items-center justify-center">
+          <div className="rounded-xl border border-[#efefef] bg-gray-50/50 px-4 py-4 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl overflow-hidden border border-[#efefef] bg-white flex-shrink-0 flex items-center justify-center">
               {selectedCourse?.coverImage ? (
                 <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
               ) : (
@@ -850,3 +850,4 @@ export default function SuperAdminGolfCoursesPage() {
     </div>
   );
 }
+

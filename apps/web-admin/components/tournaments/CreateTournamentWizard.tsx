@@ -1145,7 +1145,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 {[
                   { value: "PUBLIC", label: "Public", desc: "Visible to everyone on the platform. Anyone can search for and view this tournament." },
                   { value: "PRIVATE", label: "Private", desc: "Hidden from search results and public listings. Only accessible via a direct link." },
-                  { value: "INVITE_ONLY", label: "Invite Only", desc: "Strictly restricted. Only specifically invited players can view and register." }
+                  { value: "INVITE_ONLY", label: "Invite Only/Closed Tournament", desc: "Strictly restricted. Only specifically invited players can view and register." }
                 ].map(({ value, label, desc }) => {
                   const active = formData.visibility === value;
                   return (

@@ -33,6 +33,10 @@ import {
   Send,
   ChevronDown,
   ArrowUpRight,
+  Mail,
+  Filter,
+  ArrowUpDown,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -53,6 +57,7 @@ import {
   movePlayerInGroupings,
   updateGroupingTime,
   clearGroupings,
+  publishGroupingsEmail,
   type GroupingData,
   type GroupingItem,
   type GroupingPlayer,
@@ -95,6 +100,7 @@ type TournamentRow = {
   enableWaitlist?: boolean;
   createdAt: string;
   registrations: number;
+  scoringType: "NET" | "GROSS";
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -108,7 +114,7 @@ const STATUS_META: Record<TournamentStatus, { label: string; color: string; badg
 const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
   PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
-  INVITE_ONLY: { label: "Invite Only", badge: "bg-amber-50 text-amber-600", icon: Shield },
+  INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
 const TABS = [
@@ -181,7 +187,7 @@ function ViewTournamentPageInner() {
   const [registrationsTotal, setRegistrationsTotal] = useState(0);
   const [registrationsTournamentTotal, setRegistrationsTournamentTotal] = useState(0);
   const [registrationsPage, setRegistrationsPage] = useState(1);
-  const registrationsPerPage = 10;
+  const registrationsPerPage = 6;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
@@ -216,6 +222,7 @@ function ViewTournamentPageInner() {
   const [groupingsSubTab, setGroupingsSubTab] = useState<"unassigned" | "grouped">("unassigned");
   const [groupingsLoading, setGroupingsLoading] = useState(false);
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
+  const [isPublishEmailModalOpen, setIsPublishEmailModalOpen] = useState(false);
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
 
@@ -224,13 +231,18 @@ function ViewTournamentPageInner() {
   const [groupsSearch, setGroupsSearch] = useState("");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
-  const unassignedPerPage = 12;
-  const groupsPerPage = 6;
+  const unassignedPerPage = 9;
+  const groupsPerPage = 3;
 
   // Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState<"NET" | "GROSS">("NET");
+  const [leaderboardCategoryFilter, setLeaderboardCategoryFilter] = useState<string>("ALL");
+  const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const leaderboardPerPage = 10;
 
   const getTournamentDays = () => {
     if (!selectedTournament?.startDate) return 1;
@@ -275,14 +287,39 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE" | "LEADERBOARD_DIRECT" = "RANDOM") => {
+  const handlePublishGroupingsEmail = () => {
+    if (!tournamentId || !groupingsData) return;
+
+    if (groupingsData.groups.length === 0) {
+      toast.error("There are no generated groupings to publish.");
+      return;
+    }
+
+    setIsPublishEmailModalOpen(true);
+  };
+
+  const confirmPublishGroupingsEmail = async () => {
+    if (!tournamentId || !groupingsData) return;
+    setGroupingsGenerating(true);
+    try {
+      const res = await publishGroupingsEmail(tournamentId, selectedDay, groupingsData);
+      toast.success(res.message || "Groupings publication emails queued successfully");
+      setIsPublishEmailModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish groupings via email");
+    } finally {
+      setGroupingsGenerating(false);
+    }
+  };
+
+  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "LEADERBOARD_REVERSE_NET" | "LEADERBOARD_DIRECT_GROSS" | "LEADERBOARD_DIRECT_NET" = "RANDOM") => {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     try {
       const data = await generateGroupings(tournamentId, selectedDay, rule);
       setGroupingsData(data);
       setGroupingsSubTab("grouped");
-      toast.success("Groupings generated successfully");
+      toast.success("Groupings generated. Click 'Publish via Email' to notify players.");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
     } finally {
@@ -292,7 +329,7 @@ function ViewTournamentPageInner() {
 
   const handleMovePlayer = async (registrationId: string, targetGroupId: string | null) => {
     if (!tournamentId) return;
-    
+
     // Capacity check
     if (targetGroupId && groupingsData) {
       const targetGroup = groupingsData.groups.find(g => g.id === targetGroupId);
@@ -353,7 +390,7 @@ function ViewTournamentPageInner() {
     setLeaderboardLoading(true);
     try {
       const scores = await getTournamentScores(tournamentId);
-      
+
       // Get all approved & paid registrations to include in leaderboard even if no scores
       const { items: allRegs } = await getRegistrations({
         tournamentId,
@@ -363,7 +400,7 @@ function ViewTournamentPageInner() {
       });
 
       const playersMap: Record<string, any> = {};
-      
+
       // Initialize map with all registered players
       allRegs.forEach((reg: any) => {
         if (reg.user) {
@@ -373,41 +410,39 @@ function ViewTournamentPageInner() {
             holesCompleted: new Set(),
             points: 0,
             extraStrokes: reg.extraStrokes || 0,
+            rounds: {}, // Track gross score per round
+            holeCounts: {}, // Track how many times each hole was played
           };
         }
       });
 
-      const startDate = new Date(selectedTournament.startDate);
-      const d2 = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-
       scores.forEach((s: any) => {
-        // Use group's scheduled startTime if available to ensure late score submissions 
-        // are still mapped to the correct round. Fallback to recordedAt.
-        const scoreDate = s.group?.startTime ? new Date(s.group.startTime) : new Date(s.recordedAt);
-        const d1 = Date.UTC(scoreDate.getFullYear(), scoreDate.getMonth(), scoreDate.getDate());
-        const dayDiff = Math.floor((d1 - d2) / (1000 * 60 * 60 * 24)) + 1;
-        
-        // Filter by selected day if not "all"
-        if (selectedLeaderboardDay !== "all" && dayDiff !== selectedLeaderboardDay) {
+        const uid = s.userId;
+        if (!playersMap[uid]) {
+          // Strictly reject scores from players who are not officially APPROVED and PAID
           return;
         }
 
-        const uid = s.userId;
-        if (!playersMap[uid]) {
-          // If for some reason a player has scores but not in allRegs (unlikely if paid)
-          playersMap[uid] = {
-            user: s.user,
-            grossStrokes: 0,
-            holesCompleted: new Set(),
-            points: 0,
-            extraStrokes: 0,
-          };
+        const p = playersMap[uid];
+        const holeKey = s.holeId;
+
+        // Count how many times this hole has been played by this user
+        p.holeCounts[holeKey] = (p.holeCounts[holeKey] || 0) + 1;
+        const roundNum = p.holeCounts[holeKey];
+
+        // Filter by selected day if not "all"
+        if (selectedLeaderboardDay !== "all" && roundNum !== selectedLeaderboardDay) {
+          return;
         }
-        
-        playersMap[uid].grossStrokes += s.strokes || 0;
-        playersMap[uid].points += s.points || 0;
-        // Track holes per day to avoid duplication in "all" view
-        playersMap[uid].holesCompleted.add(`${dayDiff}-${s.holeId}`);
+
+        p.grossStrokes += s.strokes || 0;
+        p.points += s.points || 0;
+
+        // Track holes completed uniquely by round and hole
+        p.holesCompleted.add(`${roundNum}-${s.holeId}`);
+
+        // Track per round score
+        p.rounds[roundNum] = (p.rounds[roundNum] || 0) + (s.strokes || 0);
       });
 
       const leaderboard = Object.values(playersMap)
@@ -416,12 +451,12 @@ function ViewTournamentPageInner() {
           const handicapIndex = p.user?.handicap || 0;
           const extra = p.extraStrokes || 0;
           const holesPlayed = p.holesCompleted.size;
-          
+
           // In golf, Playing Handicap is rounded to the nearest integer.
           // For multi-round tournaments, the handicap is scaled based on holes played (e.g., 2x for 36 holes).
           const playingHandicap = Math.round(handicapIndex);
           const totalHandicap = Math.round(playingHandicap * (holesPlayed / 18));
-          
+
           // Net = Gross - Total Handicap + Extra Strokes
           const net = gross > 0 ? (gross - totalHandicap + extra) : 0;
 
@@ -436,8 +471,12 @@ function ViewTournamentPageInner() {
           if (a.grossStrokes === 0 && b.grossStrokes > 0) return 1;
           if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
           if (a.grossStrokes === 0 && b.grossStrokes === 0) return 0;
-          
-          return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+
+          if (leaderboardSortBy === "NET") {
+            return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+          } else {
+            return a.grossStrokes - b.grossStrokes || a.netStrokes - b.netStrokes;
+          }
         });
 
       setLeaderboardData(leaderboard);
@@ -456,7 +495,7 @@ function ViewTournamentPageInner() {
     } else if (activeTab === "leaderboard") {
       loadLeaderboardData();
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id]);
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, leaderboardSortBy]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -503,6 +542,7 @@ function ViewTournamentPageInner() {
         enableWaitlist: t.enableWaitlist,
         createdAt: t.createdAt,
         registrations,
+        scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -564,9 +604,11 @@ function ViewTournamentPageInner() {
           enableWaitlist: t.enableWaitlist,
           createdAt: t.createdAt,
           registrations,
+          scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
+        setLeaderboardSortBy(t.scoringType === "GROSS" ? "GROSS" : "NET");
       } catch (e: unknown) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to fetch tournament details");
@@ -701,12 +743,12 @@ function ViewTournamentPageInner() {
           `${r.user?.firstName} ${r.user?.lastName}`,
           `${r.user?.lastName} ${r.user?.firstName}`
         ];
-        
-        const matchesSearch = tokens.length === 0 || tokens.every(token => 
+
+        const matchesSearch = tokens.length === 0 || tokens.every(token =>
           searchableFields.some(field => field?.toLowerCase().includes(token))
         );
 
-        const matchesStatus = registrationsStatusFilter === "All Status" 
+        const matchesStatus = registrationsStatusFilter === "All Status"
           ? (r.status !== "WAITLISTED" && r.status !== "REJECTED")
           : r.status === registrationsStatusFilter;
         const matchesPayment =
@@ -771,8 +813,8 @@ function ViewTournamentPageInner() {
       `${item.user?.firstName} ${item.user?.lastName}`,
       `${item.user?.lastName} ${item.user?.firstName}`
     ];
-    
-    return tokens.length === 0 || tokens.every(token => 
+
+    return tokens.length === 0 || tokens.every(token =>
       searchableFields.some(field => field?.toLowerCase().includes(token))
     );
   });
@@ -975,7 +1017,7 @@ function ViewTournamentPageInner() {
           <Skeleton className="h-5 w-36 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <Skeleton className="h-20 w-20 rounded-3xl" />
+              <Skeleton className="h-20 w-20 rounded-xl" />
               <div className="space-y-3">
                 <Skeleton className="h-8 w-72 rounded-lg" />
                 <Skeleton className="h-4 w-80 rounded-md" />
@@ -1002,7 +1044,7 @@ function ViewTournamentPageInner() {
   return (
     <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
       {/* Back Header */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/organizer-admin/tournaments")}
@@ -1110,7 +1152,7 @@ function ViewTournamentPageInner() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+          <div className="bg-white border border-[#e7e7e7] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
             {TABS.map((tab, i) => {
               const isActive = activeTab === tab.id;
               return (
@@ -1118,9 +1160,9 @@ function ViewTournamentPageInner() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                    "w-full text-left flex items-center gap-3.5 px-4 py-3 border transition-all duration-200",
                     isActive
-                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
+                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold tab-shadow shadow-emerald-50"
                       : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
                   )}
                 >
@@ -1145,7 +1187,7 @@ function ViewTournamentPageInner() {
         <div className="lg:col-span-3 space-y-6">
           {/* Status Alert Banners */}
           {selectedTournament.statusKey === "CANCELLED" && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-4 text-red-700">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
               <Ban className="w-5 h-5 flex-shrink-0" />
               <div>
                 <p className="text-[14px] font-bold">Tournament Cancelled</p>
@@ -1154,7 +1196,7 @@ function ViewTournamentPageInner() {
             </div>
           )}
           {selectedTournament.statusKey === "COMPLETED" && (
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 text-emerald-700">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               <div>
                 <p className="text-[14px] font-bold">Tournament Completed</p>
@@ -1163,11 +1205,11 @@ function ViewTournamentPageInner() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
             {/* TABS 1: Registered Players */}
             {activeTab === "players" && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e7e7] pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Registered Players</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
@@ -1226,13 +1268,13 @@ function ViewTournamentPageInner() {
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((i) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[1, 2, 3, 4].map((i) => (
                         <Skeleton key={i} className="h-16 w-full rounded-xl" />
                       ))}
                     </div>
                   ) : registrationsPageItems.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {registrationsPageItems.map((r) => {
                         const isDisqualified = r.status === "DISQUALIFIED";
                         const isPaid = r.paymentStatus === "PAID";
@@ -1243,11 +1285,11 @@ function ViewTournamentPageInner() {
                               "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
                               isDisqualified
                                 ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                : "bg-gray-50/20 border-gray-100 hover:border-gray-200"
+                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
                             )}
                           >
                             <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100">
+                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
                                 <img
                                   src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
                                   alt=""
@@ -1256,18 +1298,18 @@ function ViewTournamentPageInner() {
                               </div>
                               <div className="min-w-0">
                                 <p className="text-[14px] font-bold text-gray-900 truncate">
-                                    {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
-                                  </p>
-                                  <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                  {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
+                                </p>
+                                <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
                                   <span className={cn(
                                     "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
                                     (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border-blue-100" :
                                       r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                      r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
-                                        r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                                          r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
-                                            "bg-gray-50 text-gray-600 border border-gray-200"
+                                        r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                          r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                            r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
+                                              "bg-gray-50 text-gray-600 border border-gray-200"
                                   )}>
                                     {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
                                   </span>
@@ -1326,7 +1368,7 @@ function ViewTournamentPageInner() {
                                       onClick={() => handleMarkPaid(r.id)}
                                       disabled={markingPaidId === r.id}
                                       title="Mark as Paid"
-                                      className="h-9 w-9 p-0 rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                     >
                                       {markingPaidId === r.id ? (
                                         <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
@@ -1343,7 +1385,7 @@ function ViewTournamentPageInner() {
                                       setStrokesMenuAnchorEl(e.currentTarget);
                                     }}
                                     title="Add/Remove Strokes"
-                                    className="h-9 w-9 p-0 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
                                   >
                                     <Plus className="w-4 h-4" />
                                   </Button>
@@ -1355,7 +1397,7 @@ function ViewTournamentPageInner() {
                                       onClick={() => openEnablePlayer(r)}
                                       disabled={registrationActionId === r.id}
                                       title="Enable Player"
-                                      className="h-9 w-9 p-0 rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                     >
                                       <CheckCircle2 className="w-4 h-4" />
                                     </Button>
@@ -1367,7 +1409,7 @@ function ViewTournamentPageInner() {
                                         onClick={() => openDisqualify(r)}
                                         disabled={registrationActionId === r.id}
                                         title="Disqualify Player"
-                                        className="h-9 w-9 p-0 rounded-lg border-amber-250 text-amber-600 hover:bg-amber-50/50 flex items-center justify-center"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-amber-250 text-amber-600 hover:bg-amber-50/50 flex items-center justify-center"
                                       >
                                         <Ban className="w-4 h-4" />
                                       </Button>
@@ -1377,7 +1419,7 @@ function ViewTournamentPageInner() {
                                         onClick={() => openRemovePlayer(r)}
                                         disabled={registrationActionId === r.id}
                                         title="Remove Player"
-                                        className="h-9 w-9 p-0 rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
                                       >
                                         <UserMinus className="w-4 h-4" />
                                       </Button>
@@ -1421,7 +1463,7 @@ function ViewTournamentPageInner() {
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-4">
+                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
                   <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
                     <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
                   </div>
@@ -1445,7 +1487,7 @@ function ViewTournamentPageInner() {
                   />
                 </div>
 
-                <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
+                <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
                   <button
                     onClick={() => setWaitlistFilter("PENDING")}
                     className={cn(
@@ -1466,48 +1508,26 @@ function ViewTournamentPageInner() {
                   </button>
                 </div>
 
-                <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                        <th className="px-6 py-4">Player Details</th>
-                        <th className="px-6 py-4">Joined Date</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {waitlistLoading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                          <tr key={i}>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <Skeleton className="w-10 h-10 rounded-full" />
-                                <div className="space-y-2">
-                                  <Skeleton className="h-4 w-32 rounded" />
-                                  <Skeleton className="h-3 w-40 rounded" />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Skeleton className="h-4 w-24 rounded" />
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <Skeleton className="h-8 w-20 rounded-lg ml-auto" />
-                            </td>
-                          </tr>
-                        ))
-                      ) : filteredWaitlist.length > 0 ? (
-                        filteredWaitlist
-                          .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
-                          .map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50/30 transition-colors group">
-                            <td className="px-6 py-5">
+                <div className="space-y-4">
+                  {waitlistLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                      ))}
+                    </div>
+                  ) : filteredWaitlist.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {filteredWaitlist
+                        .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
+                        .map((item) => (
+                          <div key={item.id} className="p-4 rounded-xl border border-[#efefef] bg-[#fafafa] hover:border-emerald-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100 flex-shrink-0 relative">
-                                  <img 
-                                    src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`} 
-                                    alt="Avatar" 
-                                    className="w-full h-full object-cover" 
+                                  <img
+                                    src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
+                                    alt="Avatar"
+                                    className="w-full h-full object-cover"
                                   />
                                 </div>
                                 <div>
@@ -1520,71 +1540,78 @@ function ViewTournamentPageInner() {
                                     )}
                                   </div>
                                   <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {/* Gender Badge */}
+                                    {item.user?.gender && (
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                                        item.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                      )}>
+                                        {item.user.gender}
+                                      </span>
+                                    )}
+
+                                    {/* Age Badge */}
+                                    {item.user?.dob && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                        {(() => {
+                                          const birthDate = new Date(item.user.dob);
+                                          const today = new Date();
+                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                          const m = today.getMonth() - birthDate.getMonth();
+                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                          return `${age} YRS`;
+                                        })()}
+                                      </span>
+                                    )}
+
+                                    {/* PH Badge */}
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      PH {item.user?.handicap ?? 0}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex flex-col">
-                                <span className="text-[13px] font-medium text-gray-700">
-                                  {new Date(item.registeredAt).toLocaleDateString("en-GB", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                                <span className="text-[11px] text-gray-400 font-medium">
-                                  {new Date(item.registeredAt).toLocaleTimeString("en-GB", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center mt-5 gap-2 flex-shrink-0 self-end md:self-center z-10">
                                 {item.status !== "REJECTED" && (
                                   <Button
                                     onClick={() => handleApproveWaitlist(item.id)}
                                     disabled={waitlistActionId === item.id}
-                                    className="h-8 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[11px] font-bold gap-1.5 px-3.5"
+                                    title="Approve"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                   >
                                     {waitlistActionId === item.id ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
                                     ) : (
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <CheckCircle2 className="w-4 h-4" />
                                     )}
-                                    Approve
                                   </Button>
                                 )}
                                 <Button
                                   onClick={() => handleRemoveWaitlist(item.id)}
                                   disabled={waitlistActionId === item.id || item.status === "REJECTED"}
-                                  variant="ghost"
-                                  className="h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5 disabled:opacity-50"
+                                  title={item.status === "REJECTED" ? "Rejected" : "Reject"}
+                                  className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
                                 >
-                                  <UserMinus className="w-3.5 h-3.5" />
-                                  {item.status === "REJECTED" ? "Rejected" : "Reject"}
+                                  <UserMinus className="w-4 h-4" />
                                 </Button>
                               </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={3} className="px-6 py-20 text-center">
-                            <EmptyState
-                              icon={Clock}
-                              title="Waitlist is empty"
-                              description="No players currently in the queue for this tournament."
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center">
+                      <EmptyState
+                        icon={Clock}
+                        title="Waitlist is empty"
+                        description="No players currently in the queue for this tournament."
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
                     <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
@@ -1598,148 +1625,178 @@ function ViewTournamentPageInner() {
               <div className="space-y-8 animate-in fade-in duration-500">
                 {groupingsLoading ? (
                   <div className="space-y-8">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
                       <div className="flex gap-2">
                         {[1, 2, 3].map(i => <div key={i} className="w-24 h-10 bg-gray-100 animate-pulse rounded-xl" />)}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-2xl border border-gray-100" />)}
+                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-xl border border-[#e7e7e7]" />)}
                     </div>
                   </div>
                 ) : (
                   <>
-                {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
-                    {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                    {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
+                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
+                      <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
+                        {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setSelectedDay(i + 1)}
+                            className={cn(
+                              "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                              selectedDay === i + 1
+                                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                                : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                            )}
+                          >
+                            DAY {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {selectedDay} of {getTournamentDays()} Days Active
+                        </span>
+                      </div>
+                    </div>
+
+                    {groupingsData?.groups && groupingsData.groups.length > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                        <div className="flex gap-3">
+                          <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-[14px] font-bold text-emerald-900">Publish Groupings</h4>
+                            <p className="text-[12px] text-emerald-700 mt-0.5">
+                              Groupings have been generated. Publish them via email to notify players of their tee times.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handlePublishGroupingsEmail}
+                          disabled={groupingsGenerating || groupingsLoading}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-bold rounded-xl shadow-sm transition-all whitespace-nowrap gap-2"
+                        >
+                          <Mail className="w-4 h-4" />
+                          Publish via Email
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Groupings Dashboard Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-gray-900">Manage Groupings</h3>
+                        <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                        {groupingsData?.rule && (
+                          <div className="mt-2">
+                            <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
+                              Rule: {groupingsData.rule.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative inline-block">
+                          <Button
+                            disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                            className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            Grouping Rules
+                            <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                          </Button>
+                          <select
+                            disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                            onChange={(e) => handleGenerateGroupings(e.target.value as any)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                            title="Select Grouping Rule"
+                          >
+                            <option value="">Select Rule...</option>
+                            <option value="RANDOM">Random Grouping</option>
+                            <option value="CATEGORY_RANDOM">Category Balanced</option>
+                            <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
+                            <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
+                            <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
+                            <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
+                          </select>
+                        </div>
+                        <Button
+                          onClick={handleClearGroupings}
+                          disabled={groupingsLoading || !groupingsData?.groups.length}
+                          className="bg-red-500 hover:bg-red-600 text-white h-10 px-4 text-[12px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
+                        >
+                          <RefreshCcw className="w-3.5 h-3.5" />
+                          Reset All
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search groups or players..."
+                          value={groupingsSearch}
+                          onChange={(e) => {
+                            setGroupingsSearch(e.target.value);
+                            setGroupsPage(1);
+                            setUnassignedPage(1);
+                          }}
+                          className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sub-tabs for Unassigned/Grouped */}
+                    <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
                       <button
-                        key={i}
-                        onClick={() => setSelectedDay(i + 1)}
+                        onClick={() => {
+                          setGroupingsSubTab("unassigned");
+                          setUnassignedPage(1);
+                        }}
                         className={cn(
-                          "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
-                          selectedDay === i + 1
+                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
+                          groupingsSubTab === "unassigned"
                             ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                            : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
-                        DAY {i + 1}
+                        Unassigned Pool
+                        <Badge variant="outline" className={cn(
+                          "ml-2 font-black px-1.5 py-0 transition-all",
+                          groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                        )}>
+                          {groupingsData?.unassigned.length || 0}
+                        </Badge>
                       </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {selectedDay} of {getTournamentDays()} Days Active
-                    </span>
-                  </div>
-                </div>
-
-                {/* Groupings Dashboard Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-gray-900">Manage Groupings</h3>
-                    <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative inline-block">
-                      <Button
-                        disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                        className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      <button
+                        onClick={() => {
+                          setGroupingsSubTab("grouped");
+                          setGroupsPage(1);
+                        }}
+                        className={cn(
+                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
+                          groupingsSubTab === "grouped"
+                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                        )}
                       >
-                        {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                        Grouping Rules
-                        <ChevronDown className="w-3.5 h-3.5 ml-1" />
-                      </Button>
-                      <select
-                        disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                        onChange={(e) => handleGenerateGroupings(e.target.value as any)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        title="Select Grouping Rule"
-                      >
-                        <option value="">Select Rule...</option>
-                        <option value="RANDOM">Random Grouping</option>
-                        <option value="CATEGORY_RANDOM">Category Balanced</option>
-                        <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
-                        <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
-                      </select>
+                        Grouped Players
+                        <Badge variant="outline" className={cn(
+                          "ml-2 font-black px-1.5 py-0 transition-all",
+                          groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                        )}>
+                          {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0) || 0}
+                        </Badge>
+                      </button>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={handleClearGroupings}
-                      disabled={groupingsLoading || !groupingsData?.groups.length}
-                      className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all gap-2"
-                    >
-                      <RefreshCcw className="w-3.5 h-3.5" />
-                      Reset All
-                    </Button>
-                  </div>
-                </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search groups or players..."
-                      value={groupingsSearch}
-                      onChange={(e) => {
-                        setGroupingsSearch(e.target.value);
-                        setGroupsPage(1);
-                        setUnassignedPage(1);
-                      }}
-                      className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
-                    />
-                  </div>
-                </div>
-
-                {/* Sub-tabs for Unassigned/Grouped */}
-                <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
-                  <button
-                    onClick={() => {
-                      setGroupingsSubTab("unassigned");
-                      setUnassignedPage(1);
-                    }}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
-                      groupingsSubTab === "unassigned"
-                        ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                    )}
-                  >
-                    Unassigned Pool
-                    <Badge variant="outline" className={cn(
-                      "ml-2 font-black px-1.5 py-0 transition-all",
-                      groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
-                    )}>
-                      {groupingsData?.unassigned.length || 0}
-                    </Badge>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setGroupingsSubTab("grouped");
-                      setGroupsPage(1);
-                    }}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
-                      groupingsSubTab === "grouped"
-                        ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                    )}
-                  >
-                    Grouped Players
-                    <Badge variant="outline" className={cn(
-                      "ml-2 font-black px-1.5 py-0 transition-all",
-                      groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
-                    )}>
-                      {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0) || 0}
-                    </Badge>
-                  </button>
-                </div>
-
-                {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
-                  <div className="space-y-6">
-                    {/* Groups Section */}
+                    {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
+                      <div className="space-y-6">
+                        {/* Groups Section */}
                         {groupingsSubTab === "grouped" && (
                           <div className="space-y-6">
 
@@ -1749,8 +1806,8 @@ function ViewTournamentPageInner() {
                                   const query = groupingsSearch.trim().toLowerCase();
                                   if (!query) return true;
                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
-                                  
-                                  const matchesGroupName = tokens.every(token => 
+
+                                  const matchesGroupName = tokens.every(token =>
                                     group.name.toLowerCase().includes(token)
                                   );
 
@@ -1762,7 +1819,7 @@ function ViewTournamentPageInner() {
                                       `${p.user?.firstName} ${p.user?.lastName}`,
                                       `${p.user?.lastName} ${p.user?.firstName}`
                                     ];
-                                    return tokens.every(token => 
+                                    return tokens.every(token =>
                                       searchableFields.some(field => field?.toLowerCase().includes(token))
                                     );
                                   });
@@ -1771,255 +1828,255 @@ function ViewTournamentPageInner() {
                                 })
                                 .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
                                 .map((group: GroupingItem) => {
-                              const occupancy = group.registrations.length;
+                                  const occupancy = group.registrations.length;
                                   const capacity = selectedTournament?.maxPlayersPerGroup || 4;
                                   const isFull = occupancy >= capacity;
-                              
-                              return (
-                                <div
-                                  key={group.id}
-                                  className={cn(
-                                    "group bg-white rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
-                                    isFull ? "border-emerald-100 bg-emerald-50/5" : "border-gray-150 hover:border-emerald-200 hover:shadow-md"
-                                  )}
-                                >
-                                  {/* Group Header */}
-                                  <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className={cn(
-                                        "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
-                                        isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-gray-150 text-gray-400"
-                                      )}>
-                                        <Flag className="w-5 h-5" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        {editingGroupNameId === group.id ? (
-                                          <Input
-                                            autoFocus
-                                            value={editingGroupNameValue}
-                                            onChange={(e) => setEditingGroupNameValue(e.target.value)}
-                                            onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
-                                            className="h-7 py-0 px-2 text-[13px] font-bold rounded-lg border-emerald-500"
-                                          />
-                                        ) : (
-                                          <h4
-                                            onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
-                                            className="text-[14px] font-bold text-gray-900 truncate cursor-pointer hover:text-emerald-600"
-                                          >
-                                            {group.name}
-                                          </h4>
-                                        )}
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                          <Clock className="w-3 h-3 text-gray-400" />
-                                          <span className="text-[11px] font-bold text-gray-400 uppercase">{group.startTime || "TBD"}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-[12px] font-black text-gray-900">{occupancy}/{capacity}</div>
-                                      <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Group Size</div>
-                                    </div>
-                                  </div>
 
-                                  {/* Progress Bar */}
-                                  <div className="h-1 w-full bg-gray-100">
-                                    <div 
-                                      className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-blue-500")}
-                                      style={{ width: `${(occupancy / capacity) * 100}%` }}
-                                    />
-                                  </div>
-
-                                  {/* Group Players */}
-                                  <div className="p-3 flex-1 space-y-2">
-                                    {group.registrations.map((player: GroupingPlayer) => (
-                                      <div
-                                        key={player.id}
-                                        className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
-                                      >
+                                  return (
+                                    <div
+                                      key={group.id}
+                                      className={cn(
+                                        "group bg-white rounded-xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
+                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e7e7e7] hover:border-emerald-200 hover:shadow-md"
+                                      )}
+                                    >
+                                      {/* Group Header */}
+                                      <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
                                         <div className="flex items-center gap-3 min-w-0">
-                                          <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-white shadow-sm">
-                                            <img
-                                              src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                            />
+                                          <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
+                                            isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-[#e7e7e7] text-gray-400"
+                                          )}>
+                                            <Flag className="w-5 h-5" />
                                           </div>
                                           <div className="min-w-0">
-                                            <NextLink href="#" className="block">
-                                              <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
-                                                {player.user?.firstName} {player.user?.lastName}
-                                              </div>
-                                            </NextLink>
-                                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                              {/* Gender Badge */}
-                                              {player.user?.gender && (
-                                                <span className={cn(
-                                                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
-                                                  player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                )}>
-                                                  {player.user.gender}
-                                                </span>
-                                              )}
-
-                                              {/* Age Badge */}
-                                              {player.user?.dob && (
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
-                                                  {(() => {
-                                                    const birthDate = new Date(player.user.dob);
-                                                    const today = new Date();
-                                                    let age = today.getFullYear() - birthDate.getFullYear();
-                                                    const m = today.getMonth() - birthDate.getMonth();
-                                                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                    return `${age} YRS`;
-                                                  })()}
-                                                </span>
-                                              )}
-
-                                              {/* PH Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                PH {player.user?.handicap ?? 0}
-                                              </span>
+                                            {editingGroupNameId === group.id ? (
+                                              <Input
+                                                autoFocus
+                                                value={editingGroupNameValue}
+                                                onChange={(e) => setEditingGroupNameValue(e.target.value)}
+                                                onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
+                                                className="h-7 py-0 px-2 text-[13px] font-bold rounded-lg border-emerald-500"
+                                              />
+                                            ) : (
+                                              <h4
+                                                onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
+                                                className="text-[14px] font-bold text-gray-900 truncate cursor-pointer hover:text-emerald-600"
+                                              >
+                                                {group.name}
+                                              </h4>
+                                            )}
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                              <Clock className="w-3 h-3 text-gray-400" />
+                                              <span className="text-[11px] font-bold text-gray-400 uppercase">{group.startTime || "TBD"}</span>
                                             </div>
                                           </div>
                                         </div>
-                                        <select
-                                          value={group.id}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            handleMovePlayer(player.id, val === "unassigned" ? null : val);
-                                          }}
-                                          className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity"
-                                        >
-                                          <option value={group.id}>Move To...</option>
-                                          <option value="unassigned">Unassign</option>
-                                          {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-                                        </select>
+                                        <div className="text-right">
+                                          <div className="text-[12px] font-black text-gray-900">{occupancy}/{capacity}</div>
+                                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Group Size</div>
+                                        </div>
                                       </div>
-                                    ))}
-                                    {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-gray-150/50 opacity-30">
-                                            <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100" />
+
+                                      {/* Progress Bar */}
+                                      <div className="h-1 w-full bg-gray-100">
+                                        <div
+                                          className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-blue-500")}
+                                          style={{ width: `${(occupancy / capacity) * 100}%` }}
+                                        />
+                                      </div>
+
+                                      {/* Group Players */}
+                                      <div className="p-3 flex-1 space-y-2">
+                                        {group.registrations.map((player: GroupingPlayer) => (
+                                          <div
+                                            key={player.id}
+                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
+                                          >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7] bg-white shadow-sm">
+                                                <img
+                                                  src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                  alt=""
+                                                  className="w-full h-full object-cover"
+                                                />
+                                              </div>
+                                              <div className="min-w-0">
+                                                <NextLink href="#" className="block">
+                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
+                                                    {player.user?.firstName} {player.user?.lastName}
+                                                  </div>
+                                                </NextLink>
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                  {/* Gender Badge */}
+                                                  {player.user?.gender && (
+                                                    <span className={cn(
+                                                      "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
+                                                      player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                    )}>
+                                                      {player.user.gender}
+                                                    </span>
+                                                  )}
+
+                                                  {/* Age Badge */}
+                                                  {player.user?.dob && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
+                                                      {(() => {
+                                                        const birthDate = new Date(player.user.dob);
+                                                        const today = new Date();
+                                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                                        const m = today.getMonth() - birthDate.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                        return `${age} YRS`;
+                                                      })()}
+                                                    </span>
+                                                  )}
+
+                                                  {/* PH Badge */}
+                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    PH {player.user?.handicap ?? 0}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <select
+                                              value={group.id}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                handleMovePlayer(player.id, val === "unassigned" ? null : val);
+                                              }}
+                                              className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity"
+                                            >
+                                              <option value={group.id}>Move To...</option>
+                                              <option value="unassigned">Unassign</option>
+                                              {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
+                                            </select>
+                                          </div>
+                                        ))}
+                                        {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
+                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-[#e7e7e7]/50 opacity-30">
+                                            <div className="w-9 h-9 rounded-full bg-gray-50 border border-[#e7e7e7]" />
                                             <div className="text-[11px] font-bold text-gray-300">Available Space</div>
                                           </div>
                                         ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                        {groupingsData.groups.length > groupsPerPage && (
-                          <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100">
-                            <p className="text-[13px] text-gray-500 font-medium">
-                              Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
-                            </p>
-                            <Pagination
-                              currentPage={groupsPage}
-                              totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
-                              onPageChange={setGroupsPage}
-                            />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                            {groupingsData.groups.length > groupsPerPage && (
+                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e7e7e7]">
+                                <p className="text-[13px] text-gray-500 font-medium">
+                                  Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
+                                </p>
+                                <Pagination
+                                  currentPage={groupsPage}
+                                  totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
+                                  onPageChange={setGroupsPage}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {/* Unassigned Pool Section */}
-                    {groupingsSubTab === "unassigned" && (
-                      <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
-                          <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
-                            <Users className="w-4 h-4 text-blue-500" />
-                            Unassigned Participants
-                          </h4>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 font-black px-2 py-0.5">
-                            {groupingsData.unassigned.length}
-                          </Badge>
-                        </div>
-                        <div className="p-6">
-                          
-                          {(() => {
-                            const filtered = groupingsData.unassigned.filter(p => {
-                              const query = groupingsSearch.trim().toLowerCase();
-                              if (!query) return true;
-                              const tokens = query.split(/[\s-]+/).filter(Boolean);
-                              const searchableFields = [
-                                p.user?.firstName,
-                                p.user?.lastName,
-                                p.user?.email,
-                                `${p.user?.firstName} ${p.user?.lastName}`,
-                                `${p.user?.lastName} ${p.user?.firstName}`
-                              ];
-                              
-                              return tokens.every(token => 
-                                searchableFields.some(field => field?.toLowerCase().includes(token))
-                              );
-                            });
+                        {/* Unassigned Pool Section */}
+                        {groupingsSubTab === "unassigned" && (
+                          <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="p-4 border-b border-[#e7e7e7] bg-gray-50/30 flex items-center justify-between">
+                              <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-blue-500" />
+                                Unassigned Participants
+                              </h4>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 font-black px-2 py-0.5">
+                                {groupingsData.unassigned.length}
+                              </Badge>
+                            </div>
+                            <div className="p-6">
 
-                            const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
+                              {(() => {
+                                const filtered = groupingsData.unassigned.filter(p => {
+                                  const query = groupingsSearch.trim().toLowerCase();
+                                  if (!query) return true;
+                                  const tokens = query.split(/[\s-]+/).filter(Boolean);
+                                  const searchableFields = [
+                                    p.user?.firstName,
+                                    p.user?.lastName,
+                                    p.user?.email,
+                                    `${p.user?.firstName} ${p.user?.lastName}`,
+                                    `${p.user?.lastName} ${p.user?.firstName}`
+                                  ];
 
-                            return (
-                              <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {paginated.length > 0 ? (
-                                    paginated.map((player: GroupingPlayer) => (
-                                      <div
-                                        key={player.id}
-                                        className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
-                                      >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100">
-                                            <img
-                                              src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                            />
-                                          </div>
-                                          <div className="min-w-0">
-                                            <NextLink href="#" className="block">
-                                              <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
-                                                {player.user?.firstName} {player.user?.lastName}
+                                  return tokens.every(token =>
+                                    searchableFields.some(field => field?.toLowerCase().includes(token))
+                                  );
+                                });
+
+                                const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
+
+                                return (
+                                  <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {paginated.length > 0 ? (
+                                        paginated.map((player: GroupingPlayer) => (
+                                          <div
+                                            key={player.id}
+                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
+                                          >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7]">
+                                                <img
+                                                  src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                  alt=""
+                                                  className="w-full h-full object-cover"
+                                                />
                                               </div>
-                                            </NextLink>
-                                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                              {/* Gender Badge */}
-                                              {player.user?.gender && (
-                                                <span className={cn(
-                                                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
-                                                  player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                )}>
-                                                  {player.user.gender}
-                                                </span>
-                                              )}
-                                              {/* Category Badge */}
-                                              {player.user?.handicap !== undefined && (
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100">
-                                                  {getGolfCategory(player.user.handicap)}
-                                                </span>
-                                              )}
+                                              <div className="min-w-0">
+                                                <NextLink href="#" className="block">
+                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
+                                                    {player.user?.firstName} {player.user?.lastName}
+                                                  </div>
+                                                </NextLink>
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                  {/* Gender Badge */}
+                                                  {player.user?.gender && (
+                                                    <span className={cn(
+                                                      "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight border",
+                                                      player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                    )}>
+                                                      {player.user.gender}
+                                                    </span>
+                                                  )}
+                                                  {/* Category Badge */}
+                                                  {player.user?.handicap !== undefined && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100">
+                                                      {getGolfCategory(player.user.handicap)}
+                                                    </span>
+                                                  )}
 
-                                              {/* Age Badge */}
-                                              {player.user?.dob && (
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
-                                                  {(() => {
-                                                    const birthDate = new Date(player.user.dob);
-                                                    const today = new Date();
-                                                    let age = today.getFullYear() - birthDate.getFullYear();
-                                                    const m = today.getMonth() - birthDate.getMonth();
-                                                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                    return `${age} YRS`;
-                                                  })()}
-                                                </span>
-                                              )}
+                                                  {/* Age Badge */}
+                                                  {player.user?.dob && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
+                                                      {(() => {
+                                                        const birthDate = new Date(player.user.dob);
+                                                        const today = new Date();
+                                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                                        const m = today.getMonth() - birthDate.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                        return `${age} YRS`;
+                                                      })()}
+                                                    </span>
+                                                  )}
 
-                                              {/* PH Badge */}
-                                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                PH {player.user?.handicap ?? 0}
-                                              </span>
+                                                  {/* PH Badge */}
+                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    PH {player.user?.handicap ?? 0}
+                                                  </span>
+                                                </div>
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                        </div>
-                                    ))
-                                  ) : (
+                                        ))
+                                      ) : (
                                         <div className="col-span-full py-12">
                                           <EmptyState
                                             variant="minimal"
@@ -2028,72 +2085,68 @@ function ViewTournamentPageInner() {
                                           />
                                         </div>
                                       )}
-                                </div>
-                                {filtered.length > unassignedPerPage && (
-                                  <div className="pt-4 flex items-center justify-between border-t border-gray-100">
-                                    <p className="text-[13px] text-gray-500 font-medium">
-                                      Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
-                                    </p>
-                                    <Pagination
-                                      currentPage={unassignedPage}
-                                      totalPages={Math.ceil(filtered.length / unassignedPerPage)}
-                                      onPageChange={setUnassignedPage}
-                                    />
+                                    </div>
+                                    {filtered.length > unassignedPerPage && (
+                                      <div className="pt-4 flex items-center justify-between border-t border-[#e7e7e7]">
+                                        <p className="text-[13px] text-gray-500 font-medium">
+                                          Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
+                                        </p>
+                                        <Pagination
+                                          currentPage={unassignedPage}
+                                          totalPages={Math.ceil(filtered.length / unassignedPerPage)}
+                                          onPageChange={setUnassignedPage}
+                                        />
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
                     ) : (
-                  <EmptyState
-                    icon={Users}
-                    title="No Allocation Data"
-                    description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
-                    action={
-                      <div className="relative inline-block">
-                        <Button
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
-                        >
-                          Grouping Rules
-                          <ChevronDown className="w-4 h-4 ml-1" />
-                        </Button>
-                        <select
-                          onChange={(e) => handleGenerateGroupings(e.target.value as any)}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          title="Select Grouping Rule"
-                        >
-                          <option value="">Select Rule...</option>
-                          <option value="RANDOM">Random Grouping</option>
-                          <option value="CATEGORY_RANDOM">Category Balanced</option>
-                          <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
-                          <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
-                        </select>
-                      </div>
-                    }
-                  />
+                      <EmptyState
+                        icon={Users}
+                        title="No Allocation Data"
+                        description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
+                        action={
+                          <div className="relative inline-block">
+                            <Button
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
+                            >
+                              Grouping Rules
+                              <ChevronDown className="w-4 h-4 ml-1" />
+                            </Button>
+                            <select
+                              onChange={(e) => handleGenerateGroupings(e.target.value as any)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Select Grouping Rule"
+                            >
+                              <option value="">Select Rule...</option>
+                              <option value="RANDOM">Random Grouping</option>
+                              <option value="CATEGORY_RANDOM">Category Balanced</option>
+                              <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
+                              <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
+                              <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
+                              <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
+                            </select>
+                          </div>
+                        }
+                      />
+                    )}
+
+                  </>
                 )}
-                
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-4 mt-6">
-                  <Sparkles className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                  <p className="text-[12px] text-emerald-700 leading-relaxed font-medium">
-                    <strong>Grouping Rules Guide:</strong> <strong>Random:</strong> Shuffles purely by chance. <strong>Category Balanced:</strong> Mixes handicaps evenly. <strong>Reverse:</strong> FILO - Highest scores first, leaders last. <strong>Direct:</strong> Tournament leaders tee off first.
-                  </p>
-                </div>
-              </>
+              </div>
             )}
-          </div>
-        )}
 
             {/* TABS 5: Leaderboard */}
             {activeTab === "leaderboard" && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Day Filtering for Leaderboard */}
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
+                <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
+                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
                     <button
                       onClick={() => setSelectedLeaderboardDay("all")}
                       className={cn(
@@ -2138,6 +2191,48 @@ function ViewTournamentPageInner() {
                     </h3>
                     <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
                   </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <SearchableSelect
+                      value={leaderboardGenderFilter}
+                      onValueChange={setLeaderboardGenderFilter}
+                      options={[
+                        { value: "ALL", label: "All" },
+                        { value: "MALE", label: "Male" },
+                        { value: "FEMALE", label: "Female" },
+                      ]}
+                      className="min-w-[120px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+
+                    {/* Category Filter */}
+                    <SearchableSelect
+                      value={leaderboardCategoryFilter}
+                      onValueChange={setLeaderboardCategoryFilter}
+                      options={[
+                        { value: "ALL", label: "All" },
+                        { value: "Category 1", label: "Category 1" },
+                        { value: "Category 2", label: "Category 2" },
+                        { value: "Category 3", label: "Category 3" },
+                        { value: "Category 4", label: "Category 4" },
+                        { value: "Category 5/6", label: "Category 5/6" },
+                        { value: "Open", label: "Open" },
+                      ]}
+                      className="min-w-[140px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+
+                    {/* Sort Filter */}
+                    <SearchableSelect
+                      value={leaderboardSortBy}
+                      onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
+                      options={[
+                        { value: "NET", label: "Net Score" },
+                        { value: "GROSS", label: "Gross Score" },
+                      ]}
+                      className="min-w-[140px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+                  </div>
                 </div>
 
                 {leaderboardLoading ? (
@@ -2145,136 +2240,162 @@ function ViewTournamentPageInner() {
                     <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
                     <p className="text-sm text-gray-500 font-medium">Updating rankings...</p>
                   </div>
-                ) : leaderboardData.length > 0 ? (
-                  <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50/50 border-b border-gray-100">
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Gross</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {leaderboardData.map((entry, index) => {
-                            const rank = index + 1;
-                            return (
-                              <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="px-6 py-4 text-center">
-                                  <div className="flex items-center justify-center">
-                                    {rank === 1 ? (
-                                      <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
-                                        <Trophy className="w-4 h-4 text-yellow-600" />
-                                      </div>
-                                    ) : rank === 2 ? (
-                                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
-                                        <Award className="w-4 h-4 text-slate-400" />
-                                      </div>
-                                    ) : rank === 3 ? (
-                                      <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
-                                        <Award className="w-4 h-4 text-orange-600" />
-                                      </div>
-                                    ) : (
-                                      <span className="text-[13px] font-bold text-gray-400">{rank}</span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-100 bg-white shadow-sm shrink-0">
-                                      <img
-                                        src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
-                                        className="w-full h-full object-cover"
-                                        alt=""
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="text-[13px] font-bold text-gray-900 truncate">
-                                        {entry.user.firstName} {entry.user.lastName}
-                                      </div>
-                                      <div className="text-[10px] text-gray-400 font-medium truncate">
-                                        {entry.user.email}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100 uppercase">
-                                    {entry.user?.division || "Open"}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <div className="space-y-1.5">
-                                    <span className="text-[12px] font-bold text-gray-600">
-                                      {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
-                                    </span>
-                                    {entry.grossStrokes > 0 && (
-                                      <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
-                                        <div 
-                                          className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                                          style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                                    {entry.user.handicap || 0}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="text-[15px] font-black text-emerald-600">
-                                    {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  {entry.grossStrokes > 0 ? (
-                                    entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
-                                      <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
-                                    ) : (
-                                      <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
-                                    )
-                                  ) : (
-                                    <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 ) : (
-                      <div className="flex flex-col items-center justify-center gap-6 py-20 text-center bg-white border border-dashed border-gray-200 rounded-3xl">
-                    <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
-                      <Trophy className="w-10 h-10 text-gray-200" />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-gray-900">Leaderboard Empty</h3>
-                      <p className="text-[14px] text-gray-500 font-normal max-w-sm">No scores have been recorded for {selectedLeaderboardDay === "all" ? "any day of this tournament" : `Day ${selectedLeaderboardDay}`} yet.</p>
-                    </div>
-                  </div>
+                  (() => {
+                    const filteredLeaderboardData = leaderboardData.filter((entry) => {
+                      if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
+                      if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
+                      return true;
+                    });
+
+                    return filteredLeaderboardData.length > 0 ? (
+                      <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                                {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                                  <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                                ))}
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Gross</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {filteredLeaderboardData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index) => {
+                                const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
+                                return (
+                                  <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="flex items-center justify-center">
+                                        {rank === 1 ? (
+                                          <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                            <Trophy className="w-4 h-4 text-yellow-600" />
+                                          </div>
+                                        ) : rank === 2 ? (
+                                          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-slate-400" />
+                                          </div>
+                                        ) : rank === 3 ? (
+                                          <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-orange-600" />
+                                          </div>
+                                        ) : (
+                                          <span className="text-[13px] font-bold text-gray-400">{rank}</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
+                                          <img
+                                            src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="text-[13px] font-bold text-gray-900 truncate">
+                                            {entry.user.firstName} {entry.user.lastName}
+                                          </div>
+                                          <div className="text-[10px] text-gray-400 font-medium truncate">
+                                            {entry.user.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase">
+                                        {entry.user?.division || "Open"}
+                                      </span>
+                                    </td>
+                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                                      <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                        <span className="text-[13px] font-bold text-gray-700">{entry.rounds[i + 1] || "-"}</span>
+                                      </td>
+                                    ))}
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="space-y-1.5">
+                                        <span className="text-[12px] font-bold text-gray-600">
+                                          {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
+                                        </span>
+                                        {entry.grossStrokes > 0 && (
+                                          <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
+                                            <div
+                                              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                              style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
+                                        {entry.user.handicap || 0}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[15px] font-black text-emerald-600">
+                                        {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      {entry.grossStrokes > 0 ? (
+                                        entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
+                                          <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                        ) : (
+                                          <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                        )
+                                      ) : (
+                                        <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        {filteredLeaderboardData.length > 0 && (
+                          <div className="p-4 border-t border-[#e7e7e7] flex justify-end bg-gray-50/30">
+                            <Pagination
+                              currentPage={leaderboardPage}
+                              totalPages={Math.max(1, Math.ceil(filteredLeaderboardData.length / leaderboardPerPage))}
+                              onPageChange={setLeaderboardPage}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center shadow-sm">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e7e7e7]">
+                          <Trophy className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">No Scores Yet</h3>
+                        <p className="text-sm text-gray-500 max-w-[300px] mx-auto">
+                          There are no matching scores for the selected filters and day.
+                        </p>
+                      </div>
+                    );
+                  })()
                 )}
               </div>
             )}
-
             {/* TABS 6: Overview */}
             {activeTab === "overview" && (
               <div className="space-y-8">
                 {/* Statistics Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2287,7 +2408,7 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2300,7 +2421,7 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2319,8 +2440,8 @@ function ViewTournamentPageInner() {
                 {/* Course & Organiser Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Golf Course Box */}
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {courseDetails?.coverImage ? (
                           <img src={courseDetails.coverImage} className="w-full h-full object-cover" />
@@ -2339,19 +2460,19 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Holes</span>
                         <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.holes || "—"} Holes</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Par</span>
                         <span className="text-[15px] font-extrabold text-gray-800">Par {courseDetails?.par || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Slope Rating</span>
                         <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.slopeRating || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Architect</span>
                         <span className="text-[15px] font-extrabold text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
                       </div>
@@ -2359,8 +2480,8 @@ function ViewTournamentPageInner() {
                   </div>
 
                   {/* Scoring Rules Box */}
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
                         <Activity className="w-7 h-7" />
                       </div>
@@ -2375,15 +2496,15 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Format</span>
                         <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Scoring Type</span>
                         <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Live Scoring</span>
                         <span className={cn(
                           "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
@@ -2392,7 +2513,7 @@ function ViewTournamentPageInner() {
                           {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Marker Verification</span>
                         <span className={cn(
                           "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
@@ -2407,8 +2528,8 @@ function ViewTournamentPageInner() {
 
                 {/* Organiser Box */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {clubDetails?.logo ? (
                           <img src={clubDetails.logo} className="w-full h-full object-cover" />
@@ -2427,19 +2548,19 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Status</span>
                         <span className="text-[13px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.status || "ACTIVE"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Plan tier</span>
                         <span className="text-[13px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.plan || "PRO"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100 col-span-2">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7] col-span-2">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Admin Email</span>
                         <span className="text-[14px] font-bold text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
                       </div>
@@ -2681,6 +2802,76 @@ function ViewTournamentPageInner() {
           </p>
         </div>
       </Modal>
+      {/* Publish Email Prototype Modal */}
+      <Modal
+        isOpen={isPublishEmailModalOpen}
+        onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
+        title={`Publish Day ${selectedDay} Groupings`}
+        className="max-w-xl"
+      >
+        <div className="space-y-6 pt-4">
+          <p className="text-[14px] text-gray-600">
+            This will send an email to all assigned players with their specific grouping and tee time information. Review the email prototype below before publishing.
+          </p>
+
+          <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-5 shadow-sm space-y-4">
+            <div className="border-b border-[#e7e7e7] pb-3 mb-3">
+              <p className="text-[12px] text-gray-500 font-medium">From: <span className="text-gray-900">OpenClubOS &lt;no-reply@openclubos.com&gt;</span></p>
+              <p className="text-[12px] text-gray-500 font-medium mt-1">Subject: <span className="text-gray-900 font-bold">Your Tee Time for Day {selectedDay} - {selectedTournament?.name}</span></p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-[18px] font-bold text-gray-900">{selectedTournament?.name}</h2>
+              <p className="text-[14px] text-gray-700">Hi [Player First Name],</p>
+              <p className="text-[14px] text-gray-700">
+                Your tee time and grouping for Day {selectedDay} has been assigned. Please see the details below:
+              </p>
+
+              <div className="bg-white border border-[#e7e7e7] rounded-lg p-4 my-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Tee Time</p>
+                    <p className="text-[16px] font-bold text-emerald-600">[Player Tee Time]</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Group</p>
+                    <p className="text-[16px] font-bold text-gray-900">[Player Group Name]</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[14px] text-gray-700">
+                Please ensure you arrive at least 30 minutes before your tee time.
+              </p>
+
+              <div className="pt-4 mt-4 border-t border-[#e7e7e7]">
+                <p className="text-[12px] text-gray-500">
+                  Powered by OpenClubOS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#e7e7e7]">
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishEmailModalOpen(false)}
+              disabled={groupingsGenerating}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmPublishGroupingsEmail}
+              disabled={groupingsGenerating}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2 font-bold shadow-sm"
+            >
+              {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
+              Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -2693,7 +2884,7 @@ export default function ViewTournamentPage() {
           <div className="h-5 w-36 bg-gray-100 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className="h-20 w-20 bg-gray-100 rounded-3xl" />
+              <div className="h-20 w-20 bg-gray-100 rounded-xl" />
               <div className="space-y-3">
                 <div className="h-8 w-72 bg-gray-100 rounded-lg" />
                 <div className="h-4 w-80 bg-gray-100 rounded-md" />

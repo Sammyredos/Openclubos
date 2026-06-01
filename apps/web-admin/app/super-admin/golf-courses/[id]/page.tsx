@@ -132,7 +132,7 @@ export default function GolfCourseDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between bg-white border border-[#efefef] rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-gray-100 rounded-xl" />
             <div className="space-y-2">
@@ -147,14 +147,14 @@ export default function GolfCourseDetailPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="bg-white border border-[#efefef] rounded-xl p-4 shadow-sm space-y-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-12 w-full bg-gray-50 rounded-xl" />
               ))}
             </div>
           </div>
           <div className="lg:col-span-3">
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm min-h-[400px] space-y-6">
+            <div className="bg-white border border-[#efefef] rounded-xl p-6 shadow-sm min-h-[400px] space-y-6">
               <div className="h-5 w-32 bg-gray-100 rounded-lg" />
               <div className="h-64 w-full bg-gray-50 rounded-xl" />
             </div>
@@ -200,7 +200,7 @@ export default function GolfCourseDetailPage() {
   return (
     <div className="space-y-6 transition-all duration-150">
       {/* Page Header */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between bg-white border border-[#efefef] rounded-xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/super-admin/golf-courses")}
@@ -323,7 +323,7 @@ export default function GolfCourseDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+          <div className="bg-white border border-[#efefef] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
             {tabs.map((tab, i) => {
               const isActive = activeTab === tab;
               return (
@@ -356,19 +356,19 @@ export default function GolfCourseDetailPage() {
 
         {/* Right Column - Active Tab Content */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px]">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px]">
             <div className="p-4 sm:p-8">
               {activeTab === "Overview" && (
                 <div className="space-y-8">
                   {/* Cover Image */}
-                  <div className="relative w-full h-[320px] rounded-2xl overflow-hidden border border-gray-100 bg-gray-100">
+                  <div className="relative w-full h-[320px] rounded-xl overflow-hidden border border-[#efefef] bg-gray-100">
                     {course.coverImage ? (
                       <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-slate-200" />
                     )}
                     <div className="absolute top-4 right-4">
-                      <Button className="bg-white/95 hover:bg-white text-gray-700 h-9 px-3 rounded-lg text-sm font-semibold shadow-sm border border-gray-100 flex items-center gap-2">
+                      <Button className="bg-white/95 hover:bg-white text-gray-700 h-9 px-3 rounded-lg text-sm font-semibold shadow-sm border border-[#efefef] flex items-center gap-2">
                         <ImageIcon className="w-4 h-4" />
                         View Gallery <span className="text-gray-400 bg-gray-100 px-1.5 rounded">{course.galleryImages?.length || 0}</span>
                       </Button>
@@ -378,7 +378,7 @@ export default function GolfCourseDetailPage() {
                   {/* Course Information & Stats Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Course Information */}
-                    <div className="p-6 rounded-2xl border border-gray-100 bg-gray-50/50">
+                    <div className="p-6 rounded-xl border border-[#efefef] bg-gray-50/50">
                       <h2 className="text-[16px] font-bold text-gray-900 mb-5">Course Information</h2>
                       <div className="space-y-4">
                         <div className="flex">
@@ -411,31 +411,31 @@ export default function GolfCourseDetailPage() {
                     </div>
 
                     {/* Course Statistics */}
-                    <div className="p-6 rounded-2xl border border-gray-100 bg-gray-50/50">
+                    <div className="p-6 rounded-xl border border-[#efefef] bg-gray-50/50">
                       <h2 className="text-[16px] font-bold text-gray-900 mb-5">Course Statistics</h2>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-gray-100">
+                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-[#efefef]">
                           <div className="flex items-center gap-2">
                             <Flag className="w-4 h-4 text-emerald-500" />
                             <span className="text-[11px] text-gray-500 font-medium">Total Holes</span>
                           </div>
                           <div className="text-[18px] font-bold text-gray-900">{course.holes}</div>
                         </div>
-                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-gray-100">
+                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-[#efefef]">
                           <div className="flex items-center gap-2">
                             <Route className="w-4 h-4 text-emerald-500" />
                             <span className="text-[11px] text-gray-500 font-medium">Total Yards</span>
                           </div>
                           <div className="text-[18px] font-bold text-gray-900">{maxYards > 0 ? maxYards.toLocaleString() : "—"}</div>
                         </div>
-                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-gray-100">
+                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-[#efefef]">
                           <div className="flex items-center gap-2">
                             <Award className="w-4 h-4 text-blue-500" />
                             <span className="text-[11px] text-gray-500 font-medium">Course Rating</span>
                           </div>
                           <div className="text-[18px] font-bold text-gray-900">{course.courseRating || "—"}</div>
                         </div>
-                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-gray-100">
+                        <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-[#efefef]">
                           <div className="flex items-center gap-2">
                             <Activity className="w-4 h-4 text-orange-500" />
                             <span className="text-[11px] text-gray-500 font-medium">Slope Rating</span>
@@ -447,7 +447,7 @@ export default function GolfCourseDetailPage() {
                   </div>
 
                   {/* Amenities */}
-                  <div className="p-6 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                  <div className="p-6 rounded-xl border border-[#efefef] bg-white shadow-sm">
                     <h2 className="text-[16px] font-bold text-gray-900 mb-5">Amenities</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
                       {course.amenities && course.amenities.length > 0 ? (
@@ -469,7 +469,7 @@ export default function GolfCourseDetailPage() {
 
               {activeTab === "Holes" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                  <div className="flex items-center justify-between border-b border-[#efefef] pb-4">
                     <div>
                       <h2 className="text-xl font-bold text-gray-900">Hole-by-Hole Details</h2>
                       <p className="text-sm text-gray-500 mt-1">Hole specification, par configuration and handicap index.</p>
@@ -491,7 +491,7 @@ export default function GolfCourseDetailPage() {
                       {[...course.holeDetails].sort((a, b) => a.number - b.number).map((hole) => (
                         <div 
                           key={hole.number} 
-                          className="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm space-y-3 hover:border-emerald-200 transition-colors"
+                          className="p-4 rounded-xl border border-[#efefef] bg-white shadow-sm space-y-3 hover:border-emerald-200 transition-colors"
                         >
                           <div className="flex items-center justify-between border-b border-gray-50 pb-2">
                             <span className="text-[12px] font-bold text-gray-400 uppercase">Hole</span>
@@ -517,7 +517,7 @@ export default function GolfCourseDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50">
+                    <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/50">
                       <Flag className="w-12 h-12 mb-4 text-gray-300 animate-pulse" />
                       <p className="font-bold text-gray-700">No hole configuration details available</p>
                       <p className="text-sm mt-1">Configure the per-hole details by editing the course.</p>
@@ -535,10 +535,10 @@ export default function GolfCourseDetailPage() {
               {activeTab === "Tee Boxes" && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-gray-900">Tee Boxes</h2>
-                  <div className="overflow-x-auto rounded-xl border border-gray-100">
+                  <div className="overflow-x-auto rounded-xl border border-[#efefef]">
                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
-                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                        <tr className="bg-gray-50/50 border-b border-[#efefef]">
                           <th className="py-3 px-4 text-[12px] font-semibold text-gray-900">Tee Name</th>
                           <th className="py-3 px-4 text-[12px] font-semibold text-gray-900">Type</th>
                           <th className="py-3 px-4 text-[12px] font-semibold text-gray-900">Par</th>
@@ -579,14 +579,14 @@ export default function GolfCourseDetailPage() {
               )}
               {activeTab === "Amenities" && (
                 <div className="space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
+                  <div className="border-b border-[#efefef] pb-4">
                     <h2 className="text-xl font-bold text-gray-900">Amenities</h2>
                     <p className="text-sm text-gray-500 mt-1">Available facilities and services at {course.name}.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {course.amenities && course.amenities.length > 0 ? (
                       course.amenities.map(amenity => (
-                        <div key={amenity} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-sm transition-all hover:border-emerald-100">
+                        <div key={amenity} className="flex items-center gap-4 p-4 rounded-xl border border-[#efefef] bg-white hover:shadow-sm transition-all hover:border-emerald-100">
                           <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
                             {getAmenityIcon(amenity)}
                           </div>
@@ -597,7 +597,7 @@ export default function GolfCourseDetailPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-3 text-center py-12 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50 text-gray-500">
+                      <div className="col-span-3 text-center py-12 border border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/50 text-gray-500">
                         No amenities listed for this course.
                       </div>
                     )}
@@ -606,11 +606,11 @@ export default function GolfCourseDetailPage() {
               )}
               {activeTab === "Tournaments" && (
                 <div className="space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
+                  <div className="border-b border-[#efefef] pb-4">
                     <h2 className="text-xl font-bold text-gray-900">Tournaments</h2>
                     <p className="text-sm text-gray-500 mt-1">Tournaments hosted at {course.name}.</p>
                   </div>
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50">
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 border border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/50">
                     <Trophy className="w-12 h-12 mb-4 text-gray-300" />
                     <p className="font-bold text-gray-700">No Tournaments Scheduled</p>
                     <p className="text-sm mt-1">There are currently no active or past tournaments recorded for this golf course.</p>
@@ -619,17 +619,17 @@ export default function GolfCourseDetailPage() {
               )}
               {activeTab === "Course Settings" && (
                 <div className="space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
+                  <div className="border-b border-[#efefef] pb-4">
                     <h2 className="text-xl font-bold text-gray-900">Course Settings</h2>
                     <p className="text-sm text-gray-500 mt-1">Configure regional and booking settings for this course.</p>
                   </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
                     <div className="flex items-center justify-between py-3 border-b border-gray-50">
                       <div>
                         <p className="text-sm font-semibold text-gray-800">Featured Course</p>
                         <p className="text-xs text-gray-500 mt-0.5">Showcase this course on the homepage dashboard</p>
                       </div>
-                      <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border", course.isFeatured ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-gray-50 text-gray-600 border-gray-150")}>
+                      <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border", course.isFeatured ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-gray-50 text-gray-600 border-[#efefef]")}>
                         {course.isFeatured ? "Featured" : "Regular"}
                       </span>
                     </div>
@@ -654,11 +654,11 @@ export default function GolfCourseDetailPage() {
               )}
               {activeTab === "Activity Logs" && (
                 <div className="space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
+                  <div className="border-b border-[#efefef] pb-4">
                     <h2 className="text-xl font-bold text-gray-900">Activity Logs</h2>
                     <p className="text-sm text-gray-500 mt-1">Audit trail of modifications made to this course.</p>
                   </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
                     <div className="flex gap-4">
                       <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
                         <CheckCircle2 className="w-4 h-4" />

@@ -204,6 +204,7 @@ export interface GroupingItem {
 export interface GroupingData {
   groups: GroupingItem[];
   unassigned: GroupingPlayer[];
+  rule?: string;
 }
 
 function getStorageKey(tId: string, day: number = 1) {
@@ -212,7 +213,7 @@ function getStorageKey(tId: string, day: number = 1) {
 
 async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   try {
-    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&take=1000`, {
+    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&status=APPROVED&take=1000`, {
       method: 'GET',
     });
     if (res.ok) {
@@ -221,6 +222,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
       return list.map((reg: any) => ({
         id: reg.id,
         paymentStatus: reg.paymentStatus,
+        extraStrokes: reg.extraStrokes || 0,
         user: reg.user ? {
           id: reg.user.id || reg.userId,
           email: reg.user.email || '',
@@ -277,7 +279,7 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
 export async function generateGroupings(
   tournamentId: string,
   day: number = 1,
-  rule: 'RANDOM' | 'LEADERBOARD_REVERSE' | 'LEADERBOARD_DIRECT' | 'CATEGORY_RANDOM' = 'RANDOM'
+  rule: 'RANDOM' | 'LEADERBOARD_REVERSE_GROSS' | 'LEADERBOARD_REVERSE_NET' | 'LEADERBOARD_DIRECT_GROSS' | 'LEADERBOARD_DIRECT_NET' | 'CATEGORY_RANDOM' = 'RANDOM'
 ): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings/generate?day=${day}`, {
     method: 'POST',
@@ -357,33 +359,51 @@ export async function generateGroupings(
       }
     }
     sortedPlayers = balancedPlayers;
-  } else if (rule === 'LEADERBOARD_REVERSE' || rule === 'LEADERBOARD_DIRECT') {
+  } else if (rule.startsWith('LEADERBOARD_')) {
     try {
       // Fetch scores to sort by leaderboard
       const scores = await getTournamentScores(tournamentId);
       const playerScores: Record<string, number> = {};
       const playerLastRecorded: Record<string, number> = {};
+      const playerHolesCompleted: Record<string, Set<string>> = {};
       
       scores.forEach((score: any) => {
-        if (!playerScores[score.userId]) {
-          playerScores[score.userId] = 0;
-          playerLastRecorded[score.userId] = 0;
+        const uid = score.userId;
+        if (!playerScores[uid]) {
+          playerScores[uid] = 0;
+          playerLastRecorded[uid] = 0;
+          playerHolesCompleted[uid] = new Set();
         }
-        playerScores[score.userId] += score.strokes || 0;
+        playerScores[uid] += score.strokes || 0;
+        
+        // Track unique holes played
+        playerHolesCompleted[uid].add(`${score.holeId}-${score.groupId || 'nogroup'}`);
         
         const recordedTime = new Date(score.recordedAt).getTime();
-        if (recordedTime > playerLastRecorded[score.userId]) {
-          playerLastRecorded[score.userId] = recordedTime;
+        if (recordedTime > playerLastRecorded[uid]) {
+          playerLastRecorded[uid] = recordedTime;
         }
       });
 
       sortedPlayers.sort((a, b) => {
-        // Players with no score are considered to have 9999 (worst possible score)
-        const scoreA = playerScores[a.user?.id || ''] ?? 9999;
-        const scoreB = playerScores[b.user?.id || ''] ?? 9999;
+        const getNetScore = (p: GroupingPlayer) => {
+            const uid = p.user?.id || '';
+            const gross = playerScores[uid] ?? 9999;
+            if (gross === 9999) return 9999;
+            
+            const holesPlayed = playerHolesCompleted[uid]?.size || 0;
+            const hcap = p.user?.handicap || 0;
+            const extra = (p as any).extraStrokes || 0;
+            const playingHcap = Math.round(hcap);
+            const totalHcap = Math.round(playingHcap * (holesPlayed / 18));
+            return gross - totalHcap + extra;
+        };
+
+        const scoreA = rule.includes('_NET') ? getNetScore(a) : (playerScores[a.user?.id || ''] ?? 9999);
+        const scoreB = rule.includes('_NET') ? getNetScore(b) : (playerScores[b.user?.id || ''] ?? 9999);
         
         if (scoreA !== scoreB) {
-          if (rule === 'LEADERBOARD_REVERSE') {
+          if (rule.includes('_REVERSE')) {
             // Worst scores (highest) go first, leaders go last
             return scoreB - scoreA;
           } else {
@@ -397,7 +417,7 @@ export async function generateGroupings(
         const timeA = playerLastRecorded[a.user?.id || ''] ?? 0;
         const timeB = playerLastRecorded[b.user?.id || ''] ?? 0;
 
-        if (rule === 'LEADERBOARD_REVERSE') {
+        if (rule.includes('_REVERSE')) {
           // In reverse leaderboard, later tee time means LARGER index.
           // So if timeA < timeB (A finished earlier), A should have a LARGER index, so return positive.
           return timeB - timeA;
@@ -433,7 +453,7 @@ export async function generateGroupings(
     }
   }
 
-  const result = { groups, unassigned };
+  const result = { groups, unassigned, rule };
   if (typeof window !== 'undefined') {
     localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(result));
   }
@@ -546,4 +566,19 @@ export async function clearGroupings(tournamentId: string, day: number = 1): Pro
   }
   const players = await getFallbackPlayers(tournamentId);
   return { groups: [], unassigned: players };
+}
+
+export async function publishGroupingsEmail(tournamentId: string, day: number, data: GroupingData): Promise<{ success: boolean; message: string }> {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings/email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, groups: data.groups }),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to publish groupings via email');
+  }
+  
+  return res.json();
 }

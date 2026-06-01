@@ -1396,7 +1396,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   },
                   {
                     value: "INVITE_ONLY",
-                    label: "Invite Only",
+                    label: "Invite Only/Closed Tournament",
                     desc: "Strictly restricted. Only invited players can register.",
                   },
                 ].map(({ value, label, desc }) => {

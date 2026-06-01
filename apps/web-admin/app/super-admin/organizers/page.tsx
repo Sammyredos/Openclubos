@@ -609,7 +609,7 @@ export default function OrganizersPage() {
         />
       </div>
 
-      <Card className="border-none shadow-sm overflow-hidden">
+      <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
@@ -741,7 +741,7 @@ export default function OrganizersPage() {
                       <tr key={organizer.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3 max-w-[200px]">
-                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
                               <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -778,7 +778,7 @@ export default function OrganizersPage() {
                             <img
                               src={organizer.admin.avatar}
                               alt={organizer.admin.name}
-                              className="w-8 h-8 rounded-full border border-gray-100 flex-shrink-0"
+                              className="w-8 h-8 rounded-full border border-[#efefef] flex-shrink-0"
                             />
                             <div className="flex flex-col min-w-0">
                               <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name.toLowerCase()}</span>
@@ -886,7 +886,7 @@ export default function OrganizersPage() {
         anchorEl={dropdownAnchorEl}
         onClose={closeDropdown}
         placement="top-end"
-        className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+        className="w-60 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
       >
         {dropdownOrganizer ? (
           <>
@@ -1123,7 +1123,7 @@ export default function OrganizersPage() {
               </div>
 
               {generatedPassword && (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
+                <div className="rounded-xl border border-[#efefef] bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Generated Password</p>
                     <p className="text-[15px] font-bold text-gray-900 break-all">{generatedPassword}</p>
@@ -1222,8 +1222,8 @@ export default function OrganizersPage() {
           return (
             <div className="space-y-6 animate-in fade-in duration-300">
               {/* Profile Card Header */}
-              <div className="rounded-2xl border border-gray-100 bg-emerald-50/20 p-5 flex items-start gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-100/50 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+              <div className="rounded-xl border border-[#efefef] bg-emerald-50/20 p-5 flex items-start gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white border border-emerald-100/50 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                   {selectedOrganizer?.logo ? (
                     <img
                       src={selectedOrganizer.logo}
@@ -1277,7 +1277,7 @@ export default function OrganizersPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100/50">
+              <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-xl border border-[#efefef]/50">
                 {[
                   { id: "overview", label: "Overview", icon: BarChart3 },
                   { id: "tournaments", label: "Tournaments", icon: Trophy },
@@ -1290,7 +1290,7 @@ export default function OrganizersPage() {
                     className={cn(
                       "flex-1 px-4 py-2 rounded-lg text-[13px] flex items-center justify-center gap-2 transition-all duration-200 whitespace-nowrap",
                       viewTab === tab.id
-                        ? "bg-white text-emerald-600 shadow-sm border border-gray-100"
+                        ? "bg-white text-emerald-600 shadow-sm border border-[#efefef]"
                         : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100/50",
                     )}
                   >
@@ -1305,10 +1305,10 @@ export default function OrganizersPage() {
                 {viewLoading ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
-                      <Skeleton className="h-24 w-full rounded-2xl animate-pulse" />
-                      <Skeleton className="h-24 w-full rounded-2xl animate-pulse" />
+                      <Skeleton className="h-24 w-full rounded-xl animate-pulse" />
+                      <Skeleton className="h-24 w-full rounded-xl animate-pulse" />
                     </div>
-                    <Skeleton className="h-40 w-full rounded-2xl animate-pulse" />
+                    <Skeleton className="h-40 w-full rounded-xl animate-pulse" />
                   </div>
                 ) : (
                   <>
@@ -1316,21 +1316,21 @@ export default function OrganizersPage() {
                       <div className="space-y-6 animate-in fade-in duration-300">
                         {/* KPI Cards Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 flex flex-col justify-between h-24">
+                          <div className="p-4 bg-emerald-50/30 rounded-xl border border-emerald-100/50 flex flex-col justify-between h-24">
                             <span className="text-[11px] text-emerald-600 uppercase tracking-wider">Revenue</span>
                             <span className="text-xl text-emerald-700 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
                             </span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Tournaments</span>
                             <span className="text-xl text-gray-800 mt-1">{viewStats?.totalTournaments ?? 0}</span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Members</span>
                             <span className="text-xl text-gray-800 mt-1">{viewStats?.totalMembers ?? 0}</span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col justify-between h-24">
+                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Unpaid</span>
                             <span className="text-xl text-gray-800 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
@@ -1340,7 +1340,7 @@ export default function OrganizersPage() {
 
                         {/* Admin Information & Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="rounded-2xl border border-gray-100 p-5 space-y-4 bg-white shadow-sm">
+                          <div className="rounded-xl border border-[#efefef] p-5 space-y-4 bg-white shadow-sm">
                             <h5 className="text-[14px] text-gray-900 border-b border-gray-50 pb-2">Admin Profile</h5>
                             <div className="space-y-4">
                               <div className="flex items-center gap-3">
@@ -1374,7 +1374,7 @@ export default function OrganizersPage() {
                           </div>
 
                           {/* Recent Activity Timeline */}
-                          <div className="rounded-2xl border border-gray-100 p-5 space-y-4 bg-white shadow-sm">
+                          <div className="rounded-xl border border-[#efefef] p-5 space-y-4 bg-white shadow-sm">
                             <h5 className="text-[14px] text-gray-900 border-b border-gray-50 pb-2">Recent Tournaments</h5>
                             {viewTournaments.length > 0 ? (
                               <div className="space-y-4 relative pl-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
@@ -1408,7 +1408,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search tournaments..."
-                            className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
                             value={tournamentSearch}
                             onChange={(e) => {
                               setTournamentSearch(e.target.value);
@@ -1416,9 +1416,9 @@ export default function OrganizersPage() {
                             }}
                           />
                         </div>
-                        <div className="overflow-hidden rounded-2xl border border-gray-100">
+                        <div className="overflow-hidden rounded-xl border border-[#efefef]">
                           <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
                               <tr>
                                 <th className="px-5 py-3 font-normal">Tournament</th>
                                 <th className="px-5 py-3 font-normal">Date</th>
@@ -1444,7 +1444,7 @@ export default function OrganizersPage() {
                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
                                             : t.status === "REGISTRATION_OPEN"
                                               ? "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
-                                              : "bg-gray-50 text-gray-400 border border-gray-100",
+                                              : "bg-gray-50 text-gray-400 border border-[#efefef]",
                                         )}
                                       >
                                         {t.status.replaceAll("_", " ").toLowerCase()}
@@ -1483,7 +1483,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search player, email or tournament..."
-                            className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
                             value={paymentSearch}
                             onChange={(e) => {
                               setPaymentSearch(e.target.value);
@@ -1491,9 +1491,9 @@ export default function OrganizersPage() {
                             }}
                           />
                         </div>
-                        <div className="overflow-hidden rounded-2xl border border-gray-100">
+                        <div className="overflow-hidden rounded-xl border border-[#efefef]">
                           <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
                               <tr>
                                 <th className="px-5 py-3 font-normal">Player</th>
                                 <th className="px-5 py-3 font-normal">Tournament</th>
@@ -1568,3 +1568,4 @@ export default function OrganizersPage() {
     </div>
   );
 }
+

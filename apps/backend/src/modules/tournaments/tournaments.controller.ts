@@ -83,6 +83,16 @@ export class TournamentsController {
     return this.tournamentsService.update(id, updateTournamentDto);
   }
 
+  @Post(':id/groupings/email')
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async publishGroupingsEmail(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.tournamentsService.publishGroupingsEmail(id, dto);
+  }
+
   @Delete(':id')
   async remove(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.remove(id);

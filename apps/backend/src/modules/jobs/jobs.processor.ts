@@ -121,6 +121,7 @@ export class JobsProcessor extends WorkerHost {
           data.roundName || 'Round 1', 
           data.teeTime || 'TBA', 
           data.groupName || 'Group 1',
+          data.groupMembers || [],
           data.organizerName
         );
 

@@ -54,7 +54,7 @@ export function StatCard({
 }: StatCardProps) {
   const resolvedChangeType = changeType ?? inferChangeType(change);
   return (
-    <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-300">
+    <Card className="border-[#efefef] bg-white rounded-xl hover:border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300">
       <CardContent className="p-6">
         <div className="flex items-center gap-4">
           <div className={cn("p-3 rounded-xl flex-shrink-0 shadow-sm", iconBg)}>

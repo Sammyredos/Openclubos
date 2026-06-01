@@ -29,6 +29,8 @@ import {
   UserMinus,
   Clock,
   X,
+  Activity,
+  CreditCard,
 } from "lucide-react";
 import {
   PieChart as RePieChart,
@@ -134,7 +136,7 @@ const STATUS_META: Record<TournamentStatus, { label: string; color: string; badg
 const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
   PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
-  INVITE_ONLY: { label: "Invite Only", badge: "bg-amber-50 text-amber-600", icon: Shield },
+  INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
 function formatDateRange(startISO: string, endISO: string | null) {
@@ -352,11 +354,11 @@ export default function TournamentsPage() {
     const tokens = q.split(/[\s-]+/).filter(Boolean);
 
     const searchableFields = [
-       t.name,
-       t.clubName,
-     ];
+      t.name,
+      t.clubName,
+    ];
 
-    const matchesSearch = tokens.length === 0 || tokens.every(token => 
+    const matchesSearch = tokens.length === 0 || tokens.every(token =>
       searchableFields.some(field => field?.toLowerCase().includes(token))
     );
 
@@ -984,7 +986,7 @@ export default function TournamentsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         {/* Main Content - Table Area */}
         <div className="xl:col-span-3 space-y-6">
-          <Card className="border-none shadow-sm overflow-hidden">
+          <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
@@ -1013,34 +1015,34 @@ export default function TournamentsPage() {
                 </div>
                 <SearchableSelect
                   value={clubFilter}
-                  onValueChange={setClubFilter}
+                  onValueChange={(v) => setClubFilter(v)}
                   options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white"
+                  triggerClassName="h-11 bg-white font-medium"
                   placeholder="All Organizers"
                 />
                 <SearchableSelect
                   value={statusFilter}
-                  onValueChange={setStatusFilter}
+                  onValueChange={(v) => setStatusFilter(v)}
                   options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white"
+                  triggerClassName="h-11 bg-white font-medium"
                   placeholder="All Status"
                 />
                 <SearchableSelect
                   value={monthFilter}
-                  onValueChange={setMonthFilter}
+                  onValueChange={(v) => setMonthFilter(v)}
                   options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[140px]"
-                  triggerClassName="h-11 bg-white"
+                  className="min-w-[160px]"
+                  triggerClassName="h-11 bg-white font-medium"
                   placeholder="All Months"
                 />
                 <SearchableSelect
                   value={yearFilter}
-                  onValueChange={setYearFilter}
+                  onValueChange={(v) => setYearFilter(v)}
                   options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[120px]"
-                  triggerClassName="h-11 bg-white"
+                  className="min-w-[160px]"
+                  triggerClassName="h-11 bg-white font-medium"
                   placeholder="All Years"
                 />
 
@@ -1153,7 +1155,7 @@ export default function TournamentsPage() {
                                 className={cn(
                                   "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
                                   t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
-                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-gray-100"
+                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-[#efefef]"
                                     : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
                                 )}
                                 title="Edit Tournament"
@@ -1219,7 +1221,7 @@ export default function TournamentsPage() {
         {/* Right Sidebar */}
         <div className="space-y-8">
           {/* Status Donut Chart */}
-          <Card className="border-none shadow-sm">
+          <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="pb-0">
               <CardTitle className="text-xl font-bold">Tournaments by Status</CardTitle>
             </CardHeader>
@@ -1276,7 +1278,7 @@ export default function TournamentsPage() {
           </Card>
 
           {/* Upcoming List */}
-          <Card className="border-none shadow-sm">
+          <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-xl font-bold">Upcoming Tournaments</CardTitle>
               {upcomingList.length > 0 && (
@@ -1335,7 +1337,7 @@ export default function TournamentsPage() {
         </div>
       </div>
 
-      <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2">
+      <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (
           <>
             <button
@@ -1417,7 +1419,7 @@ export default function TournamentsPage() {
           setStrokesMenuAnchorEl(null);
         }}
         placement="bottom-end"
-        className="w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+        className="w-44 bg-white rounded-xl shadow-sm border border-[#efefef] py-2"
       >
         {strokesMenuRegistration ? (
           <>
@@ -1472,7 +1474,7 @@ export default function TournamentsPage() {
         <div className="space-y-8">
           {/* Status Alert Banners */}
           {selectedTournament?.statusKey === "CANCELLED" && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-4 text-red-700">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
               <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
                 <Ban className="w-5 h-5" />
               </div>
@@ -1483,7 +1485,7 @@ export default function TournamentsPage() {
             </div>
           )}
           {selectedTournament?.statusKey === "COMPLETED" && (
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 text-emerald-700">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               </div>
@@ -1496,7 +1498,7 @@ export default function TournamentsPage() {
 
           {/* Header Section */}
           <div className="flex items-center gap-5 border-b border-gray-50 pb-8">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-[#10b981] border border-emerald-100 flex-shrink-0 shadow-sm">
+            <div className="w-16 h-16 rounded-xl bg-emerald-50 flex items-center justify-center text-[#10b981] border border-emerald-100 flex-shrink-0 shadow-sm">
               <Trophy className="w-8 h-8" />
             </div>
             <div className="min-w-0 flex-1">
@@ -1532,7 +1534,7 @@ export default function TournamentsPage() {
 
           {/* Quick Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
               <div className="flex items-end justify-between">
                 <div>
@@ -1545,7 +1547,7 @@ export default function TournamentsPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
               <div className="flex items-end justify-between">
                 <div>
@@ -1558,7 +1560,7 @@ export default function TournamentsPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
               <div className="flex items-end justify-between">
                 <div>
@@ -1622,7 +1624,7 @@ export default function TournamentsPage() {
                   { value: "DISQUALIFIED", label: "Disqualified" },
                 ]}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-white"
+                triggerClassName="h-11 bg-white font-medium"
                 placeholder="All Status"
               />
               <SearchableSelect
@@ -1640,7 +1642,7 @@ export default function TournamentsPage() {
                   { value: "REFUNDED", label: "Refunded" },
                 ]}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-white"
+                triggerClassName="h-11 bg-white font-medium"
                 placeholder="All Payments"
               />
               <SearchableSelect
@@ -1659,8 +1661,8 @@ export default function TournamentsPage() {
                   { value: "Enabled Players", label: "Enabled Players" },
                   { value: "Disqualified Players", label: "Disqualified Players" },
                 ]}
-                className="min-w-[200px]"
-                triggerClassName="h-11 bg-white"
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-white font-medium"
                 placeholder="All Players"
               />
             </div>
@@ -1668,7 +1670,7 @@ export default function TournamentsPage() {
             {registrationsLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-[#efefef] bg-gray-50/50 px-4 py-3">
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-4 w-40 rounded-md" />
                       <Skeleton className="h-3 w-56 rounded-md" />
@@ -1678,7 +1680,7 @@ export default function TournamentsPage() {
                 ))}
               </div>
             ) : registrationsPageItems.length > 0 ? (
-              <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+              <div className="rounded-xl border border-[#efefef] divide-y divide-gray-50 overflow-hidden">
                 {registrationsPageItems.map((r) => {
                   const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
                   const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
@@ -1689,13 +1691,13 @@ export default function TournamentsPage() {
                     REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
                     WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
                     PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-                  }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-gray-100", icon: Clock };
+                  }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-[#efefef]", icon: Clock };
 
                   const paymentConfig = {
                     PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
                     REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
                     UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
-                  }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-gray-100", label: r.paymentStatus };
+                  }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-[#efefef]", label: r.paymentStatus };
 
                   return (
                     <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
@@ -1704,7 +1706,7 @@ export default function TournamentsPage() {
                           <img
                             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
                             alt={fullName}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-white flex-shrink-0"
+                            className="w-10 h-10 rounded-full border border-[#efefef] bg-white flex-shrink-0"
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-0.5">
@@ -1734,7 +1736,7 @@ export default function TournamentsPage() {
                           isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                         )}>
                           {isTournamentLocked ? (
-                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-[#efefef]">
                               Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
                             </span>
                           ) : (
@@ -1839,7 +1841,7 @@ export default function TournamentsPage() {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
+              <div className="rounded-xl border border-[#efefef] bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
                 No registrations yet for this tournament.
               </div>
             )}
@@ -1886,7 +1888,7 @@ export default function TournamentsPage() {
       >
         <div className="space-y-6 py-2">
           {/* Header */}
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100/50">
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
             <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
               <UserPlus className="w-6 h-6" />
             </div>
@@ -1909,7 +1911,7 @@ export default function TournamentsPage() {
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                   manualPaymentType === 'UNPAID'
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                    : "border-[#efefef] bg-white text-gray-500 hover:border-gray-200"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -1930,7 +1932,7 @@ export default function TournamentsPage() {
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                   manualPaymentType === 'CASH'
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-gray-100 bg-white text-gray-500 hover:border-gray-200"
+                    : "border-[#efefef] bg-white text-gray-500 hover:border-gray-200"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -1997,14 +1999,14 @@ export default function TournamentsPage() {
                     return (
                       <div
                         key={u.id}
-                        className="group p-4 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300"
+                        className="group p-4 rounded-xl border border-[#efefef] bg-[#fafafa] hover:border-emerald-200 shadow-sm hover:shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             <img
                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                               alt={u.email}
-                              className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0"
+                              className="w-10 h-10 rounded-full border border-[#efefef] bg-gray-50 flex-shrink-0"
                             />
                             <div className={cn(
                               "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
@@ -2036,7 +2038,7 @@ export default function TournamentsPage() {
                             className={cn(
                               "h-10 px-5 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm",
                               isRegistered
-                                ? "bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed"
+                                ? "bg-gray-50 text-gray-400 border border-[#efefef] cursor-not-allowed"
                                 : "bg-[#10b981] hover:bg-[#0da673] text-white shadow-emerald-500/20"
                             )}
                           >
@@ -2072,7 +2074,7 @@ export default function TournamentsPage() {
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="mt-4 pt-4 border-t border-[#efefef] flex items-center justify-end gap-3">
           <Button
             variant="outline"
             onClick={() => {
@@ -2107,9 +2109,7 @@ export default function TournamentsPage() {
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
-            <AlertTriangle className="h-10 w-10" />
-          </div>
+
           <h4 className="text-xl font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
           <p className="text-gray-500 max-w-sm">
             This will set the tournament status to Cancelled.
@@ -2281,3 +2281,4 @@ export default function TournamentsPage() {
     </div>
   );
 }
+

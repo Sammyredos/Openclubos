@@ -609,4 +609,43 @@ export class TournamentsService {
       }
     }
   }
+
+  async publishGroupingsEmail(tournamentId: string, dto: any) {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: { club: true }
+    });
+
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    for (const group of dto.groups || []) {
+      const groupName = group.name || 'TBA';
+      const teeTime = group.startTime || 'TBA';
+      const roundName = `Day ${dto.day || 1}`;
+
+      const members = group.registrations || [];
+      
+      for (let i = 0; i < members.length; i++) {
+        const player = members[i];
+        if (!player.user?.email) continue;
+
+        // Extract the names of all OTHER players in the group
+        const groupMembers = members
+          .filter((_: any, index: number) => index !== i)
+          .map((m: any) => `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim())
+          .filter(Boolean);
+
+        this.jobsService.queueEmail('TEE_TIME_PUBLISHED', player.user.email, {
+          tournamentName: tournament.name,
+          roundName,
+          teeTime,
+          groupName,
+          groupMembers,
+          organizerName: tournament.club?.name,
+        }).catch(err => console.error('Failed to queue tee time email:', err));
+      }
+    }
+
+    return { success: true, message: 'Groupings publication emails queued' };
+  }
 }

@@ -365,7 +365,7 @@ export default function SuperAdminDashboard() {
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10">
       {authError && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
           {authError}
         </div>
       )}
@@ -430,7 +430,7 @@ export default function SuperAdminDashboard() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
             <CardTitle className="text-xl font-bold">Revenue Trend</CardTitle>
             <SearchableSelect
@@ -477,7 +477,7 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
             <CardTitle className="text-xl font-bold">Organizer Growth</CardTitle>
             <SearchableSelect
@@ -512,7 +512,7 @@ export default function SuperAdminDashboard() {
       {/* Activity, Alerts, Top Organizers Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
             <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
             <Button variant="link" className="text-[#10b981] p-0 h-auto font-bold text-[14px] flex items-center gap-2 no-underline hover:no-underline">
@@ -543,7 +543,7 @@ export default function SuperAdminDashboard() {
         </Card>
 
         {/* Top Organizers by Subscription */}
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
             <CardTitle className="text-xl font-bold">Top Organizers by Subscription</CardTitle>
             <SearchableSelect
@@ -561,7 +561,7 @@ export default function SuperAdminDashboard() {
             ) : subscriptionClubs.length > 0 ? (
               subscriptionClubs.map((club, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100 shadow-sm">
+                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-[#efefef] shadow-sm">
                     <img src={club.logo} alt={club.name} className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -590,7 +590,7 @@ export default function SuperAdminDashboard() {
         </Card>
 
         {/* Top Organizers by Tournament */}
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
             <CardTitle className="text-xl font-bold">Top Organizers by Tournament</CardTitle>
             <SearchableSelect
@@ -608,7 +608,7 @@ export default function SuperAdminDashboard() {
             ) : performingClubs.length > 0 ? (
               performingClubs.slice(0, 5).map((club, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100 shadow-sm">
+                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-[#efefef] shadow-sm">
                     <img src={club.logo} alt={club.name} className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -652,7 +652,7 @@ export default function SuperAdminDashboard() {
 function TrendChartSkeleton({ variant }: { variant: "line" | "bar" }) {
   const barHeights = [72, 128, 92, 156, 110, 176, 98, 142];
   return (
-    <div className="h-full w-full rounded-2xl border border-gray-100 bg-gray-50/40 p-5">
+    <div className="h-full w-full rounded-xl border border-[#efefef] bg-gray-50/40 p-5">
       <div className="grid h-full w-full grid-cols-[44px_1fr] gap-4">
         <div className="flex flex-col justify-between py-2">
           <Skeleton className="h-3 w-10 rounded-md" />
@@ -662,7 +662,7 @@ function TrendChartSkeleton({ variant }: { variant: "line" | "bar" }) {
           <Skeleton className="h-3 w-10 rounded-md" />
         </div>
         <div className="flex h-full flex-col justify-between">
-          <div className="relative flex-1 rounded-xl bg-white/60 border border-gray-100 overflow-hidden">
+          <div className="relative flex-1 rounded-xl bg-white/60 border border-[#efefef] overflow-hidden">
             <div className="absolute inset-0 grid grid-cols-6 gap-4 px-6 py-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="h-full w-px bg-gray-100/80 mx-auto" />
@@ -761,3 +761,4 @@ function AlertItem({ type, title, subtitle, time }: AlertItemProps) {
     </div>
   );
 }
+

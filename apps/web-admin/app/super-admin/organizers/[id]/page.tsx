@@ -279,7 +279,7 @@ export default function OrganizerDetailsPage() {
           <Skeleton className="h-5 w-36 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <Skeleton className="h-20 w-20 rounded-3xl" />
+              <Skeleton className="h-20 w-20 rounded-xl" />
               <div className="space-y-3">
                 <Skeleton className="h-8 w-72 rounded-lg" />
                 <Skeleton className="h-4 w-80 rounded-md" />
@@ -292,7 +292,7 @@ export default function OrganizerDetailsPage() {
           </div>
         </div>
 
-        <Skeleton className="h-12 w-[520px] rounded-2xl" />
+        <Skeleton className="h-12 w-[520px] rounded-xl" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
@@ -724,7 +724,7 @@ export default function OrganizerDetailsPage() {
         </div>
       </Modal>
 
-      <div className="flex items-center justify-between border-b border-gray-100">
+      <div className="flex items-center justify-between border-b border-[#efefef]">
         <div className="flex items-center gap-7 overflow-x-auto">
           {TABS.map((t) => (
             <button
@@ -876,10 +876,10 @@ export default function OrganizerDetailsPage() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-8 gap-6">
-              <Card className="xl:col-span-3 border-none shadow-sm">
+              <Card className="xl:col-span-3 border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
                   <div className="flex items-start gap-5">
-                    <div className="w-[75px] h-[75px] rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-[75px] h-[75px] rounded-full bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
                       <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -924,11 +924,11 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="xl:col-span-1 border-none shadow-sm">
+              <Card className="xl:col-span-1 border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
                   <p className="text-xl font-bold text-gray-800">Organizer Admin</p>
                   <div className="mt-6 flex flex-col items-start text-left">
-                    <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0">
                       <img
                         src={organizer.adminAvatar}
                         alt={organizer.admin}
@@ -947,7 +947,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center">
@@ -964,7 +964,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -989,7 +989,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
@@ -1008,7 +1008,7 @@ export default function OrganizerDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
                   <SearchableSelect
@@ -1048,7 +1048,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardHeader className="px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Subscription Details</CardTitle>
                 </CardHeader>
@@ -1105,7 +1105,7 @@ export default function OrganizerDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Recent Tournaments</CardTitle>
                   <Button
@@ -1143,7 +1143,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm lg:col-span-1">
+              <Card className="border border-[#e7e7e7] shadow-sm lg:col-span-1">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Recent Payments</CardTitle>
                   <Button
@@ -1196,7 +1196,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
+              <Card className="border border-[#e7e7e7] shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-bold">Organizer Activity</CardTitle>
                   <Button
@@ -1248,7 +1248,7 @@ export default function OrganizerDetailsPage() {
         )}
 
         {activeTab === "tournaments" && (
-          <Card className="border-none shadow-sm overflow-hidden">
+          <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold">Tournaments</CardTitle>
               <Button
@@ -1325,7 +1325,7 @@ export default function OrganizerDetailsPage() {
                     </table>
                   </div>
                   {tournaments.length > 0 && tournamentsTotalPages > 1 && (
-                    <div className="p-4 border-t border-gray-100 bg-white">
+                    <div className="p-4 border-t border-[#efefef] bg-white">
                       <Pagination
                         currentPage={tournamentsPageSafe}
                         totalPages={tournamentsTotalPages}
@@ -1341,7 +1341,7 @@ export default function OrganizerDetailsPage() {
         )}
 
         {activeTab === "payments" && (
-          <Card className="border-none shadow-sm overflow-hidden">
+          <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold">Payments</CardTitle>
             </CardHeader>
@@ -1402,7 +1402,7 @@ export default function OrganizerDetailsPage() {
                     </table>
                   </div>
                   {registrations.length > 0 && paymentsTotalPages > 1 && (
-                    <div className="p-4 border-t border-gray-100 bg-white">
+                    <div className="p-4 border-t border-[#efefef] bg-white">
                       <Pagination
                         currentPage={paymentsPageSafe}
                         totalPages={paymentsTotalPages}
@@ -1419,7 +1419,7 @@ export default function OrganizerDetailsPage() {
 
         {activeTab === "settings" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-2 border-none shadow-sm">
+            <Card className="lg:col-span-2 border border-[#e7e7e7] shadow-sm">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Organizer Details</CardTitle>
               </CardHeader>
@@ -1445,7 +1445,7 @@ export default function OrganizerDetailsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-sm">
+            <Card className="border border-[#e7e7e7] shadow-sm">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Primary Admin</CardTitle>
               </CardHeader>
@@ -1464,17 +1464,17 @@ export default function OrganizerDetailsPage() {
         )}
 
         {activeTab === "subscription" && (
-          <Card className="border-none shadow-sm">
+          <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold">Subscription</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[14px] font-medium text-gray-600">
-                <div className="flex items-center justify-between border border-gray-100 rounded-xl p-4 bg-white">
+                <div className="flex items-center justify-between border border-[#efefef] rounded-xl p-4 bg-white">
                   <span>Plan</span>
                   <span className="font-bold text-gray-900">{organizer.plan === "—" ? "—" : `${organizer.plan} Plan`}</span>
                 </div>
-                <div className="flex items-center justify-between border border-gray-100 rounded-xl p-4 bg-white">
+                <div className="flex items-center justify-between border border-[#efefef] rounded-xl p-4 bg-white">
                   <span>Status</span>
                   <span
                     className={cn(
@@ -1489,11 +1489,11 @@ export default function OrganizerDetailsPage() {
                     {organizer.status}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border border-gray-100 rounded-xl p-4 bg-white">
+                <div className="flex items-center justify-between border border-[#efefef] rounded-xl p-4 bg-white">
                   <span>Monthly Fee</span>
                   <span className="font-bold text-gray-900">{subscriptionMonthlyFee ? `₦${formatWithCommas(subscriptionMonthlyFee)}` : "—"}</span>
                 </div>
-                <div className="flex items-center justify-between border border-gray-100 rounded-xl p-4 bg-white">
+                <div className="flex items-center justify-between border border-[#efefef] rounded-xl p-4 bg-white">
                   <span>Next Billing Date</span>
                   <span className="font-bold text-gray-900">{nextBillingDate}</span>
                 </div>
@@ -1506,7 +1506,7 @@ export default function OrganizerDetailsPage() {
         )}
 
         {activeTab === "audit-logs" && (
-          <Card className="border-none shadow-sm">
+          <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold">Audit Logs</CardTitle>
             </CardHeader>

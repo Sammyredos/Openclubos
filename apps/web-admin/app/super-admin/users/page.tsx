@@ -29,6 +29,8 @@ import {
   AlertTriangle,
   MapPin,
   BarChart3,
+  Activity,
+  Target,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -578,7 +580,7 @@ export default function SuperAdminUsersPage() {
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
 
       {error && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
           {error}
         </div>
       )}
@@ -628,7 +630,7 @@ export default function SuperAdminUsersPage() {
         />
       </div>
 
-      <Card className="border-none shadow-sm overflow-hidden">
+      <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
@@ -756,7 +758,7 @@ export default function SuperAdminUsersPage() {
                           <img
                             src={u.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                             alt={u.email}
-                            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex-shrink-0 object-cover"
+                            className="w-10 h-10 rounded-full border border-[#efefef] bg-gray-50 flex-shrink-0 object-cover"
                           />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[14px] font-bold text-gray-900 truncate leading-tight">{fullName(u.firstName, u.lastName).toLowerCase()}</span>
@@ -863,7 +865,7 @@ export default function SuperAdminUsersPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm lg:col-span-1">
+        <Card className="border border-[#e7e7e7] shadow-sm lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Roles Overview</CardTitle>
             <span className="text-[12px] font-bold text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
@@ -887,7 +889,7 @@ export default function SuperAdminUsersPage() {
             ))}
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm lg:col-span-2">
+        <Card className="border border-[#e7e7e7] shadow-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Recent User Registrations</CardTitle>
           </CardHeader>
@@ -905,7 +907,7 @@ export default function SuperAdminUsersPage() {
                     <img
                       src={u.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                       alt={u.email}
-                      className="h-10 w-10 rounded-xl border border-gray-100 bg-gray-50 object-cover"
+                      className="h-10 w-10 rounded-xl border border-[#efefef] bg-gray-50 object-cover"
                     />
                     <div className="min-w-0">
                       <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
@@ -929,7 +931,7 @@ export default function SuperAdminUsersPage() {
         anchorEl={dropdownAnchorEl}
         onClose={closeDropdown}
         placement="top-end"
-        className="w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2"
+        className="w-60 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
       >
         {dropdownUser ? (
           <>
@@ -1109,11 +1111,11 @@ export default function SuperAdminUsersPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-4 flex items-center gap-3">
+          <div className="rounded-xl border border-[#efefef] bg-gray-50/50 px-4 py-4 flex items-center gap-3">
             <img
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
               alt={selectedUser?.email || "User"}
-              className="h-11 w-11 rounded-2xl border border-gray-100 bg-white"
+              className="h-11 w-11 rounded-xl border border-[#efefef] bg-white"
             />
             <div className="min-w-0">
               <p className="text-[14px] font-bold text-gray-900 truncate">
@@ -1293,7 +1295,7 @@ export default function SuperAdminUsersPage() {
               </div>
 
               {generatedPassword && (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
+                <div className="rounded-xl border border-[#efefef] bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Generated Password</p>
                     <p className="text-[15px] font-bold text-gray-900 break-all">{generatedPassword}</p>
@@ -1370,7 +1372,7 @@ export default function SuperAdminUsersPage() {
               <img
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
                 alt={selectedUser?.email || "User"}
-                className="h-24 w-24 rounded-3xl border-2 border-white shadow-md bg-gray-50 object-cover"
+                className="h-24 w-24 rounded-xl border-2 border-white shadow-md bg-gray-50 object-cover"
               />
               <div className={cn(
                 "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
@@ -1408,7 +1410,7 @@ export default function SuperAdminUsersPage() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-2xl border border-gray-100 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-xl border border-[#efefef] overflow-x-auto scrollbar-hide">
             {[
               { id: "overview", label: "Overview", icon: Users },
               { id: "activity", label: "History", icon: Clock },
@@ -1435,36 +1437,36 @@ export default function SuperAdminUsersPage() {
           <div className="min-h-[300px]">
             {viewLoading ? (
               <div className="space-y-4">
-                <Skeleton className="h-20 w-full rounded-2xl" />
-                <Skeleton className="h-40 w-full rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-xl" />
+                <Skeleton className="h-40 w-full rounded-xl" />
               </div>
             ) : viewTab === "overview" ? (
               <div className="space-y-6">
                 {/* Player Stats Cards (If Player) */}
                 {selectedUser?.role === "PLAYER" && (
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 shadow-sm">
+                    <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Handicap</p>
                       <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
                         <Shield className="w-5 h-5 text-emerald-300" />
                       </div>
                     </div>
-                    <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 shadow-sm">
+                    <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Tournaments</p>
                       <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold text-blue-900">{viewRegistrations.length}</p>
                         <Trophy className="w-5 h-5 text-blue-300" />
                       </div>
                     </div>
-                    <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 shadow-sm">
+                    <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Wins</p>
                       <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold text-purple-900">0</p>
                         <Trophy className="w-5 h-5 text-purple-300" />
                       </div>
                     </div>
-                    <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100/50 shadow-sm">
+                    <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Rank</p>
                       <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold text-amber-900">—</p>
@@ -1476,7 +1478,7 @@ export default function SuperAdminUsersPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Personal Info */}
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                  <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
                       <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                         <Users className="w-4 h-4 text-gray-400" />
@@ -1500,7 +1502,7 @@ export default function SuperAdminUsersPage() {
                   </div>
 
                   {/* Account Details */}
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                  <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
                       <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                         <Shield className="w-4 h-4 text-gray-400" />
@@ -1530,7 +1532,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search activity..."
-                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
                     value={activitySearch}
                     onChange={(e) => {
                       setActivitySearch(e.target.value);
@@ -1541,7 +1543,7 @@ export default function SuperAdminUsersPage() {
                 <div className="space-y-3">
                   {paginatedActivity.length > 0 ? (
                     paginatedActivity.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 bg-white hover:border-blue-100 transition-colors">
+                      <div key={r.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-50 bg-white hover:border-blue-100 transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                             <Trophy className="h-5 w-5" />
@@ -1572,7 +1574,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search payments..."
-                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
                     value={paymentSearch}
                     onChange={(e) => {
                       setPaymentSearch(e.target.value);
@@ -1580,7 +1582,7 @@ export default function SuperAdminUsersPage() {
                     }}
                   />
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                <div className="overflow-hidden rounded-xl border border-[#efefef]">
                   <table className="w-full text-left">
                     <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                       <tr>
@@ -1625,7 +1627,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search tournaments..."
-                    className="pl-9 h-10 bg-gray-50/50 border-gray-100 rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
                     value={tournamentSearch}
                     onChange={(e) => {
                       setTournamentSearch(e.target.value);
@@ -1633,7 +1635,7 @@ export default function SuperAdminUsersPage() {
                     }}
                   />
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                <div className="overflow-hidden rounded-xl border border-[#efefef]">
                   <table className="w-full text-left">
                     <thead className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                       <tr>
@@ -1690,3 +1692,4 @@ export default function SuperAdminUsersPage() {
     </div>
   );
 }
+

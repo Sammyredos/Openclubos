@@ -41,9 +41,13 @@ import {
   Home,
   Send,
   ChevronDown,
+  Mail,
+  ArrowUpDown,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
@@ -61,6 +65,7 @@ import {
   movePlayerInGroupings,
   updateGroupingTime,
   clearGroupings,
+  publishGroupingsEmail,
   type GroupingData,
   type GroupingItem,
   type GroupingPlayer,
@@ -105,6 +110,7 @@ type TournamentRow = {
   enableWaitlist?: boolean;
   createdAt: string;
   registrations: number;
+  scoringType: "NET" | "GROSS";
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -118,7 +124,7 @@ const STATUS_META: Record<TournamentStatus, { label: string; color: string; badg
 const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
   PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
-  INVITE_ONLY: { label: "Invite Only", badge: "bg-amber-50 text-amber-600", icon: Shield },
+  INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
 const TABS = [
@@ -192,7 +198,7 @@ function ViewTournamentPageInner() {
   const [registrationsTotal, setRegistrationsTotal] = useState(0);
   const [registrationsTournamentTotal, setRegistrationsTournamentTotal] = useState(0);
   const [registrationsPage, setRegistrationsPage] = useState(1);
-  const registrationsPerPage = 10;
+  const registrationsPerPage = 6;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
@@ -230,7 +236,7 @@ function ViewTournamentPageInner() {
   const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
   const [waitlistPage, setWaitlistPage] = useState(1);
   const [waitlistTotal, setWaitlistTotal] = useState(0);
-  const waitlistPerPage = 5;
+  const waitlistPerPage = 6;
   const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
   const [waitlistFilter, setWaitlistFilter] = useState<"PENDING" | "REJECTED">("PENDING");
 
@@ -245,6 +251,7 @@ function ViewTournamentPageInner() {
   const [groupingsSubTab, setGroupingsSubTab] = useState<"unassigned" | "grouped">("unassigned");
   const [groupingsLoading, setGroupingsLoading] = useState(false);
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
+  const [isPublishEmailModalOpen, setIsPublishEmailModalOpen] = useState(false);
   const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
   const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
@@ -256,16 +263,19 @@ function ViewTournamentPageInner() {
   const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
-  const unassignedPerPage = 12;
-  const groupsPerPage = 6;
+  const unassignedPerPage = 9;
+  const groupsPerPage = 3;
 
   // Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState<"NET" | "GROSS">("NET");
+  const [leaderboardCategoryFilter, setLeaderboardCategoryFilter] = useState<string>("ALL");
+  const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [leaderboardSearch, setLeaderboardSearch] = useState("");
-  const leaderboardPerPage = 15;
+  const leaderboardPerPage = 10;
   const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
   const getTournamentDays = () => {
@@ -330,14 +340,39 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE" | "LEADERBOARD_DIRECT" = "RANDOM") => {
+  const handlePublishGroupingsEmail = () => {
+    if (!tournamentId || !groupingsData) return;
+
+    if (groupingsData.groups.length === 0) {
+      toast.error("There are no generated groupings to publish.");
+      return;
+    }
+
+    setIsPublishEmailModalOpen(true);
+  };
+
+  const confirmPublishGroupingsEmail = async () => {
+    if (!tournamentId || !groupingsData) return;
+    setGroupingsGenerating(true);
+    try {
+      const res = await publishGroupingsEmail(tournamentId, selectedDay, groupingsData);
+      toast.success(res.message || "Groupings publication emails queued successfully");
+      setIsPublishEmailModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish groupings via email");
+    } finally {
+      setGroupingsGenerating(false);
+    }
+  };
+
+  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "LEADERBOARD_REVERSE_NET" | "LEADERBOARD_DIRECT_GROSS" | "LEADERBOARD_DIRECT_NET" = "RANDOM") => {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     try {
       const data = await generateGroupings(tournamentId, selectedDay, rule);
       setGroupingsData(data);
       setGroupingsSubTab("grouped");
-      toast.success("Groupings generated successfully");
+      toast.success("Groupings generated. Click 'Publish via Email' to notify players.");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
     } finally {
@@ -431,46 +466,39 @@ function ViewTournamentPageInner() {
             points: 0,
             extraStrokes: reg.extraStrokes || 0,
             rounds: {}, // Track gross score per round
+            holeCounts: {}, // Track how many times each hole was played
           };
         }
       });
 
-      const startDate = new Date(selectedTournament.startDate);
-      const d2 = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-
       scores.forEach((s: any) => {
-        // Use group's scheduled startTime if available to ensure late score submissions 
-        // are still mapped to the correct round. Fallback to recordedAt.
-        const scoreDate = s.group?.startTime ? new Date(s.group.startTime) : new Date(s.recordedAt);
-        const d1 = Date.UTC(scoreDate.getFullYear(), scoreDate.getMonth(), scoreDate.getDate());
-        const dayDiff = Math.floor((d1 - d2) / (1000 * 60 * 60 * 24)) + 1;
-
-        // Filter by selected day if not "all"
-        if (selectedLeaderboardDay !== "all" && dayDiff !== selectedLeaderboardDay) {
+        const uid = s.userId;
+        if (!playersMap[uid]) {
+          // Strictly reject scores from players who are not officially APPROVED and PAID
           return;
         }
 
-        const uid = s.userId;
-        if (!playersMap[uid]) {
-          // If for some reason a player has scores but not in allRegs (unlikely if paid)
-          playersMap[uid] = {
-            user: s.user,
-            grossStrokes: 0,
-            toPar: 0,
-            holesCompleted: new Set(),
-            points: 0,
-            extraStrokes: 0,
-            rounds: {},
-          };
+        const p = playersMap[uid];
+        const holeKey = s.holeId;
+
+        // Count how many times this hole has been played by this user
+        p.holeCounts[holeKey] = (p.holeCounts[holeKey] || 0) + 1;
+        const roundNum = p.holeCounts[holeKey];
+
+        // Filter by selected day if not "all"
+        if (selectedLeaderboardDay !== "all" && roundNum !== selectedLeaderboardDay) {
+          return;
         }
 
-        playersMap[uid].grossStrokes += s.strokes || 0;
-        playersMap[uid].toPar += (s.strokes - (s.hole?.par || 4));
-        playersMap[uid].points += s.points || 0;
-        // Track holes per day to avoid duplication in "all" view
-        playersMap[uid].holesCompleted.add(`${dayDiff}-${s.holeId}`);
+        p.grossStrokes += s.strokes || 0;
+        p.toPar += (s.strokes - (s.hole?.par || 4));
+        p.points += s.points || 0;
+
+        // Track holes completed uniquely by round and hole
+        p.holesCompleted.add(`${roundNum}-${s.holeId}`);
+
         // Track per round score
-        playersMap[uid].rounds[dayDiff] = (playersMap[uid].rounds[dayDiff] || 0) + (s.strokes || 0);
+        p.rounds[roundNum] = (p.rounds[roundNum] || 0) + (s.strokes || 0);
       });
 
       const leaderboard = Object.values(playersMap)
@@ -500,7 +528,11 @@ function ViewTournamentPageInner() {
           if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
           if (a.grossStrokes === 0 && b.grossStrokes === 0) return 0;
 
-          return a.toPar - b.toPar || a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+          if (leaderboardSortBy === "NET") {
+            return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
+          } else {
+            return a.toPar - b.toPar || a.grossStrokes - b.grossStrokes || a.netStrokes - b.netStrokes;
+          }
         });
 
       setLeaderboardData(leaderboard);
@@ -520,7 +552,7 @@ function ViewTournamentPageInner() {
       loadLeaderboardData();
     }
     fetchPendingWaitlistCount();
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger, selectedTournament?.id]);
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger, selectedTournament?.id, leaderboardSortBy]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -567,6 +599,7 @@ function ViewTournamentPageInner() {
         enableWaitlist: t.enableWaitlist,
         createdAt: t.createdAt,
         registrations,
+        scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -628,9 +661,11 @@ function ViewTournamentPageInner() {
           enableWaitlist: t.enableWaitlist,
           createdAt: t.createdAt,
           registrations,
+          scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
+        setLeaderboardSortBy(t.scoringType === "GROSS" ? "GROSS" : "NET");
       } catch (e: unknown) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to fetch tournament details");
@@ -1105,7 +1140,7 @@ function ViewTournamentPageInner() {
           <Skeleton className="h-5 w-36 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <Skeleton className="h-20 w-20 rounded-3xl" />
+              <Skeleton className="h-20 w-20 rounded-xl" />
               <div className="space-y-3">
                 <Skeleton className="h-8 w-72 rounded-lg" />
                 <Skeleton className="h-4 w-80 rounded-md" />
@@ -1132,7 +1167,7 @@ function ViewTournamentPageInner() {
   return (
     <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
       {/* Back Header */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/super-admin/tournaments")}
@@ -1240,7 +1275,7 @@ function ViewTournamentPageInner() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+          <div className="bg-white border border-[#e7e7e7] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
             {TABS.map((tab, i) => {
               const isActive = activeTab === tab.id;
               return (
@@ -1248,9 +1283,9 @@ function ViewTournamentPageInner() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                    "w-full text-left flex items-center gap-3.5 px-4 py-3 border transition-all duration-200",
                     isActive
-                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
+                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold tab-shadow shadow-emerald-50"
                       : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
                   )}
                 >
@@ -1275,7 +1310,7 @@ function ViewTournamentPageInner() {
         <div className="lg:col-span-3 space-y-6">
           {/* Status Alert Banners */}
           {selectedTournament.statusKey === "CANCELLED" && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-4 text-red-700">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
               <Ban className="w-5 h-5 flex-shrink-0" />
               <div>
                 <p className="text-[14px] font-bold">Tournament Cancelled</p>
@@ -1284,7 +1319,7 @@ function ViewTournamentPageInner() {
             </div>
           )}
           {selectedTournament.statusKey === "COMPLETED" && (
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 text-emerald-700">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               <div>
                 <p className="text-[14px] font-bold">Tournament Completed</p>
@@ -1293,11 +1328,11 @@ function ViewTournamentPageInner() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
             {/* TABS 1: Registered Players */}
             {activeTab === "players" && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e7e7] pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Registered Players</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
@@ -1377,13 +1412,13 @@ function ViewTournamentPageInner() {
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((i) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[1, 2, 3, 4].map((i) => (
                         <Skeleton key={i} className="h-16 w-full rounded-xl" />
                       ))}
                     </div>
                   ) : registrationsPageItems.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {registrationsPageItems.map((r) => {
                         const isDisqualified = r.status === "DISQUALIFIED";
                         const isPaid = r.paymentStatus === "PAID";
@@ -1394,11 +1429,11 @@ function ViewTournamentPageInner() {
                               "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
                               isDisqualified
                                 ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                : "bg-gray-50/20 border-gray-100 hover:border-gray-200"
+                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
                             )}
                           >
                             <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100">
+                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
                                 <img
                                   src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
                                   alt=""
@@ -1477,7 +1512,7 @@ function ViewTournamentPageInner() {
                                       onClick={() => handleMarkPaid(r.id)}
                                       disabled={markingPaidId === r.id}
                                       title="Mark as Paid"
-                                      className="h-9 w-9 p-0 rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                     >
                                       {markingPaidId === r.id ? (
                                         <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
@@ -1494,7 +1529,7 @@ function ViewTournamentPageInner() {
                                       setStrokesMenuAnchorEl(e.currentTarget);
                                     }}
                                     title="Add/Remove Strokes"
-                                    className="h-9 w-9 p-0 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
                                   >
                                     <Plus className="w-4 h-4" />
                                   </Button>
@@ -1506,7 +1541,7 @@ function ViewTournamentPageInner() {
                                       onClick={() => openEnablePlayer(r)}
                                       disabled={registrationActionId === r.id}
                                       title="Enable Player"
-                                      className="h-9 w-9 p-0 rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                     >
                                       <CheckCircle2 className="w-4 h-4" />
                                     </Button>
@@ -1518,7 +1553,7 @@ function ViewTournamentPageInner() {
                                         onClick={() => openDisqualify(r)}
                                         disabled={registrationActionId === r.id}
                                         title="Disqualify Player"
-                                        className="h-9 w-9 p-0 rounded-lg border-amber-250 text-amber-600 hover:bg-amber-50/50 flex items-center justify-center"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-amber-250 text-amber-600 hover:bg-amber-50/50 flex items-center justify-center"
                                       >
                                         <Ban className="w-4 h-4" />
                                       </Button>
@@ -1528,7 +1563,7 @@ function ViewTournamentPageInner() {
                                         onClick={() => openRemovePlayer(r)}
                                         disabled={registrationActionId === r.id}
                                         title="Remove Player"
-                                        className="h-9 w-9 p-0 rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
                                       >
                                         <UserMinus className="w-4 h-4" />
                                       </Button>
@@ -1599,7 +1634,7 @@ function ViewTournamentPageInner() {
                         "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                         manualPaymentType === 'UNPAID'
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
+                          : "border-[#e7e7e7] bg-white text-gray-550 hover:border-gray-250"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -1620,7 +1655,7 @@ function ViewTournamentPageInner() {
                         "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                         manualPaymentType === 'CASH'
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                          : "border-gray-150 bg-white text-gray-550 hover:border-gray-250"
+                          : "border-[#e7e7e7] bg-white text-gray-550 hover:border-gray-250"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -1648,14 +1683,14 @@ function ViewTournamentPageInner() {
                     />
                   </div>
 
-                  <div className="border border-gray-150 rounded-2xl overflow-hidden min-h-[300px] bg-gray-50/20">
+                  <div className="min-h-[300px]">
                     {isSearchingPlayers ? (
                       <div className="p-12 text-center text-gray-400 space-y-3">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
                         <p className="text-sm">Searching the openclub registry...</p>
                       </div>
                     ) : registerPlayerResults.length > 0 ? (
-                      <div className="divide-y divide-gray-100 bg-white">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {registerPlayerResults.map((player) => {
                           const isAlreadyRegistered =
                             registrationsAll.some(x => x.user?.id === player.id) ||
@@ -1663,9 +1698,9 @@ function ViewTournamentPageInner() {
                             registeredUserIdsForSearch.includes(player.id) ||
                             newlyRegisteredUserIds.includes(player.id);
                           return (
-                            <div key={player.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
+                            <div key={player.id} className="group p-4 rounded-xl border border-[#efefef] bg-[#fafafa] hover:border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+                                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7] bg-gray-50">
                                   <img
                                     src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
                                     alt=""
@@ -1677,6 +1712,36 @@ function ViewTournamentPageInner() {
                                     {fullName(player.firstName ?? null, player.lastName ?? null)}
                                   </p>
                                   <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {/* Gender Badge */}
+                                    {player.gender && (
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                                        player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                      )}>
+                                        {player.gender}
+                                      </span>
+                                    )}
+
+                                    {/* Age Badge */}
+                                    {player.dob && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                        {(() => {
+                                          const birthDate = new Date(player.dob);
+                                          const today = new Date();
+                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                          const m = today.getMonth() - birthDate.getMonth();
+                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                          return `${age} YRS`;
+                                        })()}
+                                      </span>
+                                    )}
+
+                                    {/* PH Badge */}
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      PH {player.handicap ?? 0}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                               <Button
@@ -1719,7 +1784,7 @@ function ViewTournamentPageInner() {
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-4">
+                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
                   <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
                     <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
                   </div>
@@ -1770,186 +1835,170 @@ function ViewTournamentPageInner() {
                   )}
                 </div>
 
-                <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
-                  <button
-                    onClick={() => setWaitlistFilter("PENDING")}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
-                      waitlistFilter === "PENDING" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                    )}
-                  >
-                    Pending Queue
-                  </button>
-                  <button
-                    onClick={() => setWaitlistFilter("REJECTED")}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
-                      waitlistFilter === "REJECTED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                    )}
-                  >
-                    Rejected Players
-                  </button>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                    <button
+                      onClick={() => setWaitlistFilter("PENDING")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        waitlistFilter === "PENDING" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                      )}
+                    >
+                      Pending Queue
+                    </button>
+                    <button
+                      onClick={() => setWaitlistFilter("REJECTED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        waitlistFilter === "REJECTED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                      )}
+                    >
+                      Rejected Players
+                    </button>
+                  </div>
+                  {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                    <div className="flex items-center gap-2 px-2">
+                      <input
+                        type="checkbox"
+                        id="selectAllWaitlist"
+                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedWaitlistIds.length === waitlist.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedWaitlistIds(waitlist.map(i => i.id));
+                          } else {
+                            setSelectedWaitlistIds([]);
+                          }
+                        }}
+                      />
+                      <label htmlFor="selectAllWaitlist" className="text-[13px] font-bold text-gray-700 cursor-pointer">Select All</label>
+                    </div>
+                  )}
                 </div>
 
-                <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                        {waitlistFilter === "PENDING" && (
-                          <th className="px-6 py-4 w-12 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                              checked={waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedWaitlistIds(waitlist.map(i => i.id));
-                                } else {
-                                  setSelectedWaitlistIds([]);
-                                }
-                              }}
-                            />
-                          </th>
-                        )}
-                        <th className="px-6 py-4">Player Details</th>
-                        <th className="px-6 py-4">Joined Date</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {waitlistLoading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                          <tr key={i}>
+                <div className="space-y-4">
+                  {waitlistLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                      ))}
+                    </div>
+                  ) : waitlist.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {waitlist
+                        .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
+                        .map((item) => (
+                          <div key={item.id} className={cn("p-4 rounded-xl border transition-all flex flex-col gap-3 group relative", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30 border-emerald-200 shadow-sm hover:shadow-md" : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md")}>
                             {waitlistFilter === "PENDING" && (
-                              <td className="px-6 py-4 text-center">
-                                <Skeleton className="w-4 h-4 rounded mx-auto" />
-                              </td>
+                              <div className="absolute top-4 right-4">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                  checked={selectedWaitlistIds.includes(item.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                    } else {
+                                      setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                    }
+                                  }}
+                                />
+                              </div>
                             )}
-                            <td className="px-6 py-4">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div className="flex items-center gap-3">
-                                <Skeleton className="w-10 h-10 rounded-full" />
-                                <div className="space-y-2">
-                                  <Skeleton className="h-4 w-32 rounded" />
-                                  <Skeleton className="h-3 w-40 rounded" />
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100 flex-shrink-0 relative">
+                                  <img
+                                    src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
+                                    alt="Avatar"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[14px] font-bold text-gray-900 leading-tight pr-6">
+                                      {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
+                                    </p>
+                                    {item.status === "REJECTED" && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {/* Gender Badge */}
+                                    {item.user?.gender && (
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                                        item.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                      )}>
+                                        {item.user.gender}
+                                      </span>
+                                    )}
+
+                                    {/* Age Badge */}
+                                    {item.user?.dob && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                        {(() => {
+                                          const birthDate = new Date(item.user.dob);
+                                          const today = new Date();
+                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                          const m = today.getMonth() - birthDate.getMonth();
+                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                          return `${age} YRS`;
+                                        })()}
+                                      </span>
+                                    )}
+
+                                    {/* PH Badge */}
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      PH {item.user?.handicap ?? 0}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Skeleton className="h-4 w-24 rounded" />
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <Skeleton className="h-8 w-20 rounded-lg ml-auto" />
-                            </td>
-                          </tr>
-                        ))
-                      ) : waitlist.length > 0 ? (
-                        waitlist
-                          .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
-                          .map((item) => (
-                            <tr key={item.id} className={cn("transition-colors group", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30" : "hover:bg-gray-50/30")}>
-                              {waitlistFilter === "PENDING" && (
-                                <td className="px-6 py-5 text-center">
-                                  <input
-                                    type="checkbox"
-                                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                    checked={selectedWaitlistIds.includes(item.id)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedWaitlistIds(prev => [...prev, item.id]);
-                                      } else {
-                                        setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
-                                      }
-                                    }}
-                                  />
-                                </td>
-                              )}
-                              <td className="px-6 py-5">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100 flex-shrink-0 relative">
-                                    <img
-                                      src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
-                                      alt="Avatar"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-[14px] font-bold text-gray-900 leading-tight">
-                                        {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
-                                      </p>
-                                      {item.status === "REJECTED" && (
-                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
-                                      )}
-                                    </div>
-                                    <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5">
-                                <div className="flex flex-col">
-                                  <span className="text-[13px] font-medium text-gray-700">
-                                    {new Date(item.registeredAt).toLocaleDateString("en-GB", {
-                                      day: "numeric",
-                                      month: "short",
-                                      year: "numeric",
-                                    })}
-                                  </span>
-                                  <span className="text-[11px] text-gray-400 font-medium">
-                                    {new Date(item.registeredAt).toLocaleTimeString("en-GB", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {item.status !== "REJECTED" && (
-                                    <Button
-                                      onClick={() => {
-                                        if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
-                                        setIsApproveWaitlistModalOpen(true);
-                                      }}
-                                      disabled={waitlistActionId === item.id}
-                                      className="h-8 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[11px] font-bold gap-1.5 px-3.5"
-                                    >
-                                      {waitlistActionId === item.id ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      ) : (
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
-                                      )}
-                                      Approve
-                                    </Button>
-                                  )}
+                              <div className="flex items-center gap-2 mt-5 flex-shrink-0 self-end md:self-center z-10">
+                                {item.status !== "REJECTED" && (
                                   <Button
                                     onClick={() => {
                                       if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
-                                      setIsRemoveWaitlistModalOpen(true);
+                                      setIsApproveWaitlistModalOpen(true);
                                     }}
-                                    disabled={waitlistActionId === item.id || item.status === "REJECTED"}
-                                    variant="ghost"
-                                    className="h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold gap-1 px-2.5 disabled:opacity-50"
+                                    disabled={waitlistActionId === item.id}
+                                    title="Approve"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
                                   >
-                                    <UserMinus className="w-3.5 h-3.5" />
-                                    {item.status === "REJECTED" ? "Rejected" : "Reject"}
+                                    {waitlistActionId === item.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                    ) : (
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    )}
                                   </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                      ) : (
-                        <tr>
-                          <td colSpan={waitlistFilter === "PENDING" ? 4 : 3} className="px-6 py-20 text-center">
-                            <EmptyState
-                              icon={Clock}
-                              title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
-                              description={waitlistSearch ? "Try adjusting your search terms." : "No players currently in the queue for this tournament."}
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                                )}
+                                <Button
+                                  onClick={() => {
+                                    if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                    setIsRemoveWaitlistModalOpen(true);
+                                  }}
+                                  disabled={waitlistActionId === item.id || item.status === "REJECTED"}
+                                  title={item.status === "REJECTED" ? "Rejected" : "Reject"}
+                                  className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
+                                >
+                                  <UserMinus className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center">
+                      <EmptyState
+                        icon={Clock}
+                        title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
+                        description={waitlistSearch ? "Try adjusting your search terms." : "No players currently in the queue for this tournament."}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {waitlistTotal > waitlistPerPage && (
@@ -1962,7 +2011,7 @@ function ViewTournamentPageInner() {
                   </div>
                 )}
 
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
                     <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
@@ -1976,20 +2025,20 @@ function ViewTournamentPageInner() {
               <div className="space-y-8 animate-in fade-in duration-500">
                 {groupingsLoading ? (
                   <div className="space-y-8">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
                       <div className="flex gap-2">
                         {[1, 2, 3].map(i => <div key={i} className="w-24 h-10 bg-gray-100 animate-pulse rounded-xl" />)}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-2xl border border-gray-100" />)}
+                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-xl border border-[#e7e7e7]" />)}
                     </div>
                   </div>
                 ) : (
                   <>
                     {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                      <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
+                      <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
                         {Array.from({ length: getTournamentDays() }).map((_, i) => (
                           <button
                             key={i}
@@ -2013,11 +2062,40 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
 
+                    {groupingsData?.groups && groupingsData.groups.length > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                        <div className="flex gap-3">
+                          <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-[14px] font-bold text-emerald-900">Publish Groupings</h4>
+                            <p className="text-[12px] text-emerald-700 mt-0.5">
+                              Groupings have been generated. Publish them via email to notify players of their tee times.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handlePublishGroupingsEmail}
+                          disabled={groupingsGenerating || groupingsLoading}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-bold rounded-xl shadow-sm transition-all whitespace-nowrap gap-2"
+                        >
+                          <Mail className="w-4 h-4" />
+                          Publish via Email
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Groupings Dashboard Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-lg font-bold text-gray-900">Manage Groupings</h3>
                         <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                        {groupingsData?.rule && (
+                          <div className="mt-2">
+                            <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
+                              Rule: {groupingsData.rule.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -2039,15 +2117,16 @@ function ViewTournamentPageInner() {
                             <option value="">Select Rule...</option>
                             <option value="RANDOM">Random Grouping</option>
                             <option value="CATEGORY_RANDOM">Category Balanced</option>
-                            <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
-                            <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
+                            <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
+                            <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
+                            <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
+                            <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
                           </select>
                         </div>
                         <Button
-                          variant="outline"
                           onClick={handleClearGroupings}
                           disabled={groupingsLoading || !groupingsData?.groups.length}
-                          className="h-10 px-4 text-[12px] font-bold rounded-xl border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all gap-2"
+                          className="bg-red-500 hover:bg-red-600 text-white h-10 px-4 text-[12px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
                         >
                           <RefreshCcw className="w-3.5 h-3.5" />
                           Reset All
@@ -2072,7 +2151,7 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {/* Sub-tabs for Unassigned/Grouped */}
-                    <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-gray-100">
+                    <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
                       <button
                         onClick={() => {
                           setGroupingsSubTab("unassigned");
@@ -2156,15 +2235,15 @@ function ViewTournamentPageInner() {
                                     <div
                                       key={group.id}
                                       className={cn(
-                                        "group bg-white rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
-                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-gray-150 hover:border-emerald-200 hover:shadow-md"
+                                        "group bg-white rounded-xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
+                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e7e7e7] hover:border-emerald-200 hover:shadow-md"
                                       )}
                                     >
                                       <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
                                         <div className="flex items-center gap-3 min-w-0">
                                           <div className={cn(
                                             "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
-                                            isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-gray-150 text-gray-400"
+                                            isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-[#e7e7e7] text-gray-400"
                                           )}>
                                             <Flag className="w-5 h-5" />
                                           </div>
@@ -2206,10 +2285,10 @@ function ViewTournamentPageInner() {
                                         {group.registrations.map((player: GroupingPlayer) => (
                                           <div
                                             key={player.id}
-                                            className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
+                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
                                           >
                                             <div className="flex items-center gap-3 min-w-0">
-                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-white shadow-sm">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7] bg-white shadow-sm">
                                                 <img
                                                   src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                   alt=""
@@ -2277,8 +2356,8 @@ function ViewTournamentPageInner() {
                                           </div>
                                         ))}
                                         {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-gray-150/50 opacity-30">
-                                            <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100" />
+                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-[#e7e7e7]/50 opacity-30">
+                                            <div className="w-9 h-9 rounded-full bg-gray-50 border border-[#e7e7e7]" />
                                             <div className="text-[11px] font-bold text-gray-300">Available Space</div>
                                           </div>
                                         ))}
@@ -2288,7 +2367,7 @@ function ViewTournamentPageInner() {
                                 })}
                             </div>
                             {groupingsData.groups.length > groupsPerPage && (
-                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100">
+                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e7e7e7]">
                                 <p className="text-[13px] text-gray-500 font-medium">
                                   Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
                                 </p>
@@ -2303,8 +2382,8 @@ function ViewTournamentPageInner() {
                         )}
 
                         {groupingsSubTab === "unassigned" && (
-                          <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
+                          <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="p-4 border-b border-[#e7e7e7] bg-gray-50/30 flex items-center justify-between">
                               <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-500" />
                                 Unassigned Participants
@@ -2341,10 +2420,10 @@ function ViewTournamentPageInner() {
                                         paginated.map((player: GroupingPlayer) => (
                                           <div
                                             key={player.id}
-                                            className="flex items-center justify-between p-3 rounded-2xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
+                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
                                           >
                                             <div className="flex items-center gap-3 min-w-0">
-                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7]">
                                                 <img
                                                   src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                   alt=""
@@ -2408,7 +2487,7 @@ function ViewTournamentPageInner() {
                                       )}
                                     </div>
                                     {filtered.length > unassignedPerPage && (
-                                      <div className="pt-4 flex items-center justify-between border-t border-gray-100">
+                                      <div className="pt-4 flex items-center justify-between border-t border-[#e7e7e7]">
                                         <p className="text-[13px] text-gray-500 font-medium">
                                           Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
                                         </p>
@@ -2434,7 +2513,7 @@ function ViewTournamentPageInner() {
                         action={
                           <div className="relative inline-block">
                             <Button
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
                             >
                               Grouping Rules
                               <ChevronDown className="w-4 h-4 ml-1" />
@@ -2447,20 +2526,16 @@ function ViewTournamentPageInner() {
                               <option value="">Select Rule...</option>
                               <option value="RANDOM">Random Grouping</option>
                               <option value="CATEGORY_RANDOM">Category Balanced</option>
-                              <option value="LEADERBOARD_REVERSE" disabled={selectedDay === 1}>Leaderboard (Reverse / FILO)</option>
-                              <option value="LEADERBOARD_DIRECT" disabled={selectedDay === 1}>Leaderboard (Direct)</option>
+                              <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
+                              <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
+                              <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
+                              <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
                             </select>
                           </div>
                         }
                       />
                     )}
-                    
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-4 mt-6">
-                      <Sparkles className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                      <p className="text-[12px] text-emerald-700 leading-relaxed font-medium">
-                        <strong>Grouping Rules Guide:</strong> <strong>Random:</strong> Shuffles purely by chance. <strong>Category Balanced:</strong> Mixes handicaps evenly. <strong>Reverse:</strong> FILO - Highest scores first, leaders last. <strong>Direct:</strong> Tournament leaders tee off first.
-                      </p>
-                    </div>
+
                   </>
                 )}
               </div>
@@ -2470,8 +2545,8 @@ function ViewTournamentPageInner() {
             {activeTab === "leaderboard" && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200">
+                <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
+                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
                     <button
                       onClick={() => setSelectedLeaderboardDay("all")}
                       className={cn(
@@ -2516,6 +2591,48 @@ function ViewTournamentPageInner() {
                     </h3>
                     <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
                   </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <SearchableSelect
+                      value={leaderboardGenderFilter}
+                      onValueChange={setLeaderboardGenderFilter}
+                      options={[
+                        { value: "ALL", label: "All" },
+                        { value: "MALE", label: "Male" },
+                        { value: "FEMALE", label: "Female" },
+                      ]}
+                      className="min-w-[120px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+
+                    {/* Category Filter */}
+                    <SearchableSelect
+                      value={leaderboardCategoryFilter}
+                      onValueChange={setLeaderboardCategoryFilter}
+                      options={[
+                        { value: "ALL", label: "All" },
+                        { value: "Category 1", label: "Category 1" },
+                        { value: "Category 2", label: "Category 2" },
+                        { value: "Category 3", label: "Category 3" },
+                        { value: "Category 4", label: "Category 4" },
+                        { value: "Category 5/6", label: "Category 5/6" },
+                        { value: "Open", label: "Open" },
+                      ]}
+                      className="min-w-[140px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+
+                    {/* Sort Filter */}
+                    <SearchableSelect
+                      value={leaderboardSortBy}
+                      onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
+                      options={[
+                        { value: "NET", label: "Net Score" },
+                        { value: "GROSS", label: "Gross Score" },
+                      ]}
+                      className="min-w-[140px]"
+                      triggerClassName="h-10 bg-white font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div className="relative">
@@ -2529,11 +2646,11 @@ function ViewTournamentPageInner() {
                 </div>
 
                 {leaderboardLoading ? (
-                  <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
@@ -2579,14 +2696,18 @@ function ViewTournamentPageInner() {
                   </div>
                 ) : (() => {
                   const q = leaderboardSearch.trim().toLowerCase();
-                  const filteredData = q
-                    ? leaderboardData.filter(entry =>
-                      entry.user.firstName?.toLowerCase().includes(q) ||
-                      entry.user.lastName?.toLowerCase().includes(q) ||
-                      entry.user.email?.toLowerCase().includes(q) ||
-                      `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q)
-                    )
-                    : leaderboardData;
+                  const filteredData = leaderboardData.filter(entry => {
+                    if (q) {
+                      const matchesSearch = entry.user.firstName?.toLowerCase().includes(q) ||
+                        entry.user.lastName?.toLowerCase().includes(q) ||
+                        entry.user.email?.toLowerCase().includes(q) ||
+                        `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q);
+                      if (!matchesSearch) return false;
+                    }
+                    if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
+                    if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
+                    return true;
+                  });
 
                   if (filteredData.length === 0 && !q) {
                     return (
@@ -2600,7 +2721,7 @@ function ViewTournamentPageInner() {
 
                   if (filteredData.length === 0 && q) {
                     return (
-                      <div className="bg-white border border-gray-150 rounded-2xl shadow-sm p-16 text-center">
+                      <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm p-16 text-center">
                         <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-bold text-gray-900">No players found</h3>
                         <p className="text-gray-500 mt-1">We couldn't find anyone matching "{leaderboardSearch}"</p>
@@ -2609,11 +2730,11 @@ function ViewTournamentPageInner() {
                   }
 
                   return (
-                    <div className="bg-white border border-gray-150 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                            <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
                               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
                               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
                               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
@@ -2654,7 +2775,7 @@ function ViewTournamentPageInner() {
                                   </td>
                                   <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-100 bg-white shadow-sm shrink-0">
+                                      <div className="w-9 h-9 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
                                         <img
                                           src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
                                           className="w-full h-full object-cover"
@@ -2672,7 +2793,7 @@ function ViewTournamentPageInner() {
                                     </div>
                                   </td>
                                   <td className="px-6 py-4 text-center">
-                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100 uppercase tracking-tight">
+                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase tracking-tight">
                                       {getGolfCategory(entry.user.handicap)}
                                     </span>
                                   </td>
@@ -2700,7 +2821,7 @@ function ViewTournamentPageInner() {
                                     <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
                                   </td>
                                   <td className="px-6 py-4 text-center">
-                                    <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                    <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
                                       {entry.user.handicap || 0}
                                     </span>
                                   </td>
@@ -2751,7 +2872,7 @@ function ViewTournamentPageInner() {
 
                   if (filteredData.length > 0) {
                     return (
-                      <div className="p-4 border-t border-gray-100 flex justify-end bg-gray-50/30">
+                      <div className="p-4 border-t border-[#e7e7e7] flex justify-end bg-gray-50/30">
                         <Pagination
                           currentPage={leaderboardPage}
                           totalPages={Math.max(1, Math.ceil(filteredData.length / leaderboardPerPage))}
@@ -2770,7 +2891,7 @@ function ViewTournamentPageInner() {
               <div className="space-y-8">
                 {/* Statistics Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2783,7 +2904,7 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2796,7 +2917,7 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex flex-col justify-between">
+                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
                     <div className="flex items-end justify-between">
                       <div>
@@ -2815,8 +2936,8 @@ function ViewTournamentPageInner() {
                 {/* Course & Organiser Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Golf Course Box */}
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {courseDetails?.coverImage ? (
                           <img src={courseDetails.coverImage} className="w-full h-full object-cover" />
@@ -2835,19 +2956,19 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Holes</span>
                         <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.holes || "—"} Holes</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Par</span>
                         <span className="text-[15px] font-extrabold text-gray-800">Par {courseDetails?.par || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Slope Rating</span>
                         <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.slopeRating || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Architect</span>
                         <span className="text-[15px] font-extrabold text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
                       </div>
@@ -2855,8 +2976,8 @@ function ViewTournamentPageInner() {
                   </div>
 
                   {/* Scoring Rules Box */}
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
                         <Activity className="w-7 h-7" />
                       </div>
@@ -2871,15 +2992,15 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Format</span>
                         <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Scoring Type</span>
                         <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Live Scoring</span>
                         <span className={cn(
                           "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
@@ -2888,7 +3009,7 @@ function ViewTournamentPageInner() {
                           {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Marker Verification</span>
                         <span className={cn(
                           "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
@@ -2903,8 +3024,8 @@ function ViewTournamentPageInner() {
 
                 {/* Organiser Box */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-2xl border border-gray-150 bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {clubDetails?.logo ? (
                           <img src={clubDetails.logo} className="w-full h-full object-cover" />
@@ -2923,19 +3044,19 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Status</span>
                         <span className="text-[13px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.status || "ACTIVE"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Plan tier</span>
                         <span className="text-[13px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.plan || "PRO"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-gray-100 col-span-2">
+                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7] col-span-2">
                         <span className="text-[10px] font-bold text-gray-400 uppercase block">Admin Email</span>
                         <span className="text-[14px] font-bold text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
                       </div>
@@ -3245,6 +3366,76 @@ function ViewTournamentPageInner() {
           </p>
         </div>
       </Modal>
+      {/* Publish Email Prototype Modal */}
+      <Modal
+        isOpen={isPublishEmailModalOpen}
+        onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
+        title={`Publish Day ${selectedDay} Groupings`}
+        className="max-w-xl"
+      >
+        <div className="space-y-6 pt-4">
+          <p className="text-[14px] text-gray-600">
+            This will send an email to all assigned players with their specific grouping and tee time information. Review the email prototype below before publishing.
+          </p>
+
+          <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-5 shadow-sm space-y-4">
+            <div className="border-b border-[#e7e7e7] pb-3 mb-3">
+              <p className="text-[12px] text-gray-500 font-medium">From: <span className="text-gray-900">OpenClubOS &lt;no-reply@openclubos.com&gt;</span></p>
+              <p className="text-[12px] text-gray-500 font-medium mt-1">Subject: <span className="text-gray-900 font-bold">Your Tee Time for Day {selectedDay} - {selectedTournament?.name}</span></p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-[18px] font-bold text-gray-900">{selectedTournament?.name}</h2>
+              <p className="text-[14px] text-gray-700">Hi [Player First Name],</p>
+              <p className="text-[14px] text-gray-700">
+                Your tee time and grouping for Day {selectedDay} has been assigned. Please see the details below:
+              </p>
+
+              <div className="bg-white border border-[#e7e7e7] rounded-lg p-4 my-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Tee Time</p>
+                    <p className="text-[16px] font-bold text-emerald-600">[Player Tee Time]</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Group</p>
+                    <p className="text-[16px] font-bold text-gray-900">[Player Group Name]</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[14px] text-gray-700">
+                Please ensure you arrive at least 30 minutes before your tee time.
+              </p>
+
+              <div className="pt-4 mt-4 border-t border-[#e7e7e7]">
+                <p className="text-[12px] text-gray-500">
+                  Powered by OpenClubOS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#e7e7e7]">
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishEmailModalOpen(false)}
+              disabled={groupingsGenerating}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmPublishGroupingsEmail}
+              disabled={groupingsGenerating}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2 font-bold shadow-sm"
+            >
+              {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
+              Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -3257,7 +3448,7 @@ export default function ViewTournamentPage() {
           <div className="h-5 w-36 bg-gray-100 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className="h-20 w-20 bg-gray-100 rounded-3xl" />
+              <div className="h-20 w-20 bg-gray-100 rounded-xl" />
               <div className="space-y-3">
                 <div className="h-8 w-72 bg-gray-100 rounded-lg" />
                 <div className="h-4 w-80 bg-gray-100 rounded-md" />

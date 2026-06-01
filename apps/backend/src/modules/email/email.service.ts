@@ -557,7 +557,7 @@ export class EmailService {
   // 18. Tee Time Published
   // ────────────────────────────────────────────────────────────────
 
-  async sendTeeTimePublished(to: string, tournamentName: string, roundName: string, teeTime: string, groupName: string, organizerName?: string): Promise<EmailResult> {
+  async sendTeeTimePublished(to: string, tournamentName: string, roundName: string, teeTime: string, groupName: string, groupMembers?: string[], organizerName?: string): Promise<EmailResult> {
     const html = this.wrap('Tee Time Published', `
       ${this.p('Dear Player,')}
       ${this.p(`Your official tee time and grouping for <strong>${roundName}</strong> of the <strong>${tournamentName}</strong> have been published.`)}
@@ -569,6 +569,11 @@ export class EmailService {
         { label: 'Tee Time', value: teeTime },
         { label: 'Group', value: groupName }
       ])}
+
+      ${groupMembers && groupMembers.length > 0 ? `
+        ${this.h2('Your Playing Partners')}
+        ${this.list(groupMembers)}
+      ` : ''}
       
       ${this.infoBox('<strong>Arrival Note:</strong> Please ensure you arrive at the tee box at least 15 minutes prior to your scheduled tee time.', '#eff6ff', '#bfdbfe', '#1e3a8a')}
       

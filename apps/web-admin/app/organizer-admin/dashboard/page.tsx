@@ -8,8 +8,8 @@ import {
   TrendingUp,
   Wallet,
   ArrowUpRight,
-  User,
   CreditCard,
+  User,
 } from "lucide-react";
 import {
   LineChart,
@@ -116,12 +116,12 @@ export default function OrganizerAdminDashboard() {
       <div className="space-y-8 w-full max-w-full px-2 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-2xl shadow-sm" />
+            <Skeleton key={i} className="h-32 w-full rounded-xl shadow-sm" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-[400px] w-full rounded-2xl shadow-sm" />
-          <Skeleton className="h-[400px] w-full rounded-2xl shadow-sm" />
+          <Skeleton className="h-[400px] w-full rounded-xl shadow-sm" />
+          <Skeleton className="h-[400px] w-full rounded-xl shadow-sm" />
         </div>
       </div>
     );
@@ -186,7 +186,7 @@ export default function OrganizerAdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xl font-bold">Registrations Overview</CardTitle>
             <SearchableSelect
@@ -222,7 +222,7 @@ export default function OrganizerAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-bold">Revenue Overview</CardTitle>
             <SearchableSelect
@@ -265,7 +265,7 @@ export default function OrganizerAdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Upcoming Tournaments</CardTitle>
             <Button variant="link" className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold">
@@ -300,7 +300,7 @@ export default function OrganizerAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Payment Status</CardTitle>
           </CardHeader>
@@ -324,7 +324,7 @@ export default function OrganizerAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
+        <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
           </CardHeader>
@@ -364,3 +364,4 @@ function ActivityItem({ title, subtitle, time, icon: Icon, iconBg, iconColor, am
     </div>
   );
 }
+
