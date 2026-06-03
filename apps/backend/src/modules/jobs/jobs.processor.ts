@@ -94,6 +94,12 @@ export class JobsProcessor extends WorkerHost {
       case 'TOURNAMENT_COMPLETED':
         return this.emailService.sendTournamentCompleted(to, data.tournamentName || 'Tournament', data.organizerName);
 
+      case 'PLAYER_DISQUALIFIED':
+        return this.emailService.sendPlayerDisqualified(to, data.tournamentName || 'Tournament', data.organizerName);
+
+      case 'PLAYER_STROKE_PENALTY':
+        return this.emailService.sendPlayerStrokePenalty(to, data.tournamentName || 'Tournament', data.strokes || 1, data.organizerName);
+
       case 'ADMIN_CREDENTIALS':
         return this.emailService.sendAdminCredentials(
           to, data.clubName || 'Club', data.email || to, data.password || '',

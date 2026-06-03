@@ -150,7 +150,7 @@ export function DatePicker({
           setOpen((v) => !v);
         }}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName,
         )}
       >
@@ -162,13 +162,13 @@ export function DatePicker({
 
       {open && (
         <div className={cn(
-          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl",
+          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-[#e7e7e7] bg-white shadow-xl",
           openUpwards ? "bottom-full mb-2" : "top-full mt-2"
         )}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#e7e7e7]">
             <button
               type="button"
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
               onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
             >
               <ChevronLeft className="h-4.5 w-4.5" />
@@ -200,7 +200,7 @@ export function DatePicker({
 
             <button
               type="button"
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
               onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
             >
               <ChevronRight className="h-4.5 w-4.5" />
@@ -255,10 +255,10 @@ export function DatePicker({
             </div>
 
             {allowClear && (
-              <div className="pt-3 mt-3 border-t border-gray-100 flex justify-end">
+              <div className="pt-3 mt-3 border-t border-[#e7e7e7] flex justify-end">
                 <button
                   type="button"
-                  className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-600 text-[13px] font-bold hover:bg-gray-50 transition-colors"
+                  className="h-10 px-4 rounded-xl border border-[#e7e7e7] bg-white text-gray-600 text-[13px] font-bold hover:bg-gray-50 transition-colors"
                   onClick={() => {
                     onValueChange("");
                     setOpen(false);

@@ -65,7 +65,7 @@ export function TimePicker({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName
         )}
       >
@@ -78,7 +78,7 @@ export function TimePicker({
       {open && (
         <div
           className={cn(
-            "absolute z-50 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
+            "absolute z-50 w-full overflow-hidden rounded-2xl border border-[#e7e7e7] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
             openUpwards ? "bottom-full mb-2" : "top-full mt-2"
           )}
         >

@@ -587,8 +587,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <User className="w-4 h-4" />
                 </div>
@@ -602,7 +602,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 <Field label="Profile Photo" required>
                   <div className="relative">
                     {formData.profileImage ? (
-                      <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-32 w-32 mx-auto">
+                      <div className="relative rounded-xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-32 w-32 mx-auto">
                         <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
                         <button onClick={() => setFormData({...formData, profileImage: ""})}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -611,7 +611,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       </div>
                     ) : (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "border-red-400 bg-red-50/30" : "border-gray-200")}>
+                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
                         <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                           <Upload className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
                         </div>
@@ -739,7 +739,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   </Field>
                   <Field label="Phone Number" required>
                     <div className="flex gap-2">
-                      <div className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px]">
+                      <div className="h-10 px-3 bg-gray-50 border border-[#e7e7e7] rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px]">
                         +{countryCode}
                       </div>
                       <div className="relative flex-1">
@@ -760,7 +760,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                     value={formData.address} 
                     onChange={(e) => setFormData({...formData, address: e.target.value})} 
                     placeholder="Enter full address"
-                    className={cn("flex h-24 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "border-red-400 bg-red-50/30")}
+                    className={cn("flex h-24 w-full rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "border-red-400 bg-red-50/30")}
                   />
                 </Field>
 
@@ -801,10 +801,10 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       case 2:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm overflow-hidden">
               
               {/* Header */}
-              <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+              <div className="px-5 py-3.5 border-b border-[#e7e7e7] bg-gray-50/50 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
@@ -817,7 +817,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               <div className="flex" style={{minHeight: 0}}>
 
                 {/* Left — Roles */}
-                <div className="w-[240px] border-r border-gray-100 bg-gray-50/30 shrink-0 p-3 flex flex-col gap-2">
+                <div className="w-[240px] border-r border-[#e7e7e7] bg-gray-50/30 shrink-0 p-3 flex flex-col gap-2">
                   {AVAILABLE_ROLES.map(role => {
                     const active = formData.roles.includes(role.id);
                     return (
@@ -834,7 +834,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         }}
                         className={cn(
                           "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
-                          active ? "bg-white border-emerald-500 shadow-[0_0_0_1px_#10b981]" : "bg-white border-gray-200 hover:border-gray-300"
+                          active ? "bg-white border-emerald-500 shadow-[0_0_0_1px_#10b981]" : "bg-white border-[#e7e7e7] hover:border-gray-300"
                         )}
                       >
                         <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-emerald-500 bg-white" : "border-gray-300")}>
@@ -861,7 +861,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 {/* Right — Permissions Table */}
                 <div className="flex-1 min-w-0">
                   {/* Column headers */}
-                  <div className="grid border-b border-gray-100 bg-gray-50/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
+                  <div className="grid border-b border-[#e7e7e7] bg-gray-50/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
                     <div className="px-4 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Module</div>
                     {PERMISSION_ACTIONS.map(a => (
                       <div key={a} className="py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">{a}</div>
@@ -921,7 +921,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
 
                   {/* Role summary badge row */}
                   {formData.roles.length > 0 && (
-                    <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/40 flex items-center gap-2 flex-wrap">
+                    <div className="px-4 py-2 border-t border-[#e7e7e7] bg-gray-50/40 flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
                       {formData.roles.map(r => {
                         const rMeta = AVAILABLE_ROLES.find(x => x.id === r);
@@ -943,9 +943,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Premium Replica of Organizer Profile from screenshot */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center justify-between border-b border-[#e7e7e7] pb-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-[14px] font-bold text-gray-900">Organizer Profile</h4>
@@ -998,7 +998,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <Field label="Organization Logo" required>
                     <div className="relative h-[100px]">
                       {orgProfile.logo ? (
-                        <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-[100px] w-[100px] mx-auto">
+                        <div className="relative rounded-xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-[100px] w-[100px] mx-auto">
                           <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
                           <button type="button" onClick={() => setOrgProfile({...orgProfile, logo: ""})}
                             className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -1007,7 +1007,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         </div>
                       ) : (
                         <div onClick={() => orgLogoInputRef.current?.click()}
-                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "border-red-400 bg-red-50/30" : "border-gray-200")}>
+                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
                           <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                             <Upload className="w-4 h-4 text-gray-400 group-hover:text-emerald-500" />
                           </div>
@@ -1088,7 +1088,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={orgProfile.address} 
                       onChange={(e) => setOrgProfile({...orgProfile, address: e.target.value.slice(0, 200)})}
                       placeholder="KM 42, Lekki-Epe Expressway, Lakowe, Ibeju-Lekki, Lagos State, Nigeria."
-                      className={cn("w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "border-red-400 bg-red-50/30" : "border-gray-200")}
+                      className={cn("w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}
                     />
                     <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
                       {orgProfile.address.length}/200
@@ -1097,7 +1097,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 </Field>
 
                 {/* Contact Person Details */}
-                <div className="border-t border-gray-100 pt-4 mt-2">
+                <div className="border-t border-[#e7e7e7] pt-4 mt-2">
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
                   
                   {/* Contact Person Name & Email */}
@@ -1108,7 +1108,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         <Input 
                           value={fullNameStr} 
                           disabled
-                          className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
+                          className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
                         />
                       </div>
                     </Field>
@@ -1118,7 +1118,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         <Input 
                           value={formData.email} 
                           disabled
-                          className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
+                          className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
                         />
                       </div>
                     </Field>
@@ -1128,7 +1128,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <div className="mt-4">
                     <Field label="Contact Person Phone Number" required>
                       <div className="flex gap-2">
-                        <div className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px] select-none">
+                        <div className="h-10 px-3 bg-gray-50 border border-[#e7e7e7] rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px] select-none">
                           +{countryCode}
                         </div>
                         <div className="relative flex-1">
@@ -1136,7 +1136,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           <Input 
                             value={formData.phone} 
                             disabled
-                            className="pl-10 bg-gray-50 border-gray-200 text-gray-500 font-medium cursor-not-allowed select-none"
+                            className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
                           />
                         </div>
                       </div>
@@ -1151,7 +1151,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={orgProfile.about} 
                       onChange={(e) => setOrgProfile({...orgProfile, about: e.target.value.slice(0, 500)})}
                       placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
-                      className="w-full h-20 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700"
+                      className="w-full h-20 rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700"
                     />
                     <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
                       {orgProfile.about.length}/500
@@ -1163,7 +1163,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 <div>
                   <span className="text-[11px] font-bold text-gray-400 uppercase block mb-1.5">Social Media (Optional)</span>
                   <div className="flex gap-3 items-center">
-                    <div className="flex-1 flex gap-2.5 items-center border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/30">
+                    <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
                       <span className="text-gray-400 text-xs font-bold w-4 text-center">f</span>
                       <input 
                         value={orgProfile.facebook} 
@@ -1172,7 +1172,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                       />
                     </div>
-                    <div className="flex-1 flex gap-2.5 items-center border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/30">
+                    <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
                       <span className="text-gray-400 text-xs font-bold w-4 text-center">in</span>
                       <input 
                         value={orgProfile.instagram} 
@@ -1181,7 +1181,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                       />
                     </div>
-                    <Button type="button" variant="outline" className="rounded-xl border-gray-200 text-gray-600 text-xs py-2 h-9 px-4 shrink-0 hover:bg-gray-50 font-bold">
+                    <Button type="button" variant="outline" className="rounded-xl border-[#e7e7e7] text-gray-600 text-xs py-2 h-9 px-4 shrink-0 hover:bg-gray-50 font-bold">
                       + Add more
                     </Button>
                   </div>
@@ -1258,8 +1258,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
 
             <div className="grid grid-cols-2 gap-4">
               {/* Left Column — Personal details */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3.5 shadow-sm">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-4 space-y-3.5 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-[#e7e7e7] pb-2">
                   <User className="w-3.5 h-3.5 text-gray-400" />
                   <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Personal & Contact Info</h5>
                 </div>
@@ -1294,9 +1294,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               </div>
 
               {/* Right Column — Role, Organization and Permissions */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3.5 shadow-sm flex flex-col justify-between">
+              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-4 space-y-3.5 shadow-sm flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
+                  <div className="flex items-center gap-2 border-b border-[#e7e7e7] pb-2 mb-3">
                     <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
                     <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Access & Permissions</h5>
                   </div>
@@ -1309,7 +1309,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       </div>
                     )}
                     {(formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER")) && (
-                      <div className="col-span-2 space-y-2 border-t border-gray-100 pt-2.5 mt-1">
+                      <div className="col-span-2 space-y-2 border-t border-[#e7e7e7] pt-2.5 mt-1">
                         <span className="text-[9px] font-bold text-gray-400 uppercase block">Organization Details</span>
                         <div className="grid grid-cols-2 gap-3.5">
                           <div>
@@ -1337,7 +1337,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <div className="flex gap-1.5 flex-wrap">
                     {activeModules.length > 0 ? (
                       activeModules.map(perm => (
-                        <div key={perm.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 border border-gray-100 text-[10px] text-gray-600 font-semibold">
+                        <div key={perm.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 border border-[#e7e7e7] text-[10px] text-gray-600 font-semibold">
                           <perm.icon className="w-3 h-3 text-emerald-500 shrink-0" />
                           <span className="truncate max-w-[100px]">{perm.label}</span>
                         </div>
@@ -1361,11 +1361,11 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     return (
       <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
         {/* Page Header */}
-        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
-              className="w-10 h-10 border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+              className="w-10 h-10 border border-[#e7e7e7] hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -1382,7 +1382,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -1406,7 +1406,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
                           : past
                           ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-gray-200"
+                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
                       )}
                     >
                       {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
@@ -1422,7 +1422,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           <div className="lg:col-span-3 space-y-6">
             <div className="min-h-[400px]">
               {fetching ? (
-                <div className="space-y-6 bg-white border border-gray-100 rounded-2xl p-6 animate-pulse">
+                <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">
                   <div className="h-5 w-32 bg-gray-100 rounded-lg" />
                   <div className="h-12 w-full bg-gray-50 rounded-xl" />
                   <div className="grid grid-cols-2 gap-4">
@@ -1437,7 +1437,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
             </div>
 
             {/* Form Actions Footer */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm flex items-center justify-between">
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -1505,7 +1505,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     >
       <div className="space-y-8 h-full flex flex-col">
         {/* Step Indicators - Consistent Multistep UI Style */}
-        <div className="flex gap-1 border-b border-gray-100 pb-4 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 border-b border-[#e7e7e7] pb-4 shrink-0 overflow-x-auto no-scrollbar">
           {STEPS.map((name, i) => {
             const active = step === i + 1;
             const past = step > i + 1;

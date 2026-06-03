@@ -428,8 +428,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Globe className="w-4 h-4" />
                 </div>
@@ -497,7 +497,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <div className="grid grid-cols-2 gap-5">
                   <Field label="Phone Number" required>
                     <div className="flex gap-2">
-                      <div className="h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-[13px] font-bold text-gray-500 shrink-0 min-w-[60px]">
+                      <div className="h-11 px-3 bg-gray-50 border border-[#e7e7e7] rounded-lg flex items-center justify-center text-[13px] font-bold text-gray-500 shrink-0 min-w-[60px]">
                         +{countryCode}
                       </div>
                       <div className="relative flex-1">
@@ -525,8 +525,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 2:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Target className="w-4 h-4" />
                 </div>
@@ -568,7 +568,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
 
                   <div className="space-y-4">
                     <p className="text-[13px] font-semibold text-gray-600">Location Preview</p>
-                    <div className="aspect-[4/3] bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative group shadow-sm">
+                    <div className="aspect-[4/3] bg-gray-50 rounded-2xl border border-[#e7e7e7] overflow-hidden relative group shadow-sm">
                       <div className="absolute inset-0 bg-[#f8fafc] flex items-center justify-center">
                         <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px]" />
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -608,7 +608,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-3 text-gray-400 animate-pulse">
-                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-[#e7e7e7]">
                               <MapIcon className="w-8 h-8 opacity-20" />
                             </div>
                             <span className="text-[12px] font-medium">Waiting for coordinates...</span>
@@ -647,8 +647,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 3:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Mountain className="w-4 h-4" />
                 </div>
@@ -668,12 +668,12 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                         "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
                         formData.amenities.includes(a) 
                           ? "border-emerald-400 bg-emerald-50 text-emerald-700 shadow-sm" 
-                          : "border-gray-200 hover:border-gray-300 text-gray-600 bg-gray-50/50"
+                          : "border-[#e7e7e7] hover:border-gray-300 text-gray-600 bg-gray-50/50"
                       )}
                     >
                       <div className={cn(
                         "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                        formData.amenities.includes(a) ? "bg-emerald-500 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-400 group-hover:text-gray-600"
+                        formData.amenities.includes(a) ? "bg-emerald-500 text-white shadow-sm" : "bg-white border border-[#e7e7e7] text-gray-400 group-hover:text-gray-600"
                       )}>
                         <Icon className="w-4 h-4" />
                       </div>
@@ -694,8 +694,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 4:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Flag className="w-4 h-4" />
                 </div>
@@ -713,13 +713,13 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
                 
                 {formData.teeBoxes.length === 0 ? (
-                  <div className="text-center py-10 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                  <div className="text-center py-10 bg-gray-50/50 rounded-xl border border-dashed border-[#e7e7e7]">
                     <p className="text-gray-400 text-[13px]">No tee boxes added yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {formData.teeBoxes.map((tb, i) => (
-                      <div key={i} className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm space-y-4 relative">
+                      <div key={i} className="p-4 rounded-xl border border-[#e7e7e7] bg-white shadow-sm space-y-4 relative">
                         <button onClick={() => removeTeeBox(i)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -754,8 +754,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 5:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Trophy className="w-4 h-4" />
                 </div>
@@ -765,7 +765,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
               </div>
               <div className="p-5 space-y-6">
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <div className="bg-gray-50 p-6 rounded-2xl border border-[#e7e7e7] space-y-4">
                   <p className="text-[14px] font-bold text-gray-900 text-center">How many holes does this course have?</p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {[6, 9, 12, 18, 27, 36].map((count) => (
@@ -776,7 +776,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           "px-6 py-3 rounded-xl border-2 font-bold transition-all",
                           formData.holes === count 
                             ? "border-emerald-500 bg-white text-emerald-600 shadow-md scale-105" 
-                            : "border-gray-200 bg-white text-gray-400 hover:border-gray-300"
+                            : "border-[#e7e7e7] bg-white text-gray-400 hover:border-gray-300"
                         )}
                       >
                         {count} Holes
@@ -847,8 +847,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <ImageIcon className="w-4 h-4" />
                 </div>
@@ -865,7 +865,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       <div 
                         className={cn(
                           "aspect-square w-40 mx-auto border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-emerald-50/30 overflow-hidden relative group",
-                          formData.coverImage ? "border-emerald-200" : (showValidation ? "border-red-400 bg-red-50/30" : "border-gray-200 hover:border-emerald-400")
+                          formData.coverImage ? "border-emerald-200" : (showValidation ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7] hover:border-emerald-400")
                         )}
                       >
                         {formData.coverImage ? (
@@ -899,7 +899,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           const img = formData.galleryImages[i];
                           if (img) {
                             return (
-                              <div key={i} className="aspect-square rounded-lg overflow-hidden relative group border border-gray-100">
+                              <div key={i} className="aspect-square rounded-lg overflow-hidden relative group border border-[#e7e7e7]">
                                 <img src={img} className="w-full h-full object-cover" />
                                 <button 
                                   onClick={() => set("galleryImages", formData.galleryImages.filter((_, idx) => idx !== i))}
@@ -949,11 +949,11 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
     return (
       <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
         {/* Page Header */}
-        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
-              className="w-10 h-10 border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+              className="w-10 h-10 border border-[#e7e7e7] hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -970,7 +970,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -994,7 +994,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
                           : past
                           ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-gray-200"
+                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
                       )}
                     >
                       {past ? "✓" : i + 1}
@@ -1010,7 +1010,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
           <div className="lg:col-span-3 space-y-6">
             <div className="min-h-[400px]">
               {fetching ? (
-                <div className="space-y-6 bg-white border border-gray-100 rounded-2xl p-6 animate-pulse">
+                <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">
                   <div className="h-5 w-32 bg-gray-100 rounded-lg" />
                   <div className="h-12 w-full bg-gray-50 rounded-xl" />
                   <div className="grid grid-cols-2 gap-4">
@@ -1025,7 +1025,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
             </div>
 
             {/* Form Actions Footer */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm flex items-center justify-between">
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -1092,7 +1092,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       }
     >
       {/* Step indicators */}
-      <div className="flex gap-1 border-b border-gray-100 pb-4 mb-6 overflow-x-auto no-scrollbar">
+      <div className="flex gap-1 border-b border-[#e7e7e7] pb-4 mb-6 overflow-x-auto no-scrollbar">
         {STEPS.map((name, i) => {
           const active = step === i + 1;
           const past = step > i + 1;
@@ -1120,24 +1120,24 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       <div className="min-h-[400px]">
         {fetching ? (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
               <div className="space-y-2">
                 <div className="h-4.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
-                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
-                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
                 </div>
                 <div className="space-y-2">
                   <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
-                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="h-4.5 w-28 bg-gray-100 rounded-lg animate-pulse" />
-                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
               </div>
             </div>
           </div>

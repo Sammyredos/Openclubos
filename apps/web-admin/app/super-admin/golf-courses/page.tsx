@@ -43,7 +43,7 @@ function StatusPill({ status }: { status: Course["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold",
+        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase whitespace-nowrap",
         isActive
           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
           : "bg-red-50 text-red-700 border-red-100"
@@ -272,7 +272,7 @@ export default function SuperAdminGolfCoursesPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">Manage Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button
@@ -289,7 +289,7 @@ export default function SuperAdminGolfCoursesPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search courses by name, LGA, or country..."
-                className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
+                className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -441,7 +441,7 @@ export default function SuperAdminGolfCoursesPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}`)}
                             title="View Course"
                           >
@@ -449,7 +449,7 @@ export default function SuperAdminGolfCoursesPage() {
                           </button>
                           <button
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                             title="Edit Course"
                           >
                             <Edit2 className="w-4.5 h-4.5" />
@@ -469,7 +469,7 @@ export default function SuperAdminGolfCoursesPage() {
                                   setDropdownCourse(course);
                                 }
                               }}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                               title="More Actions"
                             >
                               <MoreHorizontal className="w-4.5 h-4.5" />
@@ -521,7 +521,7 @@ export default function SuperAdminGolfCoursesPage() {
             <Button
               variant="outline"
               onClick={() => setIsViewModalOpen(false)}
-              className="rounded-lg font-bold border-gray-200"
+              className="rounded-lg font-bold border-[#e7e7e7]"
             >
               Close Details
             </Button>
@@ -841,7 +841,7 @@ export default function SuperAdminGolfCoursesPage() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-gray-200 focus:border-red-500"
+              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
             />
           </div>
         </div>

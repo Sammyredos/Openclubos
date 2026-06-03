@@ -8,7 +8,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2 text-base transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          "flex h-12 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-2 text-base transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
           className
         )}
         ref={ref}
@@ -86,13 +86,13 @@ function SearchableSelect({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           triggerClassName
         )}
       >
         <div className="flex items-center gap-2.5 truncate">
           {selected?.image ? (
-            <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-gray-100" alt="" />
+            <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#e7e7e7]" alt="" />
           ) : selected?.icon ? (
             <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
               <selected.icon className="w-3 h-3 text-emerald-600" />
@@ -122,10 +122,10 @@ function SearchableSelect({
 
       {open && (
         <div className={cn(
-          "absolute z-50 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
+          "absolute z-50 w-full overflow-hidden rounded-lg border border-[#e7e7e7] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
           openUpwards ? "bottom-full mb-2" : "top-full mt-2"
         )}>
-          <div className="border-b border-gray-100 p-2">
+          <div className="border-b border-[#e7e7e7] p-2">
             <input
               autoFocus
               value={query}
@@ -134,7 +134,7 @@ function SearchableSelect({
                 if (e.key === "Escape") setOpen(false)
               }}
               placeholder={searchPlaceholder}
-              className="h-[35px] w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
+              className="h-[35px] w-full rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-3 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
             />
           </div>
           <div className="max-h-60 overflow-auto py-1 custom-scrollbar">
@@ -159,7 +159,7 @@ function SearchableSelect({
                 >
                   <div className="flex items-center gap-2.5 flex-1 truncate">
                     {o.image ? (
-                      <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-gray-100" alt="" />
+                      <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e7e7e7]" alt="" />
                     ) : o.icon ? (
                       <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
                         <o.icon className="w-3.5 h-3.5 text-emerald-600" />

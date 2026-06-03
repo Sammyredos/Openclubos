@@ -573,9 +573,10 @@ export default function SuperAdminDashboard() {
                       <div className="flex flex-col items-end">
                         <p className="text-[16px] font-bold text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
                         <span className={cn(
-                          "text-[11px] font-bold px-1.5 py-0.5 rounded-full border",
+                          "text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase inline-flex items-center gap-1.5 whitespace-nowrap",
                           club.status === 'Active' ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
                         )}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", club.status === 'Active' ? "bg-green-500" : "bg-red-500")} />
                           {club.status}
                         </span>
                       </div>
@@ -695,13 +696,14 @@ function TrendChartSkeleton({ variant }: { variant: "line" | "bar" }) {
 
 function StatusBadge({ type, label }: { type: 'success' | 'warning' | 'danger', label: string }) {
   const styles = {
-    success: "bg-green-50 text-green-600 border-green-100",
-    warning: "bg-orange-50 text-orange-600 border-orange-100",
-    danger: "bg-red-50 text-red-600 border-red-100",
+    success: { badge: "bg-green-50 text-green-600 border-green-100", dot: "bg-green-500" },
+    warning: { badge: "bg-orange-50 text-orange-600 border-orange-100", dot: "bg-orange-500" },
+    danger: { badge: "bg-red-50 text-red-600 border-red-100", dot: "bg-red-500" },
   };
 
   return (
-    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border mt-0.5 w-fit", styles[type])}>
+    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold border mt-0.5 w-fit uppercase whitespace-nowrap", styles[type].badge)}>
+      <span className={cn("w-1.5 h-1.5 rounded-full", styles[type].dot)} />
       {label}
     </span>
   );

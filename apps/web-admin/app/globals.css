@@ -140,13 +140,14 @@
   .font-extrabold,
   .font-black {
     font-family: var(--font-sans);
-    font-weight: 700 !important;
+    font-weight: 500 !important;
   }
 
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -160,17 +161,21 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   b,
   strong {
     font-family: inherit;
     font-weight: inherit;
   }
+
   body {
     @apply bg-background text-foreground font-sans tracking-[0.01em];
   }
+
   table tbody td {
     text-transform: capitalize;
   }
+
   table tbody td .lowercase,
   table tbody td .normal-case {
     text-transform: none !important;

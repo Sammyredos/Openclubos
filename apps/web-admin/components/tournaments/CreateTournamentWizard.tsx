@@ -470,8 +470,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     switch (step) {
       case 1: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <Trophy className="w-4 h-4" />
               </div>
@@ -531,7 +531,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Field label="Tournament Banner" required>
                   <div className="relative">
                     {formData.bannerPreview ? (
-                      <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-40">
+                      <div className="relative rounded-xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-40">
                         <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
                         <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -543,7 +543,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       </div>
                     ) : (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-gray-200")}>
+                        className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-[#e7e7e7]")}>
                         {compressing ? (
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -570,7 +570,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Field label="Description" required>
                   <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
                     placeholder="Brief description of the tournament..."
-                    className={cn("flex h-40 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
+                    className={cn("flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
                 </Field>
               </div>
             </div>
@@ -579,8 +579,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       );
       case 2: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <CalendarDays className="w-4 h-4" />
               </div>
@@ -595,7 +595,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               {/* Radio toggle — One Day vs Multi-Day */}
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-semibold text-gray-600">Tournament Duration</Label>
-                <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex rounded-xl border border-[#e7e7e7] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => { setIsMultiDay(false); set("endDate", ""); }}
@@ -713,8 +713,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       );
       case 3: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <ListOrdered className="w-4 h-4" />
               </div>
@@ -772,7 +772,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                           "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
                           active
                             ? "border-emerald-500 bg-emerald-50/60"
-                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                            : "border-[#e7e7e7] bg-white hover:border-gray-300 hover:bg-gray-50/50"
                         )}
                       >
                         <div className={cn(
@@ -798,7 +798,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 {/* ── Scoring Type ── */}
                 <div className="space-y-2">
                   <p className="text-[13px] font-semibold text-gray-600">Scoring Type <span className="text-red-500">*</span></p>
-                  <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="flex rounded-xl border border-[#e7e7e7] overflow-hidden">
                     {[
                       { value: "GROSS", label: "Gross", desc: "Actual strokes" },
                       { value: "NET", label: "Net", desc: "After handicap" },
@@ -856,7 +856,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                           "px-3 py-1.5 rounded-full text-[12px] font-bold border-2 transition-all",
                           selected
                             ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-200"
-                            : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
+                            : "bg-white text-gray-600 border-[#e7e7e7] hover:border-emerald-300 hover:text-emerald-600"
                         )}
                       >
                         {selected ? "✓ " : ""}{preset}
@@ -925,8 +925,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
           {/* ── Player Limits ── */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <Users className="w-4 h-4" />
               </div>
@@ -949,7 +949,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 </Field>
               </div>
 
-              <div className={cn("rounded-xl border-2 p-3.5 cursor-pointer transition-all", formData.enableWaitlist ? "border-emerald-400 bg-emerald-50/50" : "border-gray-200 bg-gray-50/50 hover:bg-gray-100/50")}
+              <div className={cn("rounded-xl border-2 p-3.5 cursor-pointer transition-all", formData.enableWaitlist ? "border-emerald-400 bg-emerald-50/50" : "border-[#e7e7e7] bg-gray-50/50 hover:bg-gray-100/50")}
                 onClick={() => set("enableWaitlist", !formData.enableWaitlist)}>
                 <div className="flex items-center gap-3">
                   <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors", formData.enableWaitlist ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white")}>
@@ -965,8 +965,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Handicap Restrictions ── */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
               onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
@@ -1004,8 +1004,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       );
       case 5: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <CreditCard className="w-4 h-4" />
               </div>
@@ -1044,7 +1044,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 </div>
               )}
               {!formData.requiresPayment && (
-                <div className="py-8 text-center bg-gray-50 rounded-xl border border-gray-100 animate-in fade-in">
+                <div className="py-8 text-center bg-gray-50 rounded-xl border border-[#e7e7e7] animate-in fade-in">
                   <p className="text-[13px] font-medium text-gray-500">This tournament will be free to enter.</p>
                 </div>
               )}
@@ -1054,8 +1054,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       );
       case 6: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-emerald-50/50 rounded-t-2xl flex items-center justify-between">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-emerald-50/50 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <LayoutGrid className="w-4 h-4" />
@@ -1096,8 +1096,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       );
       case 7: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <Activity className="w-4 h-4" />
               </div>
@@ -1129,8 +1129,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       case 8: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ── Visibility Settings ── */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                 <Eye className="w-4 h-4" />
               </div>
@@ -1155,7 +1155,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       onClick={() => set("visibility", value)}
                       className={cn(
                         "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
-                        active ? "border-emerald-500 bg-emerald-50/60" : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                        active ? "border-emerald-500 bg-emerald-50/60" : "border-[#e7e7e7] bg-white hover:border-gray-300 hover:bg-gray-50/50"
                       )}
                     >
                       <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5", active ? "border-emerald-500 bg-emerald-500" : "border-gray-300")}>
@@ -1173,8 +1173,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Publishing ── */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className={cn("px-5 py-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex items-center justify-between", (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+          <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className={cn("px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center justify-between", (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
               onClick={() => {
                 if (originalStatus !== "DRAFT" && originalStatus !== undefined) return;
                 set("publishImmediately", !formData.publishImmediately);
@@ -1234,7 +1234,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
         </div>
       }>
-      <div className="flex gap-1 border-b border-gray-100 pb-4 mb-6 overflow-x-auto no-scrollbar">
+      <div className="flex gap-1 border-b border-[#e7e7e7] pb-4 mb-6 overflow-x-auto no-scrollbar">
         {STEPS.map((name, i) => {
           const active = step === i + 1, past = step > i + 1;
           return (
@@ -1253,24 +1253,24 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       <div className="min-h-[350px]">
         {loading ? (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
               <div className="space-y-2">
                 <div className="h-4.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
-                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
-                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
                 </div>
                 <div className="space-y-2">
                   <div className="h-4.5 w-24 bg-gray-100 rounded-lg animate-pulse" />
-                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                  <div className="h-12 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="h-4.5 w-28 bg-gray-100 rounded-lg animate-pulse" />
-                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-gray-100 animate-pulse" />
+                <div className="h-32 w-full bg-gray-50/50 rounded-xl border border-[#e7e7e7] animate-pulse" />
               </div>
             </div>
           </div>

@@ -613,7 +613,7 @@ export default function OrganizersPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Download className="w-4 h-4" /> Export
             </Button>
             <Button onClick={() => router.push("/super-admin/organizers/create")} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
@@ -627,7 +627,7 @@ export default function OrganizersPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search organizer name, location or admin..."
-                className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg text-[14px]"
+                className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -790,10 +790,11 @@ export default function OrganizersPage() {
                           <div className="flex flex-col gap-1 items-start">
                             <span
                               className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
+                                "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
                                 organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-blue-50 text-blue-600 border border-blue-100",
                               )}
                             >
+                              <span className={cn("w-1.5 h-1.5 rounded-full", organizer.plan === "Pro" ? "bg-emerald-500" : "bg-blue-500")} />
                               {organizer.plan}
                             </span>
                             <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
@@ -804,7 +805,7 @@ export default function OrganizersPage() {
                         <td className="px-4 py-4">
                           <span
                             className={cn(
-                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
+                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
                               organizer.status === "Active"
                                 ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                 : organizer.status === "Suspended"
@@ -812,6 +813,14 @@ export default function OrganizersPage() {
                                   : "bg-red-50 text-red-600 border border-red-100",
                             )}
                           >
+                            <span
+                              className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                organizer.status === "Active" ? "bg-emerald-500"
+                                  : organizer.status === "Suspended" ? "bg-amber-500"
+                                  : "bg-red-500"
+                              )}
+                            />
                             {organizer.status}
                           </span>
                         </td>
@@ -819,14 +828,14 @@ export default function OrganizersPage() {
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => openViewModal(organizer)}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
                               title="View Details"
                             >
                               <Eye className="w-4.5 h-4.5" />
                             </button>
                             <button
                               onClick={() => handleEdit(organizer)}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                               title="Edit Organizer"
                             >
                               <Edit2 className="w-4.5 h-4.5" />
@@ -846,7 +855,7 @@ export default function OrganizersPage() {
                                     setDropdownOrganizer(organizer);
                                   }
                                 }}
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                               >
                                 <MoreHorizontal className="w-4.5 h-4.5" />
                               </button>
@@ -1080,7 +1089,7 @@ export default function OrganizersPage() {
                 "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
                 resetTab === "link"
                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50",
+                  : "bg-white text-gray-500 border-[#e7e7e7] hover:bg-gray-50",
               )}
             >
               Send Reset Link
@@ -1092,7 +1101,7 @@ export default function OrganizersPage() {
                 "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
                 resetTab === "generate"
                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50",
+                  : "bg-white text-gray-500 border-[#e7e7e7] hover:bg-gray-50",
               )}
             >
               Generate Password
@@ -1131,7 +1140,7 @@ export default function OrganizersPage() {
                   <button
                     type="button"
                     onClick={copyGeneratedPassword}
-                    className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                     title="Copy password"
                   >
                     {copiedPassword ? <Check className="h-5 w-5 text-[#10b981]" /> : <Clipboard className="h-5 w-5" />}
@@ -1183,7 +1192,7 @@ export default function OrganizersPage() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-gray-200 focus:border-red-500"
+              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
             />
           </div>
         </div>

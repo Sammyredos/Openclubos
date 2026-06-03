@@ -37,6 +37,11 @@ import {
   Filter,
   ArrowUpDown,
   Layers,
+  Info,
+  Dices,
+  Scale,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -67,6 +72,7 @@ import { getCourse, type Course } from "@/lib/api/courses";
 import { getClub, type Club } from "@/lib/api/clubs";
 import {
   addRegistrationStrokes,
+  clearRegistrationStrokes,
   getRegistrations,
   updateRegistrationStatus,
   deleteRegistration,
@@ -121,6 +127,7 @@ const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
   { id: "waitlist", label: "Waitlist Settings", icon: Clock },
   { id: "groupings", label: "Groupings (Tee Times)", icon: Calendar },
+  { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
   { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
   { id: "overview", label: "Overview", icon: Eye },
 ] as const;
@@ -197,11 +204,27 @@ function ViewTournamentPageInner() {
   const [registrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
+  const [penalizeFilter, setPenalizeFilter] = useState<"APPROVED" | "DISQUALIFIED">("APPROVED");
+  const [penalizeStrokesFilter, setPenalizeStrokesFilter] = useState<"ALL" | "WITH_STROKES">("ALL");
   const [registrationsRefreshTrigger, setRegistrationsRefreshTrigger] = useState(0);
 
   const [registrationActionId, setRegistrationActionId] = useState<string | null>(null);
-  const [strokesMenuRegistration, setStrokesMenuRegistration] = useState<RegistrationListItem | null>(null);
-  const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [strokeModalRegistration, setStrokeModalRegistration] = useState<RegistrationListItem | null>(null);
+  const [strokeModalAction, setStrokeModalAction] = useState<"ADD_1" | "ADD_2" | "CLEAR" | null>(null);
+
+  const openStrokeModal = (r: RegistrationListItem, action: "ADD_1" | "ADD_2" | "CLEAR") => {
+    setStrokeModalRegistration(r);
+    setStrokeModalAction(action);
+  };
+
+  const confirmStrokeAction = () => {
+    if (!strokeModalRegistration || !strokeModalAction) return;
+    if (strokeModalAction === "ADD_1") addTournamentRegistrationStrokes(strokeModalRegistration, 1);
+    if (strokeModalAction === "ADD_2") addTournamentRegistrationStrokes(strokeModalRegistration, 2);
+    if (strokeModalAction === "CLEAR") clearTournamentRegistrationStrokes(strokeModalRegistration);
+    setStrokeModalRegistration(null);
+    setStrokeModalAction(null);
+  };
 
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
@@ -258,6 +281,10 @@ function ViewTournamentPageInner() {
     setDropdownAnchorEl(null);
   };
 
+  const [publishClickCount, setPublishClickCount] = useState(0);
+  const [justGrouped, setJustGrouped] = useState(false);
+  const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
+
   const fetchWaitlistData = async () => {
     if (!tournamentId) return;
     setWaitlistLoading(true);
@@ -303,6 +330,7 @@ function ViewTournamentPageInner() {
     setGroupingsGenerating(true);
     try {
       const res = await publishGroupingsEmail(tournamentId, selectedDay, groupingsData);
+      setPublishClickCount(c => c + 1);
       toast.success(res.message || "Groupings publication emails queued successfully");
       setIsPublishEmailModalOpen(false);
     } catch (err: any) {
@@ -319,6 +347,7 @@ function ViewTournamentPageInner() {
       const data = await generateGroupings(tournamentId, selectedDay, rule);
       setGroupingsData(data);
       setGroupingsSubTab("grouped");
+      setJustGrouped(true);
       toast.success("Groupings generated. Click 'Publish via Email' to notify players.");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
@@ -376,6 +405,8 @@ function ViewTournamentPageInner() {
       const data = await clearGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
       setGroupingsSubTab("unassigned"); // Automatically switch to unassigned tab
+      setPublishClickCount(0);
+      setJustGrouped(false);
       setIsResetGroupingsModalOpen(false);
       toast.success("Groupings reset successfully");
     } catch (err) {
@@ -407,6 +438,7 @@ function ViewTournamentPageInner() {
           playersMap[reg.user.id] = {
             user: reg.user,
             grossStrokes: 0,
+            toPar: 0,
             holesCompleted: new Set(),
             points: 0,
             extraStrokes: reg.extraStrokes || 0,
@@ -436,6 +468,7 @@ function ViewTournamentPageInner() {
         }
 
         p.grossStrokes += s.strokes || 0;
+        p.toPar += (s.strokes - (s.hole?.par || 4));
         p.points += s.points || 0;
 
         // Track holes completed uniquely by round and hole
@@ -447,7 +480,7 @@ function ViewTournamentPageInner() {
 
       const leaderboard = Object.values(playersMap)
         .map((p: any) => {
-          const gross = p.grossStrokes;
+          const rawGross = p.grossStrokes;
           const handicapIndex = p.user?.handicap || 0;
           const extra = p.extraStrokes || 0;
           const holesPlayed = p.holesCompleted.size;
@@ -457,11 +490,17 @@ function ViewTournamentPageInner() {
           const playingHandicap = Math.round(handicapIndex);
           const totalHandicap = Math.round(playingHandicap * (holesPlayed / 18));
 
-          // Net = Gross - Total Handicap + Extra Strokes
-          const net = gross > 0 ? (gross - totalHandicap + extra) : 0;
+          // Stroke Play: Penalties add to Gross Score
+          const gross = rawGross > 0 ? (rawGross + extra) : 0;
+          const toPar = rawGross > 0 ? (p.toPar + extra) : 0;
+
+          // Net = Gross - Total Handicap
+          const net = gross > 0 ? (gross - totalHandicap) : 0;
 
           return {
             ...p,
+            grossStrokes: gross, // Update with penalty included
+            toPar: toPar, // Update with penalty included
             holesCount: p.holesCompleted.size,
             netStrokes: net,
           };
@@ -475,7 +514,7 @@ function ViewTournamentPageInner() {
           if (leaderboardSortBy === "NET") {
             return a.netStrokes - b.netStrokes || a.grossStrokes - b.grossStrokes;
           } else {
-            return a.grossStrokes - b.grossStrokes || a.netStrokes - b.netStrokes;
+            return a.toPar - b.toPar || a.grossStrokes - b.grossStrokes || a.netStrokes - b.netStrokes;
           }
         });
 
@@ -868,6 +907,24 @@ function ViewTournamentPageInner() {
     }
   };
 
+  const clearTournamentRegistrationStrokes = async (registration: RegistrationListItem) => {
+    setRegistrationActionId(registration.id);
+    try {
+      await clearRegistrationStrokes(registration.id);
+      toast.success("Cleared penalties");
+      setRegistrationsAll((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: 0 } : r)),
+      );
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === registration.id ? { ...r, extraStrokes: 0 } : r)),
+      );
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to clear strokes");
+    } finally {
+      setRegistrationActionId(null);
+    }
+  };
+
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
   const handleMarkPaid = async (registrationId: string) => {
@@ -1056,7 +1113,7 @@ function ViewTournamentPageInner() {
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-gray-900">{selectedTournament.name}</h1>
               <span className={cn(
-                "px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide border",
+                "px-2.5 py-0.5 rounded-lg text-[11px] font-semibold uppercase tracking-wide border",
                 STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
               )}>
                 {selectedTournament.status}
@@ -1095,7 +1152,7 @@ function ViewTournamentPageInner() {
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
             variant="outline"
-            className="h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm flex items-center gap-2 rounded-xl"
+            className="bg-white h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm flex items-center gap-2 rounded-xl shadow-sm"
           >
             <Edit2 className="w-4 h-4 text-gray-400" />
             Edit Tournament
@@ -1108,7 +1165,7 @@ function ViewTournamentPageInner() {
                 setActiveDropdown(activeDropdown ? null : selectedTournament.id);
                 setDropdownAnchorEl(e.currentTarget);
               }}
-              className="h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+              className="bg-white h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center shadow-sm"
             >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
@@ -1118,17 +1175,17 @@ function ViewTournamentPageInner() {
                 anchorEl={dropdownAnchorEl}
                 onClose={closeDropdown}
                 placement="bottom-end"
-                className="w-52"
+                className="w-52 bg-white rounded-xl shadow-lg border border-[#efefef] py-2"
               >
                 <button
                   className={cn(
                     "w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-3",
-                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"
+                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
                       ? "text-gray-300 cursor-not-allowed"
                       : "text-gray-700 hover:bg-gray-50"
                   )}
                   onClick={() => {
-                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED") {
+                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
                       handleMenuAction(selectedTournament, "cancel");
                     }
                   }}
@@ -1350,9 +1407,9 @@ function ViewTournamentPageInner() {
                                     PH {r.user?.handicap ?? 0}
                                   </span>
 
-                                  {typeof r.extraStrokes === "number" && r.extraStrokes !== 0 && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider">
-                                      {r.extraStrokes > 0 ? `+${r.extraStrokes}` : r.extraStrokes} Strokes
+                                  {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                      +{r.extraStrokes} Penalty
                                     </span>
                                   )}
                                 </div>
@@ -1379,52 +1436,15 @@ function ViewTournamentPageInner() {
                                   )}
 
                                   <Button
+                                    size="sm"
                                     variant="outline"
-                                    onClick={(e) => {
-                                      setStrokesMenuRegistration(r);
-                                      setStrokesMenuAnchorEl(e.currentTarget);
-                                    }}
-                                    title="Add/Remove Strokes"
-                                    className="h-9 w-9 p-0 bg-white rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                                    onClick={() => openRemovePlayer(r)}
+                                    disabled={registrationActionId === r.id}
+                                    title="Remove Player"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
                                   >
-                                    <Plus className="w-4 h-4" />
+                                    <UserMinus className="w-4 h-4" />
                                   </Button>
-
-                                  {isDisqualified ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => openEnablePlayer(r)}
-                                      disabled={registrationActionId === r.id}
-                                      title="Enable Player"
-                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
-                                    >
-                                      <CheckCircle2 className="w-4 h-4" />
-                                    </Button>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => openDisqualify(r)}
-                                        disabled={registrationActionId === r.id}
-                                        title="Disqualify Player"
-                                        className="h-9 w-9 p-0 bg-white rounded-lg border-amber-250 text-amber-600 hover:bg-amber-50/50 flex items-center justify-center"
-                                      >
-                                        <Ban className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => openRemovePlayer(r)}
-                                        disabled={registrationActionId === r.id}
-                                        title="Remove Player"
-                                        className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
-                                      >
-                                        <UserMinus className="w-4 h-4" />
-                                      </Button>
-                                    </>
-                                  )}
                                 </div>
                               )}
                             </div>
@@ -1636,6 +1656,7 @@ function ViewTournamentPageInner() {
                   </div>
                 ) : (
                   <>
+                    <p className="text-[13px] text-gray-500 font-medium mb-3">Select the tournament day you want to manage groupings for:</p>
                     {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
                     <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
                       <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
@@ -1644,7 +1665,7 @@ function ViewTournamentPageInner() {
                             key={i}
                             onClick={() => setSelectedDay(i + 1)}
                             className={cn(
-                              "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                              "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
                               selectedDay === i + 1
                                 ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                                 : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -1667,19 +1688,30 @@ function ViewTournamentPageInner() {
                         <div className="flex gap-3">
                           <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                           <div>
-                            <h4 className="text-[14px] font-bold text-emerald-900">Publish Groupings</h4>
+                            <h4 className="text-[14px] font-bold text-emerald-900">Send Tee Times via Email</h4>
                             <p className="text-[12px] text-emerald-700 mt-0.5">
                               Groupings have been generated. Publish them via email to notify players of their tee times.
                             </p>
                           </div>
                         </div>
                         <Button
-                          onClick={handlePublishGroupingsEmail}
+                          onClick={() => {
+                            setJustGrouped(false);
+                            handlePublishGroupingsEmail();
+                          }}
                           disabled={groupingsGenerating || groupingsLoading}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-bold rounded-xl shadow-sm transition-all whitespace-nowrap gap-2"
+                          className={cn(
+                            "bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-bold rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative",
+                            justGrouped && "animate-pulse ring-4 ring-emerald-500/30"
+                          )}
                         >
                           <Mail className="w-4 h-4" />
                           Publish via Email
+                          {publishClickCount > 0 && (
+                            <span className="ml-1 bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px]">
+                              {publishClickCount}
+                            </span>
+                          )}
                         </Button>
                       </div>
                     )}
@@ -1698,14 +1730,23 @@ function ViewTournamentPageInner() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setIsGroupingRulesModalOpen(true)}
+                          disabled={!!groupingsData?.groups?.length}
+                          className="flex flex-col items-center justify-center px-3 h-11 rounded-xl shadow-sm bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Please read"
+                        >
+                          <Info className="w-4 h-4 mb-0.5" />
+                          <span className="text-[9px] font-bold leading-none">Please read</span>
+                        </button>
                         <div className="relative inline-block">
                           <Button
                             disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                            className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-10 px-4 text-[12px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                            Grouping Rules
+                            Auto Group Players
                             <ChevronDown className="w-3.5 h-3.5 ml-1" />
                           </Button>
                           <select
@@ -1715,18 +1756,18 @@ function ViewTournamentPageInner() {
                             title="Select Grouping Rule"
                           >
                             <option value="">Select Rule...</option>
-                            <option value="RANDOM">Random Grouping</option>
-                            <option value="CATEGORY_RANDOM">Category Balanced</option>
-                            <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
-                            <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
-                            <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
-                            <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
+                            <option value="RANDOM">🎲 Random Grouping</option>
+                            <option value="CATEGORY_RANDOM">⚖️ Category Balanced</option>
+                            <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>📈 Leaderboard Reverse (Gross)</option>
+                            <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>📈 Leaderboard Reverse (Net)</option>
+                            <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>📉 Leaderboard Direct (Gross)</option>
+                            <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>📉 Leaderboard Direct (Net)</option>
                           </select>
                         </div>
                         <Button
                           onClick={handleClearGroupings}
                           disabled={groupingsLoading || !groupingsData?.groups.length}
-                          className="bg-red-500 hover:bg-red-600 text-white h-10 px-4 text-[12px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
+                          className="bg-red-500 hover:bg-red-600 text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
                         >
                           <RefreshCcw className="w-3.5 h-3.5" />
                           Reset All
@@ -2150,7 +2191,7 @@ function ViewTournamentPageInner() {
                     <button
                       onClick={() => setSelectedLeaderboardDay("all")}
                       className={cn(
-                        "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                        "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
                         selectedLeaderboardDay === "all"
                           ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                           : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -2163,7 +2204,7 @@ function ViewTournamentPageInner() {
                         key={i}
                         onClick={() => setSelectedLeaderboardDay(i + 1)}
                         className={cn(
-                          "px-8 py-2.5 text-[12px] font-bold rounded-xl transition-all duration-300",
+                          "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
                           selectedLeaderboardDay === i + 1
                             ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                             : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -2226,10 +2267,10 @@ function ViewTournamentPageInner() {
                       value={leaderboardSortBy}
                       onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
                       options={[
-                        { value: "NET", label: "Net Score" },
-                        { value: "GROSS", label: "Gross Score" },
+                        { value: "NET", label: "Final Score (Net)" },
+                        { value: "GROSS", label: "Total Strokes (Gross)" },
                       ]}
-                      className="min-w-[140px]"
+                      className="min-w-[200px]"
                       triggerClassName="h-10 bg-white font-medium"
                     />
                   </div>
@@ -2254,16 +2295,25 @@ function ViewTournamentPageInner() {
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center" title="Current Position">Rank</th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
                                 {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                                  <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                                  <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Round {i + 1}</th>
                                 ))}
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Holes</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Gross</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">HCP</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-emerald-600 uppercase tracking-wider text-center">Net</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center" title="Number of holes completed">Holes Played</th>
+                                <th className="px-6 py-4 text-center" title="Total raw strokes taken">
+                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Strokes</div>
+                                  <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(Gross)</div>
+                                </th>
+                                <th className="px-6 py-4 text-center" title="Player's handicap allowance">
+                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Handicap</div>
+                                  <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(HCP)</div>
+                                </th>
+                                <th className="px-6 py-4 text-center" title="Score after handicap deduction">
+                                  <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Final Score</div>
+                                  <div className="text-[9px] font-medium text-emerald-500 normal-case mt-0.5">(Net)</div>
+                                </th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
                               </tr>
                             </thead>
@@ -2569,40 +2619,272 @@ function ViewTournamentPageInner() {
                 </div>
               </div>
             )}
+
+            {activeTab === "penalize" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e7e7] pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Penalize Player</h2>
+                    <p className="text-sm text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                  <div className="relative flex-1 min-w-[240px]">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      value={registrationsSearch}
+                      onChange={(e) => {
+                        setRegistrationsPage(1);
+                        if (registrationsMode === "server") setRegistrationsLoading(true);
+                        setRegistrationsSearch(e.target.value);
+                      }}
+                      placeholder="Search name or email..."
+                      className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                    />
+                  </div>
+                  <SearchableSelect
+                    value={penalizeStrokesFilter}
+                    onValueChange={(v: any) => {
+                      setRegistrationsPage(1);
+                      setPenalizeStrokesFilter(v);
+                    }}
+                    options={[
+                      { value: "ALL", label: "All Players" },
+                      { value: "WITH_STROKES", label: "With Strokes" },
+                    ]}
+                    className="min-w-[180px]"
+                    triggerClassName="h-11 bg-white"
+                  />
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                    <button
+                      onClick={() => setPenalizeFilter("APPROVED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        penalizeFilter === "APPROVED" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                      )}
+                    >
+                      Active Players
+                    </button>
+                    <button
+                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        penalizeFilter === "DISQUALIFIED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                      )}
+                    >
+                      Disqualified Players
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const penalizeSearchQuery = registrationsSearch.trim().toLowerCase();
+                    const penalizeListAll = registrationsMode === "client" ? registrationsAll.filter(r => {
+                      const matchesStatus = r.status === penalizeFilter;
+                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
+                      const tokens = penalizeSearchQuery.split(/[\s-]+/).filter(Boolean);
+                      const searchableFields = [r.user?.firstName, r.user?.lastName, r.user?.email, `${r.user?.firstName} ${r.user?.lastName}`, `${r.user?.lastName} ${r.user?.firstName}`];
+                      const matchesSearch = tokens.length === 0 || tokens.every(token => searchableFields.some(field => field?.toLowerCase().includes(token)));
+                      return matchesStatus && matchesSearch && matchesStrokes;
+                    }) : registrationsPageItems.filter(r => {
+                      const matchesStatus = r.status === penalizeFilter;
+                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
+                      return matchesStatus && matchesStrokes;
+                    });
+                    
+                    const penalizePageItems = registrationsMode === "client" 
+                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage) 
+                      : penalizeListAll;
+                      
+                    const penalizeTotalPages = registrationsMode === "client"
+                      ? Math.max(1, Math.ceil(penalizeListAll.length / registrationsPerPage))
+                      : Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage));
+
+                    return (
+                      <>
+                        {registrationsLoading ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {[1, 2, 3, 4].map((i) => (
+                              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                            ))}
+                          </div>
+                        ) : penalizePageItems.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {penalizePageItems.map((r) => {
+                        return (
+                          <div
+                            key={r.id}
+                            className={cn(
+                              "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
+                              r.status === "DISQUALIFIED"
+                                ? "bg-red-50/10 border-red-100/50 opacity-75"
+                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
+                            )}
+                          >
+                            <div className="flex items-start md:items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
+                                <img
+                                  src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block">
+                                  <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
+                                    {r.user?.firstName} {r.user?.lastName}
+                                  </div>
+                                </NextLink>
+                                <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
+                                  {r.user?.email}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                  {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                      +{r.extraStrokes} Penalty
+                                    </span>
+                                  )}
+                                  {r.status === "DISQUALIFIED" && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                      Disqualified
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
+                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => openStrokeModal(r, "ADD_1")}
+                                    title="Add 1-Stroke Penalty"
+                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                  >
+                                    +1 Stroke
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => openStrokeModal(r, "ADD_2")}
+                                    title="Add 2-Stroke Penalty"
+                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                  >
+                                    +2 Strokes
+                                  </Button>
+                                  {(r.extraStrokes ?? 0) > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => openStrokeModal(r, "CLEAR")}
+                                      title="Clear Penalties"
+                                      className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
+                                    >
+                                      Clear
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => openDisqualify(r)}
+                                    title="Disqualify Player"
+                                    className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+                                  >
+                                    <Ban className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              )}
+                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => openEnablePlayer(r)}
+                                    title="Restore Player"
+                                    className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Restore
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={AlertTriangle}
+                      title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
+                      description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
+                    />
+                  )}
+
+                  {/* Pagination */}
+                  {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
+                    <div className="mt-8">
+                      <Pagination
+                        currentPage={registrationsPage}
+                        totalPages={penalizeTotalPages}
+                        onPageChange={setRegistrationsPage}
+                      />
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Helper Modals */}
-      <FloatingMenu
-        open={strokesMenuRegistration !== null}
-        anchorEl={strokesMenuAnchorEl}
-        onClose={() => {
-          setStrokesMenuRegistration(null);
-          setStrokesMenuAnchorEl(null);
-        }}
-        placement={"bottom-start" as any}
-        className="w-40 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden py-1"
-      >
-        {strokesMenuRegistration ? (
+      <Modal
+        isOpen={strokeModalRegistration !== null && strokeModalAction !== null}
+        onClose={() => { setStrokeModalRegistration(null); setStrokeModalAction(null); }}
+        title={strokeModalAction === "CLEAR" ? "Clear Penalties?" : "Apply Penalty?"}
+        footer={
           <>
-            {[1, 2, 3, 4].map((delta) => (
-              <button
-                key={delta}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                onClick={() => {
-                  const reg = strokesMenuRegistration;
-                  setStrokesMenuRegistration(null);
-                  setStrokesMenuAnchorEl(null);
-                  addTournamentRegistrationStrokes(reg, delta);
-                }}
-              >
-                <Plus className="w-4 h-4 text-gray-450" /> +{delta} {delta === 1 ? "stroke" : "strokes"}
-              </button>
-            ))}
+            <Button variant="outline" onClick={() => { setStrokeModalRegistration(null); setStrokeModalAction(null); }} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className={cn(
+                "rounded-lg font-bold px-8 text-white border",
+                strokeModalAction === "CLEAR" 
+                  ? "bg-gray-800 hover:bg-gray-900 border-gray-900/30"
+                  : "bg-red-500 hover:bg-red-650 border-red-650/30"
+              )}
+              onClick={confirmStrokeAction}
+            >
+              Confirm
+            </Button>
           </>
-        ) : null}
-      </FloatingMenu>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className={cn(
+            "w-20 h-20 rounded-full flex items-center justify-center mb-6 border",
+            strokeModalAction === "CLEAR" ? "bg-amber-50 text-amber-500 border-amber-100" : "bg-red-50 text-red-500 border-red-100"
+          )}>
+            <AlertTriangle className="h-10 w-10 animate-bounce" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            {strokeModalAction === "ADD_1" ? "Add 1-Stroke Penalty?" :
+             strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
+          </h4>
+          <p className="text-gray-500 max-w-sm">
+            {strokeModalAction === "ADD_1" && `Are you sure you want to add a 1-stroke penalty to ${fullName(strokeModalRegistration?.user?.firstName ?? null, strokeModalRegistration?.user?.lastName ?? null)}?`}
+            {strokeModalAction === "ADD_2" && `Are you sure you want to add a 2-stroke penalty to ${fullName(strokeModalRegistration?.user?.firstName ?? null, strokeModalRegistration?.user?.lastName ?? null)}?`}
+            {strokeModalAction === "CLEAR" && `Are you sure you want to clear all stroke penalties for ${fullName(strokeModalRegistration?.user?.firstName ?? null, strokeModalRegistration?.user?.lastName ?? null)}?`}
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isCancelModalOpen}
@@ -2802,11 +3084,51 @@ function ViewTournamentPageInner() {
           </p>
         </div>
       </Modal>
+
+      {/* Grouping Rules Info Modal */}
+      <Modal
+        isOpen={isGroupingRulesModalOpen}
+        onClose={() => setIsGroupingRulesModalOpen(false)}
+        title="Grouping Rules Explained"
+        className="max-w-xl"
+      >
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Dices className="w-4 h-4 text-emerald-600" /> Random Grouping
+            </h4>
+            <p className="text-[13px] text-gray-600">Assigns players into groups completely at random. Good for social play.</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Scale className="w-4 h-4 text-blue-600" /> Category Balanced
+            </h4>
+            <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
+            </h4>
+            <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players last (latest tee times).</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
+            </h4>
+            <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players first (earliest tee times).</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h4 className="font-bold text-red-600 mb-1">Reset All</h4>
+            <p className="text-[13px] text-gray-600">Clears all current groupings for the selected day, moving all players back to the unassigned list so you can start over.</p>
+          </div>
+        </div>
+      </Modal>
+
       {/* Publish Email Prototype Modal */}
       <Modal
         isOpen={isPublishEmailModalOpen}
         onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
-        title={`Publish Day ${selectedDay} Groupings`}
+        title={`Send Day ${selectedDay} Groupings`}
         className="max-w-xl"
       >
         <div className="space-y-6 pt-4">

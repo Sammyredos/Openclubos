@@ -344,10 +344,10 @@ export default function SignupOrganisationPage() {
 
         {/* Top Navigation (Mockup) */}
         <div className="absolute top-6 right-8 flex items-center gap-3 z-10">
-          <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors bg-white">
+          <button className="w-10 h-10 rounded-xl border border-[#e7e7e7] flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors bg-white">
             <Sun className="w-5 h-5" />
           </button>
-          <button className="h-10 px-4 rounded-xl border border-gray-200 flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors font-medium text-[14px] bg-white">
+          <button className="h-10 px-4 rounded-xl border border-[#e7e7e7] flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors font-medium text-[14px] bg-white">
             English <ChevronDown className="w-4 h-4 text-gray-400" />
           </button>
         </div>
@@ -409,7 +409,7 @@ export default function SignupOrganisationPage() {
                       <Input
                         id="organizationName"
                         placeholder="E.g. Egunma Tournament Association"
-                        className="pl-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-12 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("organizationName")}
                       />
@@ -424,7 +424,7 @@ export default function SignupOrganisationPage() {
                     <div className="relative group">
                       <select
                         id="organizationType"
-                        className="w-full h-12 border border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900 bg-white px-4 appearance-none outline-none"
+                        className="w-full h-12 border border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900 bg-white px-4 appearance-none outline-none"
                         disabled={isLoading}
                         {...form.register("organizationType")}
                       >
@@ -449,7 +449,7 @@ export default function SignupOrganisationPage() {
                       <Input
                         id="customOrganizationType"
                         placeholder="Enter organization type"
-                        className="px-4 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="px-4 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("customOrganizationType")}
                       />
@@ -479,7 +479,7 @@ export default function SignupOrganisationPage() {
                   <div className="space-y-2 flex justify-center">
                     <div className="relative">
                       {logo ? (
-                        <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 h-40 w-40 mx-auto shadow-sm">
+                        <div className="relative rounded-2xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-40 w-40 mx-auto shadow-sm">
                           <img src={logo} alt="Logo" className="w-full h-full object-cover" />
                           <button
                             type="button"
@@ -492,7 +492,7 @@ export default function SignupOrganisationPage() {
                       ) : (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="h-40 w-40 mx-auto border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer border-gray-200 hover:border-[#10b981] hover:bg-emerald-50/30 transition-all group"
+                          className="h-40 w-40 mx-auto border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer border-[#e7e7e7] hover:border-[#10b981] hover:bg-emerald-50/30 transition-all group"
                         >
                           <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                             <Upload className="w-6 h-6 text-gray-400 group-hover:text-[#10b981]" />
@@ -583,7 +583,7 @@ export default function SignupOrganisationPage() {
                       ) : (
                         <Input
                           placeholder="Enter city"
-                          className="h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px]"
+                          className="h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px]"
                           disabled={isLoading}
                           {...form.register("organizationCity")}
                         />
@@ -606,7 +606,7 @@ export default function SignupOrganisationPage() {
                           })}
                           maxLength={200}
                           placeholder="Enter full address"
-                          className={`w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-[15px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] resize-none pr-12 text-gray-900 transition-all ${errors.organizationAddress ? "border-red-400 bg-red-50/30" : "border-gray-200 focus:border-[#10b981]"}`}
+                          className={`w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-[15px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] resize-none pr-12 text-gray-900 transition-all ${errors.organizationAddress ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7] focus:border-[#10b981]"}`}
                           disabled={isLoading}
                         />
                         <div className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-medium bg-white/80 px-1">
@@ -646,7 +646,7 @@ export default function SignupOrganisationPage() {
                         <Input
                           id="adminFirstName"
                           placeholder="John"
-                          className="pl-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                          className="pl-9 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                           disabled={isLoading}
                           {...form.register("adminFirstName")}
                         />
@@ -665,7 +665,7 @@ export default function SignupOrganisationPage() {
                         <Input
                           id="adminMiddleName"
                           placeholder="Edward"
-                          className="pl-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                          className="pl-9 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                           disabled={isLoading}
                           {...form.register("adminMiddleName")}
                         />
@@ -685,7 +685,7 @@ export default function SignupOrganisationPage() {
                       <Input
                         id="adminLastName"
                         placeholder="Doe"
-                        className="pl-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-9 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("adminLastName")}
                       />
@@ -705,7 +705,7 @@ export default function SignupOrganisationPage() {
                         { value: "Female", label: "Female" },
                         { value: "Other", label: "Other" },
                       ]}
-                      triggerClassName={errors.adminGender ? "border-red-400 bg-red-50/30" : "border-gray-200"}
+                      triggerClassName={errors.adminGender ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]"}
                       placeholder="Select gender"
                     />
                     {errors.adminGender && (
@@ -716,7 +716,7 @@ export default function SignupOrganisationPage() {
                   <div className="space-y-2">
                     <label htmlFor="adminPhone" className="text-[14px] font-semibold text-gray-700 block">Phone Number</label>
                     <div className="flex gap-2">
-                      <div className="h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-[15px] font-medium text-gray-500 shrink-0 min-w-[60px]">
+                      <div className="h-12 px-3 bg-gray-50 border border-[#e7e7e7] rounded-xl flex items-center justify-center text-[15px] font-medium text-gray-500 shrink-0 min-w-[60px]">
                         +{countryCode}
                       </div>
                       <div className="relative flex-1 group">
@@ -727,7 +727,7 @@ export default function SignupOrganisationPage() {
                           id="adminPhone"
                           type="tel"
                           placeholder="Enter phone number"
-                          className="pl-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                          className="pl-12 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                           disabled={isLoading}
                           {...form.register("adminPhone", {
                             onChange: (e) => {
@@ -752,7 +752,7 @@ export default function SignupOrganisationPage() {
                         id="adminEmail"
                         type="email"
                         placeholder="admin@example.com"
-                        className="pl-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-12 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("adminEmail")}
                       />
@@ -788,7 +788,7 @@ export default function SignupOrganisationPage() {
                         id="adminPassword"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-9 pr-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-9 pr-9 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("adminPassword")}
                       />
@@ -815,7 +815,7 @@ export default function SignupOrganisationPage() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-9 pr-9 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                        className="pl-9 pr-9 h-12 border-[#e7e7e7] focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
                         disabled={isLoading}
                         {...form.register("confirmPassword")}
                       />
@@ -851,7 +851,7 @@ export default function SignupOrganisationPage() {
               {/* Separator */}
               <div className={`relative flex items-center justify-center py-2 mt-6 ${step !== 1 ? 'hidden' : 'block'}`}>
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-[#e7e7e7]"></div>
                 </div>
                 <span className="relative bg-white px-4 text-[13px] font-medium text-gray-400">or continue with</span>
               </div>
@@ -860,7 +860,7 @@ export default function SignupOrganisationPage() {
               <div className={`grid grid-cols-2 gap-4 mt-4 ${step !== 1 ? 'hidden' : 'grid'}`}>
                 <button
                   type="button"
-                  className="h-12 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
+                  className="h-12 bg-white border border-[#e7e7e7] hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
                 >
                   <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.72 1.85-1.55 2.43v2.03h2.51c1.47-1.35 2.32-3.35 2.32-5.46z" />
@@ -872,7 +872,7 @@ export default function SignupOrganisationPage() {
                 </button>
                 <button
                   type="button"
-                  className="h-12 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
+                  className="h-12 bg-white border border-[#e7e7e7] hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
                 >
                   <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16.365 21.43c-1.327.962-2.75 1.57-4.329 1.57-1.547 0-3.003-.604-4.301-1.558C5.068 19.508 3 15.655 3 11.168c0-3.791 1.884-7.234 5.09-9.155.105-.06.216-.109.332-.143a4.708 4.708 0 0 1 1.25-.17 4.717 4.717 0 0 1 1.156.143c1.517.404 3.036 1.05 4.546 1.83.19.1.378.204.56.315 2.924 1.82 4.664 4.887 4.664 8.237 0 4.382-2.023 8.163-4.233 10.205z" fill="none" stroke="none" />
@@ -892,7 +892,7 @@ export default function SignupOrganisationPage() {
         </div>
 
         {/* Bottom Security Footer */}
-        <div className="w-full px-6 py-6 bg-[#f8fafc] flex items-center justify-center lg:justify-start lg:pl-12 gap-3 mt-auto border-t border-gray-100">
+        <div className="w-full px-6 py-6 bg-[#f8fafc] flex items-center justify-center lg:justify-start lg:pl-12 gap-3 mt-auto border-t border-[#e7e7e7]">
           <ShieldCheck className="w-6 h-6 text-[#10b981]" />
           <div>
             <p className="text-[13px] font-bold text-gray-900">Secure and trusted platform</p>

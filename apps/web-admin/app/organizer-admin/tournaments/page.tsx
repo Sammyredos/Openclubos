@@ -1085,7 +1085,7 @@ export default function TournamentsPage() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="outline" className="h-10 border-gray-200 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+                <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Download className="w-4 h-4" /> Export
                 </Button>
                 <Button
@@ -1103,7 +1103,7 @@ export default function TournamentsPage() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search tournament name, organizer..."
-                    className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg"
+                    className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1236,7 +1236,7 @@ export default function TournamentsPage() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => openView(t)}
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
                                 title="View Tournament"
                               >
                                 <Eye className="w-4.5 h-4.5" />
@@ -1244,7 +1244,7 @@ export default function TournamentsPage() {
                               <button
                                 onClick={() => openEdit(t)}
                                 className={cn(
-                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors",
+                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white transition-colors",
                                   t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
                                     ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-[#efefef]"
                                     : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
@@ -1269,7 +1269,7 @@ export default function TournamentsPage() {
                                       setDropdownTournament(t);
                                     }
                                   }}
-                                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
                                   title="More Actions"
                                 >
                                   <MoreHorizontal className="w-4.5 h-4.5" />
@@ -1475,16 +1475,16 @@ export default function TournamentsPage() {
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
-                dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"
+                dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700",
               )}
-              disabled={dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"}
+              disabled={dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0}
             >
               <Ban
                 className={cn(
                   "w-4 h-4",
-                  dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED"
+                  dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                     ? "text-gray-300"
                     : "text-red-500",
                 )}
@@ -1555,7 +1555,7 @@ export default function TournamentsPage() {
                 setStrokesMenuAnchorEl(null);
                 setIsViewModalOpen(false);
               }}
-              className="rounded-lg font-bold border-gray-200"
+              className="rounded-lg font-bold border-[#e7e7e7]"
             >
               Close Details
             </Button>
@@ -1599,10 +1599,10 @@ export default function TournamentsPage() {
                 </h4>
                 {selectedTournament && (
                   <span className={cn(
-                    "px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border",
+                    "px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border",
                     selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
                       selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                        selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-gray-200" :
+                        selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-[#e7e7e7]" :
                           "bg-amber-50 text-amber-700 border-amber-100"
                   )}>
                     {selectedTournament.status}
@@ -1714,7 +1714,7 @@ export default function TournamentsPage() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-lg font-normal"
+                      className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg font-normal"
                     />
                   </div>
                   <FilterSelect
@@ -1804,7 +1804,7 @@ export default function TournamentsPage() {
                       const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
 
                       const statusConfig = {
-                        DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-gray-200", icon: Ban },
+                        DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-[#e7e7e7]", icon: Ban },
                         APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
                         REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
                         WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
@@ -1814,7 +1814,7 @@ export default function TournamentsPage() {
                       const paymentConfig = {
                         PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
                         REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
-                        UNPAID: { badge: "bg-gray-100 text-gray-500 border-gray-200", label: "Unpaid" },
+                        UNPAID: { badge: "bg-gray-100 text-gray-500 border-[#e7e7e7]", label: "Unpaid" },
                       }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-[#efefef]", label: r.paymentStatus };
 
                       return (
@@ -1862,7 +1862,7 @@ export default function TournamentsPage() {
                                   {r.status === "DISQUALIFIED" ? (
                                     <button
                                       className={cn(
-                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] transition-all font-normal",
+                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] transition-all font-normal",
                                         registrationActionId === r.id
                                           ? "text-gray-300 cursor-not-allowed"
                                           : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
@@ -1880,7 +1880,7 @@ export default function TournamentsPage() {
                                   ) : (
                                     <button
                                       className={cn(
-                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] transition-all font-normal",
+                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] transition-all font-normal",
                                         registrationActionId === r.id
                                           ? "text-gray-300 cursor-not-allowed"
                                           : "text-red-600 hover:bg-red-50 hover:border-red-100"
@@ -1899,7 +1899,7 @@ export default function TournamentsPage() {
 
                                   <button
                                     className={cn(
-                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-gray-600 transition-all font-normal",
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] text-gray-600 transition-all font-normal",
                                       registrationActionId === r.id
                                         ? "text-gray-300 cursor-not-allowed"
                                         : "hover:bg-gray-50 hover:border-gray-300"
@@ -1919,7 +1919,7 @@ export default function TournamentsPage() {
                                   {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
                                     <button
                                       className={cn(
-                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-gray-400 transition-all font-normal",
+                                        "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] text-gray-400 transition-all font-normal",
                                         registrationActionId === r.id
                                           ? "text-gray-300 cursor-not-allowed"
                                           : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
@@ -1935,7 +1935,7 @@ export default function TournamentsPage() {
 
                                   <button
                                     className={cn(
-                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-[12px] text-red-600 transition-all font-normal",
+                                      "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] text-red-600 transition-all font-normal",
                                       registrationActionId === r.id
                                         ? "text-gray-300 cursor-not-allowed"
                                         : "hover:bg-red-50 hover:border-red-100"
@@ -2033,7 +2033,7 @@ export default function TournamentsPage() {
                                     <Input
                                       value={editingGroupNameValue}
                                       onChange={(e) => setEditingGroupNameValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-full"
+                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-full"
                                     />
                                     <button
                                       onClick={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
@@ -2070,7 +2070,7 @@ export default function TournamentsPage() {
                                       placeholder="e.g. 08:30 AM"
                                       value={editingGroupTimeValue}
                                       onChange={(e) => setEditingGroupTimeValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-gray-200 focus:border-[#10b981] w-24"
+                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-24"
                                     />
                                     <button
                                       onClick={() => handleUpdateGroupDetails(group.id, { startTime: editingGroupTimeValue })}
@@ -2269,7 +2269,7 @@ export default function TournamentsPage() {
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                   manualPaymentType === 'UNPAID'
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-[#efefef] bg-white text-gray-500 hover:border-gray-200"
+                    : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -2290,7 +2290,7 @@ export default function TournamentsPage() {
                   "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                   manualPaymentType === 'CASH'
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-[#efefef] bg-white text-gray-500 hover:border-gray-200"
+                    : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -2316,7 +2316,7 @@ export default function TournamentsPage() {
                 value={registerPlayerSearch}
                 onChange={(e) => setRegisterPlayerSearch(e.target.value)}
                 placeholder="Search by name, email or handicap..."
-                className="pl-12 pr-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
+                className="pl-12 pr-10 h-12 bg-gray-50/50 border-[#e7e7e7] focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
               />
               {registerPlayerSearch && (
                 <button
@@ -2440,7 +2440,7 @@ export default function TournamentsPage() {
               setRegisterPlayerSearch("");
               setRegisterPlayerResults([]);
             }}
-            className="rounded-xl font-bold h-11 px-6 border-gray-200 hover:bg-gray-50 transition-colors"
+            className="rounded-xl font-bold h-11 px-6 border-[#e7e7e7] hover:bg-gray-50 transition-colors"
           >
             Cancel
           </Button>
@@ -2516,7 +2516,7 @@ export default function TournamentsPage() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-gray-200 focus:border-red-500"
+              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
             />
           </div>
         </div>

@@ -121,17 +121,17 @@ export function WaitlistModal({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search waitlist by name or email..."
-            className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+            className="pl-10 h-12 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-xl text-[14px]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         {/* List */}
-        <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-[#e7e7e7] rounded-2xl overflow-hidden bg-white shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+              <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-[#e7e7e7]">
                 <th className="px-6 py-4">Player Details</th>
                 <th className="px-6 py-4">Joined Date</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -225,7 +225,7 @@ export function WaitlistModal({
                 <tr>
                   <td colSpan={3} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-dashed border-gray-200">
+                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-dashed border-[#e7e7e7]">
                         <Clock className="w-8 h-8 text-gray-200" />
                       </div>
                       <div className="space-y-1">

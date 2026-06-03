@@ -332,14 +332,17 @@ export class RegistrationsService {
       });
 
       // Queue status-change emails
-      if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.REJECTED) {
+      if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.REJECTED || status === RegistrationStatus.DISQUALIFIED) {
         const [statusUser, statusTournament] = await Promise.all([
           this.prisma.user.findUnique({ where: { id: registration.userId }, select: { email: true, firstName: true } }),
           this.prisma.tournament.findUnique({ where: { id: registration.tournamentId }, select: { name: true, club: { select: { name: true } } } }),
         ]);
 
         if (statusUser?.email && statusTournament) {
-          const template = status === RegistrationStatus.APPROVED ? 'REGISTRATION_APPROVED' : 'REGISTRATION_REJECTED';
+          let template = 'REGISTRATION_REJECTED';
+          if (status === RegistrationStatus.APPROVED) template = 'REGISTRATION_APPROVED';
+          else if (status === RegistrationStatus.DISQUALIFIED) template = 'PLAYER_DISQUALIFIED';
+
           this.jobsService.queueEmail(template, statusUser.email, {
             tournamentName: statusTournament.name,
             organizerName: statusTournament.club?.name,
@@ -384,10 +387,24 @@ export class RegistrationsService {
       throw new BadRequestException('Delta must be between 1 and 4');
     }
 
-    return this.prisma.registration.update({
+    const updated = await this.prisma.registration.update({
       where: { id: registrationId },
       data: { extraStrokes: { increment: delta } },
+      include: {
+        user: { select: { email: true } },
+        tournament: { select: { name: true, club: { select: { name: true } } } },
+      }
     });
+
+    if (updated.user?.email && updated.tournament) {
+      this.jobsService.queueEmail('PLAYER_STROKE_PENALTY', updated.user.email, {
+        tournamentName: updated.tournament.name,
+        strokes: delta,
+        organizerName: updated.tournament.club?.name,
+      }).catch(err => console.error(`Failed to queue PLAYER_STROKE_PENALTY email:`, err));
+    }
+
+    return updated;
   }
 
   async clearStrokes(registrationId: string) {

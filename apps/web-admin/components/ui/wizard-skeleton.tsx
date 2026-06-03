@@ -10,7 +10,7 @@ export function WizardSkeleton({ steps = 8, className }: WizardSkeletonProps) {
   return (
     <div className={cn("p-6 space-y-6 bg-white rounded-2xl", className)}>
       {/* Header Skeleton */}
-      <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+      <div className="flex justify-between items-center pb-4 border-b border-[#e7e7e7]">
         <div className="space-y-2">
           <Skeleton className="h-6 w-48 bg-gray-100" />
           <Skeleton className="h-4 w-64 bg-gray-50" />
@@ -53,7 +53,7 @@ export function WizardSkeleton({ steps = 8, className }: WizardSkeletonProps) {
       </div>
 
       {/* Footer Skeleton */}
-      <div className="flex justify-between pt-6 border-t border-gray-100 mt-auto">
+      <div className="flex justify-between pt-6 border-t border-[#e7e7e7] mt-auto">
         <Skeleton className="h-11 w-24 rounded-xl bg-gray-100" />
         <div className="flex gap-3">
           <Skeleton className="h-11 w-24 rounded-xl bg-gray-100" />

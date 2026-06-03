@@ -431,6 +431,44 @@ export class EmailService {
   }
 
   // ────────────────────────────────────────────────────────────────
+  // 11b. Player Disqualified
+  // ────────────────────────────────────────────────────────────────
+
+  async sendPlayerDisqualified(to: string, tournamentName: string, organizerName?: string): Promise<EmailResult> {
+    const html = this.wrap('Tournament Disqualification', `
+      ${this.p('Dear Player,')}
+      ${this.p(`This is a formal notification regarding your participation in <strong>${tournamentName}</strong>.`)}
+      
+      ${this.infoBox('🚫 <strong>Disqualification Notice</strong><br/>You have been officially disqualified from this tournament by the organizing committee.', '#fef2f2', '#fecaca', '#991b1b')}
+      
+      ${this.p('A disqualification may result from a breach of tournament rules, incorrect scorecard signing, or other serious infractions as determined by the Rules Committee.')}
+      
+      ${this.p('If you believe this decision was made in error or require further clarification, please contact the tournament organizers directly.')}
+      ${this.p(`Sincerely,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
+    `, '#991b1b, #7f1d1d');
+    return this.send(to, `Official Notice: Disqualification from ${tournamentName}`, html, `Disqualification email sent to ${to}`);
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // 11c. Player Stroke Penalty
+  // ────────────────────────────────────────────────────────────────
+
+  async sendPlayerStrokePenalty(to: string, tournamentName: string, strokes: number, organizerName?: string): Promise<EmailResult> {
+    const html = this.wrap('Official Stroke Penalty', `
+      ${this.p('Dear Player,')}
+      ${this.p(`This is a formal notification regarding your score in <strong>${tournamentName}</strong>.`)}
+      
+      ${this.infoBox(`⚠️ <strong>Stroke Penalty Applied</strong><br/>A penalty of <strong>${strokes} stroke${strokes > 1 ? 's' : ''}</strong> has been added to your official score.`, '#fffbeb', '#fde68a', '#92400e')}
+      
+      ${this.p('This penalty was applied by the tournament officials in accordance with the rules of play.')}
+      
+      ${this.p('Your total score on the live leaderboard has been updated to reflect this penalty. If you have any questions regarding this ruling, please consult with the Rules Committee at the scoring tent or via the contact details provided by the organizer.')}
+      ${this.p(`Sincerely,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
+    `, '#b45309, #92400e');
+    return this.send(to, `Official Notice: Stroke Penalty in ${tournamentName}`, html, `Stroke penalty email sent to ${to} (${strokes} strokes)`);
+  }
+
+  // ────────────────────────────────────────────────────────────────
   // 12. Admin Credentials
   // ────────────────────────────────────────────────────────────────
 
