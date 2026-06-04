@@ -31,6 +31,8 @@ import {
   X,
   Activity,
   CreditCard,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   PieChart as RePieChart,
@@ -58,6 +60,7 @@ import {
   updateRegistrationStatus,
   type RegistrationListItem,
 } from "@/lib/api/registrations";
+import { exportToCsv, exportToPdf } from "@/lib/export";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FloatingMenu } from "@/components/ui/floating-menu";
@@ -215,6 +218,7 @@ export default function TournamentsPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownTournament, setDropdownTournament] = useState<TournamentRow | null>(null);
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const [mutating, setMutating] = useState(false);
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -807,15 +811,15 @@ export default function TournamentsPage() {
   const handleMoreAction = (action: string, tournament: TournamentRow) => {
     closeDropdown();
     if (action === "export") {
-      const blob = new Blob([JSON.stringify(tournament, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${(tournament?.name || "tournament").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      exportToCsv([tournament], [
+        { header: "Name", key: "name" },
+        { header: "Organizer", key: "clubName" },
+        { header: "Visibility", key: "visibility" },
+        { header: "Dates", key: "dates" },
+        { header: "Registered Players", key: "players" },
+        { header: "Status", key: "status" },
+        { header: "Entry Fee", key: "entryFee" },
+      ], `${(tournament?.name || "tournament").toString().replaceAll(" ", "-").toLowerCase()}-export.csv`);
       toast.success("Tournament data exported");
       return;
     }
@@ -990,9 +994,65 @@ export default function TournamentsPage() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+                <Button 
+                  variant="outline" 
+                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                  className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+                >
                   <Download className="w-4 h-4" /> Export
                 </Button>
+                <FloatingMenu
+                  open={exportAnchorEl != null}
+                  anchorEl={exportAnchorEl}
+                  onClose={() => setExportAnchorEl(null)}
+                  placement="bottom-end"
+                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+                >
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
+                      exportToCsv(
+                        filteredTournaments,
+                        [
+                          { header: "Name", key: "name" },
+                          { header: "Organizer", key: "clubName" },
+                          { header: "Visibility", key: "visibility" },
+                          { header: "Dates", key: "dates" },
+                          { header: "Days", key: "days" },
+                          { header: "Registered Players", key: "players" },
+                          { header: "Status", key: "status" },
+                          { header: "Entry Fee", key: "entryFee" },
+                        ],
+                        "tournaments-export.csv"
+                      );
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
+                      exportToPdf(
+                        filteredTournaments,
+                        [
+                          { header: "Name", key: "name" },
+                          { header: "Organizer", key: "clubName" },
+                          { header: "Dates", key: "dates" },
+                          { header: "Players", key: "players" },
+                          { header: "Status", key: "status" },
+                        ],
+                        "tournaments-export.pdf",
+                        "Tournaments Export"
+                      );
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    Export PDF
+                  </button>
+                </FloatingMenu>
                 <Button
                   onClick={() => router.push("/super-admin/tournaments/create")}
                   className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"

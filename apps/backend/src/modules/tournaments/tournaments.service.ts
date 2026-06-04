@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
@@ -21,6 +21,17 @@ export class TournamentsService {
   private lastRemindedDate: string | null = null;
 
   async create(dto: CreateTournamentDto) {
+    const existing = await this.prisma.tournament.findFirst({
+      where: {
+        clubId: dto.clubId,
+        name: { equals: dto.name, mode: 'insensitive' },
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException('A tournament with this name already exists in this club');
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
       // Basic

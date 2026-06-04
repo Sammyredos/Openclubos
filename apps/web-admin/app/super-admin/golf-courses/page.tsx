@@ -21,6 +21,8 @@ import {
   Globe,
   Shield,
   Trophy,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,6 +39,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
+import { exportToCsv, exportToPdf } from "@/lib/export";
 
 function StatusPill({ status }: { status: Course["status"] }) {
   const isActive = status === "ACTIVE";
@@ -81,6 +84,7 @@ export default function SuperAdminGolfCoursesPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownCourse, setDropdownCourse] = useState<Course | null>(null);
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
 
   const closeDropdown = () => {
@@ -272,9 +276,66 @@ export default function SuperAdminGolfCoursesPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">Manage Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button 
+              variant="outline" 
+              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+            >
               <Download className="w-4 h-4" /> Export
             </Button>
+            <FloatingMenu
+              open={exportAnchorEl != null}
+              anchorEl={exportAnchorEl}
+              onClose={() => setExportAnchorEl(null)}
+              placement="bottom-end"
+              className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+            >
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToCsv(
+                    filteredCourses,
+                    [
+                      { header: "Name", key: "name" },
+                      { header: "Organizer", key: "club.name" },
+                      { header: "Country", key: "country" },
+                      { header: "State", key: "state" },
+                      { header: "City", key: "city" },
+                      { header: "Holes", key: "holes" },
+                      { header: "Par", key: "par" },
+                      { header: "Type", key: "type" },
+                      { header: "Status", key: "status" },
+                    ],
+                    "courses-export.csv"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToPdf(
+                    filteredCourses,
+                    [
+                      { header: "Name", key: "name" },
+                      { header: "Location", key: "city" },
+                      { header: "Country", key: "country" },
+                      { header: "Holes", key: "holes" },
+                      { header: "Status", key: "status" },
+                    ],
+                    "courses-export.pdf",
+                    "Golf Courses Export"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileText className="w-4 h-4 text-rose-600" />
+                Export PDF
+              </button>
+            </FloatingMenu>
             <Button
               onClick={() => router.push("/super-admin/golf-courses/create")}
               className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"

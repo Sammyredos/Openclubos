@@ -14,6 +14,8 @@ import {
   DollarSign,
   AlertTriangle,
   CheckCircle2,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   PieChart,
@@ -33,6 +35,8 @@ import { Input, SearchableSelect } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { FloatingMenu } from "@/components/ui/floating-menu";
+import { exportToCsv, exportToPdf } from "@/lib/export";
 
 // Static Subscriptions Mock Data
 const MOCK_SUBSCRIPTIONS = [
@@ -161,6 +165,7 @@ export default function SubscriptionsPage() {
   const [planFilter, setPlanFilter] = useState("All");
   const [billingFilter, setBillingFilter] = useState("All");
   const [page, setPage] = useState(1);
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const itemsPerPage = 10;
 
   // Filter & Search Logic
@@ -239,9 +244,64 @@ export default function SubscriptionsPage() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Subscriptions</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+                <Button 
+                  variant="outline" 
+                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                  className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+                >
                   <Download className="w-4 h-4" /> Export
                 </Button>
+                <FloatingMenu
+                  open={exportAnchorEl != null}
+                  anchorEl={exportAnchorEl}
+                  onClose={() => setExportAnchorEl(null)}
+                  placement="bottom-end"
+                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+                >
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
+                      exportToCsv(
+                        filteredSubscriptions,
+                        [
+                          { header: "Organizer", key: "organizer" },
+                          { header: "Email", key: "email" },
+                          { header: "Plan", key: "plan" },
+                          { header: "Limit", key: "planLimit" },
+                          { header: "Billing Cycle", key: "billingCycle" },
+                          { header: "Status", key: "status" },
+                          { header: "Next Billing", key: "nextBillingDate" },
+                          { header: "Amount", key: "amount" },
+                        ],
+                        "subscriptions-export.csv"
+                      );
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
+                      exportToPdf(
+                        filteredSubscriptions,
+                        [
+                          { header: "Organizer", key: "organizer" },
+                          { header: "Plan", key: "plan" },
+                          { header: "Status", key: "status" },
+                          { header: "Amount", key: "amount" },
+                        ],
+                        "subscriptions-export.pdf",
+                        "Subscriptions Export"
+                      );
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    Export PDF
+                  </button>
+                </FloatingMenu>
                 <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
                   <Plus className="w-4 h-4" /> Add Subscription
                 </Button>
@@ -249,30 +309,7 @@ export default function SubscriptionsPage() {
             </CardHeader>
             <CardContent className="p-0">
 
-              {/* Filter Tabs */}
-              <div className="px-6 pb-4 flex gap-6 border-b border-gray-50">
-                {(["All", "Active", "Past Due", "Cancelled", "Trialing"] as const).map((tab) => {
-                  const isActive = activeTab === tab;
-                  const tabLabel = tab === "All" ? "All Subscriptions" : tab;
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => {
-                        setActiveTab(tab);
-                        setPage(1);
-                      }}
-                      className={cn(
-                        "pb-3 text-[13px] font-medium transition-all relative",
-                        isActive
-                          ? "text-emerald-600 border-b-2 border-emerald-500"
-                          : "text-gray-400 hover:text-gray-900"
-                      )}
-                    >
-                      {tabLabel}
-                    </button>
-                  );
-                })}
-              </div>
+
 
               {/* Filters — matches tournament page filter pattern */}
               <div className="px-6 py-6 flex flex-wrap items-center gap-4">

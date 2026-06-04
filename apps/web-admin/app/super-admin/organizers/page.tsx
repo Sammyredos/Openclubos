@@ -33,6 +33,8 @@ import {
   ArrowUpRight,
   Calendar,
   User,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -61,6 +63,7 @@ import { getTournaments } from "@/lib/api/tournaments";
 import { getRegistrations } from "@/lib/api/registrations";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { updateMember, getMember } from "@/lib/api/members";
+import { exportToCsv, exportToPdf } from "@/lib/export";
 
 
 type ApiOrganizer = {
@@ -235,6 +238,7 @@ export default function OrganizersPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownOrganizer, setDropdownOrganizer] = useState<OrganizerRow | null>(null);
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const [mutating, setMutating] = useState(false);
   const [statusAction, setStatusAction] = useState<"suspend" | "activate">("suspend");
 
@@ -613,9 +617,63 @@ export default function OrganizersPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button 
+              variant="outline" 
+              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+            >
               <Download className="w-4 h-4" /> Export
             </Button>
+            <FloatingMenu
+              open={exportAnchorEl != null}
+              anchorEl={exportAnchorEl}
+              onClose={() => setExportAnchorEl(null)}
+              placement="bottom-end"
+              className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+            >
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToCsv(
+                    filteredOrganizers,
+                    [
+                      { header: "Name", key: "name" },
+                      { header: "Location", key: "location" },
+                      { header: "Admin Name", key: "admin.name" },
+                      { header: "Admin Email", key: "admin.email" },
+                      { header: "Plan", key: "plan" },
+                      { header: "Status", key: "status" },
+                      { header: "Joined Date", key: "joinedDate" },
+                    ],
+                    "organizers-export.csv"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToPdf(
+                    filteredOrganizers,
+                    [
+                      { header: "Name", key: "name" },
+                      { header: "Location", key: "location" },
+                      { header: "Admin", key: "admin.name" },
+                      { header: "Status", key: "status" },
+                    ],
+                    "organizers-export.pdf",
+                    "Organizers Export"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileText className="w-4 h-4 text-rose-600" />
+                Export PDF
+              </button>
+            </FloatingMenu>
             <Button onClick={() => router.push("/super-admin/organizers/create")} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
               <Plus className="w-4 h-4" /> Add Organizer
             </Button>

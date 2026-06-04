@@ -169,6 +169,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
   const stateOptions = useMemo(() => {
@@ -402,6 +403,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   };
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const f = formData;
@@ -462,6 +465,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     } catch (e: any) {
       toast.error(e.message || `Failed to ${tournamentId ? "update" : "create"} tournament`);
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

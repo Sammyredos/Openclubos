@@ -31,6 +31,8 @@ import {
   BarChart3,
   Activity,
   Target,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,6 +48,7 @@ import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
 import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
+import { exportToCsv, exportToPdf } from "@/lib/export";
 import dynamic from "next/dynamic";
 import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
 
@@ -197,6 +200,7 @@ export default function SuperAdminUsersPage() {
   const [tournamentPage, setTournamentPage] = useState(1);
   const modalItemsPerPage = 5;
 
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const closeDropdown = () => {
     setActiveDropdown(null);
@@ -426,15 +430,13 @@ export default function SuperAdminUsersPage() {
       return;
     }
     if (action === "export") {
-      const blob = new Blob([JSON.stringify(u, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${(u.email || "user").toString().replaceAll(" ", "-").toLowerCase()}-export.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      exportToCsv([u], [
+        { header: "Name", key: "firstName" },
+        { header: "Email", key: "email" },
+        { header: "Role", key: "role" },
+        { header: "Status", key: "status" },
+        { header: "Joined Date", key: "createdAt" },
+      ], `${(u.email || "user").toString().replaceAll(" ", "-").toLowerCase()}-export.csv`);
       toast.success("User data exported");
       return;
     }
@@ -635,9 +637,64 @@ export default function SuperAdminUsersPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-xl font-bold">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button 
+              variant="outline" 
+              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+            >
               <Download className="w-4 h-4" /> Export
             </Button>
+            <FloatingMenu
+              open={exportAnchorEl != null}
+              anchorEl={exportAnchorEl}
+              onClose={() => setExportAnchorEl(null)}
+              placement="bottom-end"
+              className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+            >
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToCsv(
+                    filteredUsers,
+                    [
+                      { header: "First Name", key: "firstName" },
+                      { header: "Last Name", key: "lastName" },
+                      { header: "Email", key: "email" },
+                      { header: "Phone", key: "phone" },
+                      { header: "Role", key: "role" },
+                      { header: "Status", key: "status" },
+                      { header: "Handicap", key: "handicap" },
+                      { header: "Joined Date", key: "createdAt" },
+                    ],
+                    "users-export.csv"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToPdf(
+                    filteredUsers,
+                    [
+                      { header: "Name", key: "firstName" },
+                      { header: "Email", key: "email" },
+                      { header: "Role", key: "role" },
+                      { header: "Status", key: "status" },
+                    ],
+                    "users-export.pdf",
+                    "Users Export"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              >
+                <FileText className="w-4 h-4 text-rose-600" />
+                Export PDF
+              </button>
+            </FloatingMenu>
             <Button 
               onClick={() => router.push("/super-admin/users/create")}
               className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"

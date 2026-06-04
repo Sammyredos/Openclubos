@@ -258,6 +258,7 @@ model Tournament {
   registrations Registration[]
   groups      Group[]
 
+  @@unique([clubId, name])
   @@index([clubId])
   @@index([status])
   @@index([name])

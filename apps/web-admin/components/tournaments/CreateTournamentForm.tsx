@@ -230,6 +230,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
 
@@ -477,6 +478,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   };
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     const toastId = toast.loading(tournamentId ? "Saving changes..." : "Creating tournament...");
     try {
@@ -540,6 +543,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     } catch (e: any) {
       toast.error(e.message || `Failed to ${tournamentId ? "update" : "create"} tournament`, { id: toastId });
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
