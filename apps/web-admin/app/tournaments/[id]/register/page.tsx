@@ -89,6 +89,26 @@ export default function TournamentRegistrationPage() {
     </div>
   )
 
+  const hasTournamentStarted = new Date() > new Date(tournament.startDate);
+  if (hasTournamentStarted) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
+      <div className="text-center space-y-6 bg-white p-8 md:p-12 rounded-3xl border border-gray-100 shadow-xl max-w-md w-full animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto">
+          <AlertCircle className="w-10 h-10 text-amber-500" />
+        </div>
+        <div className="space-y-3">
+          <h1 className="text-2xl font-nexa-bold text-gray-900 tracking-tight">Registration Closed</h1>
+          <p className="text-gray-500 leading-relaxed text-[15px]">
+            We're sorry, but registration is now closed. This tournament has already started and we do not accept new registrations after Day 1 has commenced.
+          </p>
+        </div>
+        <Button className="w-full h-12 text-[15px] font-nexa-bold rounded-xl bg-gray-900 hover:bg-gray-800 text-white" onClick={() => router.back()}>
+          Return
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-nexa-regular">
       <div className="max-w-2xl mx-auto">

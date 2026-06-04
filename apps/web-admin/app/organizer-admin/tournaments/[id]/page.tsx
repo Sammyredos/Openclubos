@@ -107,6 +107,8 @@ type TournamentRow = {
   createdAt: string;
   registrations: number;
   scoringType: "NET" | "GROSS";
+  lockedGroupingsDays: number[];
+  enableCut?: boolean;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -248,6 +250,8 @@ function ViewTournamentPageInner() {
   const [isPublishEmailModalOpen, setIsPublishEmailModalOpen] = useState(false);
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
+  const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
+  const [attemptedDayIndex, setAttemptedDayIndex] = useState<number | null>(null);
 
   // Groupings Search/Filter
   const [groupingsSearch, setGroupingsSearch] = useState("");
@@ -416,6 +420,51 @@ function ViewTournamentPageInner() {
     }
   };
 
+  const handleLockGroupings = async () => {
+    if (!selectedTournament) return;
+    try {
+      setMutating(true);
+      const currentLocks = selectedTournament.lockedGroupingsDays || [];
+      const newLocks = Array.from(new Set([...currentLocks, selectedDay]));
+      await updateTournament(selectedTournament.id, { lockedGroupingsDays: newLocks });
+      toast.success(`Day ${selectedDay} groupings locked successfully`);
+      await reloadSingleTournament();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to lock groupings");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const [applyingCut, setApplyingCut] = useState(false);
+  const handleApplyCut = async () => {
+    if (!tournamentId) return;
+    if (!confirm("Are you sure you want to apply the cut? This will eliminate players below the cut line and cannot be easily undone.")) {
+      return;
+    }
+    try {
+      setApplyingCut(true);
+      const res = await fetch(`/api/tournaments/${tournamentId}/apply-cut`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to apply cut");
+      }
+      toast.success("Cut applied successfully");
+      await loadLeaderboardData(); // Reload data to show MC status
+    } catch (err: any) {
+      toast.error(err.message || "Failed to apply cut");
+    } finally {
+      setApplyingCut(false);
+    }
+  };
+
+
   const loadLeaderboardData = async () => {
     if (!tournamentId || !selectedTournament) return;
     setLeaderboardLoading(true);
@@ -442,6 +491,8 @@ function ViewTournamentPageInner() {
             holesCompleted: new Set(),
             points: 0,
             extraStrokes: reg.extraStrokes || 0,
+            madeCut: reg.madeCut,
+            registrationId: reg.id,
             rounds: {}, // Track gross score per round
             holeCounts: {}, // Track how many times each hole was played
           };
@@ -582,6 +633,8 @@ function ViewTournamentPageInner() {
         createdAt: t.createdAt,
         registrations,
         scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
+        lockedGroupingsDays: t.lockedGroupingsDays ?? [],
+        enableCut: t.enableCut,
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -644,6 +697,8 @@ function ViewTournamentPageInner() {
           createdAt: t.createdAt,
           registrations,
           scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
+          lockedGroupingsDays: t.lockedGroupingsDays ?? [],
+          enableCut: t.enableCut,
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
@@ -1663,7 +1718,15 @@ function ViewTournamentPageInner() {
                         {Array.from({ length: getTournamentDays() }).map((_, i) => (
                           <button
                             key={i}
-                            onClick={() => setSelectedDay(i + 1)}
+                            onClick={() => {
+                              const day = i + 1;
+                              if (day > 1 && !selectedTournament?.lockedGroupingsDays.includes(day - 1)) {
+                                setAttemptedDayIndex(day);
+                                setIsDayLockModalOpen(true);
+                                return;
+                              }
+                              setSelectedDay(day);
+                            }}
                             className={cn(
                               "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
                               selectedDay === i + 1
@@ -1742,7 +1805,7 @@ function ViewTournamentPageInner() {
                         </button>
                         <div className="relative inline-block">
                           <Button
-                            disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
                             className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -1750,7 +1813,7 @@ function ViewTournamentPageInner() {
                             <ChevronDown className="w-3.5 h-3.5 ml-1" />
                           </Button>
                           <select
-                            disabled={groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
                             onChange={(e) => handleGenerateGroupings(e.target.value as any)}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                             title="Select Grouping Rule"
@@ -1766,11 +1829,19 @@ function ViewTournamentPageInner() {
                         </div>
                         <Button
                           onClick={handleClearGroupings}
-                          disabled={groupingsLoading || !groupingsData?.groups.length}
+                          disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
                           className="bg-red-500 hover:bg-red-600 text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
                         >
                           <RefreshCcw className="w-3.5 h-3.5" />
                           Reset All
+                        </Button>
+                        <Button
+                          onClick={handleLockGroupings}
+                          disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || mutating || groupingsLoading || groupingsData?.unassigned.length !== 0 || groupingsData?.groups.length === 0}
+                          className={cn("text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border disabled:opacity-50 transition-all gap-2 flex items-center", selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? "bg-slate-800 border-slate-900/20 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700 border-blue-700/20")}
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? "Locked" : "Lock Groupings"}
                         </Button>
                       </div>
                     </div>
@@ -2222,8 +2293,27 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
-                  <div className="space-y-1">
+                {(() => {
+                  const checkDay = selectedLeaderboardDay === "all" ? 1 : selectedLeaderboardDay;
+                  const isLeaderboardLocked = !selectedTournament?.lockedGroupingsDays.includes(checkDay);
+                  if (isLeaderboardLocked) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-24 text-center border border-[#e7e7e7] rounded-xl bg-gray-50/50 mt-4">
+                        <Lock className="w-12 h-12 text-gray-300 mb-4 mx-auto" />
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Leaderboard Inactive</h3>
+                        <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                          You must generate and lock groupings for Day {checkDay} before scores can be recorded and tracked.
+                        </p>
+                        <Button onClick={() => { setSelectedDay(checkDay); setActiveTab("groupings"); }} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold h-11 px-6 rounded-xl">
+                          Manage Groupings
+                        </Button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+                        <div className="space-y-1">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                       Live Standings
                       <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
@@ -2233,6 +2323,16 @@ function ViewTournamentPageInner() {
                     <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
+                    {selectedTournament?.enableCut && (
+                      <Button 
+                        onClick={handleApplyCut}
+                        disabled={applyingCut}
+                        className="h-10 bg-red-600 hover:bg-red-700 text-white font-medium"
+                      >
+                        {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>}
+                        Apply Cut
+                      </Button>
+                    )}
                     <SearchableSelect
                       value={leaderboardGenderFilter}
                       onValueChange={setLeaderboardGenderFilter}
@@ -2361,8 +2461,8 @@ function ViewTournamentPageInner() {
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase">
-                                        {entry.user?.division || "Open"}
+                                      <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase whitespace-nowrap">
+                                        {getGolfCategory(entry.user.handicap)}
                                       </span>
                                     </td>
                                     {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
@@ -2399,7 +2499,9 @@ function ViewTournamentPageInner() {
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      {entry.grossStrokes > 0 ? (
+                                      {entry.madeCut === false ? (
+                                        <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
+                                      ) : entry.grossStrokes > 0 ? (
                                         entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
                                           <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
                                         ) : (
@@ -2438,6 +2540,9 @@ function ViewTournamentPageInner() {
                     );
                   })()
                 )}
+                    </>
+                  );
+                })()}
               </div>
             )}
             {/* TABS 6: Overview */}
@@ -3190,6 +3295,44 @@ function ViewTournamentPageInner() {
             >
               {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
               Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Day Lock Modal */}
+      <Modal
+        isOpen={isDayLockModalOpen}
+        onClose={() => setIsDayLockModalOpen(false)}
+        title="Groupings Not Locked"
+        className="max-w-md"
+      >
+        <div className="space-y-4 pt-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
+            <Lock className="w-6 h-6 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="text-[14px] font-bold text-amber-900">Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1} is not locked</p>
+              <p className="text-[12px] text-amber-700 mt-1">
+                You must finalize and lock groupings for Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1} before managing Day {attemptedDayIndex}.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsDayLockModalOpen(false)}
+              className="rounded-xl"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setIsDayLockModalOpen(false);
+                if (attemptedDayIndex) setSelectedDay(attemptedDayIndex - 1);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm"
+            >
+              Go to Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1}
             </Button>
           </div>
         </div>

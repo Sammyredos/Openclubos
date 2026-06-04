@@ -21,7 +21,7 @@ export class RegistrationsService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
-  ) {}
+  ) { }
 
   async register(
     userId: string,
@@ -63,6 +63,11 @@ export class RegistrationsService {
       new Date() > new Date(tournament.registrationCloseAt)
     ) {
       throw new BadRequestException('Registration deadline has passed');
+    }
+
+    // 3.5 Validate if Tournament has started
+    if (new Date() > new Date(tournament.startDate)) {
+      throw new BadRequestException('Registration is closed. The tournament has already started and we do not accept new registrations after Day 1 has commenced.');
     }
 
     // 4. Check for existing registration
@@ -123,7 +128,7 @@ export class RegistrationsService {
 
     if (userHandicap > platformMax) {
       throw new BadRequestException(
-        `Your handicap (${userHandicap}) exceeds the platform maximum for ${user.gender?.toLowerCase() || 'unspecified'} golfers (${platformMax}). Please update your handicap in your profile.`
+        `Your handicap ${userHandicap} exceeds the platform maximum for ${user.gender?.toLowerCase() || 'unspecified'} golfers (${platformMax}). Please update your handicap in your profile.`
       );
     }
 

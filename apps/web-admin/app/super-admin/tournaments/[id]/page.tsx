@@ -2827,7 +2827,7 @@ function ViewTournamentPageInner() {
                                     </div>
                                   </td>
                                   <td className="px-6 py-4 text-center">
-                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg border border-[#e7e7e7] uppercase tracking-tight">
+                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg border border-[#e7e7e7] uppercase tracking-tight whitespace-nowrap">
                                       {getGolfCategory(entry.user.handicap)}
                                     </span>
                                   </td>

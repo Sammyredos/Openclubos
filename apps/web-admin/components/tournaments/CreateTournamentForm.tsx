@@ -123,6 +123,9 @@ const DEFAULT_FORM = {
   maxPlayers: "",
   maxPlayersPerGroup: 4,
   enableWaitlist: false,
+  enableCut: false,
+  cutAfterRound: "",
+  cutLine: "",
   requiresPayment: false,
   entryFee: "",
   currency: "NGN",
@@ -140,7 +143,7 @@ const DEFAULT_FORM = {
 
 type FormData = typeof DEFAULT_FORM;
 
-function validateStep(step: number, f: FormData, isMultiDay = false): string | null {
+function validateStep(step: number, f: FormData, isMultiDay = false, originalStatus: string | null = null): string | null {
   if (step === 1) {
     if (!f.name.trim()) return "Tournament name is required.";
     if (!f.venue) return "Please select a country.";
@@ -155,12 +158,14 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
       if (!f.endDate) return "End date is required for a multi-day tournament.";
       if (f.endDate <= f.startDate) return "End date must be at least one day after the start date.";
     }
-    if (!f.registrationOpenAt) return "Registration open date is required.";
-    if (!f.registrationCloseAt) return "Registration close date is required.";
-    if (f.registrationCloseAt < f.registrationOpenAt)
-      return "Registration close date must be after the open date.";
-    if (f.registrationCloseAt >= f.startDate)
-      return "Registration must close before the tournament start date.";
+    if (originalStatus !== "ONGOING") {
+      if (!f.registrationOpenAt) return "Registration open date is required.";
+      if (!f.registrationCloseAt) return "Registration close date is required.";
+      if (f.registrationCloseAt < f.registrationOpenAt)
+        return "Registration close date must be after the open date.";
+      if (f.registrationCloseAt >= f.startDate)
+        return "Registration must close before the tournament start date.";
+    }
   }
   if (step === 3) {
     if (!f.format) return "Tournament format is required.";
@@ -176,6 +181,18 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
       if (f.maxHandicap === "") return "Maximum handicap is required when restriction is enabled.";
       if (Number(f.minHandicap) > Number(f.maxHandicap))
         return "Minimum handicap cannot exceed maximum handicap.";
+    }
+    if (f.enableCut) {
+      if (!f.cutAfterRound || Number(f.cutAfterRound) <= 0) return "Cut After Round is required and must be greater than 0.";
+      if (!f.cutLine || Number(f.cutLine) <= 0) return "Players to advance is required and must be greater than 0.";
+      
+      const start = new Date(f.startDate);
+      const end = f.endDate ? new Date(f.endDate) : start;
+      const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      if (Number(f.cutAfterRound) >= days) {
+        return `Cut After Round must be at least one day before the tournament ends (Max: Day ${days - 1}).`;
+      }
     }
   }
   if (step === 5) {
@@ -335,6 +352,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 maxPlayers: t.maxPlayers != null ? String(t.maxPlayers) : "",
                 maxPlayersPerGroup: t.maxPlayersPerGroup || 4,
                 enableWaitlist: t.enableWaitlist ?? false,
+                enableCut: t.enableCut ?? false,
+                cutAfterRound: t.cutAfterRound != null ? String(t.cutAfterRound) : "",
+                cutLine: t.cutLine != null ? String(t.cutLine) : "",
                 requiresPayment: t.requiresPayment ?? false,
                 entryFee: t.entryFee != null ? String(t.entryFee) : "",
                 currency: t.currency || "NGN",
@@ -426,7 +446,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   };
 
   const handleNext = async () => {
-    const err = validateStep(step, formData, isMultiDay);
+    const err = validateStep(step, formData, isMultiDay, originalStatus);
     if (err) {
       setShowValidation(true);
       toast.error(err);
@@ -509,6 +529,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         maxPlayers: f.maxPlayers !== "" ? Number(f.maxPlayers) : null,
         maxPlayersPerGroup: Number(f.maxPlayersPerGroup),
         enableWaitlist: f.enableWaitlist,
+        enableCut: f.enableCut,
+        cutAfterRound: f.enableCut && f.cutAfterRound !== "" ? Number(f.cutAfterRound) : null,
+        cutLine: f.enableCut && f.cutLine !== "" ? Number(f.cutLine) : null,
         requiresPayment: f.requiresPayment,
         entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
         currency: f.requiresPayment ? f.currency : "NGN",
@@ -557,7 +580,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     
     // Check validation of preceding steps if navigating forward
     for (let s = 1; s < targetStep; s++) {
-      const err = validateStep(s, formData, isMultiDay);
+      const err = validateStep(s, formData, isMultiDay, originalStatus);
       if (err) {
         setShowValidation(true);
         toast.error(`Please complete Step ${s} before proceeding.`);
@@ -822,7 +845,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Registration Opens" required>
+                  <Field label="Registration Opens" required={originalStatus !== "ONGOING"}>
                     <DatePicker
                       value={formData.registrationOpenAt}
                       onValueChange={(v) => {
@@ -832,23 +855,23 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           set("registrationCloseAt", "");
                         }
                       }}
-                      disablePast
+                      disablePast={originalStatus !== "ONGOING"}
                       maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                      buttonClassName={req(formData.registrationOpenAt)}
-                      disabled={!formData.startDate}
+                      buttonClassName={originalStatus !== "ONGOING" ? req(formData.registrationOpenAt) : undefined}
+                      disabled={!formData.startDate || originalStatus === "ONGOING"}
                       rangeStart={formData.registrationOpenAt}
                       rangeEnd={formData.registrationCloseAt}
                     />
                     <p className="text-[11px] text-gray-400 mt-1">The date players can start signing up.</p>
                   </Field>
-                  <Field label="Registration Closes" required>
+                  <Field label="Registration Closes" required={originalStatus !== "ONGOING"}>
                     <DatePicker
                       value={formData.registrationCloseAt}
                       onValueChange={(v) => set("registrationCloseAt", v)}
                       minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
                       maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                      buttonClassName={req(formData.registrationCloseAt)}
-                      disabled={!formData.registrationOpenAt}
+                      buttonClassName={originalStatus !== "ONGOING" ? req(formData.registrationCloseAt) : undefined}
+                      disabled={!formData.registrationOpenAt || originalStatus === "ONGOING"}
                       rangeStart={formData.registrationOpenAt}
                       rangeEnd={formData.registrationCloseAt}
                     />
@@ -1196,6 +1219,73 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               )}
             </div>
+
+            {/* Cut Rules */}
+            {isMultiDay && (
+              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => set("enableCut", !formData.enableCut)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-bold text-gray-900">Make Cut</h4>
+                      <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
+                      formData.enableCut ? "bg-emerald-500" : "bg-gray-200"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
+                        formData.enableCut ? "left-6" : "left-1"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {formData.enableCut && (
+                  <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Cut After Round" required>
+                        <Input
+                          type="number"
+                          value={formData.cutAfterRound}
+                          onChange={(e) => set("cutAfterRound", e.target.value)}
+                          placeholder="e.g. 2"
+                          min="1"
+                          max={(() => {
+                            if (!formData.startDate) return undefined;
+                            const start = new Date(formData.startDate);
+                            const end = formData.endDate ? new Date(formData.endDate) : start;
+                            return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                          })()}
+                        />
+                      </Field>
+                      <Field label="Players to Advance" required>
+                        <Input
+                          type="number"
+                          value={formData.cutLine}
+                          onChange={(e) => set("cutLine", e.target.value)}
+                          placeholder="e.g. 50"
+                        />
+                      </Field>
+                    </div>
+                    <p className="text-[11px] text-red-600 font-medium mt-3 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" />
+                      Players below this rank will miss the cut and be excluded from future groupings.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       case 5:

@@ -98,6 +98,19 @@ export class CreateTournamentDto {
   @IsString({ each: true })
   playerTypes?: string[];
 
+  // Cut Rules
+  @IsOptional()
+  @IsBoolean()
+  enableCut?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  cutAfterRound?: number;
+
+  @IsOptional()
+  @IsNumber()
+  cutLine?: number;
+
   // Step 5: Player Limits
   @IsOptional()
   @IsNumber()

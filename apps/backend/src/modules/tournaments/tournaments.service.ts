@@ -60,6 +60,10 @@ export class TournamentsService {
       minHandicap: dto.minHandicap ?? null,
       maxHandicap: dto.maxHandicap ?? null,
       playerTypes: dto.playerTypes ?? ['MEMBER'],
+      // Cut Rules
+      enableCut: dto.enableCut ?? false,
+      cutAfterRound: dto.cutAfterRound ?? null,
+      cutLine: dto.cutLine ?? null,
       // Limits
       maxPlayers: dto.maxPlayers ?? null,
       maxPlayersPerGroup: dto.maxPlayersPerGroup ?? 4,
@@ -378,6 +382,10 @@ export class TournamentsService {
     if (dto.maxPlayersPerGroup !== undefined) data.maxPlayersPerGroup = dto.maxPlayersPerGroup;
     if (dto.enableWaitlist !== undefined) data.enableWaitlist = dto.enableWaitlist;
     
+    if (dto.enableCut !== undefined) data.enableCut = dto.enableCut;
+    if (dto.cutAfterRound !== undefined) data.cutAfterRound = dto.cutAfterRound;
+    if (dto.cutLine !== undefined) data.cutLine = dto.cutLine;
+    
     if (dto.requiresPayment !== undefined) data.requiresPayment = dto.requiresPayment;
     if (dto.entryFee !== undefined) data.entryFee = dto.entryFee;
     if (dto.currency !== undefined) data.currency = dto.currency;
@@ -397,6 +405,7 @@ export class TournamentsService {
     if (dto.publishImmediately !== undefined) data.publishImmediately = dto.publishImmediately;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.lockedGroupingsDays !== undefined) data.lockedGroupingsDays = dto.lockedGroupingsDays;
 
     const existing = await this.prisma.tournament.findUnique({ where: { id } });
     if (!existing) {
@@ -658,5 +667,77 @@ export class TournamentsService {
     }
 
     return { success: true, message: 'Groupings publication emails queued' };
+  }
+
+  async applyCut(tournamentId: string) {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: {
+        registrations: {
+          where: { status: 'APPROVED' },
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      throw new NotFoundException('Tournament not found');
+    }
+
+    if (!tournament.enableCut || !tournament.cutLine) {
+      throw new Error('Tournament does not have a cut rule enabled.');
+    }
+
+    // Fetch all scores for this tournament (scores are tied to groups which are tied to tournaments)
+    const scores = await this.prisma.score.findMany({
+      where: {
+        group: {
+          tournamentId,
+        },
+      },
+    });
+
+    // Group total strokes by userId
+    const userScores: Record<string, number> = {};
+    scores.forEach((s) => {
+      userScores[s.userId] = (userScores[s.userId] || 0) + s.strokes;
+    });
+
+    // Calculate total scores for each player
+    const playerScores = tournament.registrations.map((reg) => {
+      const totalStrokes = userScores[reg.userId] || 0;
+      return {
+        registrationId: reg.id,
+        totalStrokes,
+      };
+    });
+
+    // Sort players by strokes ascending (lower is better in golf)
+    playerScores.sort((a, b) => a.totalStrokes - b.totalStrokes);
+
+    // Find the score at the cut line position (e.g. 50th player).
+    // Note: arrays are 0-indexed, so 50th player is at index 49
+    const cutLineIndex = Math.min(tournament.cutLine - 1, playerScores.length - 1);
+    const cutScoreThreshold = playerScores[cutLineIndex]?.totalStrokes;
+
+    if (cutScoreThreshold === undefined) {
+      return { success: true, message: 'Not enough players to apply cut' };
+    }
+
+    // Assign madeCut = true to players with score <= cutScoreThreshold
+    // Assign madeCut = false to players with score > cutScoreThreshold
+    const updates = playerScores.map(player => {
+      const madeCut = player.totalStrokes <= cutScoreThreshold;
+      return this.prisma.registration.update({
+        where: { id: player.registrationId },
+        data: { madeCut },
+      });
+    });
+
+    await this.prisma.$transaction(updates);
+
+    return { success: true, message: 'Cut applied successfully' };
   }
 }

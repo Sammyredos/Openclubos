@@ -97,4 +97,10 @@ export class TournamentsController {
   async remove(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.remove(id);
   }
+
+  @Post(':id/apply-cut')
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async applyCut(@Request() req: any, @Param('id') id: string) {
+    return this.tournamentsService.applyCut(id);
+  }
 }

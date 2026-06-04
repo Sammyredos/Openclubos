@@ -213,6 +213,11 @@ model Tournament {
   minHandicap          Float?
   maxHandicap          Float?
   playerTypes          String[]         @default(["MEMBER"])
+  
+  // Cut Rules
+  enableCut            Boolean          @default(false)
+  cutAfterRound        Int?
+  cutLine              Int?
 
   // Step 5: Player Limits
   maxPlayers           Int?
@@ -245,6 +250,7 @@ model Tournament {
 
   // Tracking
   emailsSent           Json?
+  lockedGroupingsDays  Int[]            @default([])
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -302,6 +308,7 @@ model Registration {
   playerType       String?   // MEMBER, EXTERNAL, GUEST
   paymentReference String?
   extraStrokes     Int       @default(0)
+  madeCut          Boolean?  // null = pending/no cut, true = advanced, false = missed cut
 
   // Relations
   user          User      @relation(fields: [userId], references: [id])

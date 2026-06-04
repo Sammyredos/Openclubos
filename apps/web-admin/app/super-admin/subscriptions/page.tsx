@@ -11,7 +11,8 @@ import {
   TrendingUp,
   TrendingDown,
   MoreVertical,
-  DollarSign,
+  Wallet,
+  Banknote,
   AlertTriangle,
   CheckCircle2,
   FileText,
@@ -22,8 +23,8 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,6 +38,17 @@ import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { exportToCsv, exportToPdf } from "@/lib/export";
+import { addDays, format } from "date-fns";
+
+const today = new Date();
+const generateMockDate = (days: number) => format(addDays(today, days), "dd MMM yyyy");
+const getBillingSubText = (diff: number, status: string, cancelDate?: string) => {
+  if (status === "Cancelled") return `Cancelled on ${cancelDate}`;
+  if (diff < 0) return `${Math.abs(diff)} days overdue`;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "In 1 day";
+  return `In ${diff} days`;
+};
 
 // Static Subscriptions Mock Data
 const MOCK_SUBSCRIPTIONS = [
@@ -50,9 +62,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 50 tournaments / year",
     billingCycle: "Annual",
     status: "Active",
-    nextBillingDate: "15 Jun 2025",
-    nextBillingSub: "In 20 days",
-    amount: "$2,400.00 / year",
+    nextBillingDate: generateMockDate(20),
+    nextBillingSub: getBillingSubText(20, "Active"),
+    amount: "₦2,400.00 / year",
   },
   {
     id: "sub-2",
@@ -64,9 +76,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 20 tournaments / year",
     billingCycle: "Monthly",
     status: "Active",
-    nextBillingDate: "26 May 2025",
-    nextBillingSub: "In 1 day",
-    amount: "$99.00 / month",
+    nextBillingDate: generateMockDate(1),
+    nextBillingSub: getBillingSubText(1, "Active"),
+    amount: "₦99.00 / month",
   },
   {
     id: "sub-3",
@@ -78,9 +90,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 50 tournaments / year",
     billingCycle: "Monthly",
     status: "Past Due",
-    nextBillingDate: "10 May 2025",
-    nextBillingSub: "16 days overdue",
-    amount: "$199.00 / month",
+    nextBillingDate: generateMockDate(-16),
+    nextBillingSub: getBillingSubText(-16, "Past Due"),
+    amount: "₦199.00 / month",
   },
   {
     id: "sub-4",
@@ -92,9 +104,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 5 tournaments / year",
     billingCycle: "Annual",
     status: "Active",
-    nextBillingDate: "30 Nov 2025",
-    nextBillingSub: "In 218 days",
-    amount: "$600.00 / year",
+    nextBillingDate: generateMockDate(218),
+    nextBillingSub: getBillingSubText(218, "Active"),
+    amount: "₦600.00 / year",
   },
   {
     id: "sub-5",
@@ -106,9 +118,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 20 tournaments / year",
     billingCycle: "Monthly",
     status: "Trialing",
-    nextBillingDate: "05 Jun 2025",
-    nextBillingSub: "In 10 days",
-    amount: "$0.00 / month",
+    nextBillingDate: generateMockDate(10),
+    nextBillingSub: getBillingSubText(10, "Trialing"),
+    amount: "₦0.00 / month",
   },
   {
     id: "sub-6",
@@ -121,8 +133,8 @@ const MOCK_SUBSCRIPTIONS = [
     billingCycle: "Annual",
     status: "Cancelled",
     nextBillingDate: "—",
-    nextBillingSub: "Cancelled on 12 Apr 2025",
-    amount: "$0.00",
+    nextBillingSub: getBillingSubText(0, "Cancelled", "12 Apr 2025"),
+    amount: "₦0.00",
   },
   {
     id: "sub-7",
@@ -134,9 +146,9 @@ const MOCK_SUBSCRIPTIONS = [
     planLimit: "Up to 5 tournaments / year",
     billingCycle: "Monthly",
     status: "Active",
-    nextBillingDate: "20 Jun 2025",
-    nextBillingSub: "In 25 days",
-    amount: "$49.00 / month",
+    nextBillingDate: generateMockDate(25),
+    nextBillingSub: getBillingSubText(25, "Active"),
+    amount: "₦49.00 / month",
   },
 ];
 
@@ -148,15 +160,42 @@ const OVERVIEW_DATA = [
   { name: "Cancelled", value: 3, percentage: "1.9%", color: "#94a3b8" },
 ];
 
-// Recharts Line data
-const REVENUE_DATA = [
-  { name: "Jan", revenue: 58000 },
-  { name: "Feb", revenue: 95000 },
-  { name: "Mar", revenue: 80000 },
-  { name: "Apr", revenue: 110000 },
-  { name: "May", revenue: 150000 },
-  { name: "Jun", revenue: 184500 },
-];
+const REVENUE_DATA_OPTIONS = {
+  "this-year": [
+    { name: "Jan", revenue: 58000 },
+    { name: "Feb", revenue: 95000 },
+    { name: "Mar", revenue: 80000 },
+    { name: "Apr", revenue: 110000 },
+    { name: "May", revenue: 150000 },
+    { name: "Jun", revenue: 184500 },
+  ],
+  "last-6-months": [
+    { name: "Jan", revenue: 95000 },
+    { name: "Feb", revenue: 80000 },
+    { name: "Mar", revenue: 110000 },
+    { name: "Apr", revenue: 150000 },
+    { name: "May", revenue: 180000 },
+    { name: "Jun", revenue: 184500 },
+  ],
+  "this-month": [
+    { name: "Week 1", revenue: 40000 },
+    { name: "Week 2", revenue: 48000 },
+    { name: "Week 3", revenue: 65000 },
+    { name: "Week 4", revenue: 79500 },
+  ]
+};
+
+const REVENUE_TOTALS = {
+  "this-year": "₦184,500.00",
+  "last-6-months": "₦184,500.00",
+  "this-month": "₦79,500.00",
+};
+
+const REVENUE_CHANGES = {
+  "this-year": "15.7%",
+  "last-6-months": "12.4%",
+  "this-month": "8.3%",
+};
 
 export default function SubscriptionsPage() {
   const [activeTab, setActiveTab] = useState<"All" | "Active" | "Past Due" | "Cancelled" | "Trialing">("All");
@@ -164,6 +203,7 @@ export default function SubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [planFilter, setPlanFilter] = useState("All");
   const [billingFilter, setBillingFilter] = useState("All");
+  const [revenueFilter, setRevenueFilter] = useState<"this-year" | "last-6-months" | "this-month">("this-year");
   const [page, setPage] = useState(1);
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const itemsPerPage = 10;
@@ -208,19 +248,19 @@ export default function SubscriptionsPage() {
         />
         <StatCard
           title="Total Monthly Revenue"
-          value="$18,450.00"
+          value="₦18,450.00"
           change="+8.3%"
           changeType="increase"
-          icon={DollarSign}
+          icon={Wallet}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
         />
         <StatCard
           title="Total Annual Revenue"
-          value="$184,500.00"
+          value="₦184,500.00"
           change="+15.7%"
           changeType="increase"
-          icon={DollarSign}
+          icon={Banknote}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
         />
@@ -568,21 +608,35 @@ export default function SubscriptionsPage() {
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-xl font-bold">Revenue Overview</CardTitle>
-              <span className="text-[11px] font-bold text-gray-400 uppercase">This Year</span>
+              <select 
+                value={revenueFilter}
+                onChange={(e) => setRevenueFilter(e.target.value as "this-year" | "last-6-months" | "this-month")}
+                className="text-[12px] font-bold text-gray-700 bg-white border border-[#e7e7e7] rounded-md px-2.5 py-1.5 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_8px_center] outline-none cursor-pointer hover:bg-gray-50 focus:ring-1 focus:ring-emerald-500 transition-colors"
+              >
+                <option value="this-year">This Year</option>
+                <option value="last-6-months">Last 6 Months</option>
+                <option value="this-month">This Month</option>
+              </select>
             </CardHeader>
             <CardContent className="p-3 space-y-4">
               <div className="flex items-baseline gap-2 px-1">
-                <span className="text-2xl font-bold text-gray-800">$184,500.00</span>
+                <span className="text-2xl font-bold text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
                 <div className="flex items-center text-emerald-500 text-[12px] font-medium">
                   <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-                  <span>15.7%</span>
+                  <span>{REVENUE_CHANGES[revenueFilter]}</span>
                   <span className="text-gray-400 text-[11px] ml-1 font-medium">from last year</span>
                 </div>
               </div>
 
               <div className="h-44">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={REVENUE_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <AreaChart data={REVENUE_DATA_OPTIONS[revenueFilter]} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                     <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis
@@ -590,21 +644,23 @@ export default function SubscriptionsPage() {
                       fontSize={10}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v) => `$${v / 1000}k`}
+                      tickFormatter={(v) => `₦${v / 1000}k`}
                     />
                     <Tooltip
-                      formatter={(v) => [`$${v ? Number(v).toLocaleString() : "0"}`, "Revenue"]}
+                      formatter={(v) => [`₦${v ? Number(v).toLocaleString() : "0"}`, "Revenue"]}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
                     />
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="revenue"
                       stroke="#10b981"
                       strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
                       dot={{ r: 3, fill: "#10b981" }}
                       activeDot={{ r: 5 }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>

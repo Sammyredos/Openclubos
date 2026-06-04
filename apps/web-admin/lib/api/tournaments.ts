@@ -23,6 +23,7 @@ export interface Tournament {
   course?: { id: string; name: string } | null;
   enableWaitlist?: boolean;
   _count?: { registrations: number };
+  lockedGroupingsDays?: number[];
 }
 
 export type UpdateTournamentPayload = {
@@ -49,6 +50,9 @@ export type UpdateTournamentPayload = {
   maxPlayers?: number | null;
   maxPlayersPerGroup?: number;
   enableWaitlist?: boolean | null;
+  enableCut?: boolean;
+  cutAfterRound?: number | null;
+  cutLine?: number | null;
   requiresPayment?: boolean;
   entryFee?: number | null;
   currency?: string | null;
@@ -64,6 +68,7 @@ export type UpdateTournamentPayload = {
   visibility?: 'PUBLIC' | 'PRIVATE' | 'INVITE_ONLY';
   clubId?: string;
   courseId?: string;
+  lockedGroupingsDays?: number[];
 };
 
 type QueryValue = string | number | boolean | null | undefined;
@@ -223,6 +228,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
         id: reg.id,
         paymentStatus: reg.paymentStatus,
         extraStrokes: reg.extraStrokes || 0,
+        madeCut: reg.madeCut,
         user: reg.user ? {
           id: reg.user.id || reg.userId,
           email: reg.user.email || '',
@@ -233,7 +239,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
           gender: reg.user.gender || null,
           dob: reg.user.dob || null,
         } : null,
-      }));
+      })).filter((p: any) => p.madeCut !== false);
     }
   } catch {
     // Ignore and fallback
