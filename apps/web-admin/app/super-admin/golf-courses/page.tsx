@@ -135,7 +135,7 @@ export default function SuperAdminGolfCoursesPage() {
     try {
       const res = await getAdminCourses({
         skip: 0,
-        take: 10000,
+        take: 100,
       });
       setAllCourses(res.items);
       if (res.stats) setStats(res.stats);

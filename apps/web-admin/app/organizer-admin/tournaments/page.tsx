@@ -104,6 +104,7 @@ type ApiTournament = {
   endDate: string | null;
   status: TournamentStatus;
   entryFee: number | null;
+  requiresPayment: boolean;
   maxPlayers: number | null;
   registrationDeadline?: string | null;
   playerTypes: string[];
@@ -124,6 +125,7 @@ type TournamentRow = {
   status: string;
   badge: string;
   entryFee: number | null;
+  requiresPayment: boolean;
   startDate: string;
   endDate: string | null;
   maxPlayers: number | null;
@@ -436,6 +438,7 @@ export default function TournamentsPage() {
       status: STATUS_META[t.status]?.label ?? t.status,
       badge: STATUS_META[t.status]?.badge ?? "bg-gray-100 text-gray-500",
       entryFee: t.entryFee,
+      requiresPayment: t.requiresPayment,
       startDate: t.startDate,
       endDate: t.endDate,
       maxPlayers: t.maxPlayers,
@@ -776,8 +779,8 @@ export default function TournamentsPage() {
       await registerForTournament({
         tournamentId: selectedTournament.id,
         userId,
-        paymentStatus: manualPaymentType === "CASH" ? "PAID" : "UNPAID",
-        status: manualPaymentType === "CASH" ? "APPROVED" : "PENDING",
+        paymentStatus: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "PAID" : "UNPAID",
+        status: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "APPROVED" : "PENDING",
       });
       toast.success("Player registered successfully");
       setIsRegisterPlayerModalOpen(false);
@@ -2316,53 +2319,55 @@ export default function TournamentsPage() {
           </div>
 
           {/* Payment Status Selection */}
-          <div className="space-y-3 px-1">
-            <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setManualPaymentType('UNPAID')}
-                className={cn(
-                  "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                  manualPaymentType === 'UNPAID'
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                    manualPaymentType === 'UNPAID' ? "border-emerald-500" : "border-gray-300"
-                  )}>
-                    {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+          {selectedTournament?.requiresPayment && (
+            <div className="space-y-3 px-1">
+              <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setManualPaymentType('UNPAID')}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                    manualPaymentType === 'UNPAID'
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                      manualPaymentType === 'UNPAID' ? "border-emerald-500" : "border-gray-300"
+                    )}>
+                      {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <span className="text-[13px] font-bold">Unpaid</span>
                   </div>
-                  <span className="text-[13px] font-bold">Unpaid</span>
-                </div>
-                <p className="text-[10px] opacity-70 leading-tight">Player will not be confirmed for grouping until payment is recorded.</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setManualPaymentType('CASH')}
-                className={cn(
-                  "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                  manualPaymentType === 'CASH'
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                    manualPaymentType === 'CASH' ? "border-emerald-500" : "border-gray-300"
-                  )}>
-                    {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                  <p className="text-[10px] opacity-70 leading-tight">Player will not be confirmed for grouping until payment is recorded.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setManualPaymentType('CASH')}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                    manualPaymentType === 'CASH'
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                      manualPaymentType === 'CASH' ? "border-emerald-500" : "border-gray-300"
+                    )}>
+                      {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <span className="text-[13px] font-bold">Paid with Cash</span>
                   </div>
-                  <span className="text-[13px] font-bold">Paid with Cash</span>
-                </div>
-                <p className="text-[10px] opacity-70 leading-tight">Registration will be approved and confirmed for grouping immediately.</p>
-              </button>
+                  <p className="text-[10px] opacity-70 leading-tight">Registration will be approved and confirmed for grouping immediately.</p>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Search Input */}
           <div className="space-y-2 px-1">

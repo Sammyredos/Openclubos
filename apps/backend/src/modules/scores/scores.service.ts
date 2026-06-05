@@ -9,14 +9,14 @@ import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoreStatus, UserRole } from '@prisma/client';
 import { JobsService } from '../jobs/jobs.service';
 
-const MAX_PAGE_SIZE = 10000;
+const MAX_PAGE_SIZE = 100;
 
 @Injectable()
 export class ScoresService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
-  ) {}
+  ) { }
 
   async upsertScore(createScoreDto: CreateScoreDto, currentUser: any) {
     const { userId, holeId, groupId, strokes, putts, points } = createScoreDto;
@@ -182,7 +182,7 @@ export class ScoresService {
     });
   }
 
-  async findByTournament(tournamentId: string, skip = 0, take = 10000) {
+  async findByTournament(tournamentId: string, skip = 0, take = 100) {
     const safeTake = Math.min(take, MAX_PAGE_SIZE);
     return this.prisma.score.findMany({
       where: {
@@ -209,6 +209,10 @@ export class ScoresService {
             handicap: true,
             email: true,
             profilePhoto: true,
+            registrations: {
+              where: { tournamentId },
+              select: { madeCut: true },
+            },
           },
         },
         hole: {

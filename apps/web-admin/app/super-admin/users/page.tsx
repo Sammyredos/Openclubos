@@ -269,7 +269,7 @@ export default function SuperAdminUsersPage() {
     try {
       const data = await getAdminUsers({
         skip: 0,
-        take: 10000,
+        take: 100,
       });
       setAllUsers(Array.isArray(data.items) ? data.items : []);
       setStats(data.stats ?? null);
@@ -383,7 +383,7 @@ export default function SuperAdminUsersPage() {
 
     try {
       const { getRegistrations } = await import("@/lib/api/registrations");
-      const res = await getRegistrations({ userId: u.id, take: 500 });
+      const res = await getRegistrations({ userId: u.id, take: 100 });
       setViewRegistrations(res.items || []);
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to load user activity");

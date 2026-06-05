@@ -164,7 +164,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const [compressing, setCompressing] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [nameCheckLoading, setNameCheckLoading] = useState(false);
-  const [organizers, setOrganizers] = useState<{ id: string; name: string }[]>([]);
+  const [organizers, setOrganizers] = useState<{ id: string; name: string; logo?: string }[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
@@ -223,7 +223,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       setFormData({ ...DEFAULT_FORM });
       getOrganizers()
         .then((d: any[]) => {
-          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
+          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
         })
         .catch(() => { });
 
@@ -508,7 +508,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     options={filteredCourses.map((c) => ({
                       value: c.id,
                       label: c.name,
-                      image: c.coverImage || undefined
+                      image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`
                     }))}
                     placeholder="Select course..."
                     disabled={!formData.venue}
@@ -527,7 +527,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <div className="pt-1">
                 <Field label="Organizer" required>
                   <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
-                    options={organizers.map((o) => ({ value: o.id, label: o.name }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
+                    options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
                 </Field>
               </div>
 
@@ -946,7 +946,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <Field label="Max Total Players">
                     <Input type="number" value={formData.maxPlayers} placeholder="e.g. 144" onChange={(e) => set("maxPlayers", e.target.value)} />
                   </Field>
-                  <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
+                  <p className="text-[11px] font-bold text-amber-600 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
                 </div>
                 <Field label="Players Per Group" required>
                   <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))} />

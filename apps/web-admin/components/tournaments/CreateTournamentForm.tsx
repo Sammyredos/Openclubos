@@ -183,15 +183,15 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
         return "Minimum handicap cannot exceed maximum handicap.";
     }
     if (f.enableCut) {
-      if (!f.cutAfterRound || Number(f.cutAfterRound) <= 0) return "Cut After Round is required and must be greater than 0.";
+      if (!f.cutAfterRound || Number(f.cutAfterRound) <= 0) return "Cut Players after What Day is required and must be greater than 0.";
       if (!f.cutLine || Number(f.cutLine) <= 0) return "Players to advance is required and must be greater than 0.";
-      
+
       const start = new Date(f.startDate);
       const end = f.endDate ? new Date(f.endDate) : start;
       const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      
+
       if (Number(f.cutAfterRound) >= days) {
-        return `Cut After Round must be at least one day before the tournament ends (Max: Day ${days - 1}).`;
+        return `Cut Players after What Day must be at least one day before the tournament ends (Max: Day ${days - 1}).`;
       }
     }
   }
@@ -208,13 +208,19 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
   return null;
 }
 
-const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
+const Toggle = ({ label, checked, onChange, disabled, onClickDisabled }: { label: string; checked: boolean; onChange: (v: boolean) => void, disabled?: boolean, onClickDisabled?: () => void }) => (
   <div
-    onClick={() => onChange(!checked)}
-    className="flex items-center gap-3 cursor-pointer select-none group"
+    onClick={() => {
+      if (disabled) {
+        if (onClickDisabled) onClickDisabled();
+        return;
+      }
+      onChange(!checked);
+    }}
+    className={cn("flex items-center gap-3 select-none group", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}
   >
     <div
-      className={cn("relative w-10 h-6 rounded-full transition-colors flex-shrink-0", checked ? "bg-emerald-500" : "bg-gray-200")}
+      className={cn("relative w-10 h-6 rounded-full transition-colors flex-shrink-0", checked ? (disabled ? "bg-emerald-400" : "bg-emerald-500") : "bg-gray-200")}
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
@@ -241,7 +247,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [compressing, setCompressing] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [nameCheckLoading, setNameCheckLoading] = useState(false);
-  const [organizers, setOrganizers] = useState<{ id: string; name: string }[]>([]);
+  const [organizers, setOrganizers] = useState<{ id: string; name: string; logo?: string }[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
@@ -290,18 +296,18 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     setStep(1);
     setShowValidation(false);
     setIsMultiDay(false);
-    
+
     getOrganizers()
       .then((d: any[]) => {
-        if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name })));
+        if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
       })
-      .catch(() => {});
+      .catch(() => { });
 
     getCourses()
       .then((d: any) => {
         const arr = Array.isArray(d) ? d : d.items || [];
         setCourses(arr);
-        
+
         if (tournamentId) {
           setLoading(true);
           getTournament(tournamentId)
@@ -371,7 +377,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               });
               if (t.endDate) setIsMultiDay(true);
             })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => setLoading(false));
         } else {
           let orgId = "";
@@ -394,7 +400,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [tournamentId]);
 
   const set = (field: string, value: any) => setFormData((p) => ({ ...p, [field]: value }));
@@ -577,7 +583,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       setShowValidation(false);
       return;
     }
-    
+
     // Check validation of preceding steps if navigating forward
     for (let s = 1; s < targetStep; s++) {
       const err = validateStep(s, formData, isMultiDay, originalStatus);
@@ -645,7 +651,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       options={filteredCourses.map((c) => ({
                         value: c.id,
                         label: c.name,
-                        image: c.coverImage || undefined,
+                        image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`,
                       }))}
                       placeholder="Select course..."
                       disabled={!formData.venue}
@@ -665,7 +671,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <SearchableSelect
                     value={formData.clubId}
                     onValueChange={handleClubChange}
-                    options={organizers.map((o) => ({ value: o.id, label: o.name }))}
+                    options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))}
                     placeholder="Select organizer..."
                     triggerClassName={req(formData.clubId)}
                     disabled={!!tournamentId}
@@ -1130,7 +1136,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       placeholder="e.g. 144"
                       onChange={(e) => set("maxPlayers", e.target.value)}
                     />
-                    <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
+                    <p className="text-[11px] font-bold text-amber-600 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
                   </Field>
                 </div>
 
@@ -1229,7 +1235,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
                     </div>
                     <div>
                       <h4 className="text-[14px] font-bold text-gray-900">Make Cut</h4>
@@ -1254,7 +1260,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 {formData.enableCut && (
                   <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Cut After Round" required>
+                      <Field label="Cut Players after What Day" required>
                         <Input
                           type="number"
                           value={formData.cutAfterRound}
@@ -1303,37 +1309,72 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
 
               <div className="space-y-6">
+                {originalStatus && originalStatus !== "DRAFT" && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[14px] font-bold text-amber-800">Payments Locked</p>
+                      <p className="text-[13px] text-amber-700 mt-0.5">
+                        Registration fees and payment settings are locked and cannot be modified because the tournament has been published.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <Toggle
                   label="Requires Payment?"
                   checked={formData.requiresPayment}
+                  disabled={originalStatus != null && originalStatus !== "DRAFT"}
+                  onClickDisabled={() => toast.error("Registration fees cannot be modified for a published tournament.")}
                   onChange={(v) => set("requiresPayment", v)}
                 />
                 {formData.requiresPayment && (
                   <div className="space-y-4 pl-4 border-l-2 border-emerald-250 animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Field label="Entry Fee" required>
-                        <Input
-                          type="text"
-                          value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
-                          onChange={(e) => {
-                            const rawValue = e.target.value.replace(/\D/g, "");
-                            set("entryFee", rawValue);
+                        <div
+                          onClickCapture={(e) => {
+                            if (originalStatus != null && originalStatus !== "DRAFT") {
+                              e.stopPropagation();
+                              toast.error("Registration fees cannot be modified for a published tournament.");
+                            }
                           }}
-                          placeholder="5,000"
-                          className={req(formData.entryFee)}
-                        />
+                        >
+                          <Input
+                            type="text"
+                            value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/\D/g, "");
+                              set("entryFee", rawValue);
+                            }}
+                            disabled={originalStatus != null && originalStatus !== "DRAFT"}
+                            placeholder="5,000"
+                            className={req(formData.entryFee)}
+                          />
+                        </div>
                       </Field>
                       <Field label="Currency" required>
-                        <Input
-                          value={formData.currency}
-                          onChange={(e) => set("currency", e.target.value.toUpperCase())}
-                          placeholder="NGN"
-                        />
+                        <div
+                          onClickCapture={(e) => {
+                            if (originalStatus != null && originalStatus !== "DRAFT") {
+                              e.stopPropagation();
+                              toast.error("Registration fees cannot be modified for a published tournament.");
+                            }
+                          }}
+                        >
+                          <Input
+                            value={formData.currency}
+                            onChange={(e) => set("currency", e.target.value.toUpperCase())}
+                            disabled={originalStatus != null && originalStatus !== "DRAFT"}
+                            placeholder="NGN"
+                          />
+                        </div>
                       </Field>
                     </div>
                     <Toggle
                       label="Refundable Entry Fee?"
                       checked={formData.isRefundable}
+                      disabled={originalStatus != null && originalStatus !== "DRAFT"}
+                      onClickDisabled={() => toast.error("Registration fees cannot be modified for a published tournament.")}
                       onChange={(v) => set("isRefundable", v)}
                     />
                     <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
@@ -1621,8 +1662,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       active
                         ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
                         : past
-                        ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                        : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
+                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
                     )}
                   >
                     {past ? "✓" : i + 1}

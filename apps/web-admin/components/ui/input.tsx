@@ -90,7 +90,7 @@ function SearchableSelect({
           triggerClassName
         )}
       >
-        <div className="flex items-center gap-2.5 truncate">
+        <div className="flex items-center gap-2.5 flex-1 overflow-hidden pr-2">
           {selected?.image ? (
             <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#e7e7e7]" alt="" />
           ) : selected?.icon ? (
@@ -98,7 +98,7 @@ function SearchableSelect({
               <selected.icon className="w-3 h-3 text-emerald-600" />
             </div>
           ) : null}
-          <span className={cn(!value ? "text-gray-400" : undefined, "truncate")}>
+          <span className={cn(!value ? "text-gray-400" : undefined, "truncate text-left")}>
             {selected ? selected.label : placeholder}
           </span>
         </div>
@@ -157,34 +157,36 @@ function SearchableSelect({
                     o.value === value ? "bg-emerald-50/80 font-bold text-emerald-900" : "text-gray-700"
                   )}
                 >
-                  <div className="flex items-center gap-2.5 flex-1 truncate">
-                    {o.image ? (
-                      <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e7e7e7]" alt="" />
-                    ) : o.icon ? (
-                      <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
-                        <o.icon className="w-3.5 h-3.5 text-emerald-600" />
-                      </div>
-                    ) : null}
-                    <span className="truncate">{o.label}</span>
+                  <div className="flex items-center justify-between w-full gap-2 overflow-hidden">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      {o.image ? (
+                        <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e7e7e7]" alt="" />
+                      ) : o.icon ? (
+                        <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+                          <o.icon className="w-3.5 h-3.5 text-emerald-600" />
+                        </div>
+                      ) : null}
+                      <span className="truncate text-left">{o.label}</span>
+                    </div>
+                    {o.value === value && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-emerald-600 shrink-0 ml-1"
+                      >
+                        <path
+                          d="M20 6L9 17L4 12"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
                   </div>
-                  {o.value === value && (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-emerald-600 shrink-0"
-                    >
-                      <path
-                        d="M20 6L9 17L4 12"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
                 </button>
               ))
             )}

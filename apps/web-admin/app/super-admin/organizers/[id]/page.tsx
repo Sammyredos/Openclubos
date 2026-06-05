@@ -240,7 +240,7 @@ export default function OrganizerDetailsPage() {
 
         const [tournamentsRes, registrationsRes, statsRes] = await Promise.all([
           getTournaments({ organizerId }),
-          getRegistrations({ organizerId, take: 500 }),
+          getRegistrations({ organizerId, take: 100 }),
           getOrganizerStats(organizerId),
         ]);
 

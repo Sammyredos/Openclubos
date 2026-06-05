@@ -179,6 +179,18 @@ export async function deleteTournament(id: string) {
   return text ? JSON.parse(text) : null;
 }
 
+export async function applyCut(id: string) {
+  const res = await authedFetch(`/tournaments/${id}/apply-cut`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to apply cut');
+  }
+  return res.json();
+}
+
 // ==========================================
 // TOURNEY GROUPINGS (TEE TIMES) LOGIC
 // ==========================================
@@ -218,7 +230,7 @@ function getStorageKey(tId: string, day: number = 1) {
 
 async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   try {
-    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&status=APPROVED&take=1000`, {
+    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&status=APPROVED&take=100`, {
       method: 'GET',
     });
     if (res.ok) {

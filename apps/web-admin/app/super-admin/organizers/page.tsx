@@ -383,7 +383,7 @@ export default function OrganizersPage() {
     try {
       const [tournamentsRes, registrationsRes, statsRes] = await Promise.all([
         getTournaments({ organizerId: organizer.id }),
-        getRegistrations({ organizerId: organizer.id, take: 500 }),
+        getRegistrations({ organizerId: organizer.id, take: 100 }),
         getOrganizerStats(organizer.id),
       ]);
 

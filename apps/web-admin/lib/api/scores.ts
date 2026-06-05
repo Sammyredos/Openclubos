@@ -26,8 +26,26 @@ export const getGroupScores = async (groupId: string) => {
 
 export const getTournamentScores = async (tournamentId: string) => {
   try {
-    const response = await axios.get(`${API_URL}/scores/tournament/${tournamentId}`, getHeaders());
-    return response.data;
+    let allScores: any[] = [];
+    let skip = 0;
+    const take = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await axios.get(`${API_URL}/scores/tournament/${tournamentId}?skip=${skip}&take=${take}`, getHeaders());
+      const data = response.data;
+      if (Array.isArray(data)) {
+        allScores = allScores.concat(data);
+        if (data.length < take) {
+          hasMore = false;
+        } else {
+          skip += take;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    return allScores;
   } catch (error: any) {
     if (error.response?.status === 401) {
       await handleAuthFailure(error.response);

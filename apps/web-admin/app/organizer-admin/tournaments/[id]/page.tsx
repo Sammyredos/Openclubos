@@ -42,6 +42,7 @@ import {
   Scale,
   TrendingUp,
   TrendingDown,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -63,6 +64,7 @@ import {
   updateGroupingTime,
   clearGroupings,
   publishGroupingsEmail,
+  applyCut,
   type GroupingData,
   type GroupingItem,
   type GroupingPlayer,
@@ -109,6 +111,7 @@ type TournamentRow = {
   scoringType: "NET" | "GROSS";
   lockedGroupingsDays: number[];
   enableCut?: boolean;
+  cutAfterRound?: number;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -252,6 +255,9 @@ function ViewTournamentPageInner() {
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
   const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
   const [attemptedDayIndex, setAttemptedDayIndex] = useState<number | null>(null);
+  const [pendingGroupingRule, setPendingGroupingRule] = useState<any>(null);
+  const [isUngroupedPlayersModalOpen, setIsUngroupedPlayersModalOpen] = useState(false);
+  const [isCheckingPreviousDay, setIsCheckingPreviousDay] = useState(false);
 
   // Groupings Search/Filter
   const [groupingsSearch, setGroupingsSearch] = useState("");
@@ -444,17 +450,7 @@ function ViewTournamentPageInner() {
     }
     try {
       setApplyingCut(true);
-      const res = await fetch(`/api/tournaments/${tournamentId}/apply-cut`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to apply cut");
-      }
+      await applyCut(tournamentId);
       toast.success("Cut applied successfully");
       await loadLeaderboardData(); // Reload data to show MC status
     } catch (err: any) {
@@ -471,13 +467,22 @@ function ViewTournamentPageInner() {
     try {
       const scores = await getTournamentScores(tournamentId);
 
-      // Get all approved & paid registrations to include in leaderboard even if no scores
-      const { items: allRegs } = await getRegistrations({
-        tournamentId,
-        status: "APPROVED",
-        paymentStatus: "PAID",
-        take: 500,
-      });
+      // Get all approved & paid registrations, plus any disqualified players
+      const [approvedRes, dqRes] = await Promise.all([
+        getRegistrations({
+          tournamentId,
+          status: "APPROVED",
+          paymentStatus: "PAID",
+          take: 100,
+        }),
+        getRegistrations({
+          tournamentId,
+          status: "DISQUALIFIED",
+          take: 100,
+        })
+      ]);
+
+      const allRegs = [...(approvedRes.items || []), ...(dqRes.items || [])];
 
       const playersMap: Record<string, any> = {};
 
@@ -486,6 +491,7 @@ function ViewTournamentPageInner() {
         if (reg.user) {
           playersMap[reg.user.id] = {
             user: reg.user,
+            status: reg.status,
             grossStrokes: 0,
             toPar: 0,
             holesCompleted: new Set(),
@@ -502,7 +508,7 @@ function ViewTournamentPageInner() {
       scores.forEach((s: any) => {
         const uid = s.userId;
         if (!playersMap[uid]) {
-          // Strictly reject scores from players who are not officially APPROVED and PAID
+          // Strictly reject scores from players who are not officially APPROVED and PAID or DISQUALIFIED
           return;
         }
 
@@ -557,6 +563,10 @@ function ViewTournamentPageInner() {
           };
         })
         .sort((a, b) => {
+          // Sort: Disqualified at the very bottom
+          if (a.status === "DISQUALIFIED" && b.status !== "DISQUALIFIED") return 1;
+          if (b.status === "DISQUALIFIED" && a.status !== "DISQUALIFIED") return -1;
+
           // Sort: 0 strokes (haven't started) should be at the bottom
           if (a.grossStrokes === 0 && b.grossStrokes > 0) return 1;
           if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
@@ -635,6 +645,7 @@ function ViewTournamentPageInner() {
         scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
         lockedGroupingsDays: t.lockedGroupingsDays ?? [],
         enableCut: t.enableCut,
+        cutAfterRound: t.cutAfterRound,
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -699,6 +710,7 @@ function ViewTournamentPageInner() {
           scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
           lockedGroupingsDays: t.lockedGroupingsDays ?? [],
           enableCut: t.enableCut,
+          cutAfterRound: t.cutAfterRound,
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
@@ -1712,37 +1724,33 @@ function ViewTournamentPageInner() {
                 ) : (
                   <>
                     <p className="text-[13px] text-gray-500 font-medium mb-3">Select the tournament day you want to manage groupings for:</p>
-                    {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
-                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
-                      <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
-                        {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                    {/* Day Selection Linear Flow */}
+                    <div className="flex items-center justify-between pb-4 border-b border-[#e7e7e7]">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border-2 border-emerald-200 px-10 py-3 text-2xl font-bold rounded-2xl flex items-center gap-3 tracking-tight">
+                          <Calendar className="w-6 h-6 text-emerald-600" />
+                          DAY {selectedDay}
+                        </div>
+                        {selectedDay > 1 && (
                           <button
-                            key={i}
-                            onClick={() => {
-                              const day = i + 1;
-                              if (day > 1 && !selectedTournament?.lockedGroupingsDays.includes(day - 1)) {
-                                setAttemptedDayIndex(day);
-                                setIsDayLockModalOpen(true);
-                                return;
-                              }
-                              setSelectedDay(day);
-                            }}
-                            className={cn(
-                              "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
-                              selectedDay === i + 1
-                                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                                : "text-gray-500 hover:text-gray-900 hover:bg-white"
-                            )}
+                            onClick={() => setSelectedDay(selectedDay - 1)}
+                            className="px-6 py-2.5 text-[13px] font-bold rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
                           >
-                            DAY {i + 1}
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Day {selectedDay - 1}
                           </button>
-                        ))}
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {selectedDay} of {getTournamentDays()} Days Active
-                        </span>
+                      <div className="flex items-center gap-3">
+                        {selectedDay < getTournamentDays() && (
+                          <button
+                            onClick={() => setSelectedDay(selectedDay + 1)}
+                            className="px-6 py-2.5 text-[13px] font-bold rounded-xl bg-[#10b981] hover:bg-emerald-600 text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                          >
+                            Proceed to Day {selectedDay + 1}
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1782,8 +1790,14 @@ function ViewTournamentPageInner() {
                     {/* Groupings Dashboard Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
                       <div className="space-y-1">
-                        <h3 className="text-lg font-bold text-gray-900">Manage Groupings</h3>
-                        <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-3">
+                          Manage Groupings
+                          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
+                            <Calendar className="w-3 h-3" />
+                            {getTournamentDays()} Day Tournament
+                          </span>
+                        </h3>
+                        <p className="text-[13px] text-slate-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -1797,24 +1811,49 @@ function ViewTournamentPageInner() {
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           disabled={!!groupingsData?.groups?.length}
-                          className="flex flex-col items-center justify-center px-3 h-11 rounded-xl shadow-sm bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Please read"
+                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e7e7e7] text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed transition-all text-[13px] font-bold shadow-sm"
+                          title="Grouping Rules"
                         >
-                          <Info className="w-4 h-4 mb-0.5" />
-                          <span className="text-[9px] font-bold leading-none">Please read</span>
+                          <Info className="w-4 h-4 text-emerald-600" />
+                          Grouping Rules
                         </button>
                         <div className="relative inline-block">
                           <Button
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                            className="bg-[#10b981] hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                             Auto Group Players
                             <ChevronDown className="w-3.5 h-3.5 ml-1" />
                           </Button>
                           <select
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                            onChange={(e) => handleGenerateGroupings(e.target.value as any)}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || !groupingsData?.unassigned.length}
+                            onChange={async (e) => {
+                              const rule = e.target.value as any;
+                              if (!rule) return;
+                              e.target.value = "";
+                              if (selectedDay > 1 && !selectedTournament?.lockedGroupingsDays?.includes(selectedDay - 1)) {
+                                if (tournamentId) {
+                                  setIsCheckingPreviousDay(true);
+                                  try {
+                                    const prevData = await getGroupings(tournamentId, selectedDay - 1);
+                                    if (prevData && prevData.unassigned.length > 0) {
+                                      setIsUngroupedPlayersModalOpen(true);
+                                      return;
+                                    }
+                                  } catch (err) {
+                                    toast.error("Failed to verify previous day's groupings");
+                                    return;
+                                  } finally {
+                                    setIsCheckingPreviousDay(false);
+                                  }
+                                }
+                                setPendingGroupingRule(rule);
+                                setIsDayLockModalOpen(true);
+                              } else {
+                                handleGenerateGroupings(rule);
+                              }
+                            }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                             title="Select Grouping Rule"
                           >
@@ -1830,7 +1869,7 @@ function ViewTournamentPageInner() {
                         <Button
                           onClick={handleClearGroupings}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                          className="bg-red-500 hover:bg-red-600 text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border border-red-600/20 disabled:opacity-50 transition-all gap-2"
+                          className="bg-slate-900 hover:bg-slate-800 text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border border-slate-900/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
                         >
                           <RefreshCcw className="w-3.5 h-3.5" />
                           Reset All
@@ -2095,11 +2134,11 @@ function ViewTournamentPageInner() {
                         {groupingsSubTab === "unassigned" && (
                           <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <div className="p-4 border-b border-[#e7e7e7] bg-gray-50/30 flex items-center justify-between">
-                              <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-blue-500" />
+                              <h4 className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-emerald-500" />
                                 Unassigned Participants
                               </h4>
-                              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 font-black px-2 py-0.5">
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black px-2 py-0.5">
                                 {groupingsData.unassigned.length}
                               </Badge>
                             </div>
@@ -2424,7 +2463,9 @@ function ViewTournamentPageInner() {
                                   <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-4 text-center">
                                       <div className="flex items-center justify-center">
-                                        {rank === 1 ? (
+                                        {entry.status === "DISQUALIFIED" ? (
+                                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-tight">DQ</span>
+                                        ) : rank === 1 ? (
                                           <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
                                             <Trophy className="w-4 h-4 text-yellow-600" />
                                           </div>
@@ -2465,11 +2506,25 @@ function ViewTournamentPageInner() {
                                         {getGolfCategory(entry.user.handicap)}
                                       </span>
                                     </td>
-                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                                      <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                        <span className="text-[13px] font-bold text-gray-700">{entry.rounds[i + 1] || "-"}</span>
-                                      </td>
-                                    ))}
+                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
+                                      const day = i + 1;
+                                      const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
+                                      const missedCut = entry.madeCut === false;
+
+                                      if (isAfterCut && missedCut) {
+                                        return (
+                                          <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
+                                          </td>
+                                        );
+                                      }
+
+                                      return (
+                                        <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                          <span className="text-[13px] font-bold text-gray-700">{entry.rounds[day] || "-"}</span>
+                                        </td>
+                                      );
+                                    })}
                                     <td className="px-6 py-4 text-center">
                                       <div className="space-y-1.5">
                                         <span className="text-[12px] font-bold text-gray-600">
@@ -2486,7 +2541,14 @@ function ViewTournamentPageInner() {
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                      <div className="flex flex-col items-center justify-center gap-1">
+                                        <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                        {entry.extraStrokes > 0 && (
+                                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
+                                            +{entry.extraStrokes} Pen
+                                          </span>
+                                        )}
+                                      </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                       <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
@@ -3311,9 +3373,9 @@ function ViewTournamentPageInner() {
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
             <Lock className="w-6 h-6 text-amber-600 flex-shrink-0" />
             <div>
-              <p className="text-[14px] font-bold text-amber-900">Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1} is not locked</p>
+              <p className="text-[14px] font-bold text-amber-900">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</p>
               <p className="text-[12px] text-amber-700 mt-1">
-                You must finalize and lock groupings for Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1} before managing Day {attemptedDayIndex}.
+                You must finalize and irreversibly lock groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
               </p>
             </div>
           </div>
@@ -3322,17 +3384,74 @@ function ViewTournamentPageInner() {
               variant="outline"
               onClick={() => setIsDayLockModalOpen(false)}
               className="rounded-xl"
+              disabled={mutating}
             >
-              Close
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedTournament) return;
+                setMutating(true);
+                const prevDay = selectedDay > 1 ? selectedDay - 1 : 1;
+                const currentLocks = selectedTournament.lockedGroupingsDays || [];
+                const newLocks = Array.from(new Set([...currentLocks, prevDay]));
+                try {
+                  const data = await updateTournament(selectedTournament.id, { lockedGroupingsDays: newLocks });
+                  setSelectedTournament(data);
+                  toast.success(`Day ${prevDay} groupings irreversibly locked`);
+                  setIsDayLockModalOpen(false);
+                  if (pendingGroupingRule) {
+                    handleGenerateGroupings(pendingGroupingRule);
+                    setPendingGroupingRule(null);
+                  }
+                } catch (err) {
+                  toast.error("Failed to lock groupings");
+                } finally {
+                  setMutating(false);
+                }
+              }}
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm font-bold"
+              disabled={mutating}
+            >
+              {mutating ? "Locking..." : `Lock Day ${selectedDay > 1 ? selectedDay - 1 : 1} and Proceed`}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Ungrouped Players Modal */}
+      <Modal
+        isOpen={isUngroupedPlayersModalOpen}
+        onClose={() => setIsUngroupedPlayersModalOpen(false)}
+        title="Incomplete Groupings"
+        className="max-w-md"
+      >
+        <div className="space-y-4 pt-4">
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex gap-4">
+            <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
+            <div>
+              <p className="text-[14px] font-bold text-red-900">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</p>
+              <p className="text-[12px] text-red-700 mt-1">
+                All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You cannot lock Day {selectedDay > 1 ? selectedDay - 1 : 1} or generate Day {selectedDay} groupings until all players are assigned a tee time.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsUngroupedPlayersModalOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
             </Button>
             <Button
               onClick={() => {
-                setIsDayLockModalOpen(false);
-                if (attemptedDayIndex) setSelectedDay(attemptedDayIndex - 1);
+                setIsUngroupedPlayersModalOpen(false);
+                setSelectedDay(selectedDay > 1 ? selectedDay - 1 : 1);
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm"
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm font-bold"
             >
-              Go to Day {attemptedDayIndex ? attemptedDayIndex - 1 : 1}
+              Go to Day {selectedDay > 1 ? selectedDay - 1 : 1}
             </Button>
           </div>
         </div>

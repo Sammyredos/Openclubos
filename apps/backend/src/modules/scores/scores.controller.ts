@@ -40,18 +40,18 @@ export class ScoresController {
   @Get('group/:groupId')
   findByGroup(
     @Param('groupId') groupId: string,
-    @Query('skip') skip?: number,
-    @Query('take') take?: number,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
-    return this.scoresService.findByGroup(groupId, skip, take);
+    return this.scoresService.findByGroup(groupId, skip ? Number(skip) : undefined, take ? Number(take) : undefined);
   }
 
   @Get('tournament/:tournamentId')
   findByTournament(
     @Param('tournamentId') tournamentId: string,
-    @Query('skip') skip?: number,
-    @Query('take') take?: number,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
-    return this.scoresService.findByTournament(tournamentId, skip, take);
+    return this.scoresService.findByTournament(tournamentId, skip ? Number(skip) : undefined, take ? Number(take) : undefined);
   }
 }
