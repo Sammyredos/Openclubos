@@ -125,6 +125,7 @@ const DEFAULT_FORM = {
   enableWaitlist: false,
   enableCut: false,
   cutAfterRound: "",
+  cutFormat: "" as "" | "NUMBER" | "PERCENTAGE",
   cutLine: "",
   requiresPayment: false,
   entryFee: "",
@@ -184,7 +185,11 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
     }
     if (f.enableCut) {
       if (!f.cutAfterRound || Number(f.cutAfterRound) <= 0) return "Cut Players after What Day is required and must be greater than 0.";
-      if (!f.cutLine || Number(f.cutLine) <= 0) return "Players to advance is required and must be greater than 0.";
+      if (!f.cutFormat) return "Please select a cut method.";
+      if (!f.cutLine || Number(f.cutLine) <= 0) {
+        return f.cutFormat === "PERCENTAGE" ? "Percentage to advance is required and must be greater than 0." : "Number of players to advance is required and must be greater than 0.";
+      }
+      if (f.cutFormat === "PERCENTAGE" && Number(f.cutLine) > 100) return "Percentage cannot exceed 100.";
 
       const start = new Date(f.startDate);
       const end = f.endDate ? new Date(f.endDate) : start;
@@ -360,7 +365,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 enableWaitlist: t.enableWaitlist ?? false,
                 enableCut: t.enableCut ?? false,
                 cutAfterRound: t.cutAfterRound != null ? String(t.cutAfterRound) : "",
-                cutLine: t.cutLine != null ? String(t.cutLine) : "",
+                cutFormat: (t.cutLine && t.cutLine < 0) ? "PERCENTAGE" : "NUMBER",
+                cutLine: t.cutLine != null ? String(Math.abs(t.cutLine)) : "",
                 requiresPayment: t.requiresPayment ?? false,
                 entryFee: t.entryFee != null ? String(t.entryFee) : "",
                 currency: t.currency || "NGN",
@@ -537,7 +543,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         enableWaitlist: f.enableWaitlist,
         enableCut: f.enableCut,
         cutAfterRound: f.enableCut && f.cutAfterRound !== "" ? Number(f.cutAfterRound) : null,
-        cutLine: f.enableCut && f.cutLine !== "" ? Number(f.cutLine) : null,
+        cutLine: f.enableCut && f.cutLine !== "" ? (f.cutFormat === "PERCENTAGE" ? -Number(f.cutLine) : Number(f.cutLine)) : null,
         requiresPayment: f.requiresPayment,
         entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
         currency: f.requiresPayment ? f.currency : "NGN",
@@ -1260,7 +1266,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 {formData.enableCut && (
                   <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Cut Players after What Day" required>
+                      <Field label="Cut After What Day" required>
                         <Input
                           type="number"
                           value={formData.cutAfterRound}
@@ -1275,19 +1281,52 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           })()}
                         />
                       </Field>
-                      <Field label="Players to Advance" required>
-                        <Input
-                          type="number"
-                          value={formData.cutLine}
-                          onChange={(e) => set("cutLine", e.target.value)}
-                          placeholder="e.g. 50"
+                      <Field label="Cut Method" required>
+                        <SearchableSelect
+                          value={formData.cutFormat}
+                          onValueChange={(v) => {
+                            set("cutFormat", v);
+                            set("cutLine", ""); // reset value on type change
+                          }}
+                          options={[
+                            { value: "NUMBER", label: "Exact Number" },
+                            { value: "PERCENTAGE", label: "Percentage (%)" }
+                          ]}
+                          className="w-full"
+                          triggerClassName="h-10 bg-white"
                         />
                       </Field>
                     </div>
-                    <p className="text-[11px] text-red-600 font-medium mt-3 flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5" />
-                      Players below this rank will miss the cut and be excluded from future groupings.
-                    </p>
+                    {formData.cutFormat && (
+                      <div className="mt-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <Field label={formData.cutFormat === "PERCENTAGE" ? "Percentage to Advance (%)" : "Number of Players to Advance"} required>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={formData.cutLine}
+                              onChange={(e) => set("cutLine", e.target.value)}
+                              placeholder={formData.cutFormat === "PERCENTAGE" ? "e.g. 20" : "e.g. 30"}
+                              min="1"
+                              max={formData.cutFormat === "PERCENTAGE" ? "100" : undefined}
+                              className={formData.cutFormat === "PERCENTAGE" ? "pr-8" : ""}
+                            />
+                            {formData.cutFormat === "PERCENTAGE" && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm font-medium">%</span>
+                              </div>
+                            )}
+                          </div>
+                        </Field>
+                      </div>
+                    )}
+                    {formData.cutFormat && (
+                      <p className="text-[11px] text-red-600 font-medium mt-3 flex items-center gap-1.5 animate-in fade-in">
+                        <Info className="w-3.5 h-3.5" />
+                        {formData.cutFormat === "PERCENTAGE"
+                          ? "The specified percentage of the total active players will advance to the next day."
+                          : "Players below this exact rank will miss the cut and be excluded from future groupings."}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

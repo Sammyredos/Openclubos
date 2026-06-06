@@ -717,9 +717,17 @@ export class TournamentsService {
     // Sort players by strokes ascending (lower is better in golf)
     playerScores.sort((a, b) => a.totalStrokes - b.totalStrokes);
 
+    let targetCount = tournament.cutLine;
+    if (targetCount < 0) {
+      // It's a percentage
+      const percentage = Math.abs(targetCount);
+      // Calculate how many players should advance
+      targetCount = Math.max(1, Math.floor((playerScores.length * percentage) / 100));
+    }
+
     // Find the score at the cut line position (e.g. 50th player).
     // Note: arrays are 0-indexed, so 50th player is at index 49
-    const cutLineIndex = Math.min(tournament.cutLine - 1, playerScores.length - 1);
+    const cutLineIndex = Math.min(targetCount - 1, playerScores.length - 1);
     const cutScoreThreshold = playerScores[cutLineIndex]?.totalStrokes;
 
     if (cutScoreThreshold === undefined) {

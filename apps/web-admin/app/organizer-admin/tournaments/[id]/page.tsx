@@ -443,11 +443,9 @@ function ViewTournamentPageInner() {
   };
 
   const [applyingCut, setApplyingCut] = useState(false);
+  const [showCutModal, setShowCutModal] = useState(false);
   const handleApplyCut = async () => {
     if (!tournamentId) return;
-    if (!confirm("Are you sure you want to apply the cut? This will eliminate players below the cut line and cannot be easily undone.")) {
-      return;
-    }
     try {
       setApplyingCut(true);
       await applyCut(tournamentId);
@@ -567,6 +565,10 @@ function ViewTournamentPageInner() {
           if (a.status === "DISQUALIFIED" && b.status !== "DISQUALIFIED") return 1;
           if (b.status === "DISQUALIFIED" && a.status !== "DISQUALIFIED") return -1;
 
+          // Sort: Missed Cut right above Disqualified
+          if (a.madeCut === false && b.madeCut !== false) return 1;
+          if (b.madeCut === false && a.madeCut !== false) return -1;
+
           // Sort: 0 strokes (haven't started) should be at the bottom
           if (a.grossStrokes === 0 && b.grossStrokes > 0) return 1;
           if (b.grossStrokes === 0 && a.grossStrokes > 0) return -1;
@@ -612,6 +614,23 @@ function ViewTournamentPageInner() {
     });
     return () => unsubscribe();
   }, [activeTab, tournamentId]);
+
+  useEffect(() => {
+    if (selectedTournament && selectedLeaderboardDay === "all") {
+      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0) 
+        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1 
+        : 1;
+      const totalDays = selectedTournament.endDate 
+        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1 
+        : 1;
+      const smartDay = Math.min(totalDays, latestGroupedDay);
+      if (smartDay > 1) {
+        setSelectedLeaderboardDay(smartDay);
+      } else {
+        setSelectedLeaderboardDay(1);
+      }
+    }
+  }, [selectedTournament?.id]);
 
   async function reloadSingleTournament() {
     if (!tournamentId) return;
@@ -2091,12 +2110,13 @@ function ViewTournamentPageInner() {
                                               </div>
                                             </div>
                                             <select
+                                              disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
                                               value={group.id}
                                               onChange={(e) => {
                                                 const val = e.target.value;
                                                 handleMovePlayer(player.id, val === "unassigned" ? null : val);
                                               }}
-                                              className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity"
+                                              className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed"
                                             >
                                               <option value={group.id}>Move To...</option>
                                               <option value="unassigned">Unassign</option>
@@ -2363,14 +2383,44 @@ function ViewTournamentPageInner() {
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     {selectedTournament?.enableCut && (
-                      <Button 
-                        onClick={handleApplyCut}
-                        disabled={applyingCut}
-                        className="h-10 bg-red-600 hover:bg-red-700 text-white font-medium"
-                      >
-                        {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>}
-                        Apply Cut
-                      </Button>
+                      <>
+                        <Button 
+                          onClick={() => setShowCutModal(true)}
+                          disabled={applyingCut}
+                          className="h-10 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium transition-colors shadow-sm"
+                        >
+                          {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>}
+                          Apply Cut
+                        </Button>
+                        <Modal
+                          isOpen={showCutModal}
+                          onClose={() => setShowCutModal(false)}
+                          title="Apply Tournament Cut"
+                        >
+                          <div className="space-y-4 pt-4">
+                            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
+                              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                              <div className="space-y-1 text-sm">
+                                <p className="font-bold text-red-900">Are you sure you want to apply the cut?</p>
+                                <p className="text-red-700">This will permanently eliminate players below the cut line from future groupings and cannot be easily undone.</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                              <Button variant="outline" onClick={() => setShowCutModal(false)}>Cancel</Button>
+                              <Button 
+                                className="bg-red-600 hover:bg-red-700 text-white" 
+                                onClick={() => {
+                                  setShowCutModal(false);
+                                  handleApplyCut();
+                                }}
+                                disabled={applyingCut}
+                              >
+                                {applyingCut ? "Applying..." : "Yes, Apply Cut"}
+                              </Button>
+                            </div>
+                          </div>
+                        </Modal>
+                      </>
                     )}
                     <SearchableSelect
                       value={leaderboardGenderFilter}
@@ -2561,8 +2611,10 @@ function ViewTournamentPageInner() {
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      {entry.madeCut === false ? (
-                                        <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
+                                      {entry.status === "DISQUALIFIED" ? (
+                                        <span className="text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                      ) : entry.madeCut === false ? (
+                                        <span className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
                                       ) : entry.grossStrokes > 0 ? (
                                         entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
                                           <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
