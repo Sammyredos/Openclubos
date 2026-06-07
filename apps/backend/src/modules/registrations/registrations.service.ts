@@ -322,6 +322,10 @@ export class RegistrationsService {
           }),
         ]);
 
+        if (tournament && new Date() > new Date(tournament.startDate)) {
+          throw new BadRequestException('Cannot approve waitlist. The tournament has already started.');
+        }
+
         if (tournament && tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
           // Auto-increment maxPlayers if at capacity
           await this.prisma.tournament.update({

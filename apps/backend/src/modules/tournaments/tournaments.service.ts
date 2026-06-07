@@ -734,10 +734,22 @@ export class TournamentsService {
       return { success: true, message: 'Not enough players to apply cut' };
     }
 
-    // Assign madeCut = true to players with score <= cutScoreThreshold
-    // Assign madeCut = false to players with score > cutScoreThreshold
+    const passedPlayers: { email: string, name: string }[] = [];
+    const missedPlayers: { email: string, name: string }[] = [];
+
     const updates = playerScores.map(player => {
       const madeCut = player.totalStrokes <= cutScoreThreshold;
+      
+      const reg = tournament.registrations.find(r => r.id === player.registrationId);
+      if (reg && reg.user && reg.user.email) {
+        const playerName = `${reg.user.firstName} ${reg.user.lastName}`.trim();
+        if (madeCut) {
+          passedPlayers.push({ email: reg.user.email, name: playerName });
+        } else {
+          missedPlayers.push({ email: reg.user.email, name: playerName });
+        }
+      }
+
       return this.prisma.registration.update({
         where: { id: player.registrationId },
         data: { madeCut },
@@ -745,6 +757,21 @@ export class TournamentsService {
     });
 
     await this.prisma.$transaction(updates);
+
+    // Queue emails in the background
+    for (const player of passedPlayers) {
+      this.jobsService.queueEmail('TOURNAMENT_CUT_PASSED', player.email, {
+        tournamentName: tournament.name,
+        playerName: player.name,
+      }).catch(err => console.error('Failed to queue pass cut email:', err));
+    }
+    
+    for (const player of missedPlayers) {
+      this.jobsService.queueEmail('TOURNAMENT_CUT_MISSED', player.email, {
+        tournamentName: tournament.name,
+        playerName: player.name,
+      }).catch(err => console.error('Failed to queue miss cut email:', err));
+    }
 
     return { success: true, message: 'Cut applied successfully' };
   }

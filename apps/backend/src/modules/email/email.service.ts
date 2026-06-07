@@ -10,7 +10,7 @@ export interface EmailResult {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(private readonly mailer: MailerService) {}
+  constructor(private readonly mailer: MailerService) { }
 
   // ────────────────────────────────────────────────────────────────
   // Shared layout helpers
@@ -116,7 +116,7 @@ export class EmailService {
         <td style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; color: #111827; font-size: 15px; font-weight: 600; text-align: right;">${row.value}</td>
       </tr>
     `).join('');
-    
+
     return `
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border: 1px solid #e5e7eb; border-radius: 8px; margin: 24px 0; border-collapse: collapse;">
         ${tableRows}
@@ -144,7 +144,7 @@ export class EmailService {
     return { messageId: result.messageId, previewUrl: this.getPreviewUrl(result) };
   }
 
-  private getPreviewUrl(result: { messageId: string; [key: string]: any }): string | null {
+  private getPreviewUrl(result: { messageId: string;[key: string]: any }): string | null {
     if (typeof result === 'object' && 'getTestMessageUrl' in result) {
       return (result as any).getTestMessageUrl?.() ?? null;
     }
@@ -162,10 +162,10 @@ export class EmailService {
       ${this.p('Your account has been successfully created and is now active. OpenClubOS is designed to elevate your golfing experience by providing a central hub for all your tournament needs.')}
       ${this.h2('What you can do next:')}
       ${this.list([
-        '<strong>Browse Tournaments:</strong> Discover and register for upcoming exclusive events.',
-        '<strong>Track Your Progress:</strong> Maintain an official record of your handicap index and historical scorecards.',
-        '<strong>Live Leaderboards:</strong> Follow the action in real-time during competitive play.'
-      ])}
+      '<strong>Browse Tournaments:</strong> Discover and register for upcoming exclusive events.',
+      '<strong>Track Your Progress:</strong> Maintain an official record of your handicap index and historical scorecards.',
+      '<strong>Live Leaderboards:</strong> Follow the action in real-time during competitive play.'
+    ])}
       ${verifyUrl ? this.p('To ensure the security of your account and to receive important updates, please verify your email address by clicking the button below.') : ''}
       ${verifyUrl ? this.button('Verify Email Address', verifyUrl) : ''}
       ${this.p('If you have any questions or require assistance navigating the platform, our support team is always ready to help.')}
@@ -187,7 +187,7 @@ export class EmailService {
       ${this.p(`<a href="${verifyUrl}" style="color: #059669; text-decoration: underline; word-break: break-all; font-size: 14px;">${verifyUrl}</a>`)}
       ${this.infoBox('<strong>Note:</strong> This verification link is valid for 24 hours. If you did not initiate the creation of this account, please disregard this email.', '#f3f4f6', '#e5e7eb', '#4b5563')}
     `);
-    
+
     return this.send(to, 'Action Required: Verify your OpenClubOS email', html, `Email verification sent to ${to}`);
   }
 
@@ -230,13 +230,13 @@ export class EmailService {
       ${this.statusBadge(statusLabel, statusColor)}
       
       ${startDate ? this.dataTable([
-        { label: 'Tournament', value: tournamentName },
-        { label: 'Start Date', value: this.formatDate(startDate) },
-        { label: 'Status', value: statusLabel }
-      ]) : this.dataTable([
-        { label: 'Tournament', value: tournamentName },
-        { label: 'Status', value: statusLabel }
-      ])}
+      { label: 'Tournament', value: tournamentName },
+      { label: 'Start Date', value: this.formatDate(startDate) },
+      { label: 'Status', value: statusLabel }
+    ]) : this.dataTable([
+      { label: 'Tournament', value: tournamentName },
+      { label: 'Status', value: statusLabel }
+    ])}
       
       ${this.p('You will continue to receive updates regarding your participation status. If you have any inquiries regarding this change, please reach out to the tournament organizers directly.')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -258,10 +258,10 @@ export class EmailService {
       
       ${this.h2('Important Next Steps')}
       ${this.list([
-        'Log in to your OpenClubOS dashboard to view the official schedule and venue details.',
-        'Review your handicap index to ensure it is accurate and up-to-date prior to the event.',
-        'Keep an eye on your email for final tee time allocations and groupings, which will be published closer to the tournament date.'
-      ])}
+      'Log in to your OpenClubOS dashboard to view the official schedule and venue details.',
+      'Review your handicap index to ensure it is accurate and up-to-date prior to the event.',
+      'Keep an eye on your email for final tee time allocations and groupings, which will be published closer to the tournament date.'
+    ])}
       
       ${this.p('Should you need to withdraw or have any questions regarding the itinerary, please contact the organizers as soon as possible.')}
       ${this.p(`Best of luck,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -302,10 +302,10 @@ export class EmailService {
       
       ${this.h2('Waitlist Policies')}
       ${this.list([
-        'You will receive an immediate email notification if your status changes from Waitlisted to Approved.',
-        'If you are promoted to the active roster, any pending tournament entry fees will become due.',
-        'If you no longer wish to remain on the waitlist, please log in to your dashboard and withdraw your registration so others may have the opportunity.'
-      ])}
+      'You will receive an immediate email notification if your status changes from Waitlisted to Approved.',
+      'If you are promoted to the active roster, any pending tournament entry fees will become due.',
+      'If you no longer wish to remain on the waitlist, please log in to your dashboard and withdraw your registration so others may have the opportunity.'
+    ])}
       
       ${this.p('We appreciate your patience and enthusiasm for the event.')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -333,12 +333,12 @@ export class EmailService {
       
       ${this.h2('Transaction Details')}
       ${this.dataTable([
-        { label: 'Event Name', value: tournamentName },
-        { label: 'Amount Paid', value: formatted },
-        { label: 'Payment Method', value: 'Online Gateway' },
-        { label: 'Transaction Reference', value: reference },
-        { label: 'Date Processed', value: new Date().toLocaleDateString('en-GB') }
-      ])}
+      { label: 'Event Name', value: tournamentName },
+      { label: 'Amount Paid', value: formatted },
+      { label: 'Payment Method', value: 'Online Gateway' },
+      { label: 'Transaction Reference', value: reference },
+      { label: 'Date Processed', value: new Date().toLocaleDateString('en-GB') }
+    ])}
       
       ${this.p('Please retain this receipt for your records. If you require a formal invoice for accounting purposes, you can download it directly from your player dashboard.')}
       ${this.p('Thank you,<br/><strong>OpenClubOS Billing</strong>')}
@@ -359,7 +359,7 @@ export class EmailService {
     organizerName?: string,
   ): Promise<EmailResult> {
     const formattedDate = this.formatDate(startDate);
-    
+
     const tableData = [
       { label: 'Tournament', value: tournamentName },
       { label: 'Scheduled Date', value: formattedDate }
@@ -374,11 +374,11 @@ export class EmailService {
       
       ${this.h2('Pre-Tournament Checklist')}
       ${this.list([
-        '<strong>Arrival Time:</strong> Please aim to arrive at least 45 minutes prior to your designated tee time for check-in and warm-ups.',
-        '<strong>Dress Code:</strong> Standard golf attire is required. Collared shirts and tailored trousers/shorts are strictly enforced by the club.',
-        '<strong>Equipment:</strong> Ensure your clubs and equipment are tournament-ready.',
-        '<strong>Check-in:</strong> Proceed directly to the registration desk upon arrival to collect your scorecard and local rules sheet.'
-      ])}
+      '<strong>Arrival Time:</strong> Please aim to arrive at least 45 minutes prior to your designated tee time for check-in and warm-ups.',
+      '<strong>Dress Code:</strong> Standard golf attire is required. Collared shirts and tailored trousers/shorts are strictly enforced by the club.',
+      '<strong>Equipment:</strong> Ensure your clubs and equipment are tournament-ready.',
+      '<strong>Check-in:</strong> Proceed directly to the registration desk upon arrival to collect your scorecard and local rules sheet.'
+    ])}
       
       ${this.p('Punctuality is critical for maintaining the tournament pace of play. We wish you the best of luck on the course!')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -419,10 +419,10 @@ export class EmailService {
       
       ${this.h2('Post-Tournament Actions')}
       ${this.list([
-        '<strong>View Leaderboard:</strong> Log in to the platform to review final standings across all flights and divisions.',
-        '<strong>Scorecards:</strong> Your digital scorecard is securely archived in your player profile for future reference.',
-        '<strong>Handicap Update:</strong> If applicable, your verified scores will be transmitted to update your official handicap index.'
-      ])}
+      '<strong>View Leaderboard:</strong> Log in to the platform to review final standings across all flights and divisions.',
+      '<strong>Scorecards:</strong> Your digital scorecard is securely archived in your player profile for future reference.',
+      '<strong>Handicap Update:</strong> If applicable, your verified scores will be transmitted to update your official handicap index.'
+    ])}
       
       ${this.p('Thank you once again for your participation. We look forward to hosting you at our future events.')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -486,9 +486,9 @@ export class EmailService {
       
       ${this.h2('Your Credentials')}
       ${this.dataTable([
-        { label: 'Authorized Email', value: email },
-        { label: 'Temporary Password', value: password }
-      ])}
+      { label: 'Authorized Email', value: email },
+      { label: 'Temporary Password', value: password }
+    ])}
       
       ${this.infoBox('🔒 <strong>Mandatory Security Action:</strong><br/>You are required to change this temporary password immediately upon your first login to secure the administrative environment.', '#fffbeb', '#fde68a', '#92400e')}
       
@@ -543,9 +543,9 @@ export class EmailService {
       
       ${this.h2('Account Login Details')}
       ${this.dataTable([
-        { label: 'Login Email', value: to },
-        { label: 'Temporary Password', value: tempPassword }
-      ])}
+      { label: 'Login Email', value: to },
+      { label: 'Temporary Password', value: tempPassword }
+    ])}
       
       ${this.infoBox('🔒 <strong>Security Requirement:</strong><br/>For your protection, you must update your password immediately after logging in for the first time.', '#fffbeb', '#fde68a', '#92400e')}
       
@@ -602,11 +602,11 @@ export class EmailService {
       
       ${this.h2('Grouping Details')}
       ${this.dataTable([
-        { label: 'Tournament', value: tournamentName },
-        { label: 'Round', value: roundName },
-        { label: 'Tee Time', value: teeTime },
-        { label: 'Group', value: groupName }
-      ])}
+      { label: 'Tournament', value: tournamentName },
+      { label: 'Round', value: roundName },
+      { label: 'Tee Time', value: teeTime },
+      { label: 'Group', value: groupName }
+    ])}
 
       ${groupMembers && groupMembers.length > 0 ? `
         ${this.h2('Your Playing Partners')}
@@ -619,5 +619,33 @@ export class EmailService {
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#2563eb, #3b82f6');
     return this.send(to, `Tee Time Published: ${tournamentName}`, html, `Tee time email sent to ${to} for ${tournamentName}`);
+  }
+
+  async sendTournamentCutPassed(to: string, tournamentName: string, playerName: string, organizerName?: string): Promise<EmailResult> {
+    const html = this.wrap('Congratulations, You Made the Cut!', `
+      ${this.p(`Dear <strong>${playerName}</strong>,`)}
+      ${this.p(`Great playing! We are thrilled to inform you that you have made the cut in <strong>${tournamentName}</strong>.`)}
+      
+      ${this.infoBox('✅ <strong>Cut Passed!</strong> Your scores have qualified you to advance to the final rounds of the tournament.', '#ecfdf5', '#a7f3d0', '#065f46')}
+      
+      ${this.p('Please keep an eye out for your upcoming tee times and groupings.')}
+      ${this.p('Keep up the great work and best of luck in the rest of the tournament!')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
+    `, '#10b981, #34d399');
+    return this.send(to, `You Made the Cut! - ${tournamentName}`, html, `Cut passed email sent to ${to} for ${tournamentName}`);
+  }
+
+  async sendTournamentCutMissed(to: string, tournamentName: string, playerName: string, organizerName?: string): Promise<EmailResult> {
+    const html = this.wrap('Tournament Update', `
+      ${this.p(`Dear <strong>${playerName}</strong>,`)}
+      ${this.p(`Thank you for participating in <strong>${tournamentName}</strong>.`)}
+      
+      ${this.infoBox('You did not make the cut, and unfortunately, your scores did not meet the threshold to advance to the final rounds.', '#f3f4f6', '#e5e7eb', '#374151')}
+      
+      ${this.p('We appreciate you coming out to play and hope you enjoyed the experience.')}
+      ${this.p('We look forward to seeing you at our future events!')}
+      ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
+    `, '#ef4444, #f87171');
+    return this.send(to, `Tournament Update - ${tournamentName}`, html, `Cut missed email sent to ${to} for ${tournamentName}`);
   }
 }

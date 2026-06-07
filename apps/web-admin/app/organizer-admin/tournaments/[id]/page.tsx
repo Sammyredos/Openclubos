@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -594,10 +594,21 @@ function ViewTournamentPageInner() {
       fetchWaitlistData();
     } else if (activeTab === "groupings") {
       loadGroupingsData();
+      if (selectedTournament?.enableCut) {
+        loadLeaderboardData();
+      }
     } else if (activeTab === "leaderboard") {
       loadLeaderboardData();
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, leaderboardSortBy]);
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
+
+  const isCutPending = useMemo(() => {
+    if (!selectedTournament?.enableCut || selectedTournament.cutAfterRound == null) return false;
+    if (selectedDay <= selectedTournament.cutAfterRound) return false;
+    if (!leaderboardData || leaderboardData.length === 0) return false;
+    const hasAnyCutProcessed = leaderboardData.some((entry: any) => entry.madeCut === true || entry.madeCut === false);
+    return !hasAnyCutProcessed;
+  }, [selectedTournament, selectedDay, leaderboardData]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -1827,6 +1838,16 @@ function ViewTournamentPageInner() {
                       </div>
 
                       <div className="flex items-center gap-3">
+                        {isCutPending && (
+                          <Button 
+                            onClick={() => setShowCutModal(true)}
+                            disabled={applyingCut}
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold shadow-sm transition-colors border border-red-600/20 flex items-center"
+                          >
+                            {applyingCut ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
+                            Apply CutOff
+                          </Button>
+                        )}
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           disabled={!!groupingsData?.groups?.length}
@@ -1838,7 +1859,7 @@ function ViewTournamentPageInner() {
                         </button>
                         <div className="relative inline-block">
                           <Button
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCutPending || !groupingsData?.unassigned.length}
                             className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -1846,7 +1867,7 @@ function ViewTournamentPageInner() {
                             <ChevronDown className="w-3.5 h-3.5 ml-1" />
                           </Button>
                           <select
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || isCutPending || !groupingsData?.unassigned.length}
                             onChange={async (e) => {
                               const rule = e.target.value as any;
                               if (!rule) return;
@@ -2395,29 +2416,33 @@ function ViewTournamentPageInner() {
                         <Modal
                           isOpen={showCutModal}
                           onClose={() => setShowCutModal(false)}
-                          title="Apply Tournament Cut"
-                        >
-                          <div className="space-y-4 pt-4">
-                            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
-                              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                              <div className="space-y-1 text-sm">
-                                <p className="font-bold text-red-900">Are you sure you want to apply the cut?</p>
-                                <p className="text-red-700">This will permanently eliminate players below the cut line from future groupings and cannot be easily undone.</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-end gap-3 pt-2">
-                              <Button variant="outline" onClick={() => setShowCutModal(false)}>Cancel</Button>
+                          title="Apply Tournament Cut?"
+                          footer={
+                            <>
+                              <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
+                                Cancel
+                              </Button>
                               <Button 
-                                className="bg-red-600 hover:bg-red-700 text-white" 
+                                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
                                 onClick={() => {
                                   setShowCutModal(false);
                                   handleApplyCut();
                                 }}
                                 disabled={applyingCut}
                               >
-                                {applyingCut ? "Applying..." : "Yes, Apply Cut"}
+                                {applyingCut ? "Applying..." : "Apply Cut"}
                               </Button>
+                            </>
+                          }
+                        >
+                          <div className="flex flex-col items-center text-center py-4">
+                            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+                              <AlertTriangle className="h-10 w-10" />
                             </div>
+                            <h4 className="text-xl font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
+                            <p className="text-gray-500 max-w-sm">
+                              Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
+                            </p>
                           </div>
                         </Modal>
                       </>
@@ -3419,23 +3444,12 @@ function ViewTournamentPageInner() {
         isOpen={isDayLockModalOpen}
         onClose={() => setIsDayLockModalOpen(false)}
         title="Groupings Not Locked"
-        className="max-w-md"
-      >
-        <div className="space-y-4 pt-4">
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
-            <Lock className="w-6 h-6 text-amber-600 flex-shrink-0" />
-            <div>
-              <p className="text-[14px] font-bold text-amber-900">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</p>
-              <p className="text-[12px] text-amber-700 mt-1">
-                You must finalize and irreversibly lock groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
+        footer={
+          <>
             <Button
               variant="outline"
               onClick={() => setIsDayLockModalOpen(false)}
-              className="rounded-xl"
+              className="rounded-lg font-bold"
               disabled={mutating}
             >
               Cancel
@@ -3462,12 +3476,22 @@ function ViewTournamentPageInner() {
                   setMutating(false);
                 }
               }}
-              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm font-bold"
+              className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-650/30"
               disabled={mutating}
             >
-              {mutating ? "Locking..." : `Lock Day ${selectedDay > 1 ? selectedDay - 1 : 1} and Proceed`}
+              {mutating ? "Locking..." : `Lock Day ${selectedDay > 1 ? selectedDay - 1 : 1}`}
             </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 border border-amber-100">
+            <Lock className="h-10 w-10" />
           </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</h4>
+          <p className="text-gray-500 max-w-sm">
+            You must <span className="font-semibold text-gray-700 uppercase">finalize</span> and <span className="font-semibold text-gray-700 uppercase">irreversibly lock</span> groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
+          </p>
         </div>
       </Modal>
 
@@ -3476,23 +3500,12 @@ function ViewTournamentPageInner() {
         isOpen={isUngroupedPlayersModalOpen}
         onClose={() => setIsUngroupedPlayersModalOpen(false)}
         title="Incomplete Groupings"
-        className="max-w-md"
-      >
-        <div className="space-y-4 pt-4">
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex gap-4">
-            <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
-            <div>
-              <p className="text-[14px] font-bold text-red-900">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</p>
-              <p className="text-[12px] text-red-700 mt-1">
-                All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You cannot lock Day {selectedDay > 1 ? selectedDay - 1 : 1} or generate Day {selectedDay} groupings until all players are assigned a tee time.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
+        footer={
+          <>
             <Button
               variant="outline"
               onClick={() => setIsUngroupedPlayersModalOpen(false)}
-              className="rounded-xl"
+              className="rounded-lg font-bold"
             >
               Cancel
             </Button>
@@ -3501,11 +3514,21 @@ function ViewTournamentPageInner() {
                 setIsUngroupedPlayersModalOpen(false);
                 setSelectedDay(selectedDay > 1 ? selectedDay - 1 : 1);
               }}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm font-bold"
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
             >
               Go to Day {selectedDay > 1 ? selectedDay - 1 : 1}
             </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <AlertTriangle className="h-10 w-10" />
           </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</h4>
+          <p className="text-gray-500 max-w-sm">
+            All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You <span className="font-semibold text-gray-700 uppercase">cannot lock</span> Day {selectedDay > 1 ? selectedDay - 1 : 1} or <span className="font-semibold text-gray-700 uppercase">generate</span> Day {selectedDay} groupings until all players are assigned a tee time.
+          </p>
         </div>
       </Modal>
     </div>

@@ -131,6 +131,12 @@ export class JobsProcessor extends WorkerHost {
           data.organizerName
         );
 
+      case 'TOURNAMENT_CUT_PASSED':
+        return this.emailService.sendTournamentCutPassed(to, data.tournamentName || 'Tournament', data.playerName || 'Player', data.organizerName);
+
+      case 'TOURNAMENT_CUT_MISSED':
+        return this.emailService.sendTournamentCutMissed(to, data.tournamentName || 'Tournament', data.playerName || 'Player', data.organizerName);
+
       default:
         throw new Error(`Unsupported email template: ${template}`);
     }
