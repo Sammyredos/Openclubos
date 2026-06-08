@@ -577,7 +577,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                 <Field label="Profile Photo" required>
                   <div className="relative">
                     {formData.profileImage ? (
-                      <div className="relative rounded-xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-32 w-32 mx-auto">
+                      <div className="relative rounded-full overflow-hidden border border-[#e7e7e7] bg-gray-50 h-32 w-32 mx-auto">
                         <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
                         <button onClick={() => setFormData({...formData, profileImage: ""})}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -586,7 +586,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       </div>
                     ) : (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
+                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
                         <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                           <Upload className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
                         </div>

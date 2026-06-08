@@ -628,11 +628,11 @@ function ViewTournamentPageInner() {
 
   useEffect(() => {
     if (selectedTournament && selectedLeaderboardDay === "all") {
-      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0) 
-        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1 
+      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)
+        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1
         : 1;
-      const totalDays = selectedTournament.endDate 
-        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1 
+      const totalDays = selectedTournament.endDate
+        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1
         : 1;
       const smartDay = Math.min(totalDays, latestGroupedDay);
       if (smartDay > 1) {
@@ -1031,7 +1031,7 @@ function ViewTournamentPageInner() {
       await confirmRegistrationPayment(registrationId, "MANUAL_ADMIN_" + Date.now());
       toast.success("Player payment confirmed successfully!");
       await reloadSingleTournament();
-      // Refresh groupings data so the newly paid player appears in the unassigned pool
+      // Refresh groupings data so the newly paid player appears in the Ungrouped Players
       await loadGroupingsData();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -1839,7 +1839,7 @@ function ViewTournamentPageInner() {
 
                       <div className="flex items-center gap-3">
                         {isCutPending && (
-                          <Button 
+                          <Button
                             onClick={() => setShowCutModal(true)}
                             disabled={applyingCut}
                             className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold shadow-sm transition-colors border border-red-600/20 flex items-center"
@@ -1955,7 +1955,7 @@ function ViewTournamentPageInner() {
                             : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
-                        Unassigned Pool
+                        Ungrouped Players
                         <Badge variant="outline" className={cn(
                           "ml-2 font-black px-1.5 py-0 transition-all",
                           groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
@@ -2171,7 +2171,7 @@ function ViewTournamentPageInner() {
                           </div>
                         )}
 
-                        {/* Unassigned Pool Section */}
+                        {/* Ungrouped Players Section */}
                         {groupingsSubTab === "unassigned" && (
                           <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <div className="p-4 border-b border-[#e7e7e7] bg-gray-50/30 flex items-center justify-between">
@@ -2394,291 +2394,291 @@ function ViewTournamentPageInner() {
                     <>
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                         <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      Live Standings
-                      <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
-                        Live
-                      </span>
-                    </h3>
-                    <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {selectedTournament?.enableCut && (
-                      <>
-                        <Button 
-                          onClick={() => setShowCutModal(true)}
-                          disabled={applyingCut}
-                          className="h-10 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium transition-colors shadow-sm"
-                        >
-                          {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>}
-                          Apply Cut
-                        </Button>
-                        <Modal
-                          isOpen={showCutModal}
-                          onClose={() => setShowCutModal(false)}
-                          title="Apply Tournament Cut?"
-                          footer={
+                          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Live Standings
+                            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                              Live
+                            </span>
+                          </h3>
+                          <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          {selectedTournament?.enableCut && (
                             <>
-                              <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
-                                Cancel
-                              </Button>
-                              <Button 
-                                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
-                                onClick={() => {
-                                  setShowCutModal(false);
-                                  handleApplyCut();
-                                }}
+                              <Button
+                                onClick={() => setShowCutModal(true)}
                                 disabled={applyingCut}
+                                className="h-10 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium transition-colors shadow-sm"
                               >
-                                {applyingCut ? "Applying..." : "Apply Cut"}
+                                {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
+                                Apply Cut
                               </Button>
+                              <Modal
+                                isOpen={showCutModal}
+                                onClose={() => setShowCutModal(false)}
+                                title="Apply Tournament Cut?"
+                                footer={
+                                  <>
+                                    <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+                                      onClick={() => {
+                                        setShowCutModal(false);
+                                        handleApplyCut();
+                                      }}
+                                      disabled={applyingCut}
+                                    >
+                                      {applyingCut ? "Applying..." : "Apply Cut"}
+                                    </Button>
+                                  </>
+                                }
+                              >
+                                <div className="flex flex-col items-center text-center py-4">
+                                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+                                    <AlertTriangle className="h-10 w-10" />
+                                  </div>
+                                  <h4 className="text-xl font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
+                                  <p className="text-gray-500 max-w-sm">
+                                    Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
+                                  </p>
+                                </div>
+                              </Modal>
                             </>
-                          }
-                        >
-                          <div className="flex flex-col items-center text-center py-4">
-                            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
-                              <AlertTriangle className="h-10 w-10" />
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
-                            <p className="text-gray-500 max-w-sm">
-                              Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
-                            </p>
-                          </div>
-                        </Modal>
-                      </>
-                    )}
-                    <SearchableSelect
-                      value={leaderboardGenderFilter}
-                      onValueChange={setLeaderboardGenderFilter}
-                      options={[
-                        { value: "ALL", label: "All" },
-                        { value: "MALE", label: "Male" },
-                        { value: "FEMALE", label: "Female" },
-                      ]}
-                      className="min-w-[120px]"
-                      triggerClassName="h-10 bg-white font-medium"
-                    />
+                          )}
+                          <SearchableSelect
+                            value={leaderboardGenderFilter}
+                            onValueChange={setLeaderboardGenderFilter}
+                            options={[
+                              { value: "ALL", label: "All" },
+                              { value: "MALE", label: "Male" },
+                              { value: "FEMALE", label: "Female" },
+                            ]}
+                            className="min-w-[120px]"
+                            triggerClassName="h-10 bg-white font-medium"
+                          />
 
-                    {/* Category Filter */}
-                    <SearchableSelect
-                      value={leaderboardCategoryFilter}
-                      onValueChange={setLeaderboardCategoryFilter}
-                      options={[
-                        { value: "ALL", label: "All" },
-                        { value: "Category 1", label: "Category 1" },
-                        { value: "Category 2", label: "Category 2" },
-                        { value: "Category 3", label: "Category 3" },
-                        { value: "Category 4", label: "Category 4" },
-                        { value: "Category 5/6", label: "Category 5/6" },
-                        { value: "Open", label: "Open" },
-                      ]}
-                      className="min-w-[140px]"
-                      triggerClassName="h-10 bg-white font-medium"
-                    />
+                          {/* Category Filter */}
+                          <SearchableSelect
+                            value={leaderboardCategoryFilter}
+                            onValueChange={setLeaderboardCategoryFilter}
+                            options={[
+                              { value: "ALL", label: "All" },
+                              { value: "Category 1", label: "Category 1" },
+                              { value: "Category 2", label: "Category 2" },
+                              { value: "Category 3", label: "Category 3" },
+                              { value: "Category 4", label: "Category 4" },
+                              { value: "Category 5/6", label: "Category 5/6" },
+                              { value: "Open", label: "Open" },
+                            ]}
+                            className="min-w-[140px]"
+                            triggerClassName="h-10 bg-white font-medium"
+                          />
 
-                    {/* Sort Filter */}
-                    <SearchableSelect
-                      value={leaderboardSortBy}
-                      onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
-                      options={[
-                        { value: "NET", label: "Final Score (Net)" },
-                        { value: "GROSS", label: "Total Strokes (Gross)" },
-                      ]}
-                      className="min-w-[200px]"
-                      triggerClassName="h-10 bg-white font-medium"
-                    />
-                  </div>
-                </div>
+                          {/* Sort Filter */}
+                          <SearchableSelect
+                            value={leaderboardSortBy}
+                            onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
+                            options={[
+                              { value: "NET", label: "Final Score (Net)" },
+                              { value: "GROSS", label: "Total Strokes (Gross)" },
+                            ]}
+                            className="min-w-[200px]"
+                            triggerClassName="h-10 bg-white font-medium"
+                          />
+                        </div>
+                      </div>
 
-                {leaderboardLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                    <p className="text-sm text-gray-500 font-medium">Updating rankings...</p>
-                  </div>
-                ) : (
-                  (() => {
-                    const filteredLeaderboardData = leaderboardData.filter((entry) => {
-                      if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
-                      if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
-                      return true;
-                    });
+                      {leaderboardLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                          <p className="text-sm text-gray-500 font-medium">Updating rankings...</p>
+                        </div>
+                      ) : (
+                        (() => {
+                          const filteredLeaderboardData = leaderboardData.filter((entry) => {
+                            if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
+                            if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
+                            return true;
+                          });
 
-                    return filteredLeaderboardData.length > 0 ? (
-                      <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse">
-                            <thead>
-                              <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center" title="Current Position">Rank</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
-                                {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                                  <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Round {i + 1}</th>
-                                ))}
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center" title="Number of holes completed">Holes Played</th>
-                                <th className="px-6 py-4 text-center" title="Total raw strokes taken">
-                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Strokes</div>
-                                  <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(Gross)</div>
-                                </th>
-                                <th className="px-6 py-4 text-center" title="Player's handicap allowance">
-                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Handicap</div>
-                                  <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(HCP)</div>
-                                </th>
-                                <th className="px-6 py-4 text-center" title="Score after handicap deduction">
-                                  <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Final Score</div>
-                                  <div className="text-[9px] font-medium text-emerald-500 normal-case mt-0.5">(Net)</div>
-                                </th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                              {filteredLeaderboardData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index) => {
-                                const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
-                                return (
-                                  <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4 text-center">
-                                      <div className="flex items-center justify-center">
-                                        {entry.status === "DISQUALIFIED" ? (
-                                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-tight">DQ</span>
-                                        ) : rank === 1 ? (
-                                          <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
-                                            <Trophy className="w-4 h-4 text-yellow-600" />
-                                          </div>
-                                        ) : rank === 2 ? (
-                                          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
-                                            <Award className="w-4 h-4 text-slate-400" />
-                                          </div>
-                                        ) : rank === 3 ? (
-                                          <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
-                                            <Award className="w-4 h-4 text-orange-600" />
-                                          </div>
-                                        ) : (
-                                          <span className="text-[13px] font-bold text-gray-400">{rank}</span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
-                                          <img
-                                            src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
-                                            className="w-full h-full object-cover"
-                                            alt=""
-                                          />
-                                        </div>
-                                        <div className="min-w-0">
-                                          <div className="text-[13px] font-bold text-gray-900 truncate">
-                                            {entry.user.firstName} {entry.user.lastName}
-                                          </div>
-                                          <div className="text-[10px] text-gray-400 font-medium truncate">
-                                            {entry.user.email}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase whitespace-nowrap">
-                                        {getGolfCategory(entry.user.handicap)}
-                                      </span>
-                                    </td>
-                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
-                                      const day = i + 1;
-                                      const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
-                                      const missedCut = entry.madeCut === false;
-
-                                      if (isAfterCut && missedCut) {
-                                        return (
-                                          <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
-                                          </td>
-                                        );
-                                      }
-
+                          return filteredLeaderboardData.length > 0 ? (
+                            <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                  <thead>
+                                    <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
+                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center" title="Current Position">Rank</th>
+                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
+                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                                      {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                                        <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Round {i + 1}</th>
+                                      ))}
+                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center" title="Number of holes completed">Holes Played</th>
+                                      <th className="px-6 py-4 text-center" title="Total raw strokes taken">
+                                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Strokes</div>
+                                        <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(Gross)</div>
+                                      </th>
+                                      <th className="px-6 py-4 text-center" title="Player's handicap allowance">
+                                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Handicap</div>
+                                        <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(HCP)</div>
+                                      </th>
+                                      <th className="px-6 py-4 text-center" title="Score after handicap deduction">
+                                        <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Final Score</div>
+                                        <div className="text-[9px] font-medium text-emerald-500 normal-case mt-0.5">(Net)</div>
+                                      </th>
+                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-50">
+                                    {filteredLeaderboardData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index) => {
+                                      const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
                                       return (
-                                        <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                          <span className="text-[13px] font-bold text-gray-700">{entry.rounds[day] || "-"}</span>
-                                        </td>
+                                        <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
+                                          <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center">
+                                              {entry.status === "DISQUALIFIED" ? (
+                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-tight">DQ</span>
+                                              ) : rank === 1 ? (
+                                                <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                                  <Trophy className="w-4 h-4 text-yellow-600" />
+                                                </div>
+                                              ) : rank === 2 ? (
+                                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                                  <Award className="w-4 h-4 text-slate-400" />
+                                                </div>
+                                              ) : rank === 3 ? (
+                                                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
+                                                  <Award className="w-4 h-4 text-orange-600" />
+                                                </div>
+                                              ) : (
+                                                <span className="text-[13px] font-bold text-gray-400">{rank}</span>
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-9 h-9 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
+                                                <img
+                                                  src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
+                                                  className="w-full h-full object-cover"
+                                                  alt=""
+                                                />
+                                              </div>
+                                              <div className="min-w-0">
+                                                <div className="text-[13px] font-bold text-gray-900 truncate">
+                                                  {entry.user.firstName} {entry.user.lastName}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 font-medium truncate">
+                                                  {entry.user.email}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4 text-center">
+                                            <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase whitespace-nowrap">
+                                              {getGolfCategory(entry.user.handicap)}
+                                            </span>
+                                          </td>
+                                          {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
+                                            const day = i + 1;
+                                            const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
+                                            const missedCut = entry.madeCut === false;
+
+                                            if (isAfterCut && missedCut) {
+                                              return (
+                                                <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                                  <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
+                                                </td>
+                                              );
+                                            }
+
+                                            return (
+                                              <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                                <span className="text-[13px] font-bold text-gray-700">{entry.rounds[day] || "-"}</span>
+                                              </td>
+                                            );
+                                          })}
+                                          <td className="px-6 py-4 text-center">
+                                            <div className="space-y-1.5">
+                                              <span className="text-[12px] font-bold text-gray-600">
+                                                {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
+                                              </span>
+                                              {entry.grossStrokes > 0 && (
+                                                <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
+                                                  <div
+                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                                    style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                                  />
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-1">
+                                              <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                              {entry.extraStrokes > 0 && (
+                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
+                                                  +{entry.extraStrokes} Pen
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4 text-center">
+                                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
+                                              {entry.user.handicap || 0}
+                                            </span>
+                                          </td>
+                                          <td className="px-6 py-4 text-center">
+                                            <span className="text-[15px] font-black text-emerald-600">
+                                              {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
+                                            </span>
+                                          </td>
+                                          <td className="px-6 py-4 text-center">
+                                            {entry.status === "DISQUALIFIED" ? (
+                                              <span className="text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                            ) : entry.madeCut === false ? (
+                                              <span className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
+                                            ) : entry.grossStrokes > 0 ? (
+                                              entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
+                                                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                              ) : (
+                                                <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                              )
+                                            ) : (
+                                              <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                            )}
+                                          </td>
+                                        </tr>
                                       );
                                     })}
-                                    <td className="px-6 py-4 text-center">
-                                      <div className="space-y-1.5">
-                                        <span className="text-[12px] font-bold text-gray-600">
-                                          {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
-                                        </span>
-                                        {entry.grossStrokes > 0 && (
-                                          <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
-                                            <div
-                                              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                              style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      <div className="flex flex-col items-center justify-center gap-1">
-                                        <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
-                                        {entry.extraStrokes > 0 && (
-                                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
-                                            +{entry.extraStrokes} Pen
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
-                                        {entry.user.handicap || 0}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      <span className="text-[15px] font-black text-emerald-600">
-                                        {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      {entry.status === "DISQUALIFIED" ? (
-                                        <span className="text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
-                                      ) : entry.madeCut === false ? (
-                                        <span className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
-                                      ) : entry.grossStrokes > 0 ? (
-                                        entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
-                                          <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
-                                        ) : (
-                                          <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
-                                        )
-                                      ) : (
-                                        <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        {filteredLeaderboardData.length > 0 && (
-                          <div className="p-4 border-t border-[#e7e7e7] flex justify-end bg-gray-50/30">
-                            <Pagination
-                              currentPage={leaderboardPage}
-                              totalPages={Math.max(1, Math.ceil(filteredLeaderboardData.length / leaderboardPerPage))}
-                              onPageChange={setLeaderboardPage}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center shadow-sm">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e7e7e7]">
-                          <Trophy className="w-8 h-8 text-gray-300" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">No Scores Yet</h3>
-                        <p className="text-sm text-gray-500 max-w-[300px] mx-auto">
-                          There are no matching scores for the selected filters and day.
-                        </p>
-                      </div>
-                    );
-                  })()
-                )}
+                                  </tbody>
+                                </table>
+                              </div>
+                              {filteredLeaderboardData.length > 0 && (
+                                <div className="p-4 border-t border-[#e7e7e7] flex justify-end bg-gray-50/30">
+                                  <Pagination
+                                    currentPage={leaderboardPage}
+                                    totalPages={Math.max(1, Math.ceil(filteredLeaderboardData.length / leaderboardPerPage))}
+                                    onPageChange={setLeaderboardPage}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center shadow-sm">
+                              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e7e7e7]">
+                                <Trophy className="w-8 h-8 text-gray-300" />
+                              </div>
+                              <h3 className="text-lg font-bold text-gray-900 mb-1">No Scores Yet</h3>
+                              <p className="text-sm text-gray-500 max-w-[300px] mx-auto">
+                                There are no matching scores for the selected filters and day.
+                              </p>
+                            </div>
+                          );
+                        })()
+                      )}
                     </>
                   );
                 })()}
@@ -2940,11 +2940,11 @@ function ViewTournamentPageInner() {
                       const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
                       return matchesStatus && matchesStrokes;
                     });
-                    
-                    const penalizePageItems = registrationsMode === "client" 
-                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage) 
+
+                    const penalizePageItems = registrationsMode === "client"
+                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage)
                       : penalizeListAll;
-                      
+
                     const penalizeTotalPages = registrationsMode === "client"
                       ? Math.max(1, Math.ceil(penalizeListAll.length / registrationsPerPage))
                       : Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage));
@@ -2960,127 +2960,127 @@ function ViewTournamentPageInner() {
                         ) : penalizePageItems.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {penalizePageItems.map((r) => {
-                        return (
-                          <div
-                            key={r.id}
-                            className={cn(
-                              "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
-                              r.status === "DISQUALIFIED"
-                                ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
-                            )}
-                          >
-                            <div className="flex items-start md:items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
-                                <img
-                                  src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div>
-                                <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block">
-                                  <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
-                                    {r.user?.firstName} {r.user?.lastName}
+                              return (
+                                <div
+                                  key={r.id}
+                                  className={cn(
+                                    "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
+                                    r.status === "DISQUALIFIED"
+                                      ? "bg-red-50/10 border-red-100/50 opacity-75"
+                                      : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
+                                  )}
+                                >
+                                  <div className="flex items-start md:items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
+                                      <img
+                                        src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block">
+                                        <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
+                                          {r.user?.firstName} {r.user?.lastName}
+                                        </div>
+                                      </NextLink>
+                                      <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
+                                        {r.user?.email}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                        {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                            +{r.extraStrokes} Penalty
+                                          </span>
+                                        )}
+                                        {r.status === "DISQUALIFIED" && (
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                            Disqualified
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </NextLink>
-                                <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
-                                  {r.user?.email}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                  {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
-                                      +{r.extraStrokes} Penalty
-                                    </span>
-                                  )}
-                                  {r.status === "DISQUALIFIED" && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
-                                      Disqualified
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
 
-                            <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
-                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openStrokeModal(r, "ADD_1")}
-                                    title="Add 1-Stroke Penalty"
-                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                  >
-                                    +1 Stroke
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openStrokeModal(r, "ADD_2")}
-                                    title="Add 2-Stroke Penalty"
-                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                  >
-                                    +2 Strokes
-                                  </Button>
-                                  {(r.extraStrokes ?? 0) > 0 && (
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => openStrokeModal(r, "CLEAR")}
-                                      title="Clear Penalties"
-                                      className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
-                                    >
-                                      Clear
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openDisqualify(r)}
-                                    title="Disqualify Player"
-                                    className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
-                                  >
-                                    <Ban className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
+                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
+                                      <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openStrokeModal(r, "ADD_1")}
+                                          title="Add 1-Stroke Penalty"
+                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                        >
+                                          +1 Stroke
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openStrokeModal(r, "ADD_2")}
+                                          title="Add 2-Stroke Penalty"
+                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                        >
+                                          +2 Strokes
+                                        </Button>
+                                        {(r.extraStrokes ?? 0) > 0 && (
+                                          <Button
+                                            variant="outline"
+                                            onClick={() => openStrokeModal(r, "CLEAR")}
+                                            title="Clear Penalties"
+                                            className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
+                                          >
+                                            Clear
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openDisqualify(r)}
+                                          title="Disqualify Player"
+                                          className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+                                        >
+                                          <Ban className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
+                                      <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openEnablePlayer(r)}
+                                          title="Restore Player"
+                                          className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          Restore
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openEnablePlayer(r)}
-                                    title="Restore Player"
-                                    className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    Restore
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      icon={AlertTriangle}
-                      title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
-                      description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
-                    />
-                  )}
+                        ) : (
+                          <EmptyState
+                            icon={AlertTriangle}
+                            title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
+                            description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
+                          />
+                        )}
 
-                  {/* Pagination */}
-                  {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
-                    <div className="mt-8">
-                      <Pagination
-                        currentPage={registrationsPage}
-                        totalPages={penalizeTotalPages}
-                        onPageChange={setRegistrationsPage}
-                      />
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
+                        {/* Pagination */}
+                        {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
+                          <div className="mt-8">
+                            <Pagination
+                              currentPage={registrationsPage}
+                              totalPages={penalizeTotalPages}
+                              onPageChange={setRegistrationsPage}
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
@@ -3100,7 +3100,7 @@ function ViewTournamentPageInner() {
             <Button
               className={cn(
                 "rounded-lg font-bold px-8 text-white border",
-                strokeModalAction === "CLEAR" 
+                strokeModalAction === "CLEAR"
                   ? "bg-gray-800 hover:bg-gray-900 border-gray-900/30"
                   : "bg-red-500 hover:bg-red-650 border-red-650/30"
               )}
@@ -3120,7 +3120,7 @@ function ViewTournamentPageInner() {
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">
             {strokeModalAction === "ADD_1" ? "Add 1-Stroke Penalty?" :
-             strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
+              strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
           </h4>
           <p className="text-gray-500 max-w-sm">
             {strokeModalAction === "ADD_1" && `Are you sure you want to add a 1-stroke penalty to ${fullName(strokeModalRegistration?.user?.firstName ?? null, strokeModalRegistration?.user?.lastName ?? null)}?`}

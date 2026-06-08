@@ -1092,8 +1092,8 @@ export default function TournamentsPage() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={(e) => setExportAnchorEl(e.currentTarget)}
                   className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
                 >
@@ -2191,7 +2191,7 @@ export default function TournamentsPage() {
                                           className="bg-transparent border-none text-[11px] text-gray-400 hover:bg-gray-150 rounded px-2 py-1 focus:outline-none font-normal cursor-pointer transition-colors"
                                         >
                                           <option value={group.id}>Move To...</option>
-                                          <option value="unassigned">Unassigned Pool</option>
+                                          <option value="unassigned">Ungrouped Players</option>
                                           {groupingsData.groups.map((g: GroupingItem) => (
                                             g.id !== group.id && (
                                               <option key={g.id} value={g.id}>{g.name}</option>

@@ -664,11 +664,11 @@ function ViewTournamentPageInner() {
 
   useEffect(() => {
     if (selectedTournament && selectedLeaderboardDay === "all") {
-      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0) 
-        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1 
+      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)
+        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1
         : 1;
-      const totalDays = selectedTournament.endDate 
-        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1 
+      const totalDays = selectedTournament.endDate
+        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1
         : 1;
       const smartDay = Math.min(totalDays, latestGroupedDay);
       if (smartDay > 1) {
@@ -1135,7 +1135,7 @@ function ViewTournamentPageInner() {
       await confirmRegistrationPayment(registrationId, "MANUAL_ADMIN_" + Date.now());
       toast.success("Player payment confirmed successfully!");
       await reloadSingleTournament();
-      // Refresh groupings data so the newly paid player appears in the unassigned pool
+      // Refresh groupings data so the newly paid player appears in the Ungrouped Players
       await loadGroupingsData();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -2219,7 +2219,7 @@ function ViewTournamentPageInner() {
 
                       <div className="flex items-center gap-3">
                         {isCutPending && (
-                          <Button 
+                          <Button
                             onClick={() => setShowCutModal(true)}
                             disabled={applyingCut}
                             className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold shadow-sm transition-colors border border-red-600/20 flex items-center"
@@ -2327,7 +2327,7 @@ function ViewTournamentPageInner() {
                             : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
-                        Unassigned Pool
+                        Ungrouped Players
                         <Badge variant="outline" className={cn(
                           "ml-2 font-black px-1.5 py-0 transition-all",
                           groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
@@ -2758,12 +2758,12 @@ function ViewTournamentPageInner() {
                   <div className="flex flex-wrap items-center gap-3">
                     {selectedTournament?.enableCut && (
                       <>
-                        <Button 
+                        <Button
                           onClick={() => setShowCutModal(true)}
                           disabled={applyingCut}
                           className="h-10 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium transition-colors shadow-sm"
                         >
-                          {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="13" x2="15" y2="13"/></svg>}
+                          {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
                           Apply Cut
                         </Button>
                         <Modal
@@ -2775,7 +2775,7 @@ function ViewTournamentPageInner() {
                               <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
                                 Cancel
                               </Button>
-                              <Button 
+                              <Button
                                 className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
                                 onClick={() => {
                                   setShowCutModal(false);
@@ -3377,11 +3377,11 @@ function ViewTournamentPageInner() {
                       const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
                       return matchesStatus && matchesStrokes;
                     });
-                    
-                    const penalizePageItems = registrationsMode === "client" 
-                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage) 
+
+                    const penalizePageItems = registrationsMode === "client"
+                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage)
                       : penalizeListAll;
-                      
+
                     const penalizeTotalPages = registrationsMode === "client"
                       ? Math.max(1, Math.ceil(penalizeListAll.length / registrationsPerPage))
                       : Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage));
@@ -3397,127 +3397,127 @@ function ViewTournamentPageInner() {
                         ) : penalizePageItems.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {penalizePageItems.map((r) => {
-                        return (
-                          <div
-                            key={r.id}
-                            className={cn(
-                              "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
-                              r.status === "DISQUALIFIED"
-                                ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
-                            )}
-                          >
-                            <div className="flex items-start md:items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
-                                <img
-                                  src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div>
-                                <NextLink href={`/super-admin/users/${r.user?.id}`} className="block">
-                                  <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
-                                    {r.user?.firstName} {r.user?.lastName}
+                              return (
+                                <div
+                                  key={r.id}
+                                  className={cn(
+                                    "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
+                                    r.status === "DISQUALIFIED"
+                                      ? "bg-red-50/10 border-red-100/50 opacity-75"
+                                      : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
+                                  )}
+                                >
+                                  <div className="flex items-start md:items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
+                                      <img
+                                        src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <NextLink href={`/super-admin/users/${r.user?.id}`} className="block">
+                                        <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
+                                          {r.user?.firstName} {r.user?.lastName}
+                                        </div>
+                                      </NextLink>
+                                      <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
+                                        {r.user?.email}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                        {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                            +{r.extraStrokes} Penalty
+                                          </span>
+                                        )}
+                                        {r.status === "DISQUALIFIED" && (
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                            Disqualified
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </NextLink>
-                                <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
-                                  {r.user?.email}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                  {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
-                                      +{r.extraStrokes} Penalty
-                                    </span>
-                                  )}
-                                  {r.status === "DISQUALIFIED" && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
-                                      Disqualified
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
 
-                            <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
-                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openStrokeModal(r, "ADD_1")}
-                                    title="Add 1-Stroke Penalty"
-                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                  >
-                                    +1 Stroke
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openStrokeModal(r, "ADD_2")}
-                                    title="Add 2-Stroke Penalty"
-                                    className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                  >
-                                    +2 Strokes
-                                  </Button>
-                                  {(r.extraStrokes ?? 0) > 0 && (
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => openStrokeModal(r, "CLEAR")}
-                                      title="Clear Penalties"
-                                      className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
-                                    >
-                                      Clear
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openDisqualify(r)}
-                                    title="Disqualify Player"
-                                    className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
-                                  >
-                                    <Ban className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
+                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
+                                      <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openStrokeModal(r, "ADD_1")}
+                                          title="Add 1-Stroke Penalty"
+                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                        >
+                                          +1 Stroke
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openStrokeModal(r, "ADD_2")}
+                                          title="Add 2-Stroke Penalty"
+                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                        >
+                                          +2 Strokes
+                                        </Button>
+                                        {(r.extraStrokes ?? 0) > 0 && (
+                                          <Button
+                                            variant="outline"
+                                            onClick={() => openStrokeModal(r, "CLEAR")}
+                                            title="Clear Penalties"
+                                            className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
+                                          >
+                                            Clear
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openDisqualify(r)}
+                                          title="Disqualify Player"
+                                          className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+                                        >
+                                          <Ban className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
+                                      <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => openEnablePlayer(r)}
+                                          title="Restore Player"
+                                          className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          Restore
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => openEnablePlayer(r)}
-                                    title="Restore Player"
-                                    className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    Restore
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      icon={AlertTriangle}
-                      title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
-                      description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
-                    />
-                  )}
+                        ) : (
+                          <EmptyState
+                            icon={AlertTriangle}
+                            title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
+                            description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
+                          />
+                        )}
 
-                  {/* Pagination */}
-                  {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
-                    <div className="mt-8">
-                      <Pagination
-                        currentPage={registrationsPage}
-                        totalPages={penalizeTotalPages}
-                        onPageChange={setRegistrationsPage}
-                      />
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
+                        {/* Pagination */}
+                        {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
+                          <div className="mt-8">
+                            <Pagination
+                              currentPage={registrationsPage}
+                              totalPages={penalizeTotalPages}
+                              onPageChange={setRegistrationsPage}
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
@@ -3537,7 +3537,7 @@ function ViewTournamentPageInner() {
             <Button
               className={cn(
                 "rounded-lg font-bold px-8 text-white border",
-                strokeModalAction === "CLEAR" 
+                strokeModalAction === "CLEAR"
                   ? "bg-gray-800 hover:bg-gray-900 border-gray-900/30"
                   : "bg-red-500 hover:bg-red-650 border-red-650/30"
               )}
@@ -3557,7 +3557,7 @@ function ViewTournamentPageInner() {
           </div>
           <h4 className="text-xl font-bold text-gray-900 mb-2">
             {strokeModalAction === "ADD_1" ? "Add 1-Stroke Penalty?" :
-             strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
+              strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
           </h4>
           <p className="text-gray-500 max-w-sm">
             {strokeModalAction === "ADD_1" && `Are you sure you want to add a 1-stroke penalty to ${fullName(strokeModalRegistration?.user?.firstName ?? null, strokeModalRegistration?.user?.lastName ?? null)}?`}
