@@ -112,6 +112,7 @@ type ApiTournament = {
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
+  lockedGroupingsDays?: number[];
   _count?: { registrations: number };
 };
 
@@ -134,6 +135,7 @@ type TournamentRow = {
   visibilityKey: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
+  lockedGroupingsDays?: number[];
   registrations: number;
 };
 
@@ -446,6 +448,7 @@ export default function TournamentsPage() {
       visibility: VISIBILITY_META[t.visibility]?.label ?? t.visibility,
       visibilityKey: t.visibility,
       enableWaitlist: t.enableWaitlist,
+      lockedGroupingsDays: t.lockedGroupingsDays || [],
       createdAt: t.createdAt,
       registrations,
     };
@@ -2627,30 +2630,63 @@ export default function TournamentsPage() {
         }}
         title="Remove Player from Tournament?"
         footer={
-          <>
-            <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
-              onClick={confirmRemovePlayer}
-            >
-              Remove Player
-            </Button>
-          </>
+          (selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+            <>
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+                Cancel
+              </Button>
+              <Button
+                className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                onClick={() => {
+                  setIsRemovePlayerModalOpen(false);
+                  confirmDisqualify();
+                }}
+              >
+                Disqualify Player
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+                Cancel
+              </Button>
+              <Button
+                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+                onClick={confirmRemovePlayer}
+              >
+                Remove Player
+              </Button>
+            </>
+          )
         }
       >
         <div className="flex flex-col items-center text-center py-4">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
-            <UserMinus className="h-10 w-10" />
+            {(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+              <Ban className="h-10 w-10 text-amber-500" />
+            ) : (
+              <UserMinus className="h-10 w-10" />
+            )}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Remove Player?</h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            {(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
+          </h4>
           <p className="text-gray-500 max-w-sm">
-            Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+            {(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+              <>
+                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong>Disqualify</strong> button instead.
+              </>
+            ) : (
+              <>
+                Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+              </>
+            )}
           </p>
-          <p className="text-[13px] text-red-600 font-medium mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
-            Warning: This action is permanent and will delete their registration records for this tournament.
-          </p>
+          {!(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) && (
+            <p className="text-[13px] text-red-600 font-medium mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
+              Warning: This action is permanent and will delete their registration records for this tournament.
+            </p>
+          )}
         </div>
       </Modal>
 

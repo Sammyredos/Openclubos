@@ -259,13 +259,37 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   return [];
 }
 
+function indexToFlightLetters(index: number): string {
+  let result = '';
+  let i = index;
+  while (i >= 0) {
+    result = String.fromCharCode(65 + (i % 26)) + result;
+    i = Math.floor(i / 26) - 1;
+  }
+  return result;
+}
+
+function upgradeGroupNames(data: GroupingData): GroupingData {
+  let changed = false;
+  const groups = data.groups.map(g => {
+    const match = g.name.match(/^Group\s+(\d+)$/i);
+    if (match) {
+      changed = true;
+      const index = parseInt(match[1], 10) - 1; // 1-based to 0-based
+      return { ...g, name: `Flight ${indexToFlightLetters(index)}` };
+    }
+    return g;
+  });
+  return changed ? { ...data, groups } : data;
+}
+
 export async function getGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings?day=${day}`, {
     method: 'GET',
   }).catch(() => null);
 
   if (res && res.ok) {
-    return res.json();
+    return upgradeGroupNames(await res.json());
   }
 
   // Local Mock fallback with non-destructive merge
@@ -287,7 +311,7 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
         data.unassigned = [...data.unassigned, ...missingPlayers];
         localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(data));
       }
-      return data;
+      return upgradeGroupNames(data);
     }
   }
 
@@ -304,7 +328,7 @@ export async function generateGroupings(
   }).catch(() => null);
 
   if (res && res.ok) {
-    return res.json();
+    return upgradeGroupNames(await res.json());
   }
 
   // Local Mock fallback
@@ -459,7 +483,7 @@ export async function generateGroupings(
 
     groups.push({
       id: `group-${day}-${i + 1}-${Math.random().toString(36).substr(2, 9)}`,
-      name: `Group ${i + 1}`,
+      name: `Flight ${indexToFlightLetters(i)}`,
       startTime: timeStr,
       registrations: groupPlayers,
     });
@@ -493,7 +517,7 @@ export async function movePlayerInGroupings(
   }).catch(() => null);
 
   if (res && res.ok) {
-    return res.json();
+    return upgradeGroupNames(await res.json());
   }
 
   // Local Mock fallback
@@ -550,7 +574,7 @@ export async function updateGroupingTime(
   }).catch(() => null);
 
   if (res && res.ok) {
-    return res.json();
+    return upgradeGroupNames(await res.json());
   }
 
   // Local Mock fallback

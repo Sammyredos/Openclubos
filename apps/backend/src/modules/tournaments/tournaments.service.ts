@@ -151,6 +151,7 @@ export class TournamentsService {
         club: { select: { id: true, name: true } },
         course: { select: { id: true, name: true } },
         visibility: true,
+        lockedGroupingsDays: true,
         createdAt: true,
         _count: {
           select: {
@@ -222,6 +223,7 @@ export class TournamentsService {
           club: { select: { id: true, name: true } },
           course: { select: { id: true, name: true } },
           visibility: true,
+          lockedGroupingsDays: true,
           createdAt: true,
           _count: {
             select: {

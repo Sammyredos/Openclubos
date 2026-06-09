@@ -50,6 +50,7 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -122,6 +123,9 @@ type TournamentRow = {
   enableCut?: boolean;
   cutAfterRound?: number;
   lockedGroupingsDays: number[];
+  type?: string;
+  minHandicap?: number;
+  maxHandicap?: number;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -142,7 +146,7 @@ const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
   { id: "register", label: "Register a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
-  { id: "groupings", label: "Groupings (Tee Times)", icon: Calendar },
+  { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
   { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
   { id: "overview", label: "Overview", icon: Eye },
@@ -425,8 +429,8 @@ function ViewTournamentPageInner() {
       const targetGroup = groupingsData.groups.find(g => g.id === targetGroupId);
       const capacity = selectedTournament?.maxPlayersPerGroup || 4;
       if (targetGroup && targetGroup.registrations.length >= capacity) {
-        toast.error(`Group "${targetGroup.name}" is full!`, {
-          description: `This group has reached its maximum capacity of ${capacity} players.`,
+        toast.error(`Flight "${targetGroup.name}" is full!`, {
+          description: `This flight has reached its maximum capacity of ${capacity} players.`,
         });
         return;
       }
@@ -448,7 +452,7 @@ function ViewTournamentPageInner() {
       setGroupingsData(data);
       setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
-      toast.success("Group updated successfully");
+      toast.success("Flight updated successfully");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to update group");
     }
@@ -582,15 +586,16 @@ function ViewTournamentPageInner() {
 
           // Stroke Play: Penalties add to Gross Score
           const gross = rawGross > 0 ? (rawGross + extra) : 0;
-          const toPar = rawGross > 0 ? (p.toPar + extra) : 0;
+          const grossToPar = rawGross > 0 ? (p.toPar + extra) : 0;
 
           // Net = Gross - Total Handicap
           const net = gross > 0 ? (gross - totalHandicap) : 0;
+          const netToPar = gross > 0 ? (grossToPar - totalHandicap) : 0;
 
           return {
             ...p,
             grossStrokes: gross, // Update with penalty included
-            toPar: toPar, // Update with penalty included
+            toPar: leaderboardSortBy === "NET" ? netToPar : grossToPar, // Update dynamically
             holesCount: p.holesCompleted.size,
             netStrokes: net,
           };
@@ -640,11 +645,11 @@ function ViewTournamentPageInner() {
 
   const isCutPending = useMemo(() => {
     if (!selectedTournament?.enableCut || selectedTournament.cutAfterRound == null) return false;
-    if (selectedDay <= selectedTournament.cutAfterRound) return false;
+    if (!selectedTournament.lockedGroupingsDays?.includes(selectedTournament.cutAfterRound)) return false;
     if (!leaderboardData || leaderboardData.length === 0) return false;
     const hasAnyCutProcessed = leaderboardData.some((entry: any) => entry.madeCut === true || entry.madeCut === false);
     return !hasAnyCutProcessed;
-  }, [selectedTournament, selectedDay, leaderboardData]);
+  }, [selectedTournament, leaderboardData]);
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
@@ -1320,9 +1325,27 @@ function ViewTournamentPageInner() {
                 {selectedTournament.status}
               </span>
             </div>
-            <p className="text-[13px] text-gray-500 mt-0.5">
-              Hosted at {selectedTournament.clubName} • {selectedTournament.dates}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 text-[13px] text-gray-500 font-medium">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 opacity-70" />
+                {selectedTournament.clubName}
+              </span>
+              <span className="w-px h-3.5 bg-gray-300"></span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 opacity-70" />
+                {selectedTournament.dates}
+              </span>
+              <span className="w-px h-3.5 bg-gray-300"></span>
+              <span className="flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 opacity-70" />
+                {selectedTournament.type || "Stroke Play"}
+              </span>
+              <span className="w-px h-3.5 bg-gray-300"></span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-gray-200 uppercase tracking-wider text-gray-500">HCP</span>
+                {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1407,7 +1430,7 @@ function ViewTournamentPageInner() {
       </div>
 
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
           <div className="bg-white border border-[#e7e7e7] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
@@ -1442,7 +1465,7 @@ function ViewTournamentPageInner() {
         </div>
 
         {/* Right Column - Active Panel */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           {/* Status Alert Banners */}
           {selectedTournament.statusKey === "CANCELLED" && (
             <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
@@ -1525,7 +1548,7 @@ function ViewTournamentPageInner() {
                       { value: "DISQUALIFIED", label: "Disqualified" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-white"
+                    triggerClassName="h-11 bg-[#f8f9fa]"
                   />
                   <SearchableSelect
                     value={registrationsPaymentFilter}
@@ -1541,138 +1564,170 @@ function ViewTournamentPageInner() {
                       { value: "REFUNDED", label: "Refunded" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-white"
+                    triggerClassName="h-11 bg-[#f8f9fa]"
                   />
                 </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[1, 2, 3, 4].map((i) => (
-                        <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                      ))}
-                    </div>
-                  ) : registrationsPageItems.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {registrationsPageItems.map((r) => {
-                        const isDisqualified = r.status === "DISQUALIFIED";
-                        const isPaid = r.paymentStatus === "PAID";
-                        return (
-                          <div
-                            key={r.id}
-                            className={cn(
-                              "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
-                              isDisqualified
-                                ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
-                            )}
-                          >
-                            <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
-                                <img
-                                  src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[14px] font-bold text-gray-900 truncate">
-                                  {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
-                                </p>
-                                <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                  <span className={cn(
-                                    "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                                    (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
-                                      r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                        r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
-                                          r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                                            r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
-                                              "bg-gray-50 text-gray-600 border border-gray-200"
-                                  )}>
-                                    {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
-                                  </span>
-                                  <span className={cn(
-                                    "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                                    isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                      "bg-gray-50 text-gray-600 border border-gray-250"
-                                  )}>
-                                    {r.paymentStatus}
-                                  </span>
-
-                                  {/* Gender Badge */}
-                                  {r.user?.gender && (
-                                    <span className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
-                                      r.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                    )}>
-                                      {r.user.gender}
-                                    </span>
-                                  )}
-
-                                  {/* Age Badge */}
-                                  {r.user?.dob && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
-                                      {(() => {
-                                        const birthDate = new Date(r.user.dob);
-                                        const today = new Date();
-                                        let age = today.getFullYear() - birthDate.getFullYear();
-                                        const m = today.getMonth() - birthDate.getMonth();
-                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                        return `${age} YRS`;
-                                      })()}
-                                    </span>
-                                  )}
-
-                                  {/* PH Badge */}
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                    PH {r.user?.handicap ?? 0}
-                                  </span>
-
-                                  {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
-                                      +{r.extraStrokes} Penalty
-                                    </span>
-                                  )}
-                                </div>
+                    <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                      <div className="flex flex-col">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                            <div className="flex items-center gap-4 w-1/3">
+                              <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                              <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
-                              {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && (
-                                <div className="flex items-center gap-2">
-                                  {selectedTournament.entryFee !== null && !isPaid && (
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => handleMarkPaid(r.id)}
-                                      disabled={markingPaidId === r.id}
-                                      title="Mark as Paid"
-                                      className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
-                                    >
-                                      {markingPaidId === r.id ? (
-                                        <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                                      ) : (
-                                        <Wallet className="w-4 h-4" />
-                                      )}
-                                    </Button>
-                                  )}
-
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => openRemovePlayer(r)}
-                                    disabled={registrationActionId === r.id}
-                                    title="Remove Player"
-                                    className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
-                                  >
-                                    <UserMinus className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              )}
+                            <div className="flex items-center gap-2 w-1/4 hidden sm:flex">
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                            </div>
+                            <div className="flex items-center justify-end gap-2 w-1/4 text-right">
+                              <Skeleton className="h-9 w-9 rounded-lg" />
+                              <Skeleton className="h-9 w-9 rounded-lg" />
                             </div>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+                    </div>
+                  ) : registrationsPageItems.length > 0 ? (
+                    <div className="overflow-x-auto relative rounded-xl border border-[#e7e7e7]">
+                      <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                          <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#e7e7e7]">
+                            <th className="px-4 py-4">Player</th>
+                            <th className="px-4 py-4">Status & Payment</th>
+                            <th className="px-4 py-4">Details</th>
+                            <th className="px-4 py-4 text-center">Handicap / Penalty</th>
+                            <th className="px-4 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#efefef] bg-white">
+                          {registrationsPageItems.map((r) => {
+                            const isDisqualified = r.status === "DISQUALIFIED";
+                            const isPaid = r.paymentStatus === "PAID";
+                            return (
+                              <tr
+                                key={r.id}
+                                className={cn(
+                                  "transition-all hover:bg-gray-50/50",
+                                  isDisqualified ? "bg-red-50/10 opacity-75" : ""
+                                )}
+                              >
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                      <img
+                                        src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-[14px] font-bold text-gray-900 truncate">
+                                        {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
+                                      </p>
+                                      <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn(
+                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                        r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                          r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                            r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                              r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
+                                                "bg-gray-50 text-gray-600 border border-gray-200"
+                                    )}>
+                                      {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
+                                    </span>
+                                    <span className={cn(
+                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                        "bg-gray-50 text-gray-600 border border-gray-250"
+                                    )}>
+                                      {r.paymentStatus}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-1.5">
+                                    {r.user?.gender && (
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                        r.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                      )}>
+                                        {r.user.gender}
+                                      </span>
+                                    )}
+                                    {r.user?.dob && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                        {(() => {
+                                          const birthDate = new Date(r.user.dob);
+                                          const today = new Date();
+                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                          const m = today.getMonth() - birthDate.getMonth();
+                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                          return `${age} YRS`;
+                                        })()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      HCP {r.user?.handicap ?? 0}
+                                    </span>
+                                    {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                        +{r.extraStrokes} Penalty
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && (
+                                    <div className="flex items-center justify-end gap-2">
+                                      {selectedTournament.entryFee !== null && !isPaid && (
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => handleMarkPaid(r.id)}
+                                          disabled={markingPaidId === r.id}
+                                          title="Mark as Paid"
+                                          className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                        >
+                                          {markingPaidId === r.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                          ) : (
+                                            <Wallet className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => openRemovePlayer(r)}
+                                        disabled={registrationActionId === r.id}
+                                        title="Remove Player"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
+                                      >
+                                        <UserMinus className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
                     <EmptyState
@@ -1717,7 +1772,7 @@ function ViewTournamentPageInner() {
                   <div>
                     <h3 className="text-[14px] font-bold text-gray-900 leading-tight">Quick Registration</h3>
                     <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      Register members directly into <span className="text-emerald-600 font-bold">{selectedTournament.name}</span>. Groupings and pairing calculations will be recalculated dynamically.
+                      Register members directly into <span className="text-emerald-600 font-bold">{selectedTournament.name}</span>. Flights & Tee Times and pairing calculations will be recalculated dynamically.
                     </p>
                   </div>
                 </div>
@@ -1790,76 +1845,91 @@ function ViewTournamentPageInner() {
                         <p className="text-sm">Searching the openclub registry...</p>
                       </div>
                     ) : registerPlayerResults.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {registerPlayerResults.map((player) => {
-                          const isAlreadyRegistered =
-                            registrationsAll.some(x => x.user?.id === player.id) ||
-                            registrations.some(x => x.user?.id === player.id) ||
-                            registeredUserIdsForSearch.includes(player.id) ||
-                            newlyRegisteredUserIds.includes(player.id);
-                          return (
-                            <div key={player.id} className="group p-4 rounded-xl border border-[#efefef] bg-[#fafafa] hover:border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-[#e7e7e7] bg-gray-50">
-                                  <img
-                                    src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
-                                    alt=""
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[14px] font-bold text-gray-900 truncate">
-                                    {fullName(player.firstName ?? null, player.lastName ?? null)}
-                                  </p>
-                                  <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                    {/* Gender Badge */}
-                                    {player.gender && (
-                                      <span className={cn(
-                                        "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
-                                        player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                      )}>
-                                        {player.gender}
-                                      </span>
-                                    )}
-
-                                    {/* Age Badge */}
-                                    {player.dob && (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
-                                        {(() => {
-                                          const birthDate = new Date(player.dob);
-                                          const today = new Date();
-                                          let age = today.getFullYear() - birthDate.getFullYear();
-                                          const m = today.getMonth() - birthDate.getMonth();
-                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                          return `${age} YRS`;
-                                        })()}
-                                      </span>
-                                    )}
-
-                                    {/* PH Badge */}
+                      <div className="overflow-x-auto relative rounded-xl border border-[#e7e7e7]">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#e7e7e7]">
+                              <th className="px-4 py-4">Player</th>
+                              <th className="px-4 py-4">Details</th>
+                              <th className="px-4 py-4 text-center">Handicap</th>
+                              <th className="px-4 py-4 text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#efefef] bg-white">
+                            {registerPlayerResults.map((player) => {
+                              const isAlreadyRegistered =
+                                registrationsAll.some(x => x.user?.id === player.id) ||
+                                registrations.some(x => x.user?.id === player.id) ||
+                                registeredUserIdsForSearch.includes(player.id) ||
+                                newlyRegisteredUserIds.includes(player.id);
+                              return (
+                                <tr key={player.id} className="transition-all hover:bg-gray-50/50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                        <img
+                                          src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-[14px] font-bold text-gray-900 truncate">
+                                          {fullName(player.firstName ?? null, player.lastName ?? null)}
+                                        </p>
+                                        <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-1.5">
+                                      {player.gender && (
+                                        <span className={cn(
+                                          "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                          player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                        )}>
+                                          {player.gender}
+                                        </span>
+                                      )}
+                                      {player.dob && (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                          {(() => {
+                                            const birthDate = new Date(player.dob);
+                                            const today = new Date();
+                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                            const m = today.getMonth() - birthDate.getMonth();
+                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                            return `${age} YRS`;
+                                          })()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                      PH {player.handicap ?? 0}
+                                      HCP {player.handicap ?? 0}
                                     </span>
-                                  </div>
-                                </div>
-                              </div>
-                              <Button
-                                disabled={isAlreadyRegistered || isRegistering}
-                                size="sm"
-                                onClick={() => handleRegisterPlayer(player.id)}
-                                className={cn(
-                                  "rounded-xl font-bold text-[12px] px-4 h-9",
-                                  isAlreadyRegistered
-                                    ? "bg-gray-100 text-gray-400 border border-gray-200"
-                                    : "bg-[#10b981] hover:bg-[#0da673] text-white"
-                                )}
-                              >
-                                {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
-                              </Button>
-                            </div>
-                          );
-                        })}
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <Button
+                                      disabled={isAlreadyRegistered || isRegistering}
+                                      size="sm"
+                                      onClick={() => handleRegisterPlayer(player.id)}
+                                      className={cn(
+                                        "rounded-xl font-bold text-[12px] px-4 h-9",
+                                        isAlreadyRegistered
+                                          ? "bg-gray-100 text-gray-400 border border-gray-200"
+                                          : "bg-[#10b981] hover:bg-[#0da673] text-white"
+                                      )}
+                                    >
+                                      {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     ) : registerPlayerSearch.trim().length >= 2 ? (
                       <EmptyState
@@ -1978,54 +2048,101 @@ function ViewTournamentPageInner() {
 
                 <div className="space-y-4">
                   {waitlistLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
-                      ))}
+                    <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                      <div className="flex flex-col">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                            <div className="flex items-center gap-4 w-1/3">
+                              <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                              <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-1/4 hidden sm:flex">
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                            </div>
+                            <div className="flex items-center justify-end gap-2 w-1/4 text-right">
+                              <Skeleton className="h-9 w-9 rounded-lg" />
+                              <Skeleton className="h-9 w-9 rounded-lg" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : waitlist.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {waitlist
-                        .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
-                        .map((item) => (
-                          <div key={item.id} className={cn("p-4 rounded-xl border transition-all flex flex-col gap-3 group relative", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30 border-emerald-200 shadow-sm hover:shadow-md" : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md")}>
+                    <div className="overflow-x-auto relative rounded-xl border border-[#e7e7e7]">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                          <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#e7e7e7]">
                             {waitlistFilter === "PENDING" && (
-                              <div className="absolute top-4 right-4">
+                              <th className="w-12 px-4 py-4 text-center">
                                 <input
                                   type="checkbox"
                                   className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                  checked={selectedWaitlistIds.includes(item.id)}
+                                  checked={selectedWaitlistIds.length > 0 && waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
                                   onChange={(e) => {
                                     if (e.target.checked) {
-                                      setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                      setSelectedWaitlistIds(waitlist.map(i => i.id));
                                     } else {
-                                      setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                      setSelectedWaitlistIds([]);
                                     }
                                   }}
                                 />
-                              </div>
+                              </th>
                             )}
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-emerald-50 border border-emerald-100 flex-shrink-0 relative">
-                                  <img
-                                    src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
-                                    alt="Avatar"
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-[14px] font-bold text-gray-900 leading-tight pr-6">
-                                      {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
-                                    </p>
-                                    {item.status === "REJECTED" && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
-                                    )}
+                            <th className={cn("px-4 py-4", waitlistFilter !== "PENDING" && "pl-6")}>Player</th>
+                            <th className="px-4 py-4">Details</th>
+                            <th className="px-4 py-4 text-center">Handicap</th>
+                            <th className="px-4 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#efefef] bg-white">
+                          {waitlist
+                            .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
+                            .map((item) => (
+                              <tr key={item.id} className={cn("transition-all hover:bg-gray-50/50", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30" : "")}>
+                                {waitlistFilter === "PENDING" && (
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                      checked={selectedWaitlistIds.includes(item.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                        } else {
+                                          setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                        }
+                                      }}
+                                    />
+                                  </td>
+                                )}
+                                <td className={cn("px-4 py-3", waitlistFilter !== "PENDING" && "pl-6")}>
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                      <img
+                                        src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[14px] font-bold text-gray-900 truncate">
+                                          {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
+                                        </p>
+                                        {item.status === "REJECTED" && (
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
+                                        )}
+                                      </div>
+                                      <p className="text-[12px] text-gray-500 truncate mt-0.5">{item.user?.email}</p>
+                                    </div>
                                   </div>
-                                  <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                    {/* Gender Badge */}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-1.5">
                                     {item.user?.gender && (
                                       <span className={cn(
                                         "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
@@ -2034,8 +2151,6 @@ function ViewTournamentPageInner() {
                                         {item.user.gender}
                                       </span>
                                     )}
-
-                                    {/* Age Badge */}
                                     {item.user?.dob && (
                                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
                                         {(() => {
@@ -2048,47 +2163,49 @@ function ViewTournamentPageInner() {
                                         })()}
                                       </span>
                                     )}
-
-                                    {/* PH Badge */}
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                      PH {item.user?.handicap ?? 0}
-                                    </span>
                                   </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mt-5 flex-shrink-0 self-end md:self-center z-10">
-                                {item.status !== "REJECTED" && (
-                                  <Button
-                                    onClick={() => {
-                                      if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
-                                      setIsApproveWaitlistModalOpen(true);
-                                    }}
-                                    disabled={waitlistActionId === item.id}
-                                    title="Approve"
-                                    className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
-                                  >
-                                    {waitlistActionId === item.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                                    ) : (
-                                      <CheckCircle2 className="w-4 h-4" />
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    HCP {item.user?.handicap ?? 0}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {item.status !== "REJECTED" && (
+                                      <Button
+                                        onClick={() => {
+                                          if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                          setIsApproveWaitlistModalOpen(true);
+                                        }}
+                                        disabled={waitlistActionId === item.id}
+                                        title="Approve"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                      >
+                                        {waitlistActionId === item.id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                        ) : (
+                                          <CheckCircle2 className="w-4 h-4" />
+                                        )}
+                                      </Button>
                                     )}
-                                  </Button>
-                                )}
-                                <Button
-                                  onClick={() => {
-                                    if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
-                                    setIsRemoveWaitlistModalOpen(true);
-                                  }}
-                                  disabled={waitlistActionId === item.id || item.status === "REJECTED"}
-                                  title={item.status === "REJECTED" ? "Rejected" : "Reject"}
-                                  className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
-                                >
-                                  <UserMinus className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                                    <Button
+                                      onClick={() => {
+                                        if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                        setIsRemoveWaitlistModalOpen(true);
+                                      }}
+                                      disabled={waitlistActionId === item.id || item.status === "REJECTED"}
+                                      title={item.status === "REJECTED" ? "Rejected" : "Reject"}
+                                      className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
+                                    >
+                                      <UserMinus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
                     <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center">
@@ -2125,13 +2242,72 @@ function ViewTournamentPageInner() {
               <div className="space-y-8 animate-in fade-in duration-500">
                 {groupingsLoading ? (
                   <div className="space-y-8">
-                    <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
-                      <div className="flex gap-2">
-                        {[1, 2, 3].map(i => <div key={i} className="w-24 h-10 bg-gray-100 animate-pulse rounded-xl" />)}
+                    {/* Day Selection Skeleton */}
+                    <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#e7e7e7] gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-40 h-[56px] bg-gray-100 animate-pulse rounded-2xl" />
+                        <div className="w-8 h-8 bg-gray-100 animate-pulse rounded-xl" />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="w-[180px] h-10 bg-gray-100 animate-pulse rounded-xl hidden md:block" />
+                        <div className="w-32 h-10 bg-gray-100 animate-pulse rounded-xl hidden md:block" />
+                        <div className="w-[140px] h-10 bg-gray-100 animate-pulse rounded-xl" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-xl border border-[#e7e7e7]" />)}
+
+                    {/* Groupings Dashboard Header Skeleton */}
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-64 h-7 bg-gray-100 animate-pulse rounded-lg" />
+                          <div className="w-28 h-6 bg-gray-100 animate-pulse rounded-md" />
+                        </div>
+                        <div className="w-96 h-4 bg-gray-100 animate-pulse rounded-md max-w-full" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-36 h-11 bg-gray-100 animate-pulse rounded-xl" />
+                        <div className="w-44 h-11 bg-gray-100 animate-pulse rounded-xl" />
+                      </div>
+                    </div>
+
+                    {/* Search & Sub-tabs Skeleton */}
+                    <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+                      <div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-xl" />
+                      <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl border border-[#e7e7e7]">
+                        <div className="w-36 h-9 bg-gray-100 animate-pulse rounded-lg" />
+                        <div className="w-32 h-9 bg-gray-100 animate-pulse rounded-lg" />
+                      </div>
+                    </div>
+
+                    {/* Flights Grid Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="bg-white rounded-xl border border-[#e7e7e7] flex flex-col shadow-sm">
+                          <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gray-100 animate-pulse shrink-0" />
+                              <div className="space-y-2">
+                                <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
+                                <div className="w-16 h-3 bg-gray-100 animate-pulse rounded" />
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end space-y-2">
+                              <div className="w-8 h-4 bg-gray-100 animate-pulse rounded" />
+                              <div className="w-14 h-3 bg-gray-100 animate-pulse rounded" />
+                            </div>
+                          </div>
+                          <div className="h-1 w-full bg-gray-50" />
+                          <div className="p-2 space-y-1">
+                            {[1, 2, 3, 4].map(j => (
+                              <div key={j} className="flex items-center gap-3 p-2">
+                                <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse shrink-0" />
+                                <div className="w-32 h-3 bg-gray-100 animate-pulse rounded" />
+                                <div className="w-8 h-3 bg-gray-100 animate-pulse rounded ml-auto" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : (
@@ -2139,8 +2315,8 @@ function ViewTournamentPageInner() {
                     {/* Day Selection Linear Flow */}
                     <div className="flex items-center justify-between pb-4 border-b border-[#e7e7e7]">
                       <div className="flex items-center gap-3">
-                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border-2 border-emerald-200 px-10 py-3 text-2xl font-bold rounded-2xl flex items-center gap-3 tracking-tight">
-                          <Calendar className="w-6 h-6 text-emerald-600" />
+                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border border-emerald-200 px-6 py-2.5 text-[13px] font-bold rounded-xl flex items-center gap-2 uppercase tracking-widest">
+                          <Calendar className="w-4 h-4 text-emerald-600" />
                           DAY {selectedDay}
                         </div>
                         {selectedDay > 1 && (
@@ -2167,12 +2343,12 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
                         <div className="flex gap-3">
                           <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                           <div>
                             <h4 className="text-[14px] font-bold text-emerald-900">Send Tee Times via Email</h4>
-                            <p className="text-[12px] text-emerald-700 mt-0.5">Groupings have been generated. Publish them via email to notify players of their tee times.</p>
+                            <p className="text-[12px] text-emerald-700 mt-0.5">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2198,16 +2374,16 @@ function ViewTournamentPageInner() {
                     )}
 
                     {/* Groupings Dashboard Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-2">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-lg font-bold text-slate-900 flex items-center gap-3">
-                          Manage Groupings
+                          Manage Flights & Tee Times
                           <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
                         </h3>
-                        <p className="text-[13px] text-slate-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
+                        <p className="text-[13px] text-slate-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -2218,16 +2394,7 @@ function ViewTournamentPageInner() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {isCutPending && (
-                          <Button
-                            onClick={() => setShowCutModal(true)}
-                            disabled={applyingCut}
-                            className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold shadow-sm transition-colors border border-red-600/20 flex items-center"
-                          >
-                            {applyingCut ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
-                            Apply CutOff
-                          </Button>
-                        )}
+
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           disabled={!!groupingsData?.groups?.length}
@@ -2239,7 +2406,7 @@ function ViewTournamentPageInner() {
                         </button>
                         <div className="relative inline-block">
                           <Button
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCutPending || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
                             className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -2247,7 +2414,7 @@ function ViewTournamentPageInner() {
                             <ChevronDown className="w-3.5 h-3.5 ml-1" />
                           </Button>
                           <select
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || isCutPending || !groupingsData?.unassigned.length}
+                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || !groupingsData?.unassigned.length}
                             onChange={async (e) => {
                               const rule = e.target.value as any;
                               if (!rule) return;
@@ -2297,7 +2464,7 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                       <div className="relative flex-1">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
@@ -2314,7 +2481,7 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {/* Sub-tabs for Unassigned/Grouped */}
-                    <div className="flex gap-2 mb-4 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                    <div className="flex gap-2 mb-6 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
                       <button
                         onClick={() => {
                           setGroupingsSubTab("unassigned");
@@ -2347,12 +2514,12 @@ function ViewTournamentPageInner() {
                             : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                         )}
                       >
-                        Grouped Players
+                        Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-black px-1.5 py-0 transition-all",
                           groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
                         )}>
-                          {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0) || 0}
+                          {groupingsData?.groups.length || 0}
                         </Badge>
                       </button>
                     </div>
@@ -2435,7 +2602,7 @@ function ViewTournamentPageInner() {
                                         </div>
                                         <div className="text-right">
                                           <div className="text-[12px] font-black text-gray-900">{occupancy}/{capacity}</div>
-                                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Group Size</div>
+                                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Flight Size</div>
                                         </div>
                                       </div>
                                       <div className="h-1 w-full bg-gray-100">
@@ -2444,87 +2611,93 @@ function ViewTournamentPageInner() {
                                           style={{ width: `${(occupancy / capacity) * 100}%` }}
                                         />
                                       </div>
-                                      <div className="p-3 flex-1 space-y-2">
-                                        {group.registrations.map((player: GroupingPlayer) => (
-                                          <div
-                                            key={player.id}
-                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md group/player"
-                                          >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-[#e7e7e7] bg-white shadow-sm">
-                                                <img
-                                                  src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                                  alt=""
-                                                  className="w-full h-full object-cover"
-                                                />
-                                              </div>
-                                              <div className="min-w-0">
-                                                <NextLink href="#" className="block">
-                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
-                                                    {player.user?.firstName} {player.user?.lastName}
+                                      {/* Group Players (Tabular) */}
+                                      <div className="flex-1 overflow-x-auto">
+                                        <table className="w-full text-left">
+                                          <tbody className="divide-y divide-[#efefef]">
+                                            {group.registrations.map((player: GroupingPlayer) => (
+                                              <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player">
+                                                <td className="pl-3 py-2 w-[36px] align-middle">
+                                                  <div className="w-7 h-7 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
+                                                    <img
+                                                      src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                      alt=""
+                                                      className="w-full h-full object-cover"
+                                                    />
                                                   </div>
-                                                </NextLink>
-                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                                  {/* Gender Badge */}
-                                                  {player.user?.gender && (
-                                                    <span className={cn(
-                                                      "text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight border",
-                                                      player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                    )}>
-                                                      {player.user.gender}
+                                                </td>
+                                                <td className="py-2 px-2 align-middle max-w-[120px]">
+                                                  <NextLink href="#" className="block truncate">
+                                                    <div className="text-[12px] text-gray-900 font-bold hover:text-emerald-600 transition-colors truncate">
+                                                      {player.user?.firstName} {player.user?.lastName}
+                                                    </div>
+                                                  </NextLink>
+                                                </td>
+                                                <td className="py-2 px-2 align-middle">
+                                                  <div className="flex flex-wrap items-center gap-1">
+                                                    {/* Gender Badge */}
+                                                    {player.user?.gender && (
+                                                      <span className={cn(
+                                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                        player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                      )}>
+                                                        {player.user.gender.substring(0, 1)}
+                                                      </span>
+                                                    )}
+                                                    {/* Category Badge */}
+                                                    {player.user?.handicap !== undefined && (
+                                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
+                                                        {getGolfCategory(player.user.handicap).substring(0, 4)}
+                                                      </span>
+                                                    )}
+                                                    {/* Age Badge */}
+                                                    {player.user?.dob && (
+                                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                        {(() => {
+                                                          const birthDate = new Date(player.user.dob);
+                                                          const today = new Date();
+                                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                                          const m = today.getMonth() - birthDate.getMonth();
+                                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                          return `${age}Y`;
+                                                        })()}
+                                                      </span>
+                                                    )}
+                                                    {/* HCP Badge */}
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                      HCP {player.user?.handicap ?? 0}
                                                     </span>
-                                                  )}
-                                                  {/* Category Badge */}
-                                                  {player.user?.handicap !== undefined && (
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100">
-                                                      {getGolfCategory(player.user.handicap)}
-                                                    </span>
-                                                  )}
-
-                                                  {/* Age Badge */}
-                                                  {player.user?.dob && (
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
-                                                      {(() => {
-                                                        const birthDate = new Date(player.user.dob);
-                                                        const today = new Date();
-                                                        let age = today.getFullYear() - birthDate.getFullYear();
-                                                        const m = today.getMonth() - birthDate.getMonth();
-                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                        return `${age} YRS`;
-                                                      })()}
-                                                    </span>
-                                                  )}
-
-
-
-                                                  {/* PH Badge */}
-                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    PH {player.user?.handicap ?? 0}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                            <select
-                                              disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                              value={group.id}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                handleMovePlayer(player.id, val === "unassigned" ? null : val);
-                                              }}
-                                              className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black rounded-lg px-2 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed"
-                                            >
-                                              <option value={group.id}>Move To...</option>
-                                              <option value="unassigned">Unassign</option>
-                                              {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-                                            </select>
-                                          </div>
-                                        ))}
-                                        {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                          <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-[#e7e7e7]/50 opacity-30">
-                                            <div className="w-9 h-9 rounded-lg bg-gray-50 border border-[#e7e7e7]" />
-                                            <div className="text-[11px] font-bold text-gray-300">Available Space</div>
-                                          </div>
-                                        ))}
+                                                  </div>
+                                                </td>
+                                                <td className="pr-3 py-2 align-middle text-right w-[40px]">
+                                                  <select
+                                                    disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                    value={group.id}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value;
+                                                      handleMovePlayer(player.id, val === "unassigned" ? null : val);
+                                                    }}
+                                                    className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
+                                                  >
+                                                    <option value={group.id}>☰</option>
+                                                    <option value="unassigned">Unassign</option>
+                                                    {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
+                                                  </select>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                            {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
+                                              <tr key={`empty-${i}`} className="opacity-40">
+                                                <td className="pl-3 py-2 w-[36px] align-middle">
+                                                  <div className="w-7 h-7 rounded-full bg-gray-50 border border-dashed border-gray-300" />
+                                                </td>
+                                                <td className="py-2 px-2 align-middle" colSpan={3}>
+                                                  <div className="text-[11px] font-bold text-gray-400 italic">Available Space</div>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     </div>
                                   );
@@ -2579,76 +2752,106 @@ function ViewTournamentPageInner() {
 
                                 return (
                                   <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                      {paginated.length > 0 ? (
-                                        paginated.map((player: GroupingPlayer) => (
-                                          <div
-                                            key={player.id}
-                                            className="flex items-center justify-between p-3 rounded-xl bg-[#fafafa] border border-[#efefef] hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
-                                          >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-[#e7e7e7]">
-                                                <img
-                                                  src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                                  alt=""
-                                                  className="w-full h-full object-cover"
-                                                />
-                                              </div>
-                                              <div className="min-w-0">
-                                                <NextLink href="#" className="block">
-                                                  <div className="text-[13px] text-gray-800 font-bold truncate hover:text-emerald-600 transition-colors">
-                                                    {player.user?.firstName} {player.user?.lastName}
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full text-left">
+                                        <thead>
+                                          <tr className="border-b border-[#e7e7e7] bg-gray-50/50">
+                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Player</th>
+                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Attributes</th>
+                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#efefef]">
+                                          {paginated.length > 0 ? (
+                                            paginated.map((player: GroupingPlayer) => (
+                                              <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
+                                                <td className="pl-4 py-3 align-middle">
+                                                  <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7] bg-white shadow-sm">
+                                                      <img
+                                                        src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                        alt=""
+                                                        className="w-full h-full object-cover"
+                                                      />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                      <NextLink href="#" className="block truncate">
+                                                        <div className="text-[13px] text-gray-900 font-bold hover:text-emerald-600 transition-colors truncate">
+                                                          {player.user?.firstName} {player.user?.lastName}
+                                                        </div>
+                                                      </NextLink>
+                                                    </div>
                                                   </div>
-                                                </NextLink>
-                                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                                  {/* Gender Badge */}
-                                                  {player.user?.gender && (
-                                                    <span className={cn(
-                                                      "text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight border",
-                                                      player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                    )}>
-                                                      {player.user.gender}
+                                                </td>
+                                                <td className="py-3 px-4 align-middle">
+                                                  <div className="flex flex-wrap items-center gap-1.5">
+                                                    {/* Gender Badge */}
+                                                    {player.user?.gender && (
+                                                      <span className={cn(
+                                                        "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                        player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                      )}>
+                                                        {player.user.gender}
+                                                      </span>
+                                                    )}
+                                                    {/* Category Badge */}
+                                                    {player.user?.handicap !== undefined && (
+                                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
+                                                        {getGolfCategory(player.user.handicap)}
+                                                      </span>
+                                                    )}
+                                                    {/* Age Badge */}
+                                                    {player.user?.dob && (
+                                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                        {(() => {
+                                                          const birthDate = new Date(player.user.dob);
+                                                          const today = new Date();
+                                                          let age = today.getFullYear() - birthDate.getFullYear();
+                                                          const m = today.getMonth() - birthDate.getMonth();
+                                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                          return `${age} YRS`;
+                                                        })()}
+                                                      </span>
+                                                    )}
+                                                    {/* HCP Badge */}
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                      HCP {player.user?.handicap ?? 0}
                                                     </span>
-                                                  )}
-                                                  {/* Category Badge */}
-                                                  {player.user?.handicap !== undefined && (
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100">
-                                                      {getGolfCategory(player.user.handicap)}
-                                                    </span>
-                                                  )}
-
-                                                  {/* Age Badge */}
-                                                  {player.user?.dob && (
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100">
-                                                      {(() => {
-                                                        const birthDate = new Date(player.user.dob);
-                                                        const today = new Date();
-                                                        let age = today.getFullYear() - birthDate.getFullYear();
-                                                        const m = today.getMonth() - birthDate.getMonth();
-                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                        return `${age} YRS`;
-                                                      })()}
-                                                    </span>
-                                                  )}
-
-                                                  {/* PH Badge */}
-                                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                    PH {player.user?.handicap ?? 0}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))
-                                      ) : (
-                                        <div className="col-span-full py-12">
-                                          <EmptyState
-                                            variant="minimal"
-                                            title="No players found"
-                                            description="No unassigned players matching your search query."
-                                          />
-                                        </div>
-                                      )}
+                                                  </div>
+                                                </td>
+                                                <td className="pr-4 py-3 align-middle text-right">
+                                                  <select
+                                                    disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                    value="unassigned"
+                                                    onChange={(e) => {
+                                                      const val = e.target.value;
+                                                      if (val !== "unassigned") {
+                                                        handleMovePlayer(player.id, val);
+                                                      }
+                                                    }}
+                                                    className="bg-white text-gray-600 border border-[#e7e7e7] text-[11px] font-bold rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-emerald-500 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
+                                                  >
+                                                    <option value="unassigned">Assign To...</option>
+                                                    {groupingsData.groups.map((g: GroupingItem) => (
+                                                      <option key={g.id} value={g.id}>{g.name}</option>
+                                                    ))}
+                                                  </select>
+                                                </td>
+                                              </tr>
+                                            ))
+                                          ) : (
+                                            <tr>
+                                              <td colSpan={3} className="px-4 py-12">
+                                                <EmptyState
+                                                  variant="minimal"
+                                                  title="No players found"
+                                                  description="No unassigned players matching your search query."
+                                                />
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
                                     </div>
                                     {filtered.length > unassignedPerPage && (
                                       <div className="pt-4 flex items-center justify-between border-t border-[#e7e7e7]">
@@ -2673,30 +2876,7 @@ function ViewTournamentPageInner() {
                       <EmptyState
                         icon={Users}
                         title="No Allocation Data"
-                        description={`Use start random grouping to distribute players into groups for Day ${selectedDay}.`}
-                        action={
-                          <div className="relative inline-block">
-                            <Button
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 px-8 text-[14px] font-bold shadow-lg flex items-center gap-2"
-                            >
-                              Grouping Rules
-                              <ChevronDown className="w-4 h-4 ml-1" />
-                            </Button>
-                            <select
-                              onChange={(e) => handleGenerateGroupings(e.target.value as any)}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              title="Select Grouping Rule"
-                            >
-                              <option value="">Select Rule...</option>
-                              <option value="RANDOM">Random Grouping</option>
-                              <option value="CATEGORY_RANDOM">Category Balanced</option>
-                              <option value="LEADERBOARD_REVERSE_GROSS" disabled={selectedDay === 1}>Leaderboard Reverse (Gross)</option>
-                              <option value="LEADERBOARD_REVERSE_NET" disabled={selectedDay === 1}>Leaderboard Reverse (Net)</option>
-                              <option value="LEADERBOARD_DIRECT_GROSS" disabled={selectedDay === 1}>Leaderboard Direct (Gross)</option>
-                              <option value="LEADERBOARD_DIRECT_NET" disabled={selectedDay === 1}>Leaderboard Direct (Net)</option>
-                            </select>
-                          </div>
-                        }
+                        description={`Use the Auto Group Players to distribute players into groups for Day ${selectedDay}.`}
                       />
                     )}
 
@@ -2745,6 +2925,30 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
+                {isCutPending && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-4 shadow-sm animate-in slide-in-from-top-2">
+                    <div className="flex gap-4">
+                      <div className="bg-white p-2 rounded-full shadow-sm border border-red-100 h-fit">
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-red-900 font-bold text-lg">Tournament Cut-Off Required</h4>
+                        <p className="text-red-700 text-[13px] mt-1 font-medium max-w-2xl">
+                          A cut is configured after Round {selectedTournament?.cutAfterRound}. Once all scores for this round are finalized and verified, please apply the cut to generate the advancing players' list.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setShowCutModal(true)}
+                      disabled={applyingCut}
+                      className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-6 text-[14px] font-bold shadow-sm transition-colors border border-red-700/20 whitespace-nowrap"
+                    >
+                      {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
+                      Apply Cut-Off
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                   <div className="space-y-1">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -2756,60 +2960,17 @@ function ViewTournamentPageInner() {
                     <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    {selectedTournament?.enableCut && (
-                      <>
-                        <Button
-                          onClick={() => setShowCutModal(true)}
-                          disabled={applyingCut}
-                          className="h-10 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium transition-colors shadow-sm"
-                        >
-                          {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
-                          Apply Cut
-                        </Button>
-                        <Modal
-                          isOpen={showCutModal}
-                          onClose={() => setShowCutModal(false)}
-                          title="Apply Tournament Cut?"
-                          footer={
-                            <>
-                              <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
-                                Cancel
-                              </Button>
-                              <Button
-                                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
-                                onClick={() => {
-                                  setShowCutModal(false);
-                                  handleApplyCut();
-                                }}
-                                disabled={applyingCut}
-                              >
-                                {applyingCut ? "Applying..." : "Apply Cut"}
-                              </Button>
-                            </>
-                          }
-                        >
-                          <div className="flex flex-col items-center text-center py-4">
-                            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
-                              <AlertTriangle className="h-10 w-10" />
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
-                            <p className="text-gray-500 max-w-sm">
-                              Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
-                            </p>
-                          </div>
-                        </Modal>
-                      </>
-                    )}
+
                     <SearchableSelect
                       value={leaderboardGenderFilter}
                       onValueChange={setLeaderboardGenderFilter}
                       options={[
-                        { value: "ALL", label: "All" },
+                        { value: "ALL", label: "Gender" },
                         { value: "MALE", label: "Male" },
                         { value: "FEMALE", label: "Female" },
                       ]}
                       className="min-w-[120px]"
-                      triggerClassName="h-10 bg-white font-medium"
+                      triggerClassName="h-10 bg-[#f8f9fa] font-medium"
                     />
 
                     {/* Category Filter */}
@@ -2817,7 +2978,7 @@ function ViewTournamentPageInner() {
                       value={leaderboardCategoryFilter}
                       onValueChange={setLeaderboardCategoryFilter}
                       options={[
-                        { value: "ALL", label: "All" },
+                        { value: "ALL", label: "Division" },
                         { value: "Category 1", label: "Category 1" },
                         { value: "Category 2", label: "Category 2" },
                         { value: "Category 3", label: "Category 3" },
@@ -2826,7 +2987,7 @@ function ViewTournamentPageInner() {
                         { value: "Open", label: "Open" },
                       ]}
                       className="min-w-[140px]"
-                      triggerClassName="h-10 bg-white font-medium"
+                      triggerClassName="h-10 bg-[#f8f9fa] font-medium"
                     />
 
                     {/* Sort Filter */}
@@ -2838,7 +2999,7 @@ function ViewTournamentPageInner() {
                         { value: "GROSS", label: "Gross Score" },
                       ]}
                       className="min-w-[140px]"
-                      triggerClassName="h-10 bg-white font-medium"
+                      triggerClassName="h-10 bg-[#f8f9fa] font-medium"
                     />
                   </div>
                 </div>
@@ -2958,11 +3119,25 @@ function ViewTournamentPageInner() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
-                            {filteredData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index) => {
+                            {filteredData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index, array) => {
                               const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
+                              const isFirstMissedCut = selectedLeaderboardDay === "all" && entry.madeCut === false && (index === 0 || array[index - 1].madeCut !== false);
                               return (
-                                <tr key={entry.user.id} className="hover:bg-gray-50/50 transition-colors group">
-                                  <td className="px-6 py-4 text-center">
+                                <React.Fragment key={entry.user.id}>
+                                  {isFirstMissedCut && (
+                                    <tr>
+                                      <td colSpan={20} className="px-0 py-0 bg-gray-50">
+                                        <div className="flex items-center justify-center py-3 border-y-2 border-dashed border-red-300">
+                                          <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm border border-red-200">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                                            <span className="text-[11px] font-bold text-red-600 uppercase tracking-widest">Cut Line</span>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-6 py-4 text-center">
                                     <div className="flex items-center justify-center">
                                       {entry.status === "DISQUALIFIED" ? (
                                         <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase tracking-tight">DQ</span>
@@ -3084,7 +3259,8 @@ function ViewTournamentPageInner() {
                                       <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
                                     )}
                                   </td>
-                                </tr>
+                                  </tr>
+                                </React.Fragment>
                               );
                             })}
                           </tbody>
@@ -3335,7 +3511,7 @@ function ViewTournamentPageInner() {
                       { value: "WITH_STROKES", label: "With Strokes" },
                     ]}
                     className="min-w-[180px]"
-                    triggerClassName="h-11 bg-white"
+                    triggerClassName="h-11 bg-[#f8f9fa]"
                   />
                 </div>
 
@@ -3389,112 +3565,154 @@ function ViewTournamentPageInner() {
                     return (
                       <>
                         {registrationsLoading ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {[1, 2, 3, 4].map((i) => (
-                              <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                            ))}
-                          </div>
-                        ) : penalizePageItems.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {penalizePageItems.map((r) => {
-                              return (
-                                <div
-                                  key={r.id}
-                                  className={cn(
-                                    "p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
-                                    r.status === "DISQUALIFIED"
-                                      ? "bg-red-50/10 border-red-100/50 opacity-75"
-                                      : "bg-[#fafafa] border-[#efefef] hover:border-emerald-200 shadow-sm hover:shadow-md"
-                                  )}
-                                >
-                                  <div className="flex items-start md:items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm relative">
-                                      <img
-                                        src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
-                                        alt=""
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                    <div>
-                                      <NextLink href={`/super-admin/users/${r.user?.id}`} className="block">
-                                        <div className="text-[14px] font-bold text-gray-900 hover:text-emerald-600 transition-colors">
-                                          {r.user?.firstName} {r.user?.lastName}
-                                        </div>
-                                      </NextLink>
-                                      <div className="text-[11px] text-gray-500 font-medium truncate max-w-[200px]">
-                                        {r.user?.email}
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                        {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
-                                            +{r.extraStrokes} Penalty
-                                          </span>
-                                        )}
-                                        {r.status === "DISQUALIFIED" && (
-                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
-                                            Disqualified
-                                          </span>
-                                        )}
-                                      </div>
+                          <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                            <div className="flex flex-col">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                                  <div className="flex items-center gap-4 w-1/3">
+                                    <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                                    <div className="space-y-2 flex-1">
+                                      <Skeleton className="h-4 w-3/4" />
+                                      <Skeleton className="h-3 w-1/2" />
                                     </div>
                                   </div>
-
-                                  <div className="flex flex-wrap justify-end gap-2 mt-3 md:mt-0 w-full md:w-auto">
-                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status !== "DISQUALIFIED" && (
-                                      <div className="flex flex-wrap items-center justify-end gap-2">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => openStrokeModal(r, "ADD_1")}
-                                          title="Add 1-Stroke Penalty"
-                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                        >
-                                          +1 Stroke
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => openStrokeModal(r, "ADD_2")}
-                                          title="Add 2-Stroke Penalty"
-                                          className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
-                                        >
-                                          +2 Strokes
-                                        </Button>
-                                        {(r.extraStrokes ?? 0) > 0 && (
-                                          <Button
-                                            variant="outline"
-                                            onClick={() => openStrokeModal(r, "CLEAR")}
-                                            title="Clear Penalties"
-                                            className="h-9 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
-                                          >
-                                            Clear
-                                          </Button>
-                                        )}
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => openDisqualify(r)}
-                                          title="Disqualify Player"
-                                          className="h-9 w-9 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
-                                        >
-                                          <Ban className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                    {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && r.status === "DISQUALIFIED" && (
-                                      <div className="flex flex-wrap items-center justify-end gap-2">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => openEnablePlayer(r)}
-                                          title="Restore Player"
-                                          className="h-9 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
-                                        >
-                                          <CheckCircle2 className="w-3.5 h-3.5" />
-                                          Restore
-                                        </Button>
-                                      </div>
-                                    )}
+                                  <div className="flex items-center gap-2 w-1/4 hidden sm:flex">
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 w-1/4 text-right">
+                                    <Skeleton className="h-9 w-9 rounded-lg" />
+                                    <Skeleton className="h-9 w-9 rounded-lg" />
                                   </div>
                                 </div>
-                              );
-                            })}
+                              ))}
+                            </div>
+                          </div>
+                        ) : penalizePageItems.length > 0 ? (
+                          <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                              <thead>
+                                <tr className="bg-[#fafafa] border-b border-[#e7e7e7] text-[12px] font-bold text-gray-500 uppercase tracking-wider">
+                                  <th className="px-4 py-4">Player</th>
+                                  <th className="px-4 py-4">Status</th>
+                                  <th className="px-4 py-4 text-center">Handicap / Penalty</th>
+                                  <th className="px-4 py-4 text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#efefef] bg-white">
+                                {penalizePageItems.map((r) => {
+                                  const isDisqualified = r.status === "DISQUALIFIED";
+                                  return (
+                                    <tr
+                                      key={r.id}
+                                      className={cn(
+                                        "transition-all hover:bg-gray-50/50",
+                                        isDisqualified ? "bg-red-50/10 opacity-75" : ""
+                                      )}
+                                    >
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                            <img
+                                              src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <NextLink href={`/super-admin/users/${r.user?.id}`} className="block">
+                                              <p className="text-[14px] font-bold text-gray-900 truncate hover:text-emerald-600 transition-colors">
+                                                {r.user?.firstName} {r.user?.lastName}
+                                              </p>
+                                            </NextLink>
+                                            <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-1.5">
+                                          {isDisqualified && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                              Disqualified
+                                            </span>
+                                          )}
+                                          {!isDisqualified && r.status === "APPROVED" && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                              Active
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            HCP {r.user?.handicap ?? 0}
+                                          </span>
+                                          {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                              +{r.extraStrokes} Penalty
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && !isDisqualified && (
+                                          <div className="flex flex-wrap items-center justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => openStrokeModal(r, "ADD_1")}
+                                              title="Add 1-Stroke Penalty"
+                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                            >
+                                              +1 Stroke
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => openStrokeModal(r, "ADD_2")}
+                                              title="Add 2-Stroke Penalty"
+                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-xs font-bold"
+                                            >
+                                              +2 Strokes
+                                            </Button>
+                                            {(r.extraStrokes ?? 0) > 0 && (
+                                              <Button
+                                                variant="outline"
+                                                onClick={() => openStrokeModal(r, "CLEAR")}
+                                                title="Clear Penalties"
+                                                className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-xs font-bold"
+                                              >
+                                                Clear
+                                              </Button>
+                                            )}
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => openDisqualify(r)}
+                                              title="Disqualify Player"
+                                              className="h-8 w-8 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+                                            >
+                                              <Ban className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && isDisqualified && (
+                                          <div className="flex flex-wrap items-center justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => openEnablePlayer(r)}
+                                              title="Restore Player"
+                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-xs font-bold gap-1.5"
+                                            >
+                                              <CheckCircle2 className="w-3.5 h-3.5" />
+                                              Restore
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <EmptyState
@@ -3681,26 +3899,57 @@ function ViewTournamentPageInner() {
         }}
         title="Remove Player from Tournament?"
         footer={
-          <>
-            <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
-            </Button>
-            <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
-              onClick={confirmRemovePlayer}
-            >
-              Remove
-            </Button>
-          </>
+          (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+            <>
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+                Cancel
+              </Button>
+              <Button
+                className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                onClick={() => {
+                  setIsRemovePlayerModalOpen(false);
+                  confirmDisqualify();
+                }}
+              >
+                Disqualify Player
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+                Cancel
+              </Button>
+              <Button
+                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+                onClick={confirmRemovePlayer}
+              >
+                Remove
+              </Button>
+            </>
+          )
         }
       >
         <div className="flex flex-col items-center text-center py-4">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
-            <UserMinus className="h-10 w-10" />
+            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+              <Ban className="h-10 w-10 text-amber-500" />
+            ) : (
+              <UserMinus className="h-10 w-10" />
+            )}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Remove Player?</h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">
+            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
+          </h4>
           <p className="text-gray-500 max-w-sm">
-            Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+              <>
+                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong>Disqualify</strong> button instead.
+              </>
+            ) : (
+              <>
+                Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+              </>
+            )}
           </p>
         </div>
       </Modal>
@@ -3740,7 +3989,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isResetGroupingsModalOpen}
         onClose={() => setIsResetGroupingsModalOpen(false)}
-        title="Reset All Groupings?"
+        title="Reset All Flights & Tee Times?"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-bold">
@@ -3759,7 +4008,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Reset Groupings?</h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
           </p>
@@ -3770,33 +4019,49 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isApproveWaitlistModalOpen}
         onClose={() => setIsApproveWaitlistModalOpen(false)}
-        title={selectedWaitlistIds.length > 1 ? "Approve Players?" : "Approve Player?"}
+        title={(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Action Restricted" : (selectedWaitlistIds.length > 1 ? "Approve Players?" : "Approve Player?")}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsApproveWaitlistModalOpen(false)} className="rounded-lg font-bold">
-              Cancel
+              {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Close" : "Cancel"}
             </Button>
-            <Button
-              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
-              onClick={() => handleApproveWaitlist(selectedWaitlistIds)}
-              disabled={waitlistActionId === "processing"}
-            >
-              {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Approve
-            </Button>
+            {!(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) && (
+              <Button
+                className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
+                onClick={() => handleApproveWaitlist(selectedWaitlistIds)}
+                disabled={waitlistActionId === "processing"}
+              >
+                {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Approve
+              </Button>
+            )}
           </>
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500 border border-emerald-100">
-            <CheckCircle2 className="h-10 w-10" />
-          </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">
-            Approve {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
-          </h4>
-          <p className="text-gray-500 max-w-sm">
-            Are you sure you want to approve {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This will move them to the registered players list.
-          </p>
+          {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+                <Ban className="h-10 w-10" />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 mb-2">Tournament In Progress</h4>
+              <p className="text-gray-500 max-w-sm">
+                Cannot approve waitlist. The tournament has already started.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500 border border-emerald-100">
+                <CheckCircle2 className="h-10 w-10" />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 mb-2">
+                Approve {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+              </h4>
+              <p className="text-gray-500 max-w-sm">
+                Are you sure you want to approve {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This will move them to the registered players list.
+              </p>
+            </>
+          )}
         </div>
       </Modal>
 
@@ -3877,7 +4142,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isPublishEmailModalOpen}
         onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
-        title={`Send Day ${selectedDay} Groupings`}
+        title={`Send Day ${selectedDay} Flights & Tee Times`}
         className="max-w-xl"
       >
         <div className="space-y-6 pt-4">
@@ -3905,8 +4170,8 @@ function ViewTournamentPageInner() {
                     <p className="text-[16px] font-bold text-emerald-600">[Player Tee Time]</p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Group</p>
-                    <p className="text-[16px] font-bold text-gray-900">[Player Group Name]</p>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Flight</p>
+                    <p className="text-[16px] font-bold text-gray-900">[Player Flight Name]</p>
                   </div>
                 </div>
               </div>
@@ -3948,7 +4213,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isDayLockModalOpen}
         onClose={() => setIsDayLockModalOpen(false)}
-        title="Groupings Not Locked"
+        title="Flights & Tee Times Not Locked"
         footer={
           <>
             <Button
@@ -4004,7 +4269,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isUngroupedPlayersModalOpen}
         onClose={() => setIsUngroupedPlayersModalOpen(false)}
-        title="Incomplete Groupings"
+        title="Incomplete Flights & Tee Times"
         footer={
           <>
             <Button
@@ -4033,6 +4298,39 @@ function ViewTournamentPageInner() {
           <h4 className="text-xl font-bold text-gray-900 mb-2">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</h4>
           <p className="text-gray-500 max-w-sm">
             All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You <span className="font-semibold text-gray-700 uppercase">cannot lock</span> Day {selectedDay > 1 ? selectedDay - 1 : 1} or <span className="font-semibold text-gray-700 uppercase">generate</span> Day {selectedDay} groupings until all players are assigned a tee time.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showCutModal}
+        onClose={() => setShowCutModal(false)}
+        title="Apply Tournament Cut?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+              onClick={() => {
+                setShowCutModal(false);
+                handleApplyCut();
+              }}
+              disabled={applyingCut}
+            >
+              {applyingCut ? "Applying..." : "Apply Cut"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <AlertTriangle className="h-10 w-10" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
           </p>
         </div>
       </Modal>

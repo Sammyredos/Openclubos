@@ -605,7 +605,7 @@ export class EmailService {
       { label: 'Tournament', value: tournamentName },
       { label: 'Round', value: roundName },
       { label: 'Tee Time', value: teeTime },
-      { label: 'Group', value: groupName }
+      { label: 'Flight', value: groupName }
     ])}
 
       ${groupMembers && groupMembers.length > 0 ? `
@@ -626,13 +626,13 @@ export class EmailService {
       ${this.p(`Dear <strong>${playerName}</strong>,`)}
       ${this.p(`Great playing! We are thrilled to inform you that you have made the cut in <strong>${tournamentName}</strong>.`)}
       
-      ${this.infoBox('✅ <strong>Cut Passed!</strong> Your scores have qualified you to advance to the final rounds of the tournament.', '#ecfdf5', '#a7f3d0', '#065f46')}
+      ${this.infoBox('✅ <strong>You Made the Cut!</strong> Your scores have qualified you to advance to the final rounds of the tournament.', '#ecfdf5', '#a7f3d0', '#065f46')}
       
       ${this.p('Please keep an eye out for your upcoming tee times and groupings.')}
       ${this.p('Keep up the great work and best of luck in the rest of the tournament!')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
     `, '#10b981, #34d399');
-    return this.send(to, `You Made the Cut! - ${tournamentName}`, html, `Cut passed email sent to ${to} for ${tournamentName}`);
+    return this.send(to, `You Made the Cut! - ${tournamentName}`, html, `You Made the Cut email sent to ${to} for ${tournamentName}`);
   }
 
   async sendTournamentCutMissed(to: string, tournamentName: string, playerName: string, organizerName?: string): Promise<EmailResult> {

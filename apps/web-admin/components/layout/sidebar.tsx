@@ -93,7 +93,7 @@ export function Sidebar() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex flex-col h-full bg-[#1a2332] text-white w-72 flex-shrink-0 border-r border-white/5">
+      <div className="flex flex-col h-full bg-slate-900 text-white w-72 flex-shrink-0 border-r border-white/5">
         <div className="p-8 h-24 flex items-center gap-4">
           <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
           <Skeleton className="h-6 w-32 bg-white/10" />
@@ -106,7 +106,7 @@ export function Sidebar() {
             </div>
           ))}
         </div>
-        <div className="px-4 py-6 border-t border-white/10 bg-[#161e2b] space-y-4">
+        <div className="px-4 py-6 border-t border-white/10 bg-slate-950 space-y-4">
           <div className="flex items-center gap-4 px-4">
             <Skeleton className="h-11 w-11 rounded-full bg-white/10" />
             <div className="space-y-2">
@@ -125,7 +125,7 @@ export function Sidebar() {
   const sidebarGroups = user.role === 'SUPER_ADMIN' ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
 
   return (
-    <div className="flex flex-col h-full bg-[#1a2332] text-white w-72 flex-shrink-0 border-r border-white/5">
+    <div className="flex flex-col h-full bg-slate-900 text-white w-72 flex-shrink-0 border-r border-white/5">
       <div className="p-8 flex flex-col gap-4">
         {user?.role === 'CLUB_ADMIN' ? (
           <div className="flex items-center justify-between group cursor-pointer">
@@ -180,7 +180,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-4 py-6 border-t border-white/10 bg-[#161e2b]">
+      <div className="px-4 py-6 border-t border-white/10 bg-slate-950">
         <div className="flex items-center gap-4 px-4 py-3 mb-4">
           <div className="h-12 w-12 rounded-full border-2 border-emerald-500/30 p-0.5 flex-shrink-0 flex items-center justify-center overflow-hidden">
             <div className="h-full w-full rounded-full bg-[#10b981]/20 overflow-hidden">
