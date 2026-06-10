@@ -33,6 +33,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
+  ChevronRight,
+  Check,
 } from "lucide-react";
 
 type FormProps = {
@@ -229,7 +231,7 @@ const Toggle = ({ label, checked, onChange, disabled, onClickDisabled }: { label
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
-    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
   </div>
 );
 
@@ -269,7 +271,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     });
   }, [courses, formData.venue]);
 
-  const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
+  const req = (val: any) => (showValidation && !val ? "!border-red-500" : "");
 
   // Date arithmetic helpers
   function shiftDate(ymd: string, days: number): string {
@@ -751,7 +753,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onChange={(e) => set("description", e.target.value)}
                       placeholder="Brief description of the tournament..."
                       className={cn(
-                        "flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none font-medium",
+                        "flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none font-medium",
                         req(formData.description)
                       )}
                     />
@@ -973,7 +975,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-base leading-none">{icon}</span>
+                              <span className="text-[13px] leading-none">{icon}</span>
                               <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-850")}>
                                 {label}
                               </span>
@@ -1122,215 +1124,225 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 4:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Player Capacity</h4>
-                  <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Max Total Players">
-                    <Input
-                      type="number"
-                      value={formData.maxPlayers}
-                      placeholder="e.g. 144"
-                      onChange={(e) => set("maxPlayers", e.target.value)}
-                    />
-                    <p className="text-[11px] font-bold text-amber-600 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
-                  </Field>
-                </div>
-
-                <div
-                  className={cn(
-                    "rounded-xl border-2 p-3.5 cursor-pointer transition-all",
-                    formData.enableWaitlist
-                      ? "border-emerald-400 bg-emerald-50/50"
-                      : "border-[#e7e7e7] bg-gray-50/50 hover:bg-gray-100/50"
-                  )}
-                  onClick={() => set("enableWaitlist", !formData.enableWaitlist)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                        formData.enableWaitlist ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"
-                      )}
-                    >
-                      {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-[13px] font-bold text-gray-900">Enable Waitlist</p>
-                      <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
-                        Allow players to join a queue if the tournament reaches max capacity.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
-              <div
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}
-              >
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-8">
+              {/* Player Capacity Section */}
+              <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <Shield className="w-4 h-4" />
+                    <Users className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-[14px] font-bold text-gray-900">Handicap Restrictions</h4>
-                    <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
+                    <h4 className="text-[14px] font-bold text-gray-900">Player Capacity</h4>
+                    <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                    formData.hasHandicapRestriction ? "bg-emerald-500" : "bg-gray-200"
-                  )}
-                >
+
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Max Total Players">
+                      <Input
+                        type="number"
+                        value={formData.maxPlayers}
+                        placeholder="e.g. 144"
+                        onChange={(e) => set("maxPlayers", e.target.value)}
+                      />
+                      <p className="text-[11px] text-emerald-600 font-medium mt-2 flex items-center gap-1.5 leading-tight">
+                        <Info className="w-3.5 h-3.5" />
+                        Leave empty for unlimited players.
+                      </p>
+                    </Field>
+                  </div>
+
                   <div
                     className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
-                      formData.hasHandicapRestriction ? "left-6" : "left-1"
+                      "rounded-xl border-2 p-3.5 cursor-pointer transition-all",
+                      formData.enableWaitlist
+                        ? "border-emerald-400 bg-emerald-50/50"
+                        : "border-[#e7e7e7] bg-gray-50/50 hover:bg-gray-100/50"
                     )}
-                  />
+                    onClick={() => set("enableWaitlist", !formData.enableWaitlist)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                          formData.enableWaitlist ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"
+                        )}
+                      >
+                        {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900">Enable Waitlist</p>
+                        <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
+                          Allow players to join a queue if the tournament reaches max capacity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {formData.hasHandicapRestriction && (
-                <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Minimum Handicap" required>
-                      <Input
-                        type="number"
-                        value={formData.minHandicap}
-                        onChange={(e) => set("minHandicap", e.target.value)}
-                        placeholder="0"
-                      />
-                    </Field>
-                    <Field label="Maximum Handicap" required>
-                      <Input
-                        type="number"
-                        value={formData.maxHandicap}
-                        onChange={(e) => set("maxHandicap", e.target.value)}
-                        placeholder="54"
-                      />
-                    </Field>
-                  </div>
-                  <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5" />
-                    Only players with a handicap within this range will be allowed to register.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Cut Rules */}
-            {isMultiDay && (
-              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-6 space-y-6">
+              {/* Handicap Restrictions Section */}
+              <div className="bg-gray-50 rounded-xl border border-[#e7e7e7] p-5 space-y-6">
                 <div
                   className="flex items-center justify-between cursor-pointer"
-                  onClick={() => set("enableCut", !formData.enableCut)}
+                  onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <Shield className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-[14px] font-bold text-gray-900">Make Cut</h4>
-                      <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
+                      <h4 className="text-[14px] font-bold text-gray-900">Handicap Restrictions</h4>
+                      <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
                     </div>
                   </div>
                   <div
                     className={cn(
                       "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                      formData.enableCut ? "bg-emerald-500" : "bg-gray-200"
+                      formData.hasHandicapRestriction ? "bg-emerald-500" : "bg-gray-200"
                     )}
                   >
                     <div
                       className={cn(
                         "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
-                        formData.enableCut ? "left-6" : "left-1"
+                        formData.hasHandicapRestriction ? "left-6" : "left-1"
                       )}
                     />
                   </div>
                 </div>
 
-                {formData.enableCut && (
+                {formData.hasHandicapRestriction && (
                   <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Cut After What Day" required>
+                      <Field label="Minimum Handicap" required>
                         <Input
                           type="number"
-                          value={formData.cutAfterRound}
-                          onChange={(e) => set("cutAfterRound", e.target.value)}
-                          placeholder="e.g. 2"
-                          min="1"
-                          max={(() => {
-                            if (!formData.startDate) return undefined;
-                            const start = new Date(formData.startDate);
-                            const end = formData.endDate ? new Date(formData.endDate) : start;
-                            return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-                          })()}
+                          value={formData.minHandicap}
+                          onChange={(e) => set("minHandicap", e.target.value)}
+                          placeholder="0"
+                          className="bg-white"
                         />
                       </Field>
-                      <Field label="Cut Method" required>
-                        <SearchableSelect
-                          value={formData.cutFormat}
-                          onValueChange={(v) => {
-                            set("cutFormat", v);
-                            set("cutLine", ""); // reset value on type change
-                          }}
-                          options={[
-                            { value: "NUMBER", label: "Exact Number" },
-                            { value: "PERCENTAGE", label: "Percentage (%)" }
-                          ]}
-                          className="w-full"
-                          triggerClassName="h-10 bg-white"
+                      <Field label="Maximum Handicap" required>
+                        <Input
+                          type="number"
+                          value={formData.maxHandicap}
+                          onChange={(e) => set("maxHandicap", e.target.value)}
+                          placeholder="54"
+                          className="bg-white"
                         />
                       </Field>
                     </div>
-                    {formData.cutFormat && (
-                      <div className="mt-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                        <Field label={formData.cutFormat === "PERCENTAGE" ? "Percentage to Advance (%)" : "Number of Players to Advance"} required>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              value={formData.cutLine}
-                              onChange={(e) => set("cutLine", e.target.value)}
-                              placeholder={formData.cutFormat === "PERCENTAGE" ? "e.g. 20" : "e.g. 30"}
-                              min="1"
-                              max={formData.cutFormat === "PERCENTAGE" ? "100" : undefined}
-                              className={formData.cutFormat === "PERCENTAGE" ? "pr-8" : ""}
-                            />
-                            {formData.cutFormat === "PERCENTAGE" && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <span className="text-gray-500 sm:text-sm font-medium">%</span>
-                              </div>
-                            )}
-                          </div>
-                        </Field>
-                      </div>
-                    )}
-                    {formData.cutFormat && (
-                      <p className="text-[11px] text-red-600 font-medium mt-3 flex items-center gap-1.5 animate-in fade-in">
-                        <Info className="w-3.5 h-3.5" />
-                        {formData.cutFormat === "PERCENTAGE"
-                          ? "The specified percentage of the total active players will advance to the next day."
-                          : "Players below this exact rank will miss the cut and be excluded from future groupings."}
-                      </p>
-                    )}
+                    <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" />
+                      Only players with a handicap within this range will be allowed to register.
+                    </p>
                   </div>
                 )}
               </div>
-            )}
+
+              {/* Cut Rules */}
+              {isMultiDay && (
+                <div className="bg-gray-50 rounded-xl border border-[#e7e7e7] p-5 space-y-6">
+                  <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => set("enableCut", !formData.enableCut)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
+                        </div>
+                        <div>
+                          <h4 className="text-[14px] font-bold text-gray-900">Make Cut</h4>
+                          <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
+                        </div>
+                      </div>
+                      <div
+                        className={cn(
+                          "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
+                          formData.enableCut ? "bg-emerald-500" : "bg-gray-200"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
+                            formData.enableCut ? "left-6" : "left-1"
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {formData.enableCut && (
+                      <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Field label="Cut After What Day" required>
+                            <Input
+                              type="number"
+                              value={formData.cutAfterRound}
+                              onChange={(e) => set("cutAfterRound", e.target.value)}
+                              placeholder="e.g. 2"
+                              min="1"
+                              max={(() => {
+                                if (!formData.startDate) return undefined;
+                                const start = new Date(formData.startDate);
+                                const end = formData.endDate ? new Date(formData.endDate) : start;
+                                return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                              })()}
+                              className="bg-white"
+                            />
+                          </Field>
+                          <Field label="Cut Method" required>
+                            <SearchableSelect
+                              value={formData.cutFormat}
+                              onValueChange={(v) => {
+                                set("cutFormat", v);
+                                set("cutLine", ""); // reset value on type change
+                              }}
+                              options={[
+                                { value: "NUMBER", label: "Exact Number" },
+                                { value: "PERCENTAGE", label: "Percentage (%)" }
+                              ]}
+                              className="w-full"
+                              triggerClassName="h-10 bg-white"
+                            />
+                          </Field>
+                        </div>
+                        {formData.cutFormat && (
+                          <div className="mt-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <Field label={formData.cutFormat === "PERCENTAGE" ? "Percentage to Advance (%)" : "Number of Players to Advance"} required>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  value={formData.cutLine}
+                                  onChange={(e) => set("cutLine", e.target.value)}
+                                  placeholder={formData.cutFormat === "PERCENTAGE" ? "e.g. 20" : "e.g. 30"}
+                                  min="1"
+                                  max={formData.cutFormat === "PERCENTAGE" ? "100" : undefined}
+                                  className={cn("bg-white", formData.cutFormat === "PERCENTAGE" ? "pr-8" : "")}
+                                />
+                                {formData.cutFormat === "PERCENTAGE" && (
+                                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <span className="text-gray-500 sm:text-[12px] font-medium">%</span>
+                                  </div>
+                                )}
+                              </div>
+                            </Field>
+                          </div>
+                        )}
+                        {formData.cutFormat && (
+                          <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5 animate-in fade-in">
+                            <Info className="w-3.5 h-3.5" />
+                            {formData.cutFormat === "PERCENTAGE"
+                              ? "The specified percentage of the total active players will advance to the next day."
+                              : "Players below this exact rank will miss the cut and be excluded from future groupings."}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                </div>
+              )}
+            </div>
           </div>
         );
       case 5:
@@ -1668,7 +1680,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
+            <h1 className="text-[16px] font-black text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
             <p className="text-[13px] text-gray-500 mt-0.5">
               {tournamentId ? "Update and configure the tournament details step by step" : "Setup and configure a new golf tournament step by step"}
             </p>
@@ -1677,10 +1689,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column - Steps Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-[#e7e7e7] rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+          <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
             {STEPS.map((name, i) => {
               const active = step === i + 1;
               const past = step > i + 1;
@@ -1689,25 +1701,28 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   key={i}
                   onClick={() => handleStepClick(i + 1)}
                   className={cn(
-                    "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                    "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                     active
-                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
-                      : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                      ? "bg-[#f4fdf8] border-[#10b981] text-[#10b981]"
+                      : "bg-white border-[#e7e7e7] text-[#64748b] hover:border-gray-300 hover:bg-gray-50"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
-                      active
-                        ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
-                        : past
+                  <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                    <div
+                      className={cn(
+                        "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                        active
+                          ? "bg-[#10b981] text-white"
+                          : past
                           ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
                           : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
-                    )}
-                  >
-                    {past ? "✓" : i + 1}
+                      )}
+                    >
+                      {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
+                    </div>
+                    <span className="text-[13px] font-normal leading-tight">{name}</span>
                   </div>
-                  <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{name}</span>
+                  {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#10b981]" />}
                 </button>
               );
             })}
@@ -1715,7 +1730,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         </div>
 
         {/* Right Column - Active Step Content */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           <div className="min-h-[400px]">
             {loading ? (
               <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">
@@ -1780,8 +1795,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center space-y-2">
-              <h4 className="text-lg font-bold text-gray-900">Publish Tournament?</h4>
-              <p className="text-sm text-gray-500">
+              <h4 className="text-[14px] font-bold text-gray-900">Publish Tournament?</h4>
+              <p className="text-[12px] text-gray-500">
                 Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
               </p>
             </div>

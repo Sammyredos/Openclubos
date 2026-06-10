@@ -644,7 +644,7 @@ export default function OrganizerDetailsPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
             <LogOut className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             This will immediately log out this user <br />
             <span className="font-bold text-gray-800">{organizer?.name ?? "this organizer"}</span>.
@@ -715,7 +715,7 @@ export default function OrganizerDetailsPage() {
           )}>
             {statusAction === "activate" ? <CheckCircle2 className="h-10 w-10" /> : <Ban className="h-10 w-10" />}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             {statusAction === "activate"
               ? `Are you sure you want to activate ${organizer?.name}?`
@@ -884,7 +884,7 @@ export default function OrganizerDetailsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-xl font-bold text-gray-900 truncate">{organizer.name}</p>
+                        <p className="text-[14px] font-bold text-gray-900 truncate">{organizer.name}</p>
                         <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg", activeStatusBadge)}>
                           {organizer.status}
                         </span>
@@ -926,9 +926,9 @@ export default function OrganizerDetailsPage() {
 
               <Card className="xl:col-span-1 border border-[#e7e7e7] shadow-sm">
                 <CardContent className="p-3">
-                  <p className="text-xl font-bold text-gray-800">Organizer Admin</p>
+                  <p className="text-[14px] font-bold text-gray-800">Organizer Admin</p>
                   <div className="mt-6 flex flex-col items-start text-left">
-                    <div className="w-14 h-14 rounded-full overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0">
                       <img
                         src={organizer.adminAvatar}
                         alt={organizer.admin}
@@ -955,7 +955,7 @@ export default function OrganizerDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Active Tournaments</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                  <p className="text-[16px] font-bold text-gray-900 leading-none mt-1">
                     {organizerStatsLoading ? "…" : String(organizerStats?.activeTournaments ?? 0)}
                   </p>
                   <p className="text-[11px] text-gray-400 font-medium mt-4">
@@ -972,7 +972,7 @@ export default function OrganizerDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                  <p className="text-[16px] font-bold text-gray-900 leading-none mt-1">
                     {organizerStatsLoading ? "…" : formatNumber(`₦${organizerStats?.totalRevenue ?? 0}`)}
                   </p>
                   <p
@@ -997,7 +997,7 @@ export default function OrganizerDetailsPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-medium">Total Payments</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                  <p className="text-[16px] font-bold text-gray-900 leading-none mt-1">
                     {organizerStatsLoading ? "…" : String(organizerStats?.paidRegistrations ?? 0)}
                   </p>
                   <p className="text-[11px] text-red-600 font-bold mt-4">
@@ -1250,7 +1250,7 @@ export default function OrganizerDetailsPage() {
         {activeTab === "tournaments" && (
           <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-bold">Tournaments</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Tournaments</CardTitle>
               <Button
                 onClick={() => router.push(`/super-admin/tournaments/create?organizerId=${organizer?.id || ""}`)}
                 className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg px-4 font-bold"
@@ -1343,7 +1343,7 @@ export default function OrganizerDetailsPage() {
         {activeTab === "payments" && (
           <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-bold">Payments</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Payments</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {registrationsLoading ? (
@@ -1421,7 +1421,7 @@ export default function OrganizerDetailsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-2 border border-[#e7e7e7] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-xl font-bold">Organizer Details</CardTitle>
+                <CardTitle className="text-[16px] font-bold">Organizer Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1447,7 +1447,7 @@ export default function OrganizerDetailsPage() {
 
             <Card className="border border-[#e7e7e7] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-xl font-bold">Primary Admin</CardTitle>
+                <CardTitle className="text-[16px] font-bold">Primary Admin</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -1466,7 +1466,7 @@ export default function OrganizerDetailsPage() {
         {activeTab === "subscription" && (
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-bold">Subscription</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Subscription</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[14px] font-medium text-gray-600">
@@ -1508,7 +1508,7 @@ export default function OrganizerDetailsPage() {
         {activeTab === "audit-logs" && (
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-bold">Audit Logs</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Audit Logs</CardTitle>
             </CardHeader>
             <CardContent className="text-[14px] text-gray-500 font-medium">No audit logs available.</CardContent>
           </Card>

@@ -8,7 +8,7 @@ import { Country, State } from "country-state-city";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy, ArrowLeft, Building2, ShoppingBag, Coffee, Shirt, Users, Car } from "lucide-react";
+import { ImageIcon, X, Plus, Trash2, Check, Globe, Phone, Mail, Link as LinkIcon, Info, Map as MapIcon, Navigation, Target, Mountain, Flag, Trophy, ArrowLeft, Building2, ShoppingBag, Coffee, Shirt, Users, Car, ChevronRight } from "lucide-react";
 import { createCourse, updateCourse, getCourse, TeeBox } from "@/lib/api/courses";
 import { getNigerianStates, getNigerianLGAs } from "@/lib/nigerian-states-lgas";
 
@@ -70,6 +70,7 @@ const DEFAULT_FORM = {
   website: "",
   bookingUrl: "",
   amenities: [] as string[],
+  otherAmenity: "",
   coverImage: "",
   galleryImages: [] as string[],
   status: "ACTIVE" as "ACTIVE" | "INACTIVE",
@@ -88,7 +89,7 @@ const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean;
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
-    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
 
@@ -126,7 +127,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
     return [];
   }, [formData.country, formData.state]);
 
-  const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
+  const req = (val: any) => (showValidation && !val ? "!border-red-500" : "");
 
   // Auto-calculate Par
   const calculatedPar = useMemo(() => {
@@ -196,6 +197,19 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         }
       }
 
+      const standardAmenityNames = AMENITIES.map(a => a.name).filter(n => n !== "Other");
+      const loadedAmenities = c.amenities || [];
+      const standardAmenities = loadedAmenities.filter(a => standardAmenityNames.includes(a));
+      const customAmenities = loadedAmenities.filter(a => !standardAmenityNames.includes(a));
+      
+      let otherAmenity = "";
+      if (customAmenities.length > 0) {
+        if (!standardAmenities.includes("Other")) {
+          standardAmenities.push("Other");
+        }
+        otherAmenity = customAmenities[0] === "Other" ? "" : customAmenities[0];
+      }
+
       setFormData({
         name: c.name || "",
         alsoKnownAs: c.alsoKnownAs || "",
@@ -216,7 +230,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         email: c.email || "",
         website: c.website || "",
         bookingUrl: c.bookingUrl || "",
-        amenities: c.amenities || [],
+        amenities: standardAmenities,
+        otherAmenity: otherAmenity,
         coverImage: c.coverImage || "",
         galleryImages: c.galleryImages || [],
         status: c.status || "ACTIVE",
@@ -264,6 +279,11 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       if (!formData.slopeRating) return "Slope rating is required";
       if (!formData.latitude) return "Latitude is required";
       if (!formData.longitude) return "Longitude is required";
+    }
+    if (s === 3) {
+      if (formData.amenities.includes("Other") && !formData.otherAmenity.trim()) {
+        return "Please specify the other amenity";
+      }
     }
     if (s === 4) {
       const colors = formData.teeBoxes.map(t => t.color);
@@ -334,6 +354,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         yearEstablished: formData.yearEstablished ? parseInt(formData.yearEstablished) : null,
         courseRating: formData.courseRating ? parseFloat(formData.courseRating) : null,
         slopeRating: formData.slopeRating ? parseInt(formData.slopeRating) : null,
+        amenities: formData.amenities.filter(a => a !== "Other").concat(formData.amenities.includes("Other") && formData.otherAmenity.trim() ? [formData.otherAmenity.trim()] : []),
       };
 
       if (courseId) {
@@ -687,6 +708,18 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     </div>
                   ))}
                 </div>
+                {formData.amenities.includes("Other") && (
+                  <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Field label="Specify Other Amenity" required>
+                      <Input 
+                        value={formData.otherAmenity} 
+                        onChange={(e) => set("otherAmenity", e.target.value)} 
+                        placeholder="e.g. Swimming Pool, Tennis Court" 
+                        className={req(formData.otherAmenity.trim())}
+                      />
+                    </Field>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -864,13 +897,13 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     <Field label="Club Logo" required error={showValidation && !formData.coverImage.trim() ? "Club Logo is required" : undefined}>
                       <div 
                         className={cn(
-                          "aspect-square w-40 mx-auto border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-emerald-50/30 overflow-hidden relative group",
-                          formData.coverImage ? "border-emerald-200" : (showValidation ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7] hover:border-emerald-400")
+                          "aspect-square w-40 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-emerald-50/30 overflow-hidden relative group",
+                          formData.coverImage ? "border-emerald-200" : (showValidation ? "!border-red-500" : "border-[#e7e7e7] hover:border-emerald-400")
                         )}
                       >
                         {formData.coverImage ? (
                           <>
-                            <img src={formData.coverImage} className="w-full h-full object-contain p-4" />
+                            <img src={formData.coverImage} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                <button onClick={() => coverInputRef.current?.click()} className="p-2 bg-white rounded-full text-emerald-600 shadow-lg hover:scale-110 transition-transform">
                                   <ImageIcon className="w-5 h-5" />
@@ -958,7 +991,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{courseId ? "Edit Golf Course" : "Add Golf Course"}</h1>
+              <h1 className="text-[14px] font-bold text-gray-900">{courseId ? "Edit Golf Course" : "Add Golf Course"}</h1>
               <p className="text-[13px] text-gray-500 mt-0.5">
                 {courseId ? "Update and configure the course details step by step" : "Setup and configure a new golf course step by step"}
               </p>
@@ -967,10 +1000,10 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         </div>
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+            <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -981,25 +1014,28 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       if (!loading) handleStepClick(i + 1);
                     }}
                     className={cn(
-                      "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                      "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                       active
-                        ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
-                        : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                        ? "bg-[#f4fdf8] border-[#10b981] text-[#10b981]"
+                        : "bg-white border-[#e7e7e7] text-[#64748b] hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
-                    <div
-                      className={cn(
-                        "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
-                        active
-                          ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
-                          : past
-                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
-                      )}
-                    >
-                      {past ? "✓" : i + 1}
+                    <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                      <div
+                        className={cn(
+                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                          active
+                            ? "bg-[#10b981] text-white"
+                            : past
+                            ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                            : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
+                        )}
+                      >
+                        {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
+                      </div>
+                      <span className="text-[13px] font-normal leading-tight">{name}</span>
                     </div>
-                    <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{name}</span>
+                    {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#10b981]" />}
                   </button>
                 );
               })}
@@ -1007,7 +1043,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
           </div>
 
           {/* Right Column - Active Step Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <div className="min-h-[400px]">
               {fetching ? (
                 <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">

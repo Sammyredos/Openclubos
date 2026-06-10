@@ -38,10 +38,10 @@ export function FeaturesSection() {
     <section id="features" className="py-24 bg-secondary/30">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-[16px] md:text-[16px] font-bold text-foreground mb-4">
             Professional Tools for Modern Clubs
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-[14px] text-muted-foreground">
             Everything you need to manage your golf club, tournaments, and members in one unified, easy-to-use platform.
           </p>
         </div>
@@ -52,7 +52,7 @@ export function FeaturesSection() {
               <div className="w-12 h-12 rounded-xl bg-landing/10 flex items-center justify-center mb-6">
                 <feature.icon className="w-6 h-6 text-landing" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
+              <h3 className="text-[14px] font-bold text-foreground mb-3">{feature.title}</h3>
               <p className="text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>

@@ -154,7 +154,7 @@ export function InactivityGuard() {
             </svg>
             <span
               className={cn(
-                "relative text-2xl font-bold tabular-nums transition-colors",
+                "relative text-[16px] font-bold tabular-nums transition-colors",
                 isUrgent ? "text-red-500" : "text-gray-800"
               )}
             >
@@ -163,7 +163,7 @@ export function InactivityGuard() {
           </div>
 
           <div className="text-center">
-            <h3 className="text-xl font-bold text-gray-900">Session Expiring Soon</h3>
+            <h3 className="text-[14px] font-bold text-gray-900">Session Expiring Soon</h3>
             <p className="text-[14px] text-gray-500 mt-1">
               You've been inactive for 10 minutes. Your session will end in{" "}
               <span className={cn("font-bold", isUrgent ? "text-red-500" : "text-gray-700")}>

@@ -88,7 +88,7 @@ function ResetPasswordPageInner() {
             <div className="w-12 h-12 bg-[#10b981] rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
               <Icons.logo className="w-7 h-7" />
             </div>
-            <span className="text-xl font-bold text-[#1a2332] tracking-tight">OpenClub</span>
+            <span className="text-[14px] font-bold text-[#1a2332] tracking-tight">OpenClub</span>
           </div>
 
           {pageState === "success" ? (

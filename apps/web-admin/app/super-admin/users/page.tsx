@@ -635,7 +635,7 @@ export default function SuperAdminUsersPage() {
 
       <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-xl font-bold">All Users</CardTitle>
+          <CardTitle className="text-[16px] font-bold">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
@@ -669,7 +669,7 @@ export default function SuperAdminUsersPage() {
                     "users-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 Export CSV
@@ -689,7 +689,7 @@ export default function SuperAdminUsersPage() {
                     "Users Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -774,7 +774,7 @@ export default function SuperAdminUsersPage() {
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                          <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
                             <Skeleton className="h-4 w-32 rounded-md" />
                             <Skeleton className="h-3 w-28 rounded-md" />
@@ -816,7 +816,7 @@ export default function SuperAdminUsersPage() {
                           <img
                             src={u.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                             alt={u.email}
-                            className="w-10 h-10 rounded-full border border-[#efefef] bg-gray-50 flex-shrink-0 object-cover"
+                            className="w-12 h-12 rounded-full border border-[#efefef] bg-gray-50 flex-shrink-0 object-cover"
                           />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[14px] font-bold text-gray-900 truncate leading-tight">{fullName(u.firstName, u.lastName).toLowerCase()}</span>
@@ -925,7 +925,7 @@ export default function SuperAdminUsersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="border border-[#e7e7e7] shadow-sm lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Roles Overview</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Roles Overview</CardTitle>
             <span className="text-[12px] font-bold text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -949,7 +949,7 @@ export default function SuperAdminUsersPage() {
         </Card>
         <Card className="border border-[#e7e7e7] shadow-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Recent User Registrations</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Recent User Registrations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
@@ -997,7 +997,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openStatusModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) 
                   ? "text-gray-300 cursor-not-allowed" 
                   : dropdownUser.status === "SUSPENDED" 
@@ -1017,7 +1017,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openEditModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1028,7 +1028,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("view-analytics", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1039,7 +1039,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser) || mutating}
               onClick={() => handleMoreAction("force-logout", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1050,7 +1050,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("reset-password", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1061,7 +1061,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("audit-logs", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1070,7 +1070,7 @@ export default function SuperAdminUsersPage() {
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownUser)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export User
@@ -1080,7 +1080,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("delete", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1114,7 +1114,7 @@ export default function SuperAdminUsersPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
             <LogOut className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this user?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Force logout this user?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             This will immediately log out <span className="font-bold text-gray-800">{selectedUser?.email ?? "this user"}</span>.
           </p>
@@ -1159,7 +1159,7 @@ export default function SuperAdminUsersPage() {
                 <AlertTriangle className="h-10 w-10" />
               )}
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">
+            <h4 className="text-[14px] font-bold text-gray-900 mb-2">
               {statusAction === "activate" ? "Activate User?" : "Suspend User?"}
             </h4>
             <p className="text-gray-500 max-w-sm">
@@ -1224,11 +1224,11 @@ export default function SuperAdminUsersPage() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
                 <AlertTriangle className="h-10 w-10" />
               </div>
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Cannot Delete Administrator</h4>
+              <h4 className="text-[14px] font-bold text-gray-900 mb-2">Cannot Delete Administrator</h4>
               <p className="text-gray-500 max-w-sm">
                 This user is currently the primary administrator for organizer <span className="font-bold text-gray-800">&quot;{selectedUser.club.name}&quot;</span>. Never leave an organizer blank without an administrator.
               </p>
-              <p className="text-gray-500 max-w-sm mt-3 text-sm">
+              <p className="text-gray-500 max-w-sm mt-3 text-[12px]">
                 Please edit and update the organizer account with a new administrator under <strong>Super Admin &gt; Organizers</strong> before deleting this user.
               </p>
             </div>
@@ -1250,7 +1250,7 @@ export default function SuperAdminUsersPage() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
                 <Trash2 className="h-10 w-10" />
               </div>
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Delete User Permanently?</h4>
+              <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete User Permanently?</h4>
               <p className="text-gray-500 max-w-sm">Deleting this user will permanently remove their profile, authentication records, and all associated platform data. This action cannot be undone.</p>
             </div>
             <div className="space-y-3">
@@ -1332,7 +1332,7 @@ export default function SuperAdminUsersPage() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
                 <Mail className="h-10 w-10" />
               </div>
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Send password reset link to</h4>
+              <h4 className="text-[14px] font-bold text-gray-900 mb-2">Send password reset link to</h4>
               <p className="text-gray-500 max-w-sm">
                 <span className="font-bold text-gray-800">{selectedUser?.email || "—"}</span>
               </p>
@@ -1346,7 +1346,7 @@ export default function SuperAdminUsersPage() {
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
                   <KeyRound className="h-10 w-10" />
                 </div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2">Generate a new password</h4>
+                <h4 className="text-[14px] font-bold text-gray-900 mb-2">Generate a new password</h4>
                 <p className="text-gray-500 max-w-sm">
                   Generates a secure password and updates it for <span className="font-bold text-gray-800">{selectedUser?.email || "—"}</span>.
                 </p>
@@ -1440,7 +1440,7 @@ export default function SuperAdminUsersPage() {
             
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h4 className="text-2xl font-bold text-gray-900 truncate">
+                <h4 className="text-[16px] font-bold text-gray-900 truncate">
                   {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
                 </h4>
                 {selectedUser && <StatusPill status={selectedUser.status} />}
@@ -1506,28 +1506,28 @@ export default function SuperAdminUsersPage() {
                     <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Handicap</p>
                       <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
+                        <p className="text-[16px] font-bold text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
                         <Shield className="w-5 h-5 text-emerald-300" />
                       </div>
                     </div>
                     <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Tournaments</p>
                       <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold text-blue-900">{viewRegistrations.length}</p>
+                        <p className="text-[16px] font-bold text-blue-900">{viewRegistrations.length}</p>
                         <Trophy className="w-5 h-5 text-blue-300" />
                       </div>
                     </div>
                     <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Wins</p>
                       <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold text-purple-900">0</p>
+                        <p className="text-[16px] font-bold text-purple-900">0</p>
                         <Trophy className="w-5 h-5 text-purple-300" />
                       </div>
                     </div>
                     <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100/50 shadow-sm">
                       <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Rank</p>
                       <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold text-amber-900">—</p>
+                        <p className="text-[16px] font-bold text-amber-900">—</p>
                         <Users className="w-5 h-5 text-amber-300" />
                       </div>
                     </div>
@@ -1538,7 +1538,7 @@ export default function SuperAdminUsersPage() {
                   {/* Personal Info */}
                   <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                      <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
                         <Users className="w-4 h-4 text-gray-400" />
                         Personal Information
                       </h5>
@@ -1562,7 +1562,7 @@ export default function SuperAdminUsersPage() {
                   {/* Account Details */}
                   <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                      <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
                         <Shield className="w-4 h-4 text-gray-400" />
                         Account Details
                       </h5>
@@ -1590,7 +1590,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search activity..."
-                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
                     value={activitySearch}
                     onChange={(e) => {
                       setActivitySearch(e.target.value);
@@ -1616,7 +1616,7 @@ export default function SuperAdminUsersPage() {
                     ))
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-sm text-gray-400 font-medium">No activity found</p>
+                      <p className="text-[12px] text-gray-400 font-medium">No activity found</p>
                     </div>
                   )}
                 </div>
@@ -1632,7 +1632,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search payments..."
-                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
                     value={paymentSearch}
                     onChange={(e) => {
                       setPaymentSearch(e.target.value);
@@ -1685,7 +1685,7 @@ export default function SuperAdminUsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search tournaments..."
-                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
+                    className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
                     value={tournamentSearch}
                     onChange={(e) => {
                       setTournamentSearch(e.target.value);
@@ -1731,11 +1731,11 @@ export default function SuperAdminUsersPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4">
                   <Clock className="h-8 w-8 text-gray-300" />
                 </div>
-                <h5 className="text-lg font-bold text-gray-900">Coming Soon</h5>
-                <p className="text-sm text-gray-500 max-w-xs mt-1">
+                <h5 className="text-[14px] font-bold text-gray-900">Coming Soon</h5>
+                <p className="text-[12px] text-gray-500 max-w-xs mt-1">
                   This section is currently under development and will be available in a future update.
                 </p>
               </div>

@@ -21,7 +21,7 @@ export function StepsSection() {
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="text-[16px] md:text-[16px] font-bold text-foreground">
             Get Started in 3 Simple Steps
           </h2>
         </div>
@@ -33,10 +33,10 @@ export function StepsSection() {
           <div className="grid md:grid-cols-3 gap-12 relative z-10">
             {steps.map((step, idx) => (
               <div key={idx} className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-landing text-landing-foreground flex items-center justify-center text-xl font-bold mb-6 ring-8 ring-background">
+                <div className="w-12 h-12 rounded-full bg-landing text-landing-foreground flex items-center justify-center text-[14px] font-bold mb-6 ring-8 ring-background">
                   {step.number}
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                <h3 className="text-[14px] font-bold text-foreground mb-3">{step.title}</h3>
                 <p className="text-muted-foreground leading-relaxed max-w-sm">
                   {step.description}
                 </p>

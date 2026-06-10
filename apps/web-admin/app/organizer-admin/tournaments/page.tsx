@@ -149,7 +149,7 @@ function getErrorMessage(e: unknown) {
 }
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
-  DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-slate-600" },
+  DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-gray-600" },
   REGISTRATION_OPEN: { label: "Upcoming", color: "#10b981", badge: "bg-emerald-50 text-emerald-600" },
   ONGOING: { label: "Ongoing", color: "#3b82f6", badge: "bg-blue-50 text-blue-600" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600" },
@@ -1093,7 +1093,7 @@ export default function TournamentsPage() {
         <div className="xl:col-span-3 space-y-6">
           <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-xl font-bold">All Tournaments</CardTitle>
+              <CardTitle className="text-[16px] font-bold">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   variant="outline"
@@ -1125,7 +1125,7 @@ export default function TournamentsPage() {
                         "tournaments-export.csv"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                     Export CSV
@@ -1145,7 +1145,7 @@ export default function TournamentsPage() {
                         "Tournaments Export"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
                     <FileText className="w-4 h-4 text-rose-600" />
                     Export PDF
@@ -1377,7 +1377,7 @@ export default function TournamentsPage() {
           {/* Status Donut Chart */}
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="pb-0">
-              <CardTitle className="text-xl font-bold">Tournaments by Status</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Tournaments by Status</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
               <div className="h-[240px] w-full relative">
@@ -1407,7 +1407,7 @@ export default function TournamentsPage() {
                 )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-[13px] text-gray-400 font-medium">Total</p>
-                  <p className="text-2xl font-bold text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
+                  <p className="text-[16px] font-bold text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
                 </div>
               </div>
 
@@ -1434,11 +1434,11 @@ export default function TournamentsPage() {
           {/* Upcoming List */}
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-xl font-bold">Upcoming Tournaments</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Upcoming Tournaments</CardTitle>
               {upcomingList.length > 0 && (
                 <Button
                   variant="link"
-                  className="text-[#10b981] p-0 h-auto font-bold text-sm hover:no-underline"
+                  className="text-[#10b981] p-0 h-auto font-bold text-[12px] hover:no-underline"
                   onClick={() => setStatusFilter("Upcoming")}
                 >
                   View All
@@ -1482,7 +1482,7 @@ export default function TournamentsPage() {
                   <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Calendar className="w-6 h-6 text-gray-300" />
                   </div>
-                  <p className="text-sm text-gray-500 font-medium">No upcoming tournaments</p>
+                  <p className="text-[12px] text-gray-500 font-medium">No upcoming tournaments</p>
                   <p className="text-[12px] text-gray-400 mt-1">Check back later or add a new one</p>
                 </div>
               )}
@@ -1496,14 +1496,14 @@ export default function TournamentsPage() {
           <>
             <button
               onClick={() => handleMoreAction("export", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Tournament Data
             </button>
             <button
               onClick={() => handleMoreAction("copy-link", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Link className="w-4 h-4 text-emerald-500" />
               Copy Tournament Link
@@ -1512,7 +1512,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("register", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700"
@@ -1525,7 +1525,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("waitlist", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
                 !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
               )}
               disabled={!dropdownTournament.enableWaitlist}
@@ -1537,7 +1537,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700",
@@ -1556,7 +1556,7 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("delete", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Tournament
@@ -1580,7 +1580,7 @@ export default function TournamentsPage() {
             {[1, 2, 3, 4].map((delta) => (
               <button
                 key={delta}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 onClick={() => {
                   const reg = strokesMenuRegistration;
                   setStrokesMenuRegistration(null);
@@ -1607,7 +1607,7 @@ export default function TournamentsPage() {
         footer={
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-400 font-medium italic">
+              <span className="text-[11px] text-gray-400 font-medium italic">
                 Tournament ID: {selectedTournament?.id.slice(0, 8)}...
               </span>
             </div>
@@ -1657,7 +1657,7 @@ export default function TournamentsPage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3 mb-1">
-                <h4 className="text-2xl font-bold text-gray-900 truncate">
+                <h4 className="text-[16px] font-bold text-gray-900 truncate">
                   {selectedTournament?.name || "Tournament Details"}
                 </h4>
                 {selectedTournament && (
@@ -1692,7 +1692,7 @@ export default function TournamentsPage() {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
+                  <p className="text-[16px] font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
                   <p className="text-[11px] text-gray-500 font-medium mt-0.5">Total Players</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
@@ -1705,7 +1705,7 @@ export default function TournamentsPage() {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
+                  <p className="text-[16px] font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
                   <p className="text-[11px] text-gray-500 font-medium mt-0.5">Per Registration</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -1718,7 +1718,7 @@ export default function TournamentsPage() {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-[16px] font-bold text-gray-900">
                     {selectedTournament?.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
                   </p>
                   <p className="text-[11px] text-gray-500 font-medium mt-0.5">Player Limit</p>
@@ -1733,7 +1733,7 @@ export default function TournamentsPage() {
               <button
                 onClick={() => setDetailsTab("players")}
                 className={cn(
-                  "pb-3 px-6 text-sm transition-all duration-200 focus:outline-none border-b-2 font-normal",
+                  "pb-3 px-6 text-[12px] transition-all duration-200 focus:outline-none border-b-2 font-normal",
                   detailsTab === "players"
                     ? "border-[#10b981] text-[#10b981]"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
@@ -1747,7 +1747,7 @@ export default function TournamentsPage() {
                   loadGroupingsData();
                 }}
                 className={cn(
-                  "pb-3 px-6 text-sm transition-all duration-200 focus:outline-none border-b-2 font-normal flex items-center gap-2",
+                  "pb-3 px-6 text-[12px] transition-all duration-200 focus:outline-none border-b-2 font-normal flex items-center gap-2",
                   detailsTab === "groupings"
                     ? "border-[#10b981] text-[#10b981]"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
@@ -2096,7 +2096,7 @@ export default function TournamentsPage() {
                                     <Input
                                       value={editingGroupNameValue}
                                       onChange={(e) => setEditingGroupNameValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-full"
+                                      className="h-8 py-1 px-2 text-[12px] font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-full"
                                     />
                                     <button
                                       onClick={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
@@ -2133,7 +2133,7 @@ export default function TournamentsPage() {
                                       placeholder="e.g. 08:30 AM"
                                       value={editingGroupTimeValue}
                                       onChange={(e) => setEditingGroupTimeValue(e.target.value)}
-                                      className="h-8 py-1 px-2 text-sm font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-24"
+                                      className="h-8 py-1 px-2 text-[12px] font-normal rounded border-[#e7e7e7] focus:border-[#10b981] w-24"
                                     />
                                     <button
                                       onClick={() => handleUpdateGroupDetails(group.id, { startTime: editingGroupTimeValue })}
@@ -2533,7 +2533,7 @@ export default function TournamentsPage() {
       >
         <div className="flex flex-col items-center text-center py-4">
 
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
           <p className="text-gray-500 max-w-sm">
             This will set the tournament status to Cancelled.
           </p>
@@ -2567,7 +2567,7 @@ export default function TournamentsPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
+            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               Deleting this tournament will permanently erase all associated rounds, leaderboards, player registrations, and payment records. This action cannot be undone.
             </p>
@@ -2612,7 +2612,7 @@ export default function TournamentsPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
             <Ban className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Disqualify Player?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Disqualify Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
@@ -2668,7 +2668,7 @@ export default function TournamentsPage() {
               <UserMinus className="h-10 w-10" />
             )}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">
             {(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
           </h4>
           <p className="text-gray-500 max-w-sm">
@@ -2715,7 +2715,7 @@ export default function TournamentsPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500">
             <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Re-enable Player?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Re-enable Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>

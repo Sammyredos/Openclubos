@@ -188,7 +188,7 @@ export default function OrganizerAdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xl font-bold">Registrations Overview</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Registrations Overview</CardTitle>
             <SearchableSelect
               value={registrationsRange}
               onValueChange={setRegistrationsRange}
@@ -224,12 +224,12 @@ export default function OrganizerAdminDashboard() {
 
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold">Revenue Overview</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
             <SearchableSelect
               value={revenueRange}
               onValueChange={setRevenueRange}
               options={["This Year", "Last Year"].map((v) => ({ value: v, label: v }))}
-              triggerClassName="h-10 bg-white text-sm"
+              triggerClassName="h-10 bg-white text-[12px]"
             />
           </CardHeader>
           <CardContent>
@@ -267,7 +267,7 @@ export default function OrganizerAdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Upcoming Tournaments</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Upcoming Tournaments</CardTitle>
             <Button variant="link" className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold">
               View All Upcoming <ArrowUpRight className="w-4 h-4" />
             </Button>
@@ -302,7 +302,7 @@ export default function OrganizerAdminDashboard() {
 
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Payment Status</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Payment Status</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
             <div className="h-[220px] w-full max-w-[240px]">
@@ -326,7 +326,7 @@ export default function OrganizerAdminDashboard() {
 
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {recentActivity.length > 0 ? (

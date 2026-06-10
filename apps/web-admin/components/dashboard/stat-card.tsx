@@ -61,13 +61,13 @@ export function StatCard({
             <Icon className={cn("h-6 w-6 shadow-emerald-500/10", iconColor)} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[16px] font-medium text-gray-500 truncate">{title}</p>
+            <p className="text-[13px] font-medium text-gray-500 truncate">{title}</p>
             {loading ? (
               <div className="mt-2">
                 <Skeleton className="h-8 w-28 rounded-lg" />
               </div>
             ) : (
-              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 truncate" title={value}>
+              <h3 className="text-[28px] font-bold text-gray-900 mt-1 truncate" title={value}>
                 {formatNumber(value)}
               </h3>
             )}

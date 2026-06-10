@@ -42,7 +42,7 @@ export function EmptyState({
       <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6 ring-8 ring-emerald-50/50">
         <Icon className="w-10 h-10 text-emerald-500" />
       </div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-[14px] font-bold text-gray-900 mb-2">{title}</h3>
       {description && (
         <p className="text-[15px] text-gray-500 max-w-[320px] leading-relaxed mb-8">
           {description}

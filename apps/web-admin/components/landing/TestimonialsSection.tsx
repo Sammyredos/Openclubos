@@ -26,7 +26,7 @@ export function TestimonialsSection() {
     <section className="py-24 bg-slate-900 text-slate-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold">
+          <h2 className="text-[16px] md:text-[16px] font-bold">
             Trusted by the Best
           </h2>
         </div>
@@ -39,7 +39,7 @@ export function TestimonialsSection() {
                   <Star key={i} className="w-5 h-5 fill-landing text-landing" />
                 ))}
               </div>
-              <p className="text-slate-300 text-lg leading-relaxed mb-8 italic">
+              <p className="text-slate-300 text-[14px] leading-relaxed mb-8 italic">
                 "{testimonial.quote}"
               </p>
               <div className="flex items-center gap-4">
@@ -48,7 +48,7 @@ export function TestimonialsSection() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-100">{testimonial.author}</p>
-                  <p className="text-sm text-slate-400">{testimonial.title}</p>
+                  <p className="text-[12px] text-gray-400">{testimonial.title}</p>
                 </div>
               </div>
             </div>

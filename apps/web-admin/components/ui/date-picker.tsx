@@ -150,7 +150,7 @@ export function DatePicker({
           setOpen((v) => !v);
         }}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-[12px] font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName,
         )}
       >

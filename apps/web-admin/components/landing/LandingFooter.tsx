@@ -27,7 +27,7 @@ export function LandingFooter() {
               <div className="flex items-center justify-center w-8 h-8 rounded bg-landing text-landing-foreground">
                 <Icons.logo className="w-5 h-5" />
               </div>
-              <span className="font-bold text-xl tracking-tight text-foreground">
+              <span className="font-bold text-[14px] tracking-tight text-foreground">
                 OpenClub<span className="text-landing">OS</span>
               </span>
             </div>
@@ -82,7 +82,7 @@ export function LandingFooter() {
               <LinkedinIcon className="w-5 h-5" />
             </Link>
           </div>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-[12px]">
             © {new Date().getFullYear()} OpenClubOS. All rights reserved.
           </p>
         </div>

@@ -145,7 +145,7 @@ const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean;
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
-    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
   </label>
 );
 
@@ -187,7 +187,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     });
   }, [courses, formData.venue]);
 
-  const req = (val: any) => (showValidation && !val ? "border-red-400 bg-red-50/30" : "");
+  const req = (val: any) => (showValidation && !val ? "!border-red-500" : "");
 
   // Date arithmetic helpers
   function shiftDate(ymd: string, days: number): string {
@@ -574,7 +574,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Field label="Description" required>
                   <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
                     placeholder="Brief description of the tournament..."
-                    className={cn("flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-sm transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
+                    className={cn("flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none", req(formData.description))} />
                 </Field>
               </div>
             </div>
@@ -787,7 +787,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-base leading-none">{icon}</span>
+                            <span className="text-[13px] leading-none">{icon}</span>
                             <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
                           </div>
                           <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
@@ -946,7 +946,10 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <Field label="Max Total Players">
                     <Input type="number" value={formData.maxPlayers} placeholder="e.g. 144" onChange={(e) => set("maxPlayers", e.target.value)} />
                   </Field>
-                  <p className="text-[11px] font-bold text-amber-600 mt-1.5 leading-tight">Leave empty for unlimited players.</p>
+                  <p className="text-[11px] text-emerald-600 font-medium mt-2 flex items-center gap-1.5 leading-tight">
+                    <Info className="w-3.5 h-3.5" />
+                    Leave empty for unlimited players.
+                  </p>
                 </div>
                 <Field label="Players Per Group" required>
                   <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))} />
@@ -1288,8 +1291,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center space-y-2">
-              <h4 className="text-lg font-bold text-gray-900">Publish Tournament?</h4>
-              <p className="text-sm text-gray-500">
+              <h4 className="text-[14px] font-bold text-gray-900">Publish Tournament?</h4>
+              <p className="text-[12px] text-gray-500">
                 Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
               </p>
             </div>

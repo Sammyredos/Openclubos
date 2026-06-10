@@ -111,7 +111,7 @@ export function WaitlistModal({
             <h4 className="text-[17px] font-bold text-gray-900 truncate">{tournamentName}</h4>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-emerald-600 leading-none">{formatWithCommas(waitlist.length)}</p>
+            <p className="text-[16px] font-black text-emerald-600 leading-none">{formatWithCommas(waitlist.length)}</p>
             <p className="text-[11px] text-emerald-600/70 font-bold uppercase tracking-widest mt-1">Waiting</p>
           </div>
         </div>

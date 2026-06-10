@@ -8,7 +8,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-12 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-2 text-base transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          "flex h-12 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-2 text-[13px] transition-all file:border-0 file:bg-transparent file:text-[12px] file:font-medium file:text-foreground placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-[12px]",
           className
         )}
         ref={ref}
@@ -86,7 +86,7 @@ function SearchableSelect({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-sm font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-[12px] font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           triggerClassName
         )}
       >
@@ -134,12 +134,12 @@ function SearchableSelect({
                 if (e.key === "Escape") setOpen(false)
               }}
               placeholder={searchPlaceholder}
-              className="h-[35px] w-full rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-3 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
+              className="h-[35px] w-full rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-3 text-[12px] text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
             />
           </div>
           <div className="max-h-60 overflow-auto py-1 custom-scrollbar">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-400 text-center">No results found</div>
+              <div className="px-3 py-2 text-[12px] text-gray-400 text-center">No results found</div>
             ) : (
               filtered.map((o) => (
                 <button
@@ -152,7 +152,7 @@ function SearchableSelect({
                     setQuery("")
                   }}
                   className={cn(
-                    "flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors",
+                    "flex w-full items-center gap-3 px-3 py-2 text-left text-[12px] transition-colors",
                     o.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-emerald-50/50",
                     o.value === value ? "bg-emerald-50/80 font-bold text-emerald-900" : "text-gray-700"
                   )}

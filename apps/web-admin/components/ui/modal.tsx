@@ -50,7 +50,7 @@ export function Modal({
         )}
       >
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-50">
-          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <h3 className="text-[14px] font-bold text-gray-900">{title}</h3>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"

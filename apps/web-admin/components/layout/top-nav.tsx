@@ -178,7 +178,7 @@ export function TopNav() {
         <button className="p-2 hover:bg-gray-100 rounded-lg lg:hidden">
           <Menu className="h-5 w-5 text-gray-500" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-800 hidden md:block tracking-tight">
+        <h1 className="text-[16px] font-bold text-gray-800 hidden md:block tracking-tight">
           {pageTitle}
         </h1>
         <div ref={searchRef} className="relative max-w-md w-full ml-12 hidden sm:block">
@@ -239,8 +239,8 @@ export function TopNav() {
             <img src={getAvatarUrl(user || undefined)} alt={user?.name || "User Avatar"} className="h-full w-full object-cover" />
           </div>
           <div className="text-left hidden sm:block">
-            <p className="text-[15px] font-bold text-gray-800 leading-none">{user?.name || "Samuel Obadina"}</p>
-            <p className="text-[12px] text-gray-400 font-medium mt-1.5">{isOrganizerAdmin ? "Organizer Admin" : "Super Admin"}</p>
+            <p className="text-[16px] font-bold text-gray-900 leading-none">{user?.name || "Samuel Obadina"}</p>
+            <p className="text-[13px] text-gray-500 font-medium mt-1.5">{isOrganizerAdmin ? "Organizer Admin" : "Super Admin"}</p>
           </div>
           <ChevronDown className="h-4.5 w-4.5 text-gray-400 ml-1" />
         </div>

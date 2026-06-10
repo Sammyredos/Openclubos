@@ -328,7 +328,7 @@ export default function SignupOrganisationPage() {
               <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
-              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-emerald-500 flex items-center justify-center text-xs font-bold text-white z-10">
+              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-emerald-500 flex items-center justify-center text-[11px] font-bold text-white z-10">
                 +2K
               </div>
             </div>
@@ -472,8 +472,8 @@ export default function SignupOrganisationPage() {
                 {/* STEP 2: Organization Logo */}
                 <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 2 ? 'hidden' : 'block'}`}>
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Upload your logo</h3>
-                    <p className="text-sm text-gray-500 mt-1">This helps players recognize your organization.</p>
+                    <h3 className="text-[14px] font-bold text-gray-900">Upload your logo</h3>
+                    <p className="text-[12px] text-gray-500 mt-1">This helps players recognize your organization.</p>
                   </div>
 
                   <div className="space-y-2 flex justify-center">
@@ -531,8 +531,8 @@ export default function SignupOrganisationPage() {
                 <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 3 ? 'hidden' : 'block'}`}>
 
                   <div className="text-left mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Organization Location</h3>
-                    <p className="text-sm text-gray-500 mt-1">Set up your organization's primary location.</p>
+                    <h3 className="text-[14px] font-bold text-gray-900">Organization Location</h3>
+                    <p className="text-[12px] text-gray-500 mt-1">Set up your organization's primary location.</p>
                   </div>
 
                   <div className="space-y-4 mb-6">
@@ -632,8 +632,8 @@ export default function SignupOrganisationPage() {
                 {/* STEP 4: Administrator Profile */}
                 <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 4 ? 'hidden' : 'block'}`}>
                   <div className="text-left mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Administrator Profile</h3>
-                    <p className="text-sm text-gray-500 mt-1">Set up the primary administrator account.</p>
+                    <h3 className="text-[14px] font-bold text-gray-900">Administrator Profile</h3>
+                    <p className="text-[12px] text-gray-500 mt-1">Set up the primary administrator account.</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -775,8 +775,8 @@ export default function SignupOrganisationPage() {
                 {/* STEP 5: Security */}
                 <div className={`space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 ${step !== 5 ? 'hidden' : 'block'}`}>
                   <div className="text-left mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Security</h3>
-                    <p className="text-sm text-gray-500 mt-1">Secure your organization's account with a password.</p>
+                    <h3 className="text-[14px] font-bold text-gray-900">Security</h3>
+                    <p className="text-[12px] text-gray-500 mt-1">Secure your organization's account with a password.</p>
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="adminPassword" className="text-[14px] font-semibold text-gray-700 block">Password</label>

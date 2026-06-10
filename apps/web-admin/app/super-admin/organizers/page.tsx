@@ -615,7 +615,7 @@ export default function OrganizersPage() {
 
       <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-xl font-bold">All Organizers</CardTitle>
+          <CardTitle className="text-[16px] font-bold">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
@@ -648,7 +648,7 @@ export default function OrganizersPage() {
                     "organizers-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 Export CSV
@@ -668,7 +668,7 @@ export default function OrganizersPage() {
                     "Organizers Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -799,7 +799,7 @@ export default function OrganizersPage() {
                       <tr key={organizer.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3 max-w-[200px]">
-                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
                               <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -961,7 +961,7 @@ export default function OrganizersPage() {
               disabled={dropdownOrganizer.status === "Expired"}
               onClick={() => handleStatusChange(dropdownOrganizer)}
               className={cn(
-                "w-full text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
                 dropdownOrganizer.status === "Expired" 
                   ? "text-gray-300 cursor-not-allowed" 
                   : dropdownOrganizer.status === "Suspended" 
@@ -979,14 +979,14 @@ export default function OrganizersPage() {
             <div className="h-px bg-gray-50 my-1" />
             <button
               onClick={() => handleEdit(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Edit2 className="w-4 h-4 text-gray-400" />
               Edit Organizer
             </button>
             <button
               onClick={() => handleMoreAction("view-analytics", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <BarChart3 className="w-4 h-4 text-gray-400" />
               View Analytics
@@ -994,28 +994,28 @@ export default function OrganizersPage() {
             <button
               disabled={mutating}
               onClick={() => openForceLogoutModal(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <LogOut className="w-4 h-4 text-gray-400" />
               Force Logout
             </button>
             <button
               onClick={() => handleMoreAction("reset-password", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <KeyRound className="w-4 h-4 text-gray-400" />
               Reset Admin Password
             </button>
             <button
               onClick={() => handleMoreAction("audit-logs", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Clock className="w-4 h-4 text-gray-400" />
               Audit Logs
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Organizer Data
@@ -1023,7 +1023,7 @@ export default function OrganizersPage() {
             <div className="h-px bg-gray-50 my-1" />
             <button
               onClick={() => handleDelete(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Organizer
@@ -1069,7 +1069,7 @@ export default function OrganizersPage() {
               <AlertTriangle className="h-10 w-10" />
             )}
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             {statusAction === "activate"
               ? `Are you sure you want to activate ${selectedOrganizer?.name}?`
@@ -1101,7 +1101,7 @@ export default function OrganizersPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
             <LogOut className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             This will immediately log out this user <br />
             <span className="font-bold text-gray-800">{selectedOrganizer?.name ?? "this organizer"}</span>.
@@ -1171,7 +1171,7 @@ export default function OrganizersPage() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
                 <Mail className="h-10 w-10" />
               </div>
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Send password reset link to</h4>
+              <h4 className="text-[14px] font-bold text-gray-900 mb-2">Send password reset link to</h4>
               <p className="text-gray-500 max-w-sm">
                 <span className="font-bold text-gray-800">{selectedOrganizer?.admin?.email || "—"}</span>
               </p>
@@ -1185,7 +1185,7 @@ export default function OrganizersPage() {
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
                   <KeyRound className="h-10 w-10" />
                 </div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2">Generate a new password</h4>
+                <h4 className="text-[14px] font-bold text-gray-900 mb-2">Generate a new password</h4>
                 <p className="text-gray-500 max-w-sm">This will immediately set a new password for the organizer admin.</p>
               </div>
 
@@ -1234,7 +1234,7 @@ export default function OrganizersPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Organizer Permanently?</h4>
+            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Organizer Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               Deleting this organization will permanently remove all of its tournaments, member records, and administrative access. This action cannot be undone.
               <br />
@@ -1290,7 +1290,7 @@ export default function OrganizersPage() {
             <div className="space-y-6 animate-in fade-in duration-300">
               {/* Profile Card Header */}
               <div className="rounded-xl border border-[#efefef] bg-emerald-50/20 p-5 flex items-start gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white border border-emerald-100/50 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-white border border-emerald-100/50 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                   {selectedOrganizer?.logo ? (
                     <img
                       src={selectedOrganizer.logo}
@@ -1305,7 +1305,7 @@ export default function OrganizersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xl text-gray-900 truncate">{selectedOrganizer?.name}</p>
+                    <p className="text-[14px] text-gray-900 truncate">{selectedOrganizer?.name}</p>
                     {selectedOrganizer ? (
                       <span
                         className={cn(
@@ -1385,21 +1385,21 @@ export default function OrganizersPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="p-4 bg-emerald-50/30 rounded-xl border border-emerald-100/50 flex flex-col justify-between h-24">
                             <span className="text-[11px] text-emerald-600 uppercase tracking-wider">Revenue</span>
-                            <span className="text-xl text-emerald-700 mt-1">
+                            <span className="text-[14px] text-emerald-700 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
                             </span>
                           </div>
                           <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Tournaments</span>
-                            <span className="text-xl text-gray-800 mt-1">{viewStats?.totalTournaments ?? 0}</span>
+                            <span className="text-[14px] text-gray-800 mt-1">{viewStats?.totalTournaments ?? 0}</span>
                           </div>
                           <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Members</span>
-                            <span className="text-xl text-gray-800 mt-1">{viewStats?.totalMembers ?? 0}</span>
+                            <span className="text-[14px] text-gray-800 mt-1">{viewStats?.totalMembers ?? 0}</span>
                           </div>
                           <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Unpaid</span>
-                            <span className="text-xl text-gray-800 mt-1">
+                            <span className="text-[14px] text-gray-800 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
                             </span>
                           </div>
@@ -1475,7 +1475,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search tournaments..."
-                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
+                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
                             value={tournamentSearch}
                             onChange={(e) => {
                               setTournamentSearch(e.target.value);
@@ -1550,7 +1550,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search player, email or tournament..."
-                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-sm"
+                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
                             value={paymentSearch}
                             onChange={(e) => {
                               setPaymentSearch(e.target.value);

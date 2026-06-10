@@ -282,7 +282,7 @@ export default function SubscriptionsPage() {
         <div className="xl:col-span-3 space-y-6">
           <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-xl font-bold">All Subscriptions</CardTitle>
+              <CardTitle className="text-[16px] font-bold">All Subscriptions</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button 
                   variant="outline" 
@@ -316,7 +316,7 @@ export default function SubscriptionsPage() {
                         "subscriptions-export.csv"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                     Export CSV
@@ -336,7 +336,7 @@ export default function SubscriptionsPage() {
                         "Subscriptions Export"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
                     <FileText className="w-4 h-4 text-rose-600" />
                     Export PDF
@@ -437,7 +437,7 @@ export default function SubscriptionsPage() {
                           {/* Organizer/User */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-bold shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
+                              <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
                                 {sub.initials}
                               </div>
                               <div className="flex flex-col min-w-0">
@@ -554,7 +554,7 @@ export default function SubscriptionsPage() {
           {/* Subscription Overview — Donut Chart */}
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="pb-0">
-              <CardTitle className="text-xl font-bold">Subscription Overview</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Subscription Overview</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
               <div className="h-[240px] w-full relative">
@@ -580,7 +580,7 @@ export default function SubscriptionsPage() {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-[13px] text-gray-400 font-medium">Total</p>
-                  <p className="text-2xl font-bold text-gray-800">156</p>
+                  <p className="text-[16px] font-bold text-gray-800">156</p>
                 </div>
               </div>
 
@@ -607,7 +607,7 @@ export default function SubscriptionsPage() {
           {/* Revenue Overview — Line Chart */}
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-xl font-bold">Revenue Overview</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
               <select 
                 value={revenueFilter}
                 onChange={(e) => setRevenueFilter(e.target.value as "this-year" | "last-6-months" | "this-month")}
@@ -620,7 +620,7 @@ export default function SubscriptionsPage() {
             </CardHeader>
             <CardContent className="p-3 space-y-4">
               <div className="flex items-baseline gap-2 px-1">
-                <span className="text-2xl font-bold text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
+                <span className="text-[16px] font-bold text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
                 <div className="flex items-center text-emerald-500 text-[12px] font-medium">
                   <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
                   <span>{REVENUE_CHANGES[revenueFilter]}</span>
@@ -669,10 +669,10 @@ export default function SubscriptionsPage() {
           {/* Recent Activity */}
           <Card className="border border-[#e7e7e7] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
+              <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
               <Button
                 variant="link"
-                className="text-[#10b981] p-0 h-auto font-bold text-sm hover:no-underline"
+                className="text-[#10b981] p-0 h-auto font-bold text-[12px] hover:no-underline"
               >
                 View All
               </Button>
@@ -681,7 +681,7 @@ export default function SubscriptionsPage() {
 
               {/* Activity 1 */}
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
                   <CheckCircle2 className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -697,7 +697,7 @@ export default function SubscriptionsPage() {
 
               {/* Activity 2 */}
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -713,7 +713,7 @@ export default function SubscriptionsPage() {
 
               {/* Activity 3 */}
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                   <ArrowUpRight className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">

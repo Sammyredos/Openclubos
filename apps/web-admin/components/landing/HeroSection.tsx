@@ -13,7 +13,7 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column Content */}
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-landing/10 text-landing text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-landing/10 text-landing text-[12px] font-medium mb-6">
               <span className="flex h-2 w-2 rounded-full bg-landing"></span>
               New: Live Scoring V2.0
             </div>
@@ -23,15 +23,15 @@ export function HeroSection() {
               <span className="text-landing">Golf Tournaments</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg leading-relaxed">
+            <p className="text-[14px] md:text-[14px] text-muted-foreground mb-8 max-w-lg leading-relaxed">
               Manage tournaments, players, courses and scores — all in one seamless platform. Trusted by 2,000+ organizers worldwide.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Button size="lg" asChild className="w-full sm:w-auto rounded-full px-8 text-base h-12 bg-landing text-landing-foreground hover:bg-landing/90 border-transparent">
+              <Button size="lg" asChild className="w-full sm:w-auto rounded-full px-8 text-[13px] h-12 bg-landing text-landing-foreground hover:bg-landing/90 border-transparent">
                 <Link href="/signup-organisation">Start Free Trial</Link>
               </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-full px-8 text-base h-12 gap-2 bg-background hover:border-landing hover:text-landing transition-colors">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-full px-8 text-[13px] h-12 gap-2 bg-background hover:border-landing hover:text-landing transition-colors">
                 <PlayCircle className="w-5 h-5" />
                 Watch Demo
               </Button>

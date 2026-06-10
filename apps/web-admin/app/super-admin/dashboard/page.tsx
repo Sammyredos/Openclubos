@@ -432,7 +432,7 @@ export default function SuperAdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
-            <CardTitle className="text-xl font-bold">Revenue Trend</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Revenue Trend</CardTitle>
             <SearchableSelect
               value={revenueRange}
               onValueChange={setRevenueRange}
@@ -479,7 +479,7 @@ export default function SuperAdminDashboard() {
 
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
-            <CardTitle className="text-xl font-bold">Organizer Growth</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Organizer Growth</CardTitle>
             <SearchableSelect
               value={growthRange}
               onValueChange={setGrowthRange}
@@ -514,7 +514,7 @@ export default function SuperAdminDashboard() {
         {/* Recent Activity */}
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
             <Button variant="link" className="text-[#10b981] p-0 h-auto font-bold text-[14px] flex items-center gap-2 no-underline hover:no-underline">
               View All Upcoming <ArrowUpRight className="w-4 h-4" />
             </Button>
@@ -545,7 +545,7 @@ export default function SuperAdminDashboard() {
         {/* Top Organizers by Subscription */}
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-xl font-bold">Top Organizers by Subscription</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Top Organizers by Subscription</CardTitle>
             <SearchableSelect
               value={topSubsRange}
               onValueChange={setTopSubsRange}
@@ -567,11 +567,11 @@ export default function SuperAdminDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col">
-                        <p className="text-[15px] font-bold text-gray-800 truncate">{club.name}</p>
+                        <p className="text-[13px] font-bold text-gray-800 truncate">{club.name}</p>
                         <p className="text-[11px] text-gray-400 font-medium">{club.plan}</p>
                       </div>
                       <div className="flex flex-col items-end">
-                        <p className="text-[16px] font-bold text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
+                        <p className="text-[13px] font-bold text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
                         <span className={cn(
                           "text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase inline-flex items-center gap-1.5 whitespace-nowrap",
                           club.status === 'Active' ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
@@ -593,7 +593,7 @@ export default function SuperAdminDashboard() {
         {/* Top Organizers by Tournament */}
         <Card className="border border-[#e7e7e7] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-xl font-bold">Top Organizers by Tournament</CardTitle>
+            <CardTitle className="text-[16px] font-bold">Top Organizers by Tournament</CardTitle>
             <SearchableSelect
               value={topClubsRange}
               onValueChange={setTopClubsRange}
@@ -615,14 +615,14 @@ export default function SuperAdminDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1.5">
                       <div className="flex flex-col">
-                        <p className="text-[15px] font-bold text-gray-800 truncate leading-tight">{club.name}</p>
+                        <p className="text-[13px] font-bold text-gray-800 truncate leading-tight">{club.name}</p>
                         <StatusBadge type={club.statusType} label={club.status} />
                       </div>
                       <div className="flex flex-col items-end"
                         title={`Revenue is total entry fees ${topClubsRange === "All Time" ? "all time" : topClubsRange.toLowerCase()} (entry fee × registrations): ${formatWithCommas(club.registrations ?? 0)} registrations across ${formatWithCommas(club.tournaments ?? 0)} tournaments`}
                       >
-                        <p className="text-[16px] font-bold text-gray-900">{`₦${formatWithCommas(club.revenue ?? 0)}`}</p>
-                        <p className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                        <p className="text-[13px] font-bold text-gray-900">{`₦${formatWithCommas(club.revenue ?? 0)}`}</p>
+                        <p className="text-[14px] text-gray-800 font-bold whitespace-nowrap mt-0.5">
                           {formatWithCommas(club.registrations ?? 0)} regs • {formatWithCommas(club.tournaments ?? 0)} tourns
                         </p>
                       </div>
@@ -725,8 +725,8 @@ function ActivityItem({ icon: Icon, title, subtitle, time, iconBg, iconColor }: 
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-bold text-gray-800 leading-tight">{title}</p>
-        <p className="text-[13px] text-gray-500 mt-1">{subtitle}</p>
+        <p className="text-[13px] font-bold text-gray-800 leading-tight">{title}</p>
+        <p className="text-[12px] text-gray-500 mt-1">{subtitle}</p>
       </div>
       <span className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</span>
     </div>
@@ -756,8 +756,8 @@ function AlertItem({ type, title, subtitle, time }: AlertItemProps) {
         <Icon className={`h-5 w-5 ${currentStyle.color}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-bold text-gray-800 leading-tight">{title}</p>
-        <p className="text-[13px] text-gray-500 mt-1">{subtitle}</p>
+        <p className="text-[13px] font-bold text-gray-800 leading-tight">{title}</p>
+        <p className="text-[12px] text-gray-500 mt-1">{subtitle}</p>
       </div>
       <span className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</span>
     </div>

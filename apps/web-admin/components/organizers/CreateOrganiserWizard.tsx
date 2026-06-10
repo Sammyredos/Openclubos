@@ -7,7 +7,7 @@ import { Input, SearchableSelect } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { 
-  Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye, ArrowLeft
+  Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, ChevronRight, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye, ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { createMember, updateMember, getMember } from "@/lib/api/members";
@@ -586,7 +586,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       </div>
                     ) : (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
+                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "!border-red-500" : "border-[#e7e7e7]")}>
                         <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                           <Upload className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
                         </div>
@@ -607,7 +607,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       placeholder="Enter first name"
                       value={formData.firstName} 
                       onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                      className={cn(showValidation && !formData.firstName && "border-red-400 bg-red-50/30")}
+                      className={cn(showValidation && !formData.firstName && "!border-red-500")}
                     />
                   </Field>
                   <Field label="Middle Name" required>
@@ -615,7 +615,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       placeholder="Enter middle name"
                       value={formData.middleName} 
                       onChange={(e) => setFormData({...formData, middleName: e.target.value})} 
-                      className={cn(showValidation && !formData.middleName && "border-red-400 bg-red-50/30")}
+                      className={cn(showValidation && !formData.middleName && "!border-red-500")}
                     />
                   </Field>
                 </div>
@@ -626,14 +626,14 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       placeholder="Enter surname"
                       value={formData.surname} 
                       onChange={(e) => setFormData({...formData, surname: e.target.value})} 
-                      className={cn(showValidation && !formData.surname && "border-red-400 bg-red-50/30")}
+                      className={cn(showValidation && !formData.surname && "!border-red-500")}
                     />
                   </Field>
                   <Field label="Date of Birth" required>
                     <DatePicker 
                       value={formData.dob} 
                       onValueChange={(v) => setFormData({...formData, dob: v})} 
-                      buttonClassName={cn(showValidation && !formData.dob && "border-red-400 bg-red-50/30")}
+                      buttonClassName={cn(showValidation && !formData.dob && "!border-red-500")}
                       maxDate={maxDobDate}
                     />
                     <p className="text-[10px] text-gray-500 mt-1 leading-snug">
@@ -652,7 +652,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         { value: "Female", label: "Female" },
                         { value: "Other", label: "Other" },
                       ]}
-                      triggerClassName={cn(showValidation && !formData.gender && "border-red-400 bg-red-50/30")}
+                      triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
                       placeholder="Select gender"
                     />
                   </Field>
@@ -663,7 +663,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         placeholder="Enter email address"
                         value={formData.email} 
                         onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                        className={cn("pl-10", showValidation && !formData.email && "border-red-400 bg-red-50/30")}
+                        className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
                       />
                     </div>
                   </Field>
@@ -675,7 +675,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       value={formData.country}
                       onValueChange={v => setFormData({...formData, country: v, state: "", city: ""})}
                       options={countryOptions}
-                      triggerClassName={cn(showValidation && !formData.country && "border-red-400 bg-red-50/30")}
+                      triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
                       placeholder="Select country"
                     />
                   </Field>
@@ -685,7 +685,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       onValueChange={v => setFormData({...formData, state: v, city: ""})}
                       options={stateOptions}
                       disabled={!formData.country}
-                      triggerClassName={cn(showValidation && !formData.state && "border-red-400 bg-red-50/30")}
+                      triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
                       placeholder="Select state / province"
                     />
                   </Field>
@@ -699,7 +699,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         onValueChange={v => setFormData({...formData, city: v})}
                         options={cityOptions}
                         disabled={!formData.state}
-                        triggerClassName={cn(showValidation && !formData.city && "border-red-400 bg-red-50/30")}
+                        triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
                         placeholder="Select LGA / City"
                       />
                     ) : (
@@ -707,7 +707,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         placeholder="Enter LGA / city"
                         value={formData.city} 
                         onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                        className={cn(showValidation && !formData.city && "border-red-400 bg-red-50/30")}
+                        className={cn(showValidation && !formData.city && "!border-red-500")}
                         disabled={!formData.state}
                       />
                     )}
@@ -723,7 +723,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                           placeholder="Enter phone number"
                           value={formData.phone} 
                           onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, "")})} 
-                          className={cn("pl-10", showValidation && !formData.phone && "border-red-400 bg-red-50/30")}
+                          className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
                         />
                       </div>
                     </div>
@@ -735,7 +735,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                     value={formData.address} 
                     onChange={(e) => setFormData({...formData, address: e.target.value})} 
                     placeholder="Enter full address"
-                    className={cn("flex h-24 w-full rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "border-red-400 bg-red-50/30")}
+                    className={cn("flex h-24 w-full rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
                   />
                 </Field>
 
@@ -783,7 +783,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       value={orgProfile.name} 
                       onChange={(e) => setOrgProfile({...orgProfile, name: e.target.value})}
                       placeholder="e.g. Lakowe Golf Club"
-                      className={cn("bg-white", showValidation && !orgProfile.name.trim() && "border-red-400 bg-red-50/30")}
+                      className={cn("bg-white", showValidation && !orgProfile.name.trim() && "!border-red-500")}
                     />
                   </Field>
                   <Field label="Organization Type" required>
@@ -796,7 +796,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         { value: "Sports Association", label: "Sports Association" },
                         { value: "Other", label: "Other" }
                       ]}
-                      triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "border-red-400 bg-red-50/30")}
+                      triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "!border-red-500")}
                     />
                   </Field>
                   <Field label="Subscription Plan" required>
@@ -819,7 +819,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         value={orgProfile.customType} 
                         onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
                         placeholder="Enter organization type"
-                        className={cn("bg-white", showValidation && !orgProfile.customType.trim() && "border-red-400 bg-red-50/30")}
+                        className={cn("bg-white", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
                       />
                     </Field>
                   </div>
@@ -839,7 +839,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         </div>
                       ) : (
                         <div onClick={() => orgLogoInputRef.current?.click()}
-                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "border-red-400 bg-red-50/30" : "border-[#e7e7e7]")}>
+                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e7e7e7]")}>
                           <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
                             <Upload className="w-4 h-4 text-gray-400 group-hover:text-emerald-500" />
                           </div>
@@ -873,7 +873,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       value={orgProfile.about} 
                       onChange={(e) => setOrgProfile({...orgProfile, about: e.target.value.slice(0, 500)})}
                       placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
-                      className="w-full h-20 rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700"
+                      className="w-full h-20 rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700"
                     />
                     <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
                       {orgProfile.about.length}/500
@@ -886,7 +886,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   <span className="text-[11px] font-bold text-gray-400 uppercase block mb-1.5">Social Media (Optional)</span>
                   <div className="flex gap-3 items-center">
                     <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
-                      <span className="text-gray-400 text-xs font-bold w-4 text-center">f</span>
+                      <span className="text-gray-400 text-[11px] font-bold w-4 text-center">f</span>
                       <input 
                         value={orgProfile.facebook} 
                         onChange={(e) => setOrgProfile({...orgProfile, facebook: e.target.value})}
@@ -895,7 +895,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       />
                     </div>
                     <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
-                      <span className="text-gray-400 text-xs font-bold w-4 text-center">in</span>
+                      <span className="text-gray-400 text-[11px] font-bold w-4 text-center">in</span>
                       <input 
                         value={orgProfile.instagram} 
                         onChange={(e) => setOrgProfile({...orgProfile, instagram: e.target.value})}
@@ -903,7 +903,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                         className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                       />
                     </div>
-                    <Button type="button" variant="outline" className="rounded-xl border-[#e7e7e7] text-gray-600 text-xs py-2 h-9 px-4 shrink-0 hover:bg-gray-50 font-bold">
+                    <Button type="button" variant="outline" className="rounded-xl border-[#e7e7e7] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-gray-50 font-bold">
                       + Add more
                     </Button>
                   </div>
@@ -1067,7 +1067,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{editingUser ? "Edit Organizer" : "Add Organizer"}</h1>
+              <h1 className="text-[14px] font-bold text-gray-900">{editingUser ? "Edit Organizer" : "Add Organizer"}</h1>
               <p className="text-[13px] text-gray-500 mt-0.5">
                 {editingUser ? "Update and configure the organizer details step by step" : "Setup and configure a new platform organizer step by step"}
               </p>
@@ -1076,10 +1076,10 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         </div>
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-4 shadow-sm space-y-1.5 sticky top-6">
+            <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -1090,25 +1090,28 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       if (!loading) handleStepClick(i + 1);
                     }}
                     className={cn(
-                      "w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-xl border transition-all duration-200",
+                      "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                       active
-                        ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold shadow-sm shadow-emerald-50"
-                        : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                        ? "bg-[#f4fdf8] border-[#10b981] text-[#10b981]"
+                        : "bg-white border-[#e7e7e7] text-[#64748b] hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
-                    <div
-                      className={cn(
-                        "w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
-                        active
-                          ? "bg-[#10b981] text-white shadow-sm shadow-emerald-100"
-                          : past
-                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
-                      )}
-                    >
-                      {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
+                    <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                      <div
+                        className={cn(
+                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                          active
+                            ? "bg-[#10b981] text-white"
+                            : past
+                            ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                            : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
+                        )}
+                      >
+                        {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
+                      </div>
+                      <span className="text-[13px] font-normal leading-tight">{name}</span>
                     </div>
-                    <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{name}</span>
+                    {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#10b981]" />}
                   </button>
                 );
               })}
@@ -1116,7 +1119,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           </div>
 
           {/* Right Column - Active Step Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <div className="min-h-[400px]">
               {fetching ? (
                 <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">

@@ -183,7 +183,7 @@ function LoginPageInner() {
               <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
-              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-emerald-500 flex items-center justify-center text-xs font-bold text-white z-10">
+              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-emerald-500 flex items-center justify-center text-[11px] font-bold text-white z-10">
                 +2K
               </div>
             </div>
@@ -377,7 +377,7 @@ function LoginPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
             <AlertCircle className="h-10 w-10" />
           </div>
-          <h4 className="text-xl font-bold text-gray-900 mb-2">Check your email</h4>
+          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Check your email</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-bold text-gray-800">{unverifiedEmail}</span>?
           </p>

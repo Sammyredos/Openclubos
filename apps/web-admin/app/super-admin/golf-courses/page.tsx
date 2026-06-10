@@ -274,7 +274,7 @@ export default function SuperAdminGolfCoursesPage() {
 
       <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-xl font-bold">Manage Courses</CardTitle>
+          <CardTitle className="text-[16px] font-bold">Manage Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
@@ -309,7 +309,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "courses-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 Export CSV
@@ -330,7 +330,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "Golf Courses Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -407,7 +407,7 @@ export default function SuperAdminGolfCoursesPage() {
                     <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-12 h-10 rounded-lg flex-shrink-0" />
+                          <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
                             <Skeleton className="h-4 w-32 rounded-md" />
                             <Skeleton className="h-3 w-24 rounded-md" />
@@ -449,7 +449,7 @@ export default function SuperAdminGolfCoursesPage() {
                     <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="w-12 h-10 rounded-lg overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
                             {course.coverImage ? (
                               <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                             ) : (
@@ -594,7 +594,7 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
               <div className="relative">
-                <div className="h-24 w-24 rounded-xl border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
+                <div className="h-24 w-24 rounded-full border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
                   {selectedCourse.coverImage ? (
                     <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
                   ) : (
@@ -609,7 +609,7 @@ export default function SuperAdminGolfCoursesPage() {
               
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h4 className="text-2xl font-bold text-gray-900 truncate">{selectedCourse.name}</h4>
+                  <h4 className="text-[16px] font-bold text-gray-900 truncate">{selectedCourse.name}</h4>
                   <span className={cn(
                     "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm border",
                     selectedCourse.status === "ACTIVE" 
@@ -639,21 +639,21 @@ export default function SuperAdminGolfCoursesPage() {
               <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Course Type</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-xl font-bold text-blue-900">{selectedCourse.type}</p>
+                  <p className="text-[14px] font-bold text-blue-900">{selectedCourse.type}</p>
                   <Trophy className="w-5 h-5 text-blue-300" />
                 </div>
               </div>
               <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Total Holes</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-xl font-bold text-emerald-900">{selectedCourse.holes} Holes</p>
+                  <p className="text-[14px] font-bold text-emerald-900">{selectedCourse.holes} Holes</p>
                   <Flag className="w-5 h-5 text-emerald-300" />
                 </div>
               </div>
               <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
                 <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Course Par</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-xl font-bold text-purple-900">Par {selectedCourse.par}</p>
+                  <p className="text-[14px] font-bold text-purple-900">Par {selectedCourse.par}</p>
                   <Trophy className="w-5 h-5 text-purple-300" />
                 </div>
               </div>
@@ -663,7 +663,7 @@ export default function SuperAdminGolfCoursesPage() {
               {/* Location Card */}
               <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                  <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-gray-400" />
                     Full Address
                   </h5>
@@ -683,7 +683,7 @@ export default function SuperAdminGolfCoursesPage() {
               {/* Contact Card */}
               <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                  <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-400" />
                     Contact Details
                   </h5>
@@ -710,7 +710,7 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Amenities Section */}
             {selectedCourse.amenities && selectedCourse.amenities.length > 0 && (
               <div className="bg-white rounded-xl border border-[#efefef] p-6 shadow-sm">
-                <h5 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h5 className="text-[12px] font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-gray-400" />
                   Available Amenities
                 </h5>
@@ -746,7 +746,7 @@ export default function SuperAdminGolfCoursesPage() {
           <button
             onClick={() => openStatusModal(dropdownCourse)}
             className={cn(
-              "w-full text-left px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-3 text-gray-700",
+              "w-full text-left px-4 py-2 text-[12px] font-medium rounded-lg flex items-center gap-3 text-gray-700",
               dropdownCourse.status === "INACTIVE" 
                 ? "hover:bg-emerald-50" 
                 : "hover:bg-red-50"
@@ -765,7 +765,7 @@ export default function SuperAdminGolfCoursesPage() {
               closeDropdown();
               router.push(`/super-admin/golf-courses/${dropdownCourse.id}/edit`);
             }}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >
             <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
           </button>
@@ -783,14 +783,14 @@ export default function SuperAdminGolfCoursesPage() {
               URL.revokeObjectURL(url);
               toast.success("Course exported");
             }}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >
             <Download className="w-4 h-4 text-gray-400" /> Export Data
           </button>
           <div className="h-px bg-gray-50 my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
           >
             <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>
@@ -836,7 +836,7 @@ export default function SuperAdminGolfCoursesPage() {
                 <AlertCircle className="h-10 w-10" />
               )}
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">
+            <h4 className="text-[14px] font-bold text-gray-900 mb-2">
               {statusAction === "activate" ? "Activate Course?" : "Deactivate Course?"}
             </h4>
             <p className="text-gray-500 max-w-sm">
@@ -891,7 +891,7 @@ export default function SuperAdminGolfCoursesPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Delete Course Permanently?</h4>
+            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Course Permanently?</h4>
             <p className="text-gray-500 max-w-sm">Deleting this golf course will permanently remove its hole data, tees, ratings, and course details. Past tournaments played here may lose course reference data. This action cannot be undone.</p>
           </div>
           <div className="space-y-3">
