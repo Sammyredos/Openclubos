@@ -764,17 +764,21 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Premium Replica of Organizer Profile from screenshot */}
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#e7e7e7] pb-3">
+            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
+              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <Building2 className="w-4 h-4" />
+                  </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-[14px] font-bold text-gray-900">Organizer Profile</h4>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Details about the organizer or organization.</p>
+                    <h4 className="text-[14px] font-bold text-gray-900">Organizer Profile</h4>
+                    <p className="text-[12px] text-gray-500">Details about the organizer or organization.</p>
                   </div>
                 </div>
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
+              </div>
+
+              <div className="p-5 space-y-4">
 
                 {/* Name, Type & Plan */}
                 <div className="grid grid-cols-3 gap-4">
@@ -909,6 +913,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   </div>
                 </div>
 
+              </div>
             </div>
           </div>
         );
