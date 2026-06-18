@@ -48,21 +48,31 @@ export class PrismaService
     });
     const replicaAdapter = new PrismaPg(replicaPool);
     const replicaClient = new PrismaClient({ adapter: replicaAdapter });
-    const extended = this.$extends(readReplicas({ replicas: [replicaClient] }));
+    // Build soft-delete query overrides for each model
+    const softDeleteOverride = {
+      async findFirst({ args, query }: any) {
+        args.where = { ...args.where, deletedAt: null };
+        return query(args);
+      },
+      async findMany({ args, query }: any) {
+        args.where = { ...args.where, deletedAt: null };
+        return query(args);
+      },
+      async findUnique({ args, query, model, operation }: any) {
+        args.where = { ...args.where, deletedAt: null };
+        return query(args);
+      },
+    };
 
-    const modelsWithSoftDelete = ['User', 'Club', 'Tournament'];
-    (this as any).$use(async (params: any, next: any) => {
-      if (params.model && modelsWithSoftDelete.includes(params.model)) {
-        if (['findUnique', 'findFirst', 'findMany'].includes(params.action)) {
-          if (!params.args) params.args = {};
-          if (params.action === 'findUnique') {
-            params.action = 'findFirst';
-          }
-          params.args.where = { ...params.args.where, deletedAt: null };
-        }
-      }
-      return next(params);
-    });
+    const extended = this
+      .$extends(readReplicas({ replicas: [replicaClient] }))
+      .$extends({
+        query: {
+          user: softDeleteOverride,
+          club: softDeleteOverride,
+          tournament: softDeleteOverride,
+        },
+      });
 
     return new Proxy(this, {
       get: (target, prop) => {
@@ -78,20 +88,6 @@ export class PrismaService
     try {
       await this.$connect();
       this.logger.log('Prisma connected');
-
-      if (process.env.NODE_ENV !== 'production') {
-        (this as any).$on('query', (e: any) => {
-          if (e.duration > 500) {
-            console.log(
-              JSON.stringify({
-                query: e.query,
-                duration: e.duration,
-                timestamp: new Date().toISOString(),
-              }),
-            );
-          }
-        });
-      }
 
       await this.user.updateMany({
         where: { role: UserRole.STAFF },
