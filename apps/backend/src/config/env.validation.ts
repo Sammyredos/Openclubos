@@ -15,10 +15,45 @@ class EnvironmentVariables {
   DATABASE_URL: string;
 
   @IsString()
+  REDIS_URL: string;
+
+  @IsString()
   JWT_SECRET: string;
 
   @IsString()
   FRONTEND_URL: string;
+
+  @IsOptional()
+  @IsString()
+  BACKEND_PORT?: string;
+
+  @IsOptional()
+  @IsString()
+  PORT?: string;
+
+  @IsOptional()
+  @IsString()
+  FCM_SERVER_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  PAYSTACK_SECRET_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  FLUTTERWAVE_SECRET_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AWS_S3_BUCKET?: string;
+
+  @IsOptional()
+  @IsString()
+  AWS_ACCESS_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AWS_SECRET_KEY?: string;
 
   @IsOptional()
   @IsString()

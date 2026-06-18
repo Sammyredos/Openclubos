@@ -38,7 +38,7 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
 
     const { name, ...rest } = registerDto;
     const nameParts = (name || '').trim().split(' ');
@@ -58,7 +58,6 @@ export class AuthService {
         gender: registerDto.gender ?? undefined,
         role: UserRole.PLAYER,
         emailVerificationToken: token,
-        // @ts-ignore
         emailVerificationExpires,
         emailVerified: false,
       },
@@ -87,7 +86,6 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Invalid verification token');
     }
-    // @ts-ignore
     if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
       throw new BadRequestException('Verification token has expired');
     }
@@ -97,7 +95,6 @@ export class AuthService {
       data: {
         emailVerified: true,
         emailVerificationToken: null,
-        // @ts-ignore
         emailVerificationExpires: null,
       },
     });
@@ -123,7 +120,6 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailVerificationToken: token,
-        // @ts-ignore
         emailVerificationExpires,
       },
     });
@@ -150,7 +146,7 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.user.create({
       data: {
@@ -205,7 +201,7 @@ export class AuthService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(dto.adminPassword, 10);
+    const hashedPassword = await bcrypt.hash(dto.adminPassword, 12);
     const token = randomBytes(32).toString('hex');
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -244,7 +240,6 @@ export class AuthService {
           clubId: club.id,
           status: MemberStatus.ACTIVE,
           emailVerificationToken: token,
-          // @ts-ignore
           emailVerificationExpires,
           emailVerified: false,
         },
@@ -442,9 +437,11 @@ export class AuthService {
   }
 
   async logout(userId: string, accessToken: string, refreshToken?: string) {
-    // Blacklist access token for its remaining lifetime (or a safe max like 24h)
+    // Blacklist access token for its remaining lifetime
     const accessHash = crypto.createHash('sha256').update(accessToken).digest('hex');
-    await this.cacheService.set(`auth:blacklist:${accessHash}`, '1', 86400); // 24 hours
+    const decoded: any = this.jwtService.decode(accessToken);
+    const ttl = decoded && decoded.exp ? Math.max(0, decoded.exp - Math.floor(Date.now() / 1000)) : 86400;
+    await this.cacheService.set(`auth:blacklist:${accessHash}`, '1', ttl);
 
     // Remove refresh token if provided
     if (refreshToken) {
@@ -464,17 +461,18 @@ export class AuthService {
     });
     if (!user) return;
 
-    // Generate a short-lived JWT reset token (1 hour)
-    const resetToken = this.jwtService.sign(
-      { sub: user.id, type: 'password_reset' },
-      { expiresIn: '1h' },
-    );
+    // Generate a cryptographically random single-use token (1 hour expiry)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Store hashed token so it can't be reused if DB is compromised
-    const hashedToken = await bcrypt.hash(resetToken, 10);
+    // Store tokenHash + expiry in DB
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordResetToken: hashedToken },
+      data: { 
+        passwordResetToken: tokenHash,
+        passwordResetExpires,
+      },
     });
 
     // Build reset URL — FRONTEND_URL should be set in .env (e.g. http://localhost:3000)
@@ -489,39 +487,34 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    // Verify the JWT reset token
-    let payload: any;
-    try {
-      try { payload = this.jwtService.verify(token); } catch (e) { console.error('JWT Verify Error:', e); throw e; }
-    } catch {
-      throw new UnauthorizedException('Invalid or expired reset token');
-    }
-
-    if (payload.type !== 'password_reset' || !payload.sub) {
+    if (!token || typeof token !== 'string') {
       throw new UnauthorizedException('Invalid reset token');
     }
 
-    // Look up user and verify the stored token hash matches
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Look up user by the hashed token
+    const user = await this.prisma.user.findFirst({
+      where: { passwordResetToken: tokenHash },
     });
 
     if (!user || !user.passwordResetToken) {
-      throw new UnauthorizedException('Reset token has already been used');
+      throw new UnauthorizedException('Invalid or expired reset token');
     }
 
-    const tokenValid = await bcrypt.compare(token, user.passwordResetToken);
-    if (!tokenValid) {
-      throw new UnauthorizedException('Invalid reset token');
+    // Check if token has expired
+    if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
+      throw new UnauthorizedException('Reset token has expired');
     }
 
     // Hash new password and clear the reset token
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         passwordResetToken: null,
+        passwordResetExpires: null,
         emailVerified: true, // Proves email ownership
       },
     });

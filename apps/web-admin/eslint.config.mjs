@@ -1,10 +1,27 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import tseslint from "typescript-eslint";
+import importPlugin from "eslint-plugin-import";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    plugins: { import: importPlugin },
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "import/order": ["error", { "alphabetize": { "order": "asc" } }],
+      "import/no-duplicates": "error",
+      "import/no-cycle": "error"
+    }
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

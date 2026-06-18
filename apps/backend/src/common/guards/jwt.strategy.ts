@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import * as crypto from 'crypto';
 
+import * as jwt from 'jsonwebtoken';
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -18,7 +20,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') as string,
+      secretOrKeyProvider: (request: any, rawJwtToken: any, done: (err: any, secret: string | undefined) => void) => {
+        try {
+          const decoded = jwt.decode(rawJwtToken, { complete: true });
+          if (!decoded || typeof decoded === 'string' || !decoded.header || !decoded.header.kid) {
+            return done(new Error('No kid in token header'), undefined);
+          }
+          const kid = decoded.header.kid;
+          const keysJson = configService.get<string>('JWT_KEYS');
+          const keys = keysJson ? JSON.parse(keysJson) : { v1: configService.get<string>('JWT_SECRET') };
+          const secret = keys[kid];
+          if (!secret) {
+            return done(new Error('Invalid kid'), undefined);
+          }
+          done(null, secret);
+        } catch (e) {
+          done(e, undefined);
+        }
+      },
       passReqToCallback: true as const,
     });
   }

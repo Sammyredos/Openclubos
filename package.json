@@ -6,10 +6,14 @@
     "dev": "pnpm -r dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "format": "pnpm -r format"
+    "format": "pnpm -r format",
+    "seed": "pnpm --filter database run seed",
+    "setup": "node scripts/setup.js",
+    "deploy": "docker compose up -d --build"
   },
   "devDependencies": {
     "@types/node-fetch": "^2.6.13",
-    "turbo": "latest"
+    "turbo": "latest",
+    "typescript-eslint": "^8.20.0"
   }
 }

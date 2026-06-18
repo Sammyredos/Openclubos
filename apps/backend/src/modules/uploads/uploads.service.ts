@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -27,7 +28,12 @@ export class UploadsService {
   }
 
   async getPresignedUrl(filename: string, contentType: string) {
-    const uniqueId = Math.random().toString(36).substring(2, 15);
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!ALLOWED_TYPES.includes(contentType)) {
+      throw new BadRequestException('Invalid file type');
+    }
+
+    const uniqueId = crypto.randomBytes(16).toString('hex');
     const key = `uploads/${uniqueId}-${filename}`;
     const command = new PutObjectCommand({
       Bucket: this.bucket,

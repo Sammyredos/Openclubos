@@ -406,7 +406,12 @@ export class TournamentsService {
     
     if (dto.publishImmediately !== undefined) data.publishImmediately = dto.publishImmediately;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
-    if (dto.status !== undefined) data.status = dto.status;
+    if (dto.status !== undefined) {
+      if (['ONGOING', 'COMPLETED'].includes(dto.status)) {
+        throw new ConflictException(`Tournament status cannot be manually set to ${dto.status}. Status is auto-calculated based on dates.`);
+      }
+      data.status = dto.status;
+    }
     if (dto.lockedGroupingsDays !== undefined) data.lockedGroupingsDays = dto.lockedGroupingsDays;
 
     const existing = await this.prisma.tournament.findUnique({ where: { id } });

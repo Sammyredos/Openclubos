@@ -6,8 +6,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { CacheModule } from './common/cache/cache.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
 import { OrganizersModule } from './modules/organizers/organizers.module';
@@ -30,6 +28,7 @@ import { LoggerModule } from 'nestjs-pino';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { validate } from './config/env.validation';
+import { randomUUID } from 'crypto';
 
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
@@ -81,12 +80,26 @@ if (process.env.SENTRY_DSN) {
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const currentKeyId = configService.get<string>('JWT_CURRENT_KEY_ID') || 'v1';
+        const keysJson = configService.get<string>('JWT_KEYS');
+        const keys = keysJson ? JSON.parse(keysJson) : { v1: configService.get<string>('JWT_SECRET') };
+        return {
+          secret: keys[currentKeyId] || configService.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: '15m',
+            header: { kid: currentKeyId, alg: 'HS256' },
+          },
+        };
+      },
     }),
     LoggerModule.forRoot({
       pinoHttp: {
+        genReqId: (req, res) => {
+          const id = req.headers['x-request-id'] || randomUUID();
+          res.setHeader('X-Request-Id', id);
+          return id;
+        },
         redact: [
           'req.headers.authorization',
           'req.body.password',
@@ -96,9 +109,8 @@ if (process.env.SENTRY_DSN) {
     }),
     ...(process.env.SENTRY_DSN ? [SentryModule.forRoot()] : []),
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

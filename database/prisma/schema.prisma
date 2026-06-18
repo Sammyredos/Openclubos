@@ -30,7 +30,8 @@ model User {
   address      String?
 
   // Password reset
-  passwordResetToken String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
 
   // Email verification
   emailVerified            Boolean   @default(false)

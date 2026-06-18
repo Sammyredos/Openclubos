@@ -62,12 +62,17 @@ export function middleware(request: NextRequest) {
       const matched = PROTECTED_ROUTES.find((r) => pathname.startsWith(r.prefix));
       if (matched && !matched.roles.includes(userRole)) {
         const fallback = getFallback(userRole);
-        return NextResponse.redirect(new URL(fallback, request.url));
+        const res = NextResponse.redirect(new URL(fallback, request.url));
+        if (fallback === '/login') {
+          res.cookies.delete('accessToken');
+        }
+        return res;
       }
       return NextResponse.next();
     })
     .catch(() => {
       const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
       const response = NextResponse.redirect(loginUrl);
       response.cookies.delete('accessToken');
       return response;

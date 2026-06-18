@@ -25,7 +25,7 @@ export class JobsService implements OnModuleInit {
       );
       this.logger.log('Repeatable job AUTO_UPDATE_TOURNAMENTS registered successfully.');
     } catch (err) {
-      this.logger.error('Failed to schedule repeatable job:', err);
+      this.logger.error(`Failed to schedule repeatable job: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -50,7 +50,7 @@ export class JobsService implements OnModuleInit {
       this.logger.log(`SEND_EMAIL job enqueued successfully with ID: ${job.id}`);
       return job;
     } catch (err: any) {
-      this.logger.error(`Failed to enqueue SEND_EMAIL job: ${err.message}`, err.stack);
+      this.logger.error(`Failed to enqueue SEND_EMAIL job: ${err.message}`);
       throw err;
     }
   }

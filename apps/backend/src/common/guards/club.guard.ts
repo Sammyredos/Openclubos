@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   UnauthorizedException,
+  ServiceUnavailableException,
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -143,10 +144,8 @@ export class ClubGuard implements CanActivate {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      // Log database warnings but return true for syntax/format issues (like non-uuid IDs)
-      // to let the controller route validation handle bad requests.
-      console.warn(`[ClubGuard] Database lookup failed or skipped for ID ${id}:`, error);
-      return true;
+      console.error(`[ClubGuard] Database lookup failed for ID ${id}:`, error);
+      throw new ServiceUnavailableException('Database lookup failed');
     }
 
     return true;

@@ -29,20 +29,16 @@ async function bootstrap() {
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
+  if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL environment variable is required in production.');
+  }
+
   // CORS — strict frontend URL in production, localhosts in development
   const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL]
-    : [
-        'http://localhost:3000',
-        'http://localhost:3002',
-        'http://localhost:3003',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3002',
-        'http://127.0.0.1:3003',
-        'http://127.0.0.1:3001',
-        process.env.FRONTEND_URL ?? 'http://localhost:3000',
-      ];
+    ? [process.env.FRONTEND_URL as string]
+    : process.env.FRONTEND_URL
+      ? [process.env.FRONTEND_URL]
+      : ['http://localhost:3000'];
 
   app.enableCors({
     origin: allowedOrigins,

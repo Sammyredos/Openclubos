@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/login_screen.dart';
+import 'features/tournaments/screens/tournament_list_screen.dart';
+import 'features/tournaments/screens/leaderboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,12 +32,21 @@ class OpenclubApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: '/login',
+      onGenerateRoute: (settings) {
+        if (settings.name == '/tournaments/leaderboard') {
+          final tournamentId = settings.arguments as String?;
+          return MaterialPageRoute(
+            builder: (context) => LeaderboardScreen(tournamentId: tournamentId),
+          );
+        }
+        return null;
+      },
       routes: {
         '/login': (context) => const LoginScreen(),
         '/super-admin/dashboard': (context) => const DashboardScreen(title: 'Super Admin Dashboard'),
         '/admin/dashboard': (context) => const DashboardScreen(title: 'Club Admin Dashboard'),
         '/staff/dashboard': (context) => const DashboardScreen(title: 'Staff Dashboard'),
-        '/app/home': (context) => const DashboardScreen(title: 'Player Home'),
+        '/app/home': (context) => const TournamentListScreen(),
         '/app/scoring': (context) => const DashboardScreen(title: 'Scoring Panel'),
         '/dashboard': (context) => const DashboardScreen(title: 'Dashboard'),
       },

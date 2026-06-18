@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import {
   Controller,
   Get,
@@ -32,6 +33,7 @@ export class AuthController {
     return req.user;
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -54,6 +56,7 @@ export class AuthController {
     return this.authService.validateAdminUniqueness(body.adminEmail, body.adminPhone, body.adminFirstName, body.adminMiddleName, body.adminLastName);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
@@ -114,6 +117,7 @@ export class AuthController {
    * Sends a reset link to the user's email if the account exists.
    * FRONTEND_URL env var controls the base URL in the reset link.
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() body: { email: string }) {
