@@ -18,6 +18,7 @@ import { Roles } from '../../common/guards/roles.decorator';
 import { TournamentsService } from './tournaments.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
+import { AuditLog } from '../../common/decorators/audit-log.decorator';
 
 @Controller('tournaments')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -75,6 +76,7 @@ export class TournamentsController {
   }
 
   @Patch(':id')
+  @AuditLog('Tournament', 'UPDATE')
   async update(
     @Request() req: any,
     @Param('id') id: string,
@@ -94,12 +96,14 @@ export class TournamentsController {
   }
 
   @Delete(':id')
+  @AuditLog('Tournament', 'DELETE')
   async remove(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.remove(id);
   }
 
   @Post(':id/apply-cut')
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  @AuditLog('Tournament', 'APPLY_CUT')
   async applyCut(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.applyCut(id);
   }

@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { json, urlencoded } from 'express';
+import cookieParser from 'cookie-parser';
 import type { INestApplication } from '@nestjs/common';
 
 // Load .env from root
@@ -43,9 +44,11 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-XSRF-TOKEN'],
     credentials: true,
   });
+
+  app.use(cookieParser());
 
   // Validation
   app.useGlobalPipes(

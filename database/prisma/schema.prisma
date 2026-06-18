@@ -43,6 +43,7 @@ model User {
   clubId        String?
   scores        Score[]
   registrations Registration[]
+  auditLogs     AuditLog[]
 
   @@index([clubId])
   @@index([role])
@@ -376,4 +377,16 @@ enum ScoreStatus {
   ENTERED
   CONFIRMED
   LOCKED
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
 }

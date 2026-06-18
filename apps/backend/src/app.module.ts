@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -22,6 +22,8 @@ import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ClubGuard } from './common/guards/club.guard';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import * as Sentry from '@sentry/nestjs';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
@@ -119,6 +121,14 @@ if (process.env.SENTRY_DSN) {
       provide: APP_GUARD,
       useClass: ClubGuard,
     },
+    {
+      provide: require('@nestjs/core').APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CsrfMiddleware).forRoutes('*');
+  }
+}
