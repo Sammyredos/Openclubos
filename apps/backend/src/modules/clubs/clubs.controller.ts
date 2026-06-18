@@ -23,8 +23,16 @@ export class ClubsController {
 
   @Get()
   @Roles(UserRole.SUPER_ADMIN)
-  findAll(@Query('search') search?: string) {
-    return this.clubsService.findAll({ search });
+  findAll(
+    @Query('search') search?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.clubsService.findAll({
+      search,
+      skip: skip ? parseInt(skip, 10) : undefined,
+      take: take ? parseInt(take, 10) : undefined,
+    });
   }
 
   @Get(':id/stats')

@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { TournamentsService } from '../tournaments/tournaments.service';
 import { EmailService } from '../email/email.service';
+import { PrismaService } from '../../common/prisma.service';
 
 export interface SendEmailJobPayload {
   template: string;
@@ -18,6 +19,7 @@ export class JobsProcessor extends WorkerHost {
     @Inject(forwardRef(() => TournamentsService))
     private readonly tournamentsService: TournamentsService,
     private readonly emailService: EmailService,
+    private readonly prisma: PrismaService,
   ) {
     super();
   }
@@ -29,6 +31,16 @@ export class JobsProcessor extends WorkerHost {
         case 'AUTO_UPDATE_TOURNAMENTS':
           await this.tournamentsService.autoUpdateStatuses();
           this.logger.log(`Completed job AUTO_UPDATE_TOURNAMENTS (ID: ${job.id}) successfully`);
+          break;
+
+        case 'SEND_TOURNAMENT_REMINDERS':
+          await this.tournamentsService.sendTournamentReminders();
+          this.logger.log(`Completed job SEND_TOURNAMENT_REMINDERS (ID: ${job.id}) successfully`);
+          break;
+
+        case 'DATA_RETENTION_CLEANUP':
+          await this.runDataRetentionCleanup();
+          this.logger.log(`Completed job DATA_RETENTION_CLEANUP (ID: ${job.id}) successfully`);
           break;
 
         case 'SEND_EMAIL': {
@@ -139,6 +151,62 @@ export class JobsProcessor extends WorkerHost {
 
       default:
         throw new Error(`Unsupported email template: ${template}`);
+    }
+  }
+
+  private async runDataRetentionCleanup() {
+    this.logger.log('Starting DATA_RETENTION_CLEANUP...');
+    
+    // 1. Audit logs: archive after 90 days
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const deletedLogs = await this.prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: ninetyDaysAgo } }
+    });
+    this.logger.log(`Deleted ${deletedLogs.count} audit logs older than 90 days.`);
+
+    // 2. Soft-deleted users: hard delete after 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const deletedUsers = await this.prisma.user.deleteMany({
+      where: { deletedAt: { lt: thirtyDaysAgo } }
+    });
+    this.logger.log(`Hard deleted ${deletedUsers.count} users who were soft-deleted more than 30 days ago.`);
+
+    // 3. Completed tournaments: archive scores after 1 year
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
+    // Prisma does not currently support `deleteMany` across relation boundaries directly.
+    // We must query the affected score IDs first, then delete them.
+    const oldScores = await this.prisma.score.findMany({
+      where: {
+        group: {
+          tournament: {
+            status: 'COMPLETED',
+            endDate: { lt: oneYearAgo }
+          }
+        }
+      },
+      select: { id: true }
+    });
+
+    if (oldScores.length > 0) {
+      const scoreIds = oldScores.map(s => s.id);
+      
+      // Delete in batches to avoid query size limits if there are millions of scores
+      const batchSize = 5000;
+      let totalDeleted = 0;
+      for (let i = 0; i < scoreIds.length; i += batchSize) {
+        const batch = scoreIds.slice(i, i + batchSize);
+        const res = await this.prisma.score.deleteMany({
+          where: { id: { in: batch } }
+        });
+        totalDeleted += res.count;
+      }
+      this.logger.log(`Deleted ${totalDeleted} scores for completed tournaments older than 1 year.`);
+    } else {
+      this.logger.log('No old scores found to delete.');
     }
   }
 }

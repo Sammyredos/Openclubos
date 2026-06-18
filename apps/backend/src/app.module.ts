@@ -23,7 +23,7 @@ import { EmailModule } from './modules/email/email.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ClubGuard } from './common/guards/club.guard';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
-import { CsrfMiddleware } from './common/middleware/csrf.middleware';
+
 import * as Sentry from '@sentry/nestjs';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
@@ -127,8 +127,4 @@ if (process.env.SENTRY_DSN) {
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CsrfMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

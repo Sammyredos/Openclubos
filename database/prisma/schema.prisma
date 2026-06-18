@@ -49,6 +49,7 @@ model User {
   @@index([role])
   @@index([firstName, lastName])
   @@index([email])
+  @@index([email, deletedAt])
 }
 
 enum MemberStatus {
@@ -249,7 +250,7 @@ model Tournament {
   visibility         TournamentVisibility @default(PUBLIC)
 
   // Tracking
-  emailsSent          Json?
+  emailLogs           TournamentEmailLog[]
   lockedGroupingsDays Int[] @default([])
 
   createdAt DateTime  @default(now())
@@ -269,6 +270,7 @@ model Tournament {
   @@index([status])
   @@index([name])
   @@index([startDate, status])
+  @@index([endDate, status])
   @@index([clubId, createdAt])
   @@index([clubId, status])
 }
@@ -320,6 +322,8 @@ model Registration {
   @@index([userId])
   @@index([tournamentId])
   @@index([tournamentId, status])
+  @@index([userId, status])
+  @@index([tournamentId, paymentStatus])
 }
 
 enum RegistrationStatus {
@@ -389,4 +393,18 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+}
+
+model TournamentEmailLog {
+  id             String     @id @default(uuid())
+  tournamentId   String
+  emailType      String     // 'REMINDER', 'STARTED', 'COMPLETED'
+  sentAt         DateTime   @default(now())
+  recipientCount Int
+
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([emailType])
+  @@index([tournamentId, emailType])
 }

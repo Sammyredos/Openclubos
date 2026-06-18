@@ -833,11 +833,9 @@ export default function OrganizersPage() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3 min-w-[200px]">
-                            <img
-                              src={organizer.admin.avatar}
-                              alt={organizer.admin.name}
-                              className="w-8 h-8 rounded-full border border-[#efefef] flex-shrink-0"
-                            />
+                            <div className="w-12 h-12 rounded-full bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <img src={organizer.admin.avatar} alt={organizer.admin.name} className="w-full h-full object-cover" />
+                            </div>
                             <div className="flex flex-col min-w-0">
                               <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name.toLowerCase()}</span>
                               <span className="text-[12px] text-gray-400 font-medium truncate normal-case">{organizer.admin.email}</span>

@@ -12,6 +12,7 @@ import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -246,6 +247,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 );
 
 export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) {
+  const { user } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
@@ -304,11 +306,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     setShowValidation(false);
     setIsMultiDay(false);
 
-    getOrganizers()
-      .then((d: any[]) => {
-        if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
-      })
-      .catch(() => { });
+    if (user?.role === "SUPER_ADMIN") {
+      getOrganizers()
+        .then((d: any[]) => {
+          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
+        })
+        .catch(() => { });
+    }
 
     getCourses()
       .then((d: any) => {
@@ -392,9 +396,20 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           if (typeof window !== "undefined") {
             orgId = new URLSearchParams(window.location.search).get("organizerId") || "";
           }
-          setFormData({ ...DEFAULT_FORM, clubId: orgId });
+          setFormData({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || "") : orgId });
 
-          if (orgId) {
+          if (user?.role === "CLUB_ADMIN" && user?.clubId) {
+            const firstCourse = arr.find((c: any) => c.clubId === user.clubId);
+            if (firstCourse) {
+              setFormData(prev => ({
+                ...prev,
+                clubId: user.clubId || "",
+                courseId: firstCourse.id,
+                venue: firstCourse.country || prev.venue,
+                location: firstCourse.state || prev.location
+              }));
+            }
+          } else if (orgId) {
             const firstCourse = arr.find((c: any) => c.clubId === orgId);
             if (firstCourse) {
               setFormData(prev => ({
@@ -675,16 +690,18 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   </p>
                 </div>
 
-                <Field label="Organizer" required>
-                  <SearchableSelect
-                    value={formData.clubId}
-                    onValueChange={handleClubChange}
-                    options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))}
-                    placeholder="Select organizer..."
-                    triggerClassName={req(formData.clubId)}
-                    disabled={!!tournamentId}
-                  />
-                </Field>
+                {user?.role === "SUPER_ADMIN" && (
+                  <Field label="Organizer" required>
+                    <SearchableSelect
+                      value={formData.clubId}
+                      onValueChange={handleClubChange}
+                      options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))}
+                      placeholder="Select organizer..."
+                      triggerClassName={req(formData.clubId)}
+                      disabled={!!tournamentId}
+                    />
+                  </Field>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Tournament Banner" required>

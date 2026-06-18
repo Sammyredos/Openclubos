@@ -24,6 +24,34 @@ export class JobsService implements OnModuleInit {
         },
       );
       this.logger.log('Repeatable job AUTO_UPDATE_TOURNAMENTS registered successfully.');
+
+      await this.queue.add(
+        'SEND_TOURNAMENT_REMINDERS',
+        {},
+        {
+          repeat: {
+            pattern: '0 9 * * *',
+          },
+          jobId: 'send-tournament-reminders',
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      this.logger.log('Repeatable job SEND_TOURNAMENT_REMINDERS registered successfully.');
+
+      await this.queue.add(
+        'DATA_RETENTION_CLEANUP',
+        {},
+        {
+          repeat: {
+            pattern: '0 2 * * *', // Run every day at 2:00 AM
+          },
+          jobId: 'data-retention-cleanup',
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      this.logger.log('Repeatable job DATA_RETENTION_CLEANUP registered successfully.');
     } catch (err) {
       this.logger.error(`Failed to schedule repeatable job: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -51,6 +79,28 @@ export class JobsService implements OnModuleInit {
       return job;
     } catch (err: any) {
       this.logger.error(`Failed to enqueue SEND_EMAIL job: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Enqueues multiple email sending jobs in bulk into the background-jobs queue.
+   */
+  async queueEmailBulk(jobs: { name: string, data: { template: string, to: string, data?: Record<string, any> } }[]) {
+    this.logger.log(`Enqueuing ${jobs.length} SEND_EMAIL jobs in bulk`);
+    try {
+      const bullJobs = jobs.map(j => ({
+        name: j.name,
+        data: j.data,
+        opts: {
+          removeOnComplete: true,
+          removeOnFail: false,
+        }
+      }));
+      await this.queue.addBulk(bullJobs);
+      this.logger.log(`Successfully enqueued ${jobs.length} SEND_EMAIL jobs in bulk`);
+    } catch (err: any) {
+      this.logger.error(`Failed to enqueue bulk SEND_EMAIL jobs: ${err.message}`);
       throw err;
     }
   }

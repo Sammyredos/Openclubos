@@ -38,7 +38,7 @@ export function clearAuthSession() {
 
 export async function handleAuthFailure(res: Response) {
   if (typeof window === 'undefined') return;
-  if (res.status !== 401 && res.status !== 403) return;
+  if (res.status !== 401) return;
   let message = '';
   try {
     const data: unknown = await res.clone().json();

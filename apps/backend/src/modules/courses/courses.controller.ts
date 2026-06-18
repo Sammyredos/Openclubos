@@ -31,14 +31,23 @@ export class CoursesController {
   }
 
   @Get()
-  findAll(@Request() req: any, @Query('clubId') clubId?: string) {
+  findAll(
+    @Request() req: any,
+    @Query('clubId') clubId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
     const effectiveClubId =
       role === UserRole.CLUB_ADMIN ? userClubId : clubId;
 
-    return this.coursesService.findAll(effectiveClubId);
+    return this.coursesService.findAll({
+      clubId: effectiveClubId,
+      skip: skip ? parseInt(skip, 10) : undefined,
+      take: take ? parseInt(take, 10) : undefined,
+    });
   }
 
   @Get('admin')

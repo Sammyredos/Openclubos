@@ -8,6 +8,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { json, urlencoded } from 'express';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import type { INestApplication } from '@nestjs/common';
 
 // Load .env from root
@@ -48,6 +49,7 @@ async function bootstrap() {
     credentials: true,
   });
 
+  app.use(compression());
   app.use(cookieParser());
 
   // Validation
@@ -104,3 +106,7 @@ async function listenWithFallback(
     `No available port found in range ${startPort}-${startPort + maxAttempts - 1}`,
   );
 }
+
+
+
+

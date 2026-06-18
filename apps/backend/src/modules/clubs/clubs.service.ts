@@ -141,7 +141,7 @@ export class ClubsService {
     };
   }
 
-  async findAll(query: { search?: string }) {
+  async findAll(query: { search?: string; skip?: number; take?: number }) {
     const search = query.search?.trim();
     const where: any = { deletedAt: null };
     
@@ -172,8 +172,14 @@ export class ClubsService {
       }
     }
 
+    const MAX_PAGE_SIZE = 100;
+    const take = Math.min(query.take ?? 20, MAX_PAGE_SIZE);
+    const skip = query.skip ?? 0;
+
     return this.prisma.club.findMany({
       where,
+      take,
+      skip,
       include: {
         _count: { select: { tournaments: true, courses: true } },
         users: {

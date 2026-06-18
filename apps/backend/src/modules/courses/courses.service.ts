@@ -7,9 +7,15 @@ export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
   // Lightweight list used by tournament wizard dropdowns — filtered by club
-  async findAll(clubId?: string) {
+  async findAll(query: { clubId?: string; skip?: number; take?: number }) {
+    const MAX_PAGE_SIZE = 100;
+    const take = Math.min(query.take ?? 100, MAX_PAGE_SIZE);
+    const skip = query.skip ?? 0;
+
     const courses = await this.prisma.course.findMany({
-      where: clubId ? { clubId, status: CourseStatus.ACTIVE } : { status: CourseStatus.ACTIVE },
+      where: query.clubId ? { clubId: query.clubId, status: CourseStatus.ACTIVE } : { status: CourseStatus.ACTIVE },
+      take,
+      skip,
       select: {
         id: true,
         name: true,

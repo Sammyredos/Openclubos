@@ -93,7 +93,7 @@ export class TournamentsService {
       data,
       include: { club: true, course: true },
     });
-    await this.cacheService.reset();
+    await this.cacheService.invalidatePattern('tournaments:*');
 
     // Queue tournament announcement emails to all club members
     if (result.status === 'REGISTRATION_OPEN' || result.publishImmediately) {
@@ -102,14 +102,22 @@ export class TournamentsService {
         select: { email: true },
       });
 
-      for (const member of clubMembers) {
-        if (member.email) {
-          this.jobsService.queueEmail('TOURNAMENT_ANNOUNCEMENT', member.email, {
-            tournamentName: result.name,
-            startDate: result.startDate,
-            venue: result.venue,
-          }).catch(err => console.error('Failed to queue tournamentAnnouncement email:', err));
-        }
+      const jobs = clubMembers
+        .filter(m => m.email)
+        .map(m => ({
+          name: 'SEND_EMAIL',
+          data: {
+            template: 'TOURNAMENT_ANNOUNCEMENT',
+            to: m.email!,
+            data: {
+              tournamentName: result.name,
+              startDate: result.startDate,
+              venue: result.venue,
+            }
+          }
+        }));
+      if (jobs.length > 0) {
+        this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentAnnouncement emails:', err));
       }
     }
 
@@ -243,75 +251,30 @@ export class TournamentsService {
     return result;
   }
 
-  @Cron('*/5 * * * *')
   async autoUpdateStatuses() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    // 1. Identify tournaments that will transition to COMPLETED
-    const completedCandidates = await this.prisma.tournament.findMany({
+    // 1. Transition to COMPLETED
+    await this.prisma.tournament.updateMany({
       where: {
         status: 'ONGOING',
         endDate: { lt: now },
       },
-      select: { id: true, name: true, emailsSent: true, club: { select: { name: true } } },
+      data: { status: 'COMPLETED' },
     });
-    const completedIds = completedCandidates.map(t => t.id);
 
-    // Mark as COMPLETED if endDate is in the past
-    if (completedIds.length > 0) {
-      await this.prisma.tournament.updateMany({
-        where: { id: { in: completedIds } },
-        data: { status: 'COMPLETED' },
-      });
-
-      for (const t of completedCandidates) {
-        const emailsSent = (t.emailsSent as any) || {};
-        if (emailsSent.completed) continue;
-
-        await this.sendTournamentCompletedEmails(t.id, t.name, t.club?.name);
-
-        // Mark as completed in JSON tracking
-        await this.prisma.tournament.update({
-          where: { id: t.id },
-          data: { emailsSent: { ...emailsSent, completed: true } },
-        });
-      }
-    }
-
-    // 2. Identify tournaments that will transition to ONGOING
-    const ongoingCandidates = await this.prisma.tournament.findMany({
+    // 2. Transition to ONGOING
+    await this.prisma.tournament.updateMany({
       where: {
-        status: { in: ['REGISTRATION_OPEN', 'PENDING'] as any[] },
+        status: 'REGISTRATION_OPEN',
         startDate: { lte: now },
         OR: [{ endDate: { gte: now } }, { endDate: null }],
       },
-      select: { id: true, name: true, emailsSent: true, club: { select: { name: true } } },
+      data: { status: 'ONGOING' },
     });
-    const ongoingIds = ongoingCandidates.map(t => t.id);
 
-    // Mark as ONGOING
-    if (ongoingIds.length > 0) {
-      await this.prisma.tournament.updateMany({
-        where: { id: { in: ongoingIds } },
-        data: { status: 'ONGOING' },
-      });
-
-      for (const t of ongoingCandidates) {
-        const emailsSent = (t.emailsSent as any) || {};
-        if (emailsSent.started) continue;
-
-        await this.sendTournamentStartedEmails(t.id, t.name, t.club?.name);
-
-        // Mark as started in JSON tracking
-        await this.prisma.tournament.update({
-          where: { id: t.id },
-          data: { emailsSent: { ...emailsSent, started: true } },
-        });
-      }
-    }
-
-    // 3. Mark as REGISTRATION_OPEN if startDate is in the future
+    // 3. Transition to REGISTRATION_OPEN
     await this.prisma.tournament.updateMany({
       where: {
         status: 'DRAFT',
@@ -319,6 +282,24 @@ export class TournamentsService {
       },
       data: { status: 'REGISTRATION_OPEN' },
     });
+
+    // 4. Send Emails for COMPLETED tournaments
+    const completedToEmail = await this.prisma.tournament.findMany({
+      where: { status: 'COMPLETED', emailLogs: { none: { emailType: 'COMPLETED' } } },
+      select: { id: true, name: true, club: { select: { name: true } } },
+    });
+    for (const t of completedToEmail) {
+      await this.sendTournamentCompletedEmails(t.id, t.name, t.club?.name);
+    }
+
+    // 5. Send Emails for ONGOING (STARTED) tournaments
+    const startedToEmail = await this.prisma.tournament.findMany({
+      where: { status: 'ONGOING', emailLogs: { none: { emailType: 'STARTED' } } },
+      select: { id: true, name: true, club: { select: { name: true } } },
+    });
+    for (const t of startedToEmail) {
+      await this.sendTournamentStartedEmails(t.id, t.name, t.club?.name);
+    }
   }
 
   async findOne(id: string) {
@@ -475,7 +456,8 @@ export class TournamentsService {
           },
         },
       });
-      await this.cacheService.reset();
+      await this.cacheService.invalidatePattern('tournaments:*');
+      await this.cacheService.invalidatePattern(`tournament:${id}:*`);
 
       // Queue tournament update emails to all approved players
       if (changedFields.length > 0 && result.status !== 'DRAFT') {
@@ -484,14 +466,22 @@ export class TournamentsService {
           select: { user: { select: { email: true } } },
         });
 
-        for (const reg of approvedRegistrations) {
-          if (reg.user?.email) {
-            this.jobsService.queueEmail('TOURNAMENT_UPDATED', reg.user.email, {
-              tournamentName: result.name,
-              updateDetails,
-              organizerName: result.club?.name,
-            }).catch(err => console.error('Failed to queue TOURNAMENT_UPDATED email:', err));
-          }
+        const jobs = approvedRegistrations
+          .filter(reg => reg.user?.email)
+          .map(reg => ({
+            name: 'SEND_EMAIL',
+            data: {
+              template: 'TOURNAMENT_UPDATED',
+              to: reg.user!.email,
+              data: {
+                tournamentName: result.name,
+                updateDetails,
+                organizerName: result.club?.name,
+              }
+            }
+          }));
+        if (jobs.length > 0) {
+          this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue TOURNAMENT_UPDATED emails:', err));
         }
       }
 
@@ -533,6 +523,9 @@ export class TournamentsService {
       await tx.tournament.delete({ where: { id } });
     });
 
+    await this.cacheService.invalidatePattern('tournaments:*');
+    await this.cacheService.invalidatePattern(`tournament:${id}:*`);
+
     return { id, deleted: true };
   }
 
@@ -540,16 +533,9 @@ export class TournamentsService {
    * Daily at 9 AM: find tournaments starting in the next 24 hours and queue
    * a TOURNAMENT_REMINDER email for each approved registration.
    */
-  @Cron('0 9 * * *')
   async sendTournamentReminders() {
     const now = new Date();
     const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    const todayString = now.toISOString().split('T')[0];
-    if (this.lastRemindedDate !== todayString) {
-      this.dailyRemindedTournaments.clear();
-      this.lastRemindedDate = todayString;
-    }
 
     const upcomingTournaments = await this.prisma.tournament.findMany({
       where: {
@@ -560,13 +546,13 @@ export class TournamentsService {
         status: {
           in: ['REGISTRATION_OPEN', 'ONGOING'],
         },
+        emailLogs: { none: { emailType: 'REMINDER' } },
       },
       select: {
         id: true,
         name: true,
         startDate: true,
         venue: true,
-        emailsSent: true,
         club: { select: { name: true } },
         registrations: {
           where: { status: 'APPROVED' },
@@ -578,30 +564,29 @@ export class TournamentsService {
     });
 
     for (const tournament of upcomingTournaments) {
-      const emailsSent = (tournament.emailsSent as any) || {};
-      if (emailsSent.reminded || this.dailyRemindedTournaments.has(tournament.id)) {
-        continue;
-      }
-
-      for (const registration of tournament.registrations) {
-        if (registration.user?.email) {
-          this.jobsService.queueEmail('TOURNAMENT_REMINDER', registration.user.email, {
-            tournamentName: tournament.name,
-            startDate: tournament.startDate,
-            venue: tournament.venue,
-            organizerName: tournament.club?.name,
-          }).catch(err =>
-            console.error('Failed to queue tournamentReminder email:', err),
-          );
-        }
-      }
-
-      // Update the DB to mark as reminded
-      await this.prisma.tournament.update({
-        where: { id: tournament.id },
-        data: { emailsSent: { ...emailsSent, reminded: true } },
+      await this.prisma.tournamentEmailLog.create({
+        data: { tournamentId: tournament.id, emailType: 'REMINDER', recipientCount: tournament.registrations.length }
       });
-      this.dailyRemindedTournaments.add(tournament.id);
+
+      const jobs = tournament.registrations
+        .filter(reg => reg.user?.email)
+        .map(reg => ({
+          name: 'SEND_EMAIL',
+          data: {
+            template: 'TOURNAMENT_REMINDER',
+            to: reg.user!.email,
+            data: {
+              tournamentName: tournament.name,
+              startDate: tournament.startDate,
+              venue: tournament.venue || 'TBA',
+              organizerName: tournament.club?.name,
+            }
+          }
+        }));
+
+      if (jobs.length > 0) {
+        this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue REMINDER emails:', err));
+      }
     }
   }
 
@@ -611,13 +596,24 @@ export class TournamentsService {
       select: { user: { select: { email: true } } },
     });
 
-    for (const reg of regs) {
-      if (reg.user?.email) {
-        this.jobsService.queueEmail('TOURNAMENT_STARTED', reg.user.email, {
-          tournamentName,
-          organizerName,
-        }).catch(err => console.error('Failed to queue tournamentStarted email:', err));
-      }
+    const jobs = regs
+      .filter(reg => reg.user?.email)
+      .map(reg => ({
+        name: 'SEND_EMAIL',
+        data: {
+          template: 'TOURNAMENT_STARTED',
+          to: reg.user!.email,
+          data: {
+            tournamentName,
+            organizerName,
+          }
+        }
+      }));
+    if (jobs.length > 0) {
+      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentStarted emails:', err));
+      await this.prisma.tournamentEmailLog.create({
+        data: { tournamentId, emailType: 'STARTED', recipientCount: jobs.length }
+      });
     }
   }
 
@@ -627,13 +623,24 @@ export class TournamentsService {
       select: { user: { select: { email: true } } },
     });
 
-    for (const reg of regs) {
-      if (reg.user?.email) {
-        this.jobsService.queueEmail('TOURNAMENT_COMPLETED', reg.user.email, {
-          tournamentName,
-          organizerName,
-        }).catch(err => console.error('Failed to queue tournamentCompleted email:', err));
-      }
+    const jobs = regs
+      .filter(reg => reg.user?.email)
+      .map(reg => ({
+        name: 'SEND_EMAIL',
+        data: {
+          template: 'TOURNAMENT_COMPLETED',
+          to: reg.user!.email,
+          data: {
+            tournamentName,
+            organizerName,
+          }
+        }
+      }));
+    if (jobs.length > 0) {
+      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentCompleted emails:', err));
+      await this.prisma.tournamentEmailLog.create({
+        data: { tournamentId, emailType: 'COMPLETED', recipientCount: jobs.length }
+      });
     }
   }
 
@@ -645,6 +652,7 @@ export class TournamentsService {
 
     if (!tournament) throw new NotFoundException('Tournament not found');
 
+    const jobs: any[] = [];
     for (const group of dto.groups || []) {
       const groupName = group.name || 'TBA';
       const teeTime = group.startTime || 'TBA';
@@ -662,15 +670,25 @@ export class TournamentsService {
           .map((m: any) => `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim())
           .filter(Boolean);
 
-        this.jobsService.queueEmail('TEE_TIME_PUBLISHED', player.user.email, {
-          tournamentName: tournament.name,
-          roundName,
-          teeTime,
-          groupName,
-          groupMembers,
-          organizerName: tournament.club?.name,
-        }).catch(err => console.error('Failed to queue tee time email:', err));
+        jobs.push({
+          name: 'SEND_EMAIL',
+          data: {
+            template: 'TEE_TIME_PUBLISHED',
+            to: player.user.email,
+            data: {
+              tournamentName: tournament.name,
+              roundName,
+              teeTime,
+              groupName,
+              groupMembers,
+              organizerName: tournament.club?.name,
+            }
+          }
+        });
       }
+    }
+    if (jobs.length > 0) {
+      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tee time emails:', err));
     }
 
     return { success: true, message: 'Groupings publication emails queued' };
@@ -697,19 +715,17 @@ export class TournamentsService {
       throw new Error('Tournament does not have a cut rule enabled.');
     }
 
-    // Fetch all scores for this tournament (scores are tied to groups which are tied to tournaments)
-    const scores = await this.prisma.score.findMany({
-      where: {
-        group: {
-          tournamentId,
-        },
-      },
+    // Fetch aggregated scores for this tournament to avoid memory overload
+    const aggregatedScores = await this.prisma.score.groupBy({
+      by: ['userId'],
+      where: { group: { tournamentId } },
+      _sum: { strokes: true },
     });
 
-    // Group total strokes by userId
+    // Map the aggregated scores to a user lookup dictionary
     const userScores: Record<string, number> = {};
-    scores.forEach((s) => {
-      userScores[s.userId] = (userScores[s.userId] || 0) + s.strokes;
+    aggregatedScores.forEach((agg) => {
+      userScores[agg.userId] = agg._sum.strokes || 0;
     });
 
     // Calculate total scores for each player
@@ -766,18 +782,37 @@ export class TournamentsService {
     await this.prisma.$transaction(updates);
 
     // Queue emails in the background
+    const jobs: any[] = [];
     for (const player of passedPlayers) {
-      this.jobsService.queueEmail('TOURNAMENT_CUT_PASSED', player.email, {
-        tournamentName: tournament.name,
-        playerName: player.name,
-      }).catch(err => console.error('Failed to queue pass cut email:', err));
+      jobs.push({
+        name: 'SEND_EMAIL',
+        data: {
+          template: 'TOURNAMENT_CUT_PASSED',
+          to: player.email,
+          data: {
+            tournamentName: tournament.name,
+            playerName: player.name,
+          }
+        }
+      });
     }
     
     for (const player of missedPlayers) {
-      this.jobsService.queueEmail('TOURNAMENT_CUT_MISSED', player.email, {
-        tournamentName: tournament.name,
-        playerName: player.name,
-      }).catch(err => console.error('Failed to queue miss cut email:', err));
+      jobs.push({
+        name: 'SEND_EMAIL',
+        data: {
+          template: 'TOURNAMENT_CUT_MISSED',
+          to: player.email,
+          data: {
+            tournamentName: tournament.name,
+            playerName: player.name,
+          }
+        }
+      });
+    }
+
+    if (jobs.length > 0) {
+      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue cut emails:', err));
     }
 
     return { success: true, message: 'Cut applied successfully' };

@@ -213,47 +213,22 @@ export default function SuperAdminUsersPage() {
   };
 
 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const filteredUsers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    const tokens = q.split(/[\s-]+/).filter(Boolean);
+    return allUsers; // The backend now handles filtering
+  }, [allUsers]);
 
-    return allUsers.filter((u) => {
-      const searchableFields = [
-        u.firstName,
-        u.lastName,
-        u.email,
-        `${u.firstName} ${u.lastName}`,
-        `${u.lastName} ${u.firstName}`
-      ];
-
-      const matchesSearch = tokens.length === 0 || tokens.every(token => 
-        searchableFields.some(field => field?.toLowerCase().includes(token))
-      );
-
-      const matchesRole = roleFilter === "All Roles" || u.role === roleFilter;
-      const matchesStatus = statusFilter === "All Status" || u.status === statusFilter;
-      const matchesHandicap = (() => {
-        if (handicapFilter === "All Handicaps") return true;
-        if (u.role !== "PLAYER") return false;
-        const h = typeof u.handicap === "number" ? u.handicap : null;
-        if (h == null) return false;
-        if (handicapFilter === "0 - 9.9") return h >= 0 && h < 10;
-        if (handicapFilter === "10 - 19.9") return h >= 10 && h < 20;
-        if (handicapFilter === "20 - 29.9") return h >= 20 && h < 30;
-        if (handicapFilter === "30+") return h >= 30;
-        return true;
-      })();
-      return matchesSearch && matchesRole && matchesStatus && matchesHandicap;
-    });
-  }, [allUsers, handicapFilter, searchQuery, roleFilter, statusFilter]);
-
-  const total = filteredUsers.length;
+  const total = stats?.totalUsers || 0;
   const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
   const pageSafe = Math.min(currentPage, totalPages);
-  const paginatedUsers = useMemo(
-    () => filteredUsers.slice((pageSafe - 1) * itemsPerPage, pageSafe * itemsPerPage),
-    [filteredUsers, pageSafe, itemsPerPage],
-  );
+  const paginatedUsers = allUsers;
 
   async function reload() {
     const token = getAuthToken();
@@ -268,10 +243,17 @@ export default function SuperAdminUsersPage() {
     setError(null);
     try {
       const data = await getAdminUsers({
-        skip: 0,
-        take: 100,
+        skip: (currentPage - 1) * itemsPerPage,
+        take: itemsPerPage,
+        search: debouncedSearch || undefined,
+        role: roleFilter !== "All Roles" ? roleFilter : undefined,
+        status: statusFilter !== "All Status" ? statusFilter : undefined,
       });
       setAllUsers(Array.isArray(data.items) ? data.items : []);
+      if (data.total !== undefined && !data.stats) {
+         // Some endpoints return total directly
+         setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
+      }
       setStats(data.stats ?? null);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to load users");
@@ -291,7 +273,7 @@ export default function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [debouncedSearch, roleFilter, statusFilter, currentPage]);
 
   useEffect(() => {
     if (!isViewModalOpen) return;

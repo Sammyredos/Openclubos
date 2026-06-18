@@ -166,30 +166,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     document.title = pageTitle === base ? base : `${pageTitle} | ${base}`;
   }, [pathname]);
 
-  useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const [resource, config] = args;
-      const method = config?.method?.toUpperCase() || 'GET';
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-        const token = document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1];
-        if (token) {
-          if (!config) {
-             args[1] = { headers: { 'X-XSRF-TOKEN': token } };
-          } else {
-             config.headers = {
-               ...config.headers,
-               'X-XSRF-TOKEN': token
-             };
-          }
-        }
-      }
-      return originalFetch(...args);
-    };
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, []);
+
 
   return (
     <QueryClientProvider client={queryClient}>

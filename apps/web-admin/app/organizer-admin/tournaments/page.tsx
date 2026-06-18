@@ -1165,19 +1165,21 @@ export default function TournamentsPage() {
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search tournament name, organizer..."
+                    placeholder={user?.role === "SUPER_ADMIN" ? "Search tournament name, organizer..." : "Search tournament name..."}
                     className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <FilterSelect
-                  icon={Globe}
-                  label="Organizer"
-                  value={clubFilter}
-                  onChange={(e) => setClubFilter(e.target.value)}
-                  options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
-                />
+                {user?.role === "SUPER_ADMIN" && (
+                  <FilterSelect
+                    icon={Globe}
+                    label="Organizer"
+                    value={clubFilter}
+                    onChange={(e) => setClubFilter(e.target.value)}
+                    options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
+                  />
+                )}
                 <FilterSelect
                   icon={Activity}
                   label="Status"

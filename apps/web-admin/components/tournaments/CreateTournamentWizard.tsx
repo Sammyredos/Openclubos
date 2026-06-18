@@ -12,6 +12,7 @@ import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle } from "lucide-react";
@@ -157,6 +158,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 );
 
 export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentId }: WizardProps) {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
@@ -220,12 +222,15 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       setStep(1);
       setShowValidation(false);
       setIsMultiDay(false);
-      setFormData({ ...DEFAULT_FORM });
-      getOrganizers()
-        .then((d: any[]) => {
-          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
-        })
-        .catch(() => { });
+      setFormData(prev => ({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || "") : "" }));
+      
+      if (user?.role === "SUPER_ADMIN") {
+        getOrganizers()
+          .then((d: any[]) => {
+            if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
+          })
+          .catch(() => { });
+      }
 
       getCourses().then((d: any) => {
         setCourses(Array.isArray(d) ? d : d.items || []);
@@ -524,12 +529,14 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 </p>
               </div>
 
-              <div className="pt-1">
-                <Field label="Organizer" required>
-                  <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
-                    options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} />
-                </Field>
-              </div>
+              {user?.role === "SUPER_ADMIN" && (
+                <div className="pt-1">
+                  <Field label="Organizer" required>
+                    <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
+                      options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} disabled={!!tournamentId} />
+                  </Field>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Tournament Banner" required>
