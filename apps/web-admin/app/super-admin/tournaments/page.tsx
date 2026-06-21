@@ -135,13 +135,13 @@ function getErrorMessage(e: unknown) {
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
   DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-gray-600" },
-  REGISTRATION_OPEN: { label: "Upcoming", color: "#10b981", badge: "bg-emerald-50 text-emerald-600" },
+  REGISTRATION_OPEN: { label: "Upcoming", color: "#15803D", badge: "bg-emerald-50 text-openclub-800" },
   ONGOING: { label: "Ongoing", color: "#3b82f6", badge: "bg-blue-50 text-blue-600" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600" },
   CANCELLED: { label: "Cancelled", color: "#f43f5e", badge: "bg-rose-50 text-rose-600" },
 };
 const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
-  PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
+  PUBLIC: { label: "Public", badge: "bg-emerald-50 text-openclub-800", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
   INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
@@ -477,7 +477,7 @@ export default function TournamentsPage() {
 
   const upcomingPalette = [
     { color: "text-blue-600", bg: "bg-blue-50" },
-    { color: "text-emerald-600", bg: "bg-emerald-50" },
+    { color: "text-openclub-800", bg: "bg-emerald-50" },
     { color: "text-red-600", bg: "bg-red-50" },
     { color: "text-violet-600", bg: "bg-violet-50" },
   ];
@@ -954,7 +954,7 @@ export default function TournamentsPage() {
           value={formatWithCommas(totalTournaments)}
           icon={Trophy}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-openclub-800"
           loading={loading}
         />
         <StatCard
@@ -996,14 +996,14 @@ export default function TournamentsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         {/* Main Content - Table Area */}
         <div className="xl:col-span-3 space-y-6">
-          <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
+          <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-[16px] font-bold">All Tournaments</CardTitle>
+              <CardTitle className="text-[16px] font-normal">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button 
                   variant="outline" 
                   onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                  className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
                 >
                   <Download className="w-4 h-4" /> Export
                 </Button>
@@ -1032,9 +1032,9 @@ export default function TournamentsPage() {
                         "tournaments-export.csv"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                     Export CSV
                   </button>
                   <button
@@ -1053,7 +1053,7 @@ export default function TournamentsPage() {
                         "Tournaments Export"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                   >
                     <FileText className="w-4 h-4 text-rose-600" />
                     Export PDF
@@ -1061,7 +1061,7 @@ export default function TournamentsPage() {
                 </FloatingMenu>
                 <Button
                   onClick={() => router.push("/super-admin/tournaments/create")}
-                  className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
+                  className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
                 >
                   <Plus className="w-4 h-4" /> Add Tournament
                 </Button>
@@ -1074,7 +1074,7 @@ export default function TournamentsPage() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search tournament name, organizer..."
-                    className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg"
+                    className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1084,7 +1084,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setClubFilter(v)}
                   options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Organizers"
                 />
                 <SearchableSelect
@@ -1092,7 +1092,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setStatusFilter(v)}
                   options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Status"
                 />
                 <SearchableSelect
@@ -1100,7 +1100,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setMonthFilter(v)}
                   options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Months"
                 />
                 <SearchableSelect
@@ -1108,7 +1108,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setYearFilter(v)}
                   options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Years"
                 />
 
@@ -1118,7 +1118,7 @@ export default function TournamentsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
                       <th className="px-4 py-4">Tournament Info</th>
                       <th className="px-4 py-4">Schedule & Visibility</th>
                       <th className="px-4 py-4">Players</th>
@@ -1130,13 +1130,13 @@ export default function TournamentsPage() {
                   <tbody className="divide-y divide-gray-50">
                     {error ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-bold text-[13px]">
+                        <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
                           {error}
                         </td>
                       </tr>
                     ) : loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                        <tr key={i} className="hover:bg-background/50 transition-colors">
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <Skeleton className="w-12 h-12 rounded-full" />
@@ -1172,22 +1172,22 @@ export default function TournamentsPage() {
                       ))
                     ) : paginatedTournaments.length > 0 ? (
                       paginatedTournaments.map((t) => (
-                        <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <tr key={t.id} className="hover:bg-background/50 transition-colors group">
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                              <div className="w-12 h-12 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                                 <Trophy className="w-4.5 h-4.5" />
                               </div>
                               <div className="flex flex-col min-w-0">
-                                <span className="text-[14px] font-bold text-gray-900 truncate leading-tight" title={t.name}>{t.name.toLowerCase()}</span>
-                                <span className="text-[12px] text-gray-400 font-medium truncate mt-0.5" title={t.clubName}>{t.clubName.toLowerCase()}</span>
+                                <span className="text-[14px] font-normal text-gray-900 truncate leading-tight" title={t.name}>{t.name.toLowerCase()}</span>
+                                <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5" title={t.clubName}>{t.clubName.toLowerCase()}</span>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-medium truncate leading-tight">{t.dates}</span>
-                              <div className={cn("inline-flex items-center w-fit px-1.5 py-0.5 rounded gap-1 mt-1 text-[9px] font-bold uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
+                              <span className="text-[13px] text-gray-700 font-normal truncate leading-tight">{t.dates}</span>
+                              <div className={cn("inline-flex items-center w-fit px-1.5 py-0.5 rounded gap-1 mt-1 text-[9px] font-normal uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
                                 {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-2.5 h-2.5 flex-shrink-0" })}
                                 <span>{t.visibility}</span>
                               </div>
@@ -1195,23 +1195,23 @@ export default function TournamentsPage() {
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex flex-col items-start">
-                              <span className="text-[14px] text-gray-900 font-bold leading-tight">{t.players}</span>
-                              <span className="text-[10px] text-gray-400 font-medium mt-0.5">Registered</span>
+                              <span className="text-[14px] text-gray-900 font-normal leading-tight">{t.players}</span>
+                              <span className="text-[10px] text-gray-400 font-normal mt-0.5">Registered</span>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase ${t.badge}`}>
+                            <span className={`text-[10px] font-normal px-2 py-0.5 rounded-lg whitespace-nowrap uppercase ${t.badge}`}>
                               {t.status}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-right">
-                            <span className="text-[14px] font-bold text-gray-900 whitespace-nowrap">{formatNaira(t.entryFee)}</span>
+                            <span className="text-[14px] font-normal text-gray-900 whitespace-nowrap">{formatNaira(t.entryFee)}</span>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => openView(t)}
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
                                 title="View Tournament"
                               >
                                 <Eye className="w-4.5 h-4.5" />
@@ -1219,9 +1219,9 @@ export default function TournamentsPage() {
                               <button
                                 onClick={() => openEdit(t)}
                                 className={cn(
-                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white transition-colors",
+                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white transition-colors",
                                   t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
-                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/50 border-[#efefef]"
+                                    ? "text-gray-300 cursor-not-allowed bg-background/50 border-[#efefef]"
                                     : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
                                 )}
                                 title="Edit Tournament"
@@ -1244,7 +1244,7 @@ export default function TournamentsPage() {
                                       setDropdownTournament(t);
                                     }
                                   }}
-                                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
                                   title="More Actions"
                                 >
                                   <MoreHorizontal className="w-4.5 h-4.5" />
@@ -1287,9 +1287,9 @@ export default function TournamentsPage() {
         {/* Right Sidebar */}
         <div className="space-y-8">
           {/* Status Donut Chart */}
-          <Card className="border border-[#e7e7e7] shadow-sm">
+          <Card className="border border-[#e1efe5] shadow-sm">
             <CardHeader className="pb-0">
-              <CardTitle className="text-[16px] font-bold">Tournaments by Status</CardTitle>
+              <CardTitle className="text-[16px] font-normal">Tournaments by Status</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
               <div className="h-[240px] w-full relative">
@@ -1318,8 +1318,8 @@ export default function TournamentsPage() {
                   <Skeleton className="h-full w-full rounded-full" />
                 )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[13px] text-gray-400 font-medium">Total</p>
-                  <p className="text-[16px] font-bold text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
+                  <p className="text-[13px] text-gray-400 font-normal">Total</p>
+                  <p className="text-[16px] font-normal text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
                 </div>
               </div>
 
@@ -1328,29 +1328,29 @@ export default function TournamentsPage() {
                   <div key={item.name} className="flex items-center justify-between text-[13px]">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-gray-500 font-medium">{item.name}</span>
+                      <span className="text-gray-500 font-normal">{item.name}</span>
                     </div>
-                    <span className="font-bold text-gray-800">
+                    <span className="font-normal text-gray-800">
                       {item.value} ({item.percentage})
                     </span>
                   </div>
                 ))}
               </div>
 
-              <Button variant="link" className="w-full mt-6 text-[#10b981] font-bold no-underline hover:no-underline hover:font-extrabold transition-all duration-200 flex items-center justify-center gap-2">
+              <Button variant="link" className="w-full mt-6 text-[#15803D] font-normal no-underline hover:no-underline hover:font-normal transition-all duration-200 flex items-center justify-center gap-2">
                 View Full Analytics <ArrowUpRight className="w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
 
           {/* Upcoming List */}
-          <Card className="border border-[#e7e7e7] shadow-sm">
+          <Card className="border border-[#e1efe5] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-bold">Upcoming Tournaments</CardTitle>
+              <CardTitle className="text-[16px] font-normal">Upcoming Tournaments</CardTitle>
               {upcomingList.length > 0 && (
                 <Button
                   variant="link"
-                  className="text-[#10b981] p-0 h-auto font-bold text-[12px] hover:no-underline"
+                  className="text-[#15803D] p-0 h-auto font-normal text-[12px] hover:no-underline"
                   onClick={() => setStatusFilter("Upcoming")}
                 >
                   View All
@@ -1374,27 +1374,27 @@ export default function TournamentsPage() {
                   <div
                     key={item.id}
                     onClick={() => openView(item)}
-                    className="flex items-start gap-4 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors group"
+                    className="flex items-start gap-4 p-2 rounded-xl hover:bg-background cursor-pointer transition-colors group"
                   >
                     <div className={`w-12 h-12 flex items-center justify-center rounded-full ${item.bg} ${item.color} flex-shrink-0 group-hover:scale-110 transition-transform`}>
                       <item.icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-bold text-gray-800 leading-tight group-hover:text-[#10b981] transition-colors line-clamp-1">{item.name}</p>
+                      <p className="text-[15px] font-normal text-gray-800 leading-tight group-hover:text-[#15803D] transition-colors line-clamp-1">{item.name}</p>
                       <p className="text-[13px] text-gray-500 mt-1 line-clamp-1">{item.clubName}</p>
                       <p className="text-[12px] text-gray-400 mt-0.5">{item.dates}</p>
                     </div>
-                    <span className="text-[11px] font-bold bg-gray-50 text-emerald-600 px-2 py-1 rounded-lg whitespace-nowrap">
+                    <span className="text-[11px] font-normal bg-background text-openclub-800 px-2 py-1 rounded-lg whitespace-nowrap">
                       {item.days}
                     </span>
                   </div>
                 ))
               ) : (
                 <div className="py-8 text-center">
-                  <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center mx-auto mb-3">
                     <Calendar className="w-6 h-6 text-gray-300" />
                   </div>
-                  <p className="text-[12px] text-gray-500 font-medium">No upcoming tournaments</p>
+                  <p className="text-[12px] text-gray-500 font-normal">No upcoming tournaments</p>
                   <p className="text-[12px] text-gray-400 mt-1">Check back later or add a new one</p>
                 </div>
               )}
@@ -1408,36 +1408,36 @@ export default function TournamentsPage() {
           <>
             <button
               onClick={() => handleMoreAction("export", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Tournament Data
             </button>
             <button
               onClick={() => handleMoreAction("copy-link", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
-              <Link className="w-4 h-4 text-emerald-500" />
+              <Link className="w-4 h-4 text-openclub-700" />
               Copy Tournament Link
             </button>
-            <div className="h-px bg-gray-50 my-1" />
+            <div className="h-px bg-background my-1" />
             <button
               onClick={() => handleMoreAction("register", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-emerald-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700"
               )}
               disabled={dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"}
             >
-              <UserPlus className="w-4 h-4 text-emerald-600" />
+              <UserPlus className="w-4 h-4 text-openclub-800" />
               Register a Player
             </button>
             <button
               onClick={() => handleMoreAction("waitlist", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-emerald-50 flex items-center gap-3",
                 !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
               )}
               disabled={!dropdownTournament.enableWaitlist}
@@ -1445,11 +1445,11 @@ export default function TournamentsPage() {
               <Clock className={cn("w-4 h-4", !dropdownTournament.enableWaitlist ? "text-gray-300" : "text-gray-400")} />
               View Waitlist
             </button>
-            <div className="h-px bg-gray-50 my-1" />
+            <div className="h-px bg-background my-1" />
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700",
@@ -1468,7 +1468,7 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("delete", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Tournament
@@ -1492,7 +1492,7 @@ export default function TournamentsPage() {
             {[1, 2, 3, 4].map((delta) => (
               <button
                 key={delta}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                 onClick={() => {
                   const reg = strokesMenuRegistration;
                   setStrokesMenuRegistration(null);
@@ -1519,7 +1519,7 @@ export default function TournamentsPage() {
         footer={
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
-              <span className="text-[11px] text-gray-400 font-medium italic">
+              <span className="text-[11px] text-gray-400 font-normal italic">
                 Tournament ID: {selectedTournament?.id.slice(0, 8)}...
               </span>
             </div>
@@ -1530,7 +1530,7 @@ export default function TournamentsPage() {
                 setStrokesMenuAnchorEl(null);
                 setIsViewModalOpen(false);
               }}
-              className="rounded-lg font-bold border-[#e7e7e7]"
+              className="rounded-lg font-normal border-[#e1efe5]"
             >
               Close Details
             </Button>
@@ -1545,39 +1545,39 @@ export default function TournamentsPage() {
                 <Ban className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[15px] font-bold">Tournament Cancelled</p>
-                <p className="text-[12px] text-red-600/80 font-medium">This tournament has been cancelled and player actions are disabled.</p>
+                <p className="text-[15px] font-normal">Tournament Cancelled</p>
+                <p className="text-[12px] text-red-600/80 font-normal">This tournament has been cancelled and player actions are disabled.</p>
               </div>
             </div>
           )}
           {selectedTournament?.statusKey === "COMPLETED" && (
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <CheckCircle2 className="w-5 h-5 text-openclub-800" />
               </div>
               <div>
-                <p className="text-[15px] font-bold">Tournament Completed</p>
-                <p className="text-[12px] text-emerald-600/80 font-medium">This tournament has concluded and is now read-only.</p>
+                <p className="text-[15px] font-normal">Tournament Completed</p>
+                <p className="text-[12px] text-openclub-800/80 font-normal">This tournament has concluded and is now read-only.</p>
               </div>
             </div>
           )}
 
           {/* Header Section */}
           <div className="flex items-center gap-5 border-b border-gray-50 pb-8">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#10b981] border border-emerald-100 flex-shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#15803D] border border-emerald-100 flex-shrink-0 shadow-sm">
               <Trophy className="w-8 h-8" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3 mb-1">
-                <h4 className="text-[16px] font-bold text-gray-900 truncate">
+                <h4 className="text-[16px] font-normal text-gray-900 truncate">
                   {selectedTournament?.name || "Tournament Details"}
                 </h4>
                 {selectedTournament && (
                   <span className={cn(
-                    "px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border",
+                    "px-3 py-1 rounded-lg text-[11px] font-normal uppercase tracking-wider border",
                     selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
                       selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                        selectedTournament.statusKey === "COMPLETED" ? "bg-gray-50 text-gray-600 border-[#e7e7e7]" :
+                        selectedTournament.statusKey === "COMPLETED" ? "bg-background text-gray-600 border-[#e1efe5]" :
                           "bg-amber-50 text-amber-700 border-amber-100"
                   )}>
                     {selectedTournament.status}
@@ -1585,12 +1585,12 @@ export default function TournamentsPage() {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
                   <Globe className="w-4 h-4 text-gray-400" />
                   {selectedTournament?.clubName || "Independent"}
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
                   <Calendar className="w-4 h-4 text-gray-400" />
                   {selectedTournament?.dates || "Dates TBD"}
                 </div>
@@ -1600,12 +1600,12 @@ export default function TournamentsPage() {
 
           {/* Quick Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
+            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
+              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[16px] font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
-                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Total Players</p>
+                  <p className="text-[16px] font-normal text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
+                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Total Players</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   <Users className="w-5 h-5" />
@@ -1613,27 +1613,27 @@ export default function TournamentsPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
+            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
+              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[16px] font-bold text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
-                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Per Registration</p>
+                  <p className="text-[16px] font-normal text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
+                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Per Registration</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">
                   <Wallet className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] shadow-sm">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
+            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
+              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[16px] font-bold text-gray-900">
+                  <p className="text-[16px] font-normal text-gray-900">
                     {selectedTournament?.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
                   </p>
-                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Player Limit</p>
+                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Player Limit</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
                   <Lock className="w-5 h-5" />
@@ -1646,8 +1646,8 @@ export default function TournamentsPage() {
           <div className="space-y-5 pt-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <h5 className="text-[16px] font-bold text-gray-900">Registered Players</h5>
-                <p className="text-[12px] text-gray-500 font-medium">Manage and monitor tournament participation</p>
+                <h5 className="text-[16px] font-normal text-gray-900">Registered Players</h5>
+                <p className="text-[12px] text-gray-500 font-normal">Manage and monitor tournament participation</p>
               </div>
             </div>
 
@@ -1662,7 +1662,7 @@ export default function TournamentsPage() {
                     setRegistrationsSearch(e.target.value);
                   }}
                   placeholder="Search name or email..."
-                  className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg"
+                  className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
                 />
               </div>
               <SearchableSelect
@@ -1690,7 +1690,7 @@ export default function TournamentsPage() {
                   { value: "DISQUALIFIED", label: "Disqualified" },
                 ]}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-medium"
+                triggerClassName="h-11 bg-white font-normal"
                 placeholder="All Status"
               />
               <SearchableSelect
@@ -1708,7 +1708,7 @@ export default function TournamentsPage() {
                   { value: "REFUNDED", label: "Refunded" },
                 ]}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-medium"
+                triggerClassName="h-11 bg-white font-normal"
                 placeholder="All Payments"
               />
               <SearchableSelect
@@ -1728,7 +1728,7 @@ export default function TournamentsPage() {
                   { value: "Disqualified Players", label: "Disqualified Players" },
                 ]}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-medium"
+                triggerClassName="h-11 bg-white font-normal"
                 placeholder="All Players"
               />
             </div>
@@ -1736,7 +1736,7 @@ export default function TournamentsPage() {
             {registrationsLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-[#efefef] bg-gray-50/50 px-4 py-3">
+                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-[#efefef] bg-background/50 px-4 py-3">
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-4 w-40 rounded-md" />
                       <Skeleton className="h-3 w-56 rounded-md" />
@@ -1752,21 +1752,21 @@ export default function TournamentsPage() {
                   const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
 
                   const statusConfig = {
-                    DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-[#e7e7e7]", icon: Ban },
+                    DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-[#e1efe5]", icon: Ban },
                     APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
                     REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
                     WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
                     PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-                  }[r.status as string] || { badge: "bg-gray-50 text-gray-600 border-[#efefef]", icon: Clock };
+                  }[r.status as string] || { badge: "bg-background text-gray-600 border-[#efefef]", icon: Clock };
 
                   const paymentConfig = {
                     PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
                     REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
-                    UNPAID: { badge: "bg-gray-100 text-gray-500 border-[#e7e7e7]", label: "Unpaid" },
-                  }[r.paymentStatus as string] || { badge: "bg-gray-50 text-gray-500 border-[#efefef]", label: r.paymentStatus };
+                    UNPAID: { badge: "bg-gray-100 text-gray-500 border-[#e1efe5]", label: "Unpaid" },
+                  }[r.paymentStatus as string] || { badge: "bg-background text-gray-500 border-[#efefef]", label: r.paymentStatus };
 
                   return (
-                    <div key={r.id} className="px-5 py-4 hover:bg-gray-50/60 transition-colors group">
+                    <div key={r.id} className="px-5 py-4 hover:bg-background/60 transition-colors group">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <img
@@ -1776,19 +1776,19 @@ export default function TournamentsPage() {
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <p className="text-[14px] text-gray-900 font-bold truncate">{fullName}</p>
-                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
+                              <p className="text-[14px] text-gray-900 font-normal truncate">{fullName}</p>
+                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-normal whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
                                 {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
                                 {r.status}
                               </span>
-                              <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
+                              <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-normal whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
                                 {paymentConfig.label}
                               </span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <p className="text-[12px] text-gray-400 font-medium truncate">{r.user?.email || "No email"}</p>
+                              <p className="text-[12px] text-gray-400 font-normal truncate">{r.user?.email || "No email"}</p>
                               {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
+                                <span className="flex items-center gap-1 text-[11px] font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
                                   <Plus className="w-3 h-3" />
                                   {r.extraStrokes} Strokes
                                 </span>
@@ -1802,7 +1802,7 @@ export default function TournamentsPage() {
                           isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                         )}>
                           {isTournamentLocked ? (
-                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-[#efefef]">
+                            <span className="text-[11px] font-normal text-gray-400 bg-background px-3 py-1.5 rounded-lg border border-[#efefef]">
                               Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
                             </span>
                           ) : (
@@ -1810,10 +1810,10 @@ export default function TournamentsPage() {
                               {r.status === "DISQUALIFIED" ? (
                                 <button
                                   className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] font-bold transition-all",
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal transition-all",
                                     registrationActionId === r.id
                                       ? "text-gray-300 cursor-not-allowed"
-                                      : "text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100"
+                                      : "text-openclub-800 hover:bg-emerald-50 hover:border-emerald-100"
                                   )}
                                   title="Enable Player"
                                   disabled={registrationActionId === r.id}
@@ -1828,7 +1828,7 @@ export default function TournamentsPage() {
                               ) : (
                                 <button
                                   className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] font-bold transition-all",
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal transition-all",
                                     registrationActionId === r.id
                                       ? "text-gray-300 cursor-not-allowed"
                                       : "text-red-600 hover:bg-red-50 hover:border-red-100"
@@ -1847,10 +1847,10 @@ export default function TournamentsPage() {
 
                               <button
                                 className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] font-bold text-gray-600 transition-all",
+                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-gray-600 transition-all",
                                   registrationActionId === r.id
                                     ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-gray-50 hover:border-gray-300"
+                                    : "hover:bg-background hover:border-gray-300"
                                 )}
                                 title="Add Strokes"
                                 disabled={registrationActionId === r.id}
@@ -1867,10 +1867,10 @@ export default function TournamentsPage() {
                               {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
                                 <button
                                   className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] font-bold text-gray-400 transition-all",
+                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-gray-400 transition-all",
                                     registrationActionId === r.id
                                       ? "text-gray-300 cursor-not-allowed"
-                                      : "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300"
+                                      : "hover:bg-background hover:text-gray-600 hover:border-gray-300"
                                   )}
                                   title="Clear Strokes"
                                   disabled={registrationActionId === r.id}
@@ -1883,7 +1883,7 @@ export default function TournamentsPage() {
 
                               <button
                                 className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e7e7e7] bg-white text-[12px] font-bold text-red-600 transition-all",
+                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-red-600 transition-all",
                                   registrationActionId === r.id
                                     ? "text-gray-300 cursor-not-allowed"
                                     : "hover:bg-red-50 hover:border-red-100"
@@ -1907,14 +1907,14 @@ export default function TournamentsPage() {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-[#efefef] bg-gray-50/40 px-4 py-4 text-[13px] text-gray-500 font-medium">
+              <div className="rounded-xl border border-[#efefef] bg-background/40 px-4 py-4 text-[13px] text-gray-500 font-normal">
                 No registrations yet for this tournament.
               </div>
             )}
 
             {!registrationsLoading && registrationsFilteredTotal > 0 && (
               <div className="pt-2 flex items-center justify-between gap-4">
-                <p className="text-[13px] text-gray-500 font-medium">
+                <p className="text-[13px] text-gray-500 font-normal">
                   Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
                   {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
                   {formatWithCommas(registrationsFilteredTotal)} registrations
@@ -1955,13 +1955,13 @@ export default function TournamentsPage() {
         <div className="space-y-6 py-2">
           {/* Header */}
           <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
-            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0 shadow-sm">
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-[16px] font-bold text-gray-900 leading-tight">Manual Registration</h3>
+              <h3 className="text-[16px] font-normal text-gray-900 leading-tight">Manual Registration</h3>
               <p className="text-[13px] text-gray-500 mt-1">
-                Search and add players directly to <span className="text-emerald-600 font-bold">{selectedTournament?.name}</span>
+                Search and add players directly to <span className="text-openclub-800 font-normal">{selectedTournament?.name}</span>
               </p>
             </div>
           </div>
@@ -1969,7 +1969,7 @@ export default function TournamentsPage() {
           {/* Payment Status Selection */}
           {selectedTournament?.requiresPayment && (
             <div className="space-y-3 px-1">
-              <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
+              <Label className="text-[12px] font-medium text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -1977,18 +1977,18 @@ export default function TournamentsPage() {
                   className={cn(
                     "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                     manualPaymentType === 'UNPAID'
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
+                      ? "border-openclub-700 bg-emerald-50 text-emerald-700"
+                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e1efe5]"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <div className={cn(
                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                      manualPaymentType === 'UNPAID' ? "border-emerald-500" : "border-gray-300"
+                      manualPaymentType === 'UNPAID' ? "border-openclub-700" : "border-gray-300"
                     )}>
-                      {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                      {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-full bg-openclub-700" />}
                     </div>
-                    <span className="text-[13px] font-bold">Unpaid</span>
+                    <span className="text-[13px] font-normal">Unpaid</span>
                   </div>
                   <p className="text-[10px] opacity-70 leading-tight">Player will not be confirmed for grouping until payment is recorded.</p>
                 </button>
@@ -1998,18 +1998,18 @@ export default function TournamentsPage() {
                   className={cn(
                     "flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
                     manualPaymentType === 'CASH'
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e7e7e7]"
+                      ? "border-openclub-700 bg-emerald-50 text-emerald-700"
+                      : "border-[#efefef] bg-white text-gray-500 hover:border-[#e1efe5]"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <div className={cn(
                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                      manualPaymentType === 'CASH' ? "border-emerald-500" : "border-gray-300"
+                      manualPaymentType === 'CASH' ? "border-openclub-700" : "border-gray-300"
                     )}>
-                      {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                      {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-full bg-openclub-700" />}
                     </div>
-                    <span className="text-[13px] font-bold">Paid with Cash</span>
+                    <span className="text-[13px] font-normal">Paid with Cash</span>
                   </div>
                   <p className="text-[10px] opacity-70 leading-tight">Registration will be approved and confirmed for grouping immediately.</p>
                 </button>
@@ -2019,14 +2019,14 @@ export default function TournamentsPage() {
 
           {/* Search Input */}
           <div className="space-y-2 px-1">
-            <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Find Player</Label>
+            <Label className="text-[12px] font-medium text-gray-400 uppercase tracking-wider ml-1">Find Player</Label>
             <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[#10b981] transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[#15803D] transition-colors" />
               <Input
                 value={registerPlayerSearch}
                 onChange={(e) => setRegisterPlayerSearch(e.target.value)}
                 placeholder="Search by name, email or handicap..."
-                className="pl-12 pr-10 h-12 bg-gray-50/50 border-[#e7e7e7] focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 rounded-xl text-[14px] shadow-sm transition-all"
+                className="pl-12 pr-10 h-12 bg-background/50 border-[#e1efe5] focus:bg-white focus:border-[#15803D] focus:ring-4 focus:ring-[#15803D]/5 rounded-xl text-[14px] shadow-sm transition-all"
               />
               {registerPlayerSearch && (
                 <button
@@ -2042,9 +2042,9 @@ export default function TournamentsPage() {
           {/* Results Area */}
           <div className="space-y-3 px-1">
             <div className="flex items-center justify-between ml-1">
-              <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Search Results</p>
+              <p className="text-[12px] text-gray-400 font-normal uppercase tracking-wider">Search Results</p>
               {registerPlayerResults.length > 0 && (
-                <span className="text-[11px] font-bold text-[#10b981] bg-emerald-50 px-2 py-0.5 rounded-lg">
+                <span className="text-[11px] font-normal text-[#15803D] bg-emerald-50 px-2 py-0.5 rounded-lg">
                   {registerPlayerResults.length} found
                 </span>
               )}
@@ -2055,9 +2055,9 @@ export default function TournamentsPage() {
                 <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
                   <div className="relative w-12 h-12">
                     <div className="absolute inset-0 border-4 border-emerald-100 rounded-full" />
-                    <div className="absolute inset-0 border-4 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className="absolute inset-0 border-4 border-t-openclub-700 rounded-full animate-spin" />
                   </div>
-                  <p className="text-[14px] font-bold text-gray-900 mt-4">Searching database...</p>
+                  <p className="text-[14px] font-normal text-gray-900 mt-4">Searching database...</p>
                   <p className="text-[12px] text-gray-400 mt-1">Looking for matching players</p>
                 </div>
               ) : registerPlayerResults.length > 0 ? (
@@ -2074,24 +2074,24 @@ export default function TournamentsPage() {
                             <img
                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                               alt={u.email}
-                              className="w-10 h-10 rounded-full border border-[#efefef] bg-gray-50 flex-shrink-0"
+                              className="w-10 h-10 rounded-full border border-[#efefef] bg-background flex-shrink-0"
                             />
                             <div className={cn(
                               "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                              u.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-300"
+                              u.status === "ACTIVE" ? "bg-openclub-700" : "bg-gray-300"
                             )} />
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-[14px] font-bold text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
+                              <p className="text-[14px] font-normal text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
                               {isRegistered && (
-                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
+                                <span className="text-[10px] font-normal text-openclub-800 bg-emerald-50 px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
                                   <Check className="w-3 h-3" /> Registered
                                 </span>
                               )}
                               <span className={cn(
-                                "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight",
+                                "px-1.5 py-0.5 rounded text-[9px] font-normal uppercase tracking-tight",
                                 u.role === "PLAYER" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
                               )}>
                                 {u.role}
@@ -2104,10 +2104,10 @@ export default function TournamentsPage() {
                             disabled={isRegistering || isRegistered}
                             onClick={() => handleRegisterPlayer(u.id)}
                             className={cn(
-                              "h-10 px-5 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm",
+                              "h-10 px-5 rounded-xl text-[13px] font-normal transition-all active:scale-95 shadow-sm",
                               isRegistered
-                                ? "bg-gray-50 text-gray-400 border border-[#efefef] cursor-not-allowed"
-                                : "bg-[#10b981] hover:bg-[#0da673] text-white shadow-emerald-500/20"
+                                ? "bg-background text-gray-400 border border-[#efefef] cursor-not-allowed"
+                                : "bg-[#15803D] hover:bg-[#166534] text-white shadow-openclub-700/20"
                             )}
                           >
                             {isRegistering ? "Registering..." : isRegistered ? "Registered" : "Register Now"}
@@ -2119,10 +2119,10 @@ export default function TournamentsPage() {
                 </div>
               ) : registerPlayerSearch.trim().length >= 2 ? (
                 <div className="h-[280px] flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-gray-200" />
                   </div>
-                  <p className="text-[14px] font-bold text-gray-900">No players found</p>
+                  <p className="text-[14px] font-normal text-gray-900">No players found</p>
                   <p className="text-[12px] text-gray-400 mt-1 max-w-[200px]">
                     We couldn't find anyone matching "{registerPlayerSearch}"
                   </p>
@@ -2132,7 +2132,7 @@ export default function TournamentsPage() {
                   <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
                     <Users className="w-8 h-8 text-emerald-200" />
                   </div>
-                  <p className="text-[14px] font-bold text-gray-900">Start Searching</p>
+                  <p className="text-[14px] font-normal text-gray-900">Start Searching</p>
                   <p className="text-[12px] text-gray-400 mt-1 max-w-[200px]">
                     Enter a name or email address to find and register players
                   </p>
@@ -2150,7 +2150,7 @@ export default function TournamentsPage() {
               setRegisterPlayerSearch("");
               setRegisterPlayerResults([]);
             }}
-            className="rounded-xl font-bold h-11 px-6 border-[#e7e7e7] hover:bg-gray-50 transition-colors"
+            className="rounded-xl font-normal h-11 px-6 border-[#e1efe5] hover:bg-background transition-colors"
           >
             Cancel
           </Button>
@@ -2163,11 +2163,11 @@ export default function TournamentsPage() {
         title="Cancel Tournament?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsCancelModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsCancelModalOpen(false)} className="rounded-lg font-normal">
               Close
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
               onClick={confirmCancel}
               disabled={mutating}
             >
@@ -2178,7 +2178,7 @@ export default function TournamentsPage() {
       >
         <div className="flex flex-col items-center text-center py-4">
 
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Cancel Tournament?</h4>
           <p className="text-gray-500 max-w-sm">
             This will set the tournament status to Cancelled.
           </p>
@@ -2194,12 +2194,12 @@ export default function TournamentsPage() {
         title="Delete Tournament Permanently?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete Tournament
@@ -2212,21 +2212,21 @@ export default function TournamentsPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
+            <h4 className="text-[14px] font-normal text-gray-900 mb-2">Delete Tournament Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               Deleting this tournament will permanently erase all associated rounds, leaderboards, player registrations, and payment records. This action cannot be undone.
             </p>
           </div>
 
           <div className="space-y-3">
-            <Label className="font-bold text-gray-700">
+            <Label className="font-medium text-gray-700">
               Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
+              className="rounded-xl border-[#e1efe5] focus:border-red-500"
             />
           </div>
         </div>
@@ -2241,11 +2241,11 @@ export default function TournamentsPage() {
         title="Disqualify Player?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDisqualifyModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDisqualifyModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
               onClick={confirmDisqualify}
             >
               Confirm Disqualify
@@ -2257,11 +2257,11 @@ export default function TournamentsPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
             <Ban className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Disqualify Player?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Disqualify Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
-          <p className="text-[13px] text-amber-600 font-medium mt-4">
+          <p className="text-[13px] text-amber-600 font-normal mt-4">
             This will mark their status as DISQUALIFIED. They can be re-enabled later.
           </p>
         </div>
@@ -2277,11 +2277,11 @@ export default function TournamentsPage() {
         footer={
           (selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -2292,11 +2292,11 @@ export default function TournamentsPage() {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
                 onClick={confirmRemovePlayer}
               >
                 Remove Player
@@ -2313,7 +2313,7 @@ export default function TournamentsPage() {
               <UserMinus className="h-10 w-10" />
             )}
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
             {(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
           </h4>
           <p className="text-gray-500 max-w-sm">
@@ -2328,7 +2328,7 @@ export default function TournamentsPage() {
             )}
           </p>
           {!(selectedTournament?.statusKey === "ONGOING" || selectedTournament?.statusKey === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) && (
-            <p className="text-[13px] text-red-600 font-medium mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
+            <p className="text-[13px] text-red-600 font-normal mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
               Warning: This action is permanent and will delete their registration records for this tournament.
             </p>
           )}
@@ -2344,11 +2344,11 @@ export default function TournamentsPage() {
         title="Re-enable Player?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsEnablePlayerModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsEnablePlayerModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
               onClick={confirmEnablePlayer}
             >
               Confirm Enable
@@ -2357,14 +2357,14 @@ export default function TournamentsPage() {
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-openclub-700">
             <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Re-enable Player?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Re-enable Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
-          <p className="text-[13px] text-emerald-600 font-medium mt-4">
+          <p className="text-[13px] text-openclub-800 font-normal mt-4">
             This will set their status back to APPROVED and allow them to be grouped for tee times.
           </p>
         </div>

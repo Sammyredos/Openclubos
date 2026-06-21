@@ -28,7 +28,7 @@ interface WizardProps {
 const STEPS = ["Basic Information", "Role & Permissions", "Organization", "Review & Confirm"];
 
 const AVAILABLE_ROLES = [
-  { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-emerald-600", bg: "bg-emerald-50" },
+  { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-openclub-800", bg: "bg-emerald-50" },
   { id: "CLUB_ADMIN", label: "Organizer Admin", desc: "Manage tournaments, registrations and event settings.", icon: Building2, color: "text-blue-600",    bg: "bg-blue-50" },
   { id: "MARKER",     label: "Marker",         desc: "Enter scores, manage results and scorecards.",           icon: Trophy,    color: "text-amber-600",   bg: "bg-amber-50" },
   { id: "VIEWER",     label: "Viewer",         desc: "Read-only access to tournaments and reports.",           icon: Eye,       color: "text-indigo-600",  bg: "bg-indigo-50" },
@@ -175,13 +175,13 @@ async function compressImage(file: File, targetKB = 50): Promise<string> {
 
 const Field = ({ label, required, children, error, optional }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean }) => (
   <div className="space-y-1.5">
-    <Label className="text-[13px] font-semibold text-gray-600">
+    <Label className="text-[13px] font-medium text-gray-600">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
-      {optional && <span className="text-gray-400 font-medium ml-1">(Optional)</span>}
+      {optional && <span className="text-gray-400 font-normal ml-1">(Optional)</span>}
     </Label>
     {children}
-    {error && <p className="text-[11px] text-red-500 font-medium">{error}</p>}
+    {error && <p className="text-[11px] text-red-500 font-normal">{error}</p>}
   </div>
 );
 
@@ -587,13 +587,13 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Basic Details</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Basic Details</h4>
                   <p className="text-[12px] text-gray-500">Essential information about the user</p>
                 </div>
               </div>
@@ -602,7 +602,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 <Field label="Profile Photo" required>
                   <div className="relative">
                     {formData.profileImage ? (
-                      <div className="relative rounded-full overflow-hidden border border-[#e7e7e7] bg-gray-50 h-32 w-32 mx-auto">
+                      <div className="relative rounded-full overflow-hidden border border-[#e1efe5] bg-background h-32 w-32 mx-auto">
                         <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
                         <button onClick={() => setFormData({...formData, profileImage: ""})}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -611,12 +611,12 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       </div>
                     ) : (
                       <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "!border-red-500" : "border-[#e7e7e7]")}>
+                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "!border-red-500" : "border-[#e1efe5]")}>
                         <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                          <Upload className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
+                          <Upload className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
                         </div>
                         <div className="text-center">
-                          <p className="text-[11px] font-medium text-gray-600 group-hover:text-emerald-600">Upload Image</p>
+                          <p className="text-[11px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Image</p>
                           <p className="text-[9px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
                         </div>
                       </div>
@@ -739,7 +739,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   </Field>
                   <Field label="Phone Number" required>
                     <div className="flex gap-2">
-                      <div className="h-10 px-3 bg-gray-50 border border-[#e7e7e7] rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px]">
+                      <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px]">
                         +{countryCode}
                       </div>
                       <div className="relative flex-1">
@@ -760,7 +760,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                     value={formData.address} 
                     onChange={(e) => setFormData({...formData, address: e.target.value})} 
                     placeholder="Enter full address"
-                    className={cn("flex h-24 w-full rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
+                    className={cn("flex h-24 w-full rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
                   />
                 </Field>
 
@@ -774,9 +774,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           placeholder="e.g. 15.4"
                           value={formData.handicap} 
                           onChange={(e) => setFormData({...formData, handicap: e.target.value})} 
-                          className={cn("pr-16 font-bold text-emerald-600", showValidation && !formData.handicap && "!border-red-500")}
+                          className={cn("pr-16 font-normal text-openclub-800", showValidation && !formData.handicap && "!border-red-500")}
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "Female" ? 36 : 28}</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-openclub-700 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "Female" ? 36 : 28}</span>
                       </div>
                     </Field>
                   ) : <div />}
@@ -789,7 +789,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         { value: "ACTIVE", label: "Active" },
                         { value: "SUSPENDED", label: "Suspended" },
                       ]}
-                      triggerClassName="bg-white"
+                      triggerClassName=""
                     />
                   </Field>
                 </div>
@@ -801,15 +801,15 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       case 2:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm overflow-hidden">
               
               {/* Header */}
-              <div className="px-5 py-3.5 border-b border-[#e7e7e7] bg-gray-50/50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+              <div className="px-5 py-3.5 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Role & Permissions</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Role & Permissions</h4>
                   <p className="text-[12px] text-gray-500">Select a role — permissions will auto-apply and can be customised.</p>
                 </div>
               </div>
@@ -817,7 +817,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               <div className="flex" style={{minHeight: 0}}>
 
                 {/* Left — Roles */}
-                <div className="w-[240px] border-r border-[#e7e7e7] bg-gray-50/30 shrink-0 p-3 flex flex-col gap-2">
+                <div className="w-[240px] border-r border-[#e1efe5] bg-background/30 shrink-0 p-3 flex flex-col gap-2">
                   {AVAILABLE_ROLES.map(role => {
                     const active = formData.roles.includes(role.id);
                     return (
@@ -834,17 +834,17 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         }}
                         className={cn(
                           "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
-                          active ? "bg-white border-emerald-500 shadow-[0_0_0_1px_#10b981]" : "bg-white border-[#e7e7e7] hover:border-gray-300"
+                          active ? "bg-white border-openclub-700 shadow-[0_0_0_1px_#15803D]" : "bg-white border-[#e1efe5] hover:border-gray-300"
                         )}
                       >
-                        <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-emerald-500 bg-white" : "border-gray-300")}>
-                          {active && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-in zoom-in-50 duration-200" />}
+                        <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-openclub-700 bg-white" : "border-gray-300")}>
+                          {active && <div className="w-1.5 h-1.5 rounded-full bg-openclub-700 animate-in zoom-in-50 duration-200" />}
                         </div>
                         <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", role.bg)}>
                           <role.icon className={cn("w-3.5 h-3.5", role.color)} />
                         </div>
                         <div className="min-w-0">
-                          <p className={cn("text-[12px] font-bold leading-tight", active ? "text-emerald-700" : "text-gray-800")}>{role.label}</p>
+                          <p className={cn("text-[12px] font-normal leading-tight", active ? "text-emerald-700" : "text-gray-800")}>{role.label}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{role.desc}</p>
                         </div>
                       </div>
@@ -861,10 +861,10 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 {/* Right — Permissions Table */}
                 <div className="flex-1 min-w-0">
                   {/* Column headers */}
-                  <div className="grid border-b border-[#e7e7e7] bg-gray-50/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
-                    <div className="px-4 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Module</div>
+                  <div className="grid border-b border-[#e1efe5] bg-background/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
+                    <div className="px-4 py-2 text-[11px] font-normal text-gray-500 uppercase tracking-wide">Module</div>
                     {PERMISSION_ACTIONS.map(a => (
-                      <div key={a} className="py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">{a}</div>
+                      <div key={a} className="py-2 text-center text-[10px] font-normal text-gray-500 uppercase tracking-wide">{a}</div>
                     ))}
                   </div>
 
@@ -880,11 +880,11 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                     >
                       {/* Module label */}
                       <div className="flex items-center gap-2.5 px-4 py-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-openclub-800 flex items-center justify-center shrink-0">
                           <perm.icon className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <p className="text-[12px] font-bold text-gray-800 leading-tight">{perm.label}</p>
+                          <p className="text-[12px] font-normal text-gray-800 leading-tight">{perm.label}</p>
                           <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{perm.desc}</p>
                         </div>
                       </div>
@@ -907,7 +907,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                               className={cn(
                                 "w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
                                 checked
-                                  ? "bg-emerald-500 border-emerald-500"
+                                  ? "bg-openclub-700 border-openclub-700"
                                   : "bg-white border-gray-300 hover:border-emerald-400"
                               )}
                             >
@@ -921,12 +921,12 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
 
                   {/* Role summary badge row */}
                   {formData.roles.length > 0 && (
-                    <div className="px-4 py-2 border-t border-[#e7e7e7] bg-gray-50/40 flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
+                    <div className="px-4 py-2 border-t border-[#e1efe5] bg-background/40 flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
                       {formData.roles.map(r => {
                         const rMeta = AVAILABLE_ROLES.find(x => x.id === r);
                         return (
-                          <span key={r} className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", rMeta?.bg, rMeta?.color, "border-current border-opacity-30")}>
+                          <span key={r} className={cn("px-2 py-0.5 rounded-full text-[10px] font-normal border", rMeta?.bg, rMeta?.color, "border-current border-opacity-30")}>
                             {rMeta?.label}
                           </span>
                         );
@@ -943,13 +943,13 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Premium Replica of Organizer Profile from screenshot */}
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-300">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#e7e7e7] pb-3">
+                <div className="flex items-center justify-between border-b border-[#e1efe5] pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-[14px] font-bold text-gray-900">Organizer Profile</h4>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
+                      <h4 className="text-[14px] font-normal text-gray-900">Organizer Profile</h4>
+                      <span className="px-2 py-0.5 text-[10px] font-normal bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
                     </div>
                     <p className="text-[11px] text-gray-500 mt-0.5">Details about the organizer or organization.</p>
                   </div>
@@ -962,7 +962,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={orgProfile.name} 
                       onChange={(e) => setOrgProfile({...orgProfile, name: e.target.value})}
                       placeholder="e.g. Lakowe Golf Club"
-                      className={cn("bg-white", showValidation && !orgProfile.name.trim() && "!border-red-500")}
+                      className={cn("", showValidation && !orgProfile.name.trim() && "!border-red-500")}
                     />
                   </Field>
                   <Field label="Organization Type" required>
@@ -975,7 +975,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         { value: "Sports Association", label: "Sports Association" },
                         { value: "Other", label: "Other" }
                       ]}
-                      triggerClassName={cn("bg-white", showValidation && !orgProfile.type.trim() && "!border-red-500")}
+                      triggerClassName={cn("", showValidation && !orgProfile.type.trim() && "!border-red-500")}
                     />
                   </Field>
                 </div>
@@ -987,7 +987,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         value={orgProfile.customType} 
                         onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
                         placeholder="Enter organization type"
-                        className={cn("bg-white", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
+                        className={cn("", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
                       />
                     </Field>
                   </div>
@@ -998,7 +998,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <Field label="Organization Logo" required>
                     <div className="relative h-[100px]">
                       {orgProfile.logo ? (
-                        <div className="relative rounded-xl overflow-hidden border border-[#e7e7e7] bg-gray-50 h-[100px] w-[100px] mx-auto">
+                        <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-[100px] w-[100px] mx-auto">
                           <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
                           <button type="button" onClick={() => setOrgProfile({...orgProfile, logo: ""})}
                             className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -1007,12 +1007,12 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         </div>
                       ) : (
                         <div onClick={() => orgLogoInputRef.current?.click()}
-                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e7e7e7]")}>
+                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e1efe5]")}>
                           <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                            <Upload className="w-4 h-4 text-gray-400 group-hover:text-emerald-500" />
+                            <Upload className="w-4 h-4 text-gray-400 group-hover:text-openclub-700" />
                           </div>
                           <div className="text-center">
-                            <p className="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600">Upload Logo</p>
+                            <p className="text-[10px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Logo</p>
                             <p className="text-[8px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
                           </div>
                         </div>
@@ -1027,7 +1027,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         value={orgProfile.website} 
                         onChange={(e) => setOrgProfile({...orgProfile, website: e.target.value})}
                         placeholder="e.g. https://lakowegolfclub.com"
-                        className="bg-white"
+                        className=""
                       />
                       <p className="text-[9px] text-gray-400">Optional website or social link</p>
                     </div>
@@ -1088,17 +1088,17 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={orgProfile.address} 
                       onChange={(e) => setOrgProfile({...orgProfile, address: e.target.value.slice(0, 200)})}
                       placeholder="KM 42, Lekki-Epe Expressway, Lakowe, Ibeju-Lekki, Lagos State, Nigeria."
-                      className={cn("w-full h-[70px] rounded-xl border bg-white px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "!border-red-500" : "border-[#e7e7e7]")}
+                      className={cn("w-full h-[70px] rounded-xl border shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "!border-red-500" : "border-[#d1e0d5]")}
                     />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
+                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
                       {orgProfile.address.length}/200
                     </span>
                   </div>
                 </Field>
 
                 {/* Contact Person Details */}
-                <div className="border-t border-[#e7e7e7] pt-4 mt-2">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
+                <div className="border-t border-[#e1efe5] pt-4 mt-2">
+                  <span className="text-[11px] font-normal text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
                   
                   {/* Contact Person Name & Email */}
                   <div className="grid grid-cols-2 gap-4">
@@ -1108,7 +1108,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         <Input 
                           value={fullNameStr} 
                           disabled
-                          className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
+                          className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
                         />
                       </div>
                     </Field>
@@ -1118,7 +1118,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         <Input 
                           value={formData.email} 
                           disabled
-                          className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
+                          className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
                         />
                       </div>
                     </Field>
@@ -1128,7 +1128,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <div className="mt-4">
                     <Field label="Contact Person Phone Number" required>
                       <div className="flex gap-2">
-                        <div className="h-10 px-3 bg-gray-50 border border-[#e7e7e7] rounded-lg flex items-center justify-center text-[13px] font-medium text-gray-500 shrink-0 min-w-[60px] select-none">
+                        <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px] select-none">
                           +{countryCode}
                         </div>
                         <div className="relative flex-1">
@@ -1136,7 +1136,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           <Input 
                             value={formData.phone} 
                             disabled
-                            className="pl-10 bg-gray-50 border-[#e7e7e7] text-gray-500 font-medium cursor-not-allowed select-none"
+                            className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
                           />
                         </div>
                       </div>
@@ -1151,9 +1151,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={orgProfile.about} 
                       onChange={(e) => setOrgProfile({...orgProfile, about: e.target.value.slice(0, 500)})}
                       placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
-                      className="w-full h-20 rounded-xl border border-[#e7e7e7] bg-white px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none pr-12 text-gray-700"
+                      className="w-full h-20 rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700"
                     />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-bold">
+                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
                       {orgProfile.about.length}/500
                     </span>
                   </div>
@@ -1161,10 +1161,10 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
 
                 {/* Social Media Links */}
                 <div>
-                  <span className="text-[11px] font-bold text-gray-400 uppercase block mb-1.5">Social Media (Optional)</span>
+                  <span className="text-[11px] font-normal text-gray-400 uppercase block mb-1.5">Social Media (Optional)</span>
                   <div className="flex gap-3 items-center">
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
-                      <span className="text-gray-400 text-[11px] font-bold w-4 text-center">f</span>
+                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">f</span>
                       <input 
                         value={orgProfile.facebook} 
                         onChange={(e) => setOrgProfile({...orgProfile, facebook: e.target.value})}
@@ -1172,8 +1172,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                       />
                     </div>
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e7e7e7] rounded-xl px-3 py-2 bg-gray-50/30">
-                      <span className="text-gray-400 text-[11px] font-bold w-4 text-center">in</span>
+                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">in</span>
                       <input 
                         value={orgProfile.instagram} 
                         onChange={(e) => setOrgProfile({...orgProfile, instagram: e.target.value})}
@@ -1181,7 +1181,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                         className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                       />
                     </div>
-                    <Button type="button" variant="outline" className="rounded-xl border-[#e7e7e7] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-gray-50 font-bold">
+                    <Button type="button" variant="outline" className="rounded-xl border-[#e1efe5] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-background font-normal">
                       + Add more
                     </Button>
                   </div>
@@ -1230,8 +1230,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-full">New User Account</span>
-                <h4 className="text-[16px] font-bold text-gray-900 flex items-center gap-2 mt-0.5 leading-tight">
+                <span className="text-[9px] font-normal uppercase tracking-wider text-openclub-800 bg-emerald-100/50 px-2 py-0.5 rounded-full">New User Account</span>
+                <h4 className="text-[16px] font-normal text-gray-900 flex items-center gap-2 mt-0.5 leading-tight">
                   {formData.firstName} {formData.middleName} {formData.surname}
                 </h4>
                 <p className="text-[12px] text-gray-500 truncate leading-tight">{formData.email}</p>
@@ -1240,17 +1240,17 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 <div className="flex gap-1 flex-wrap justify-end">
                   {formData.roles.map(r => (
                     <span key={r} className={cn(
-                      "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border",
+                      "px-2 py-0.5 rounded-md text-[9px] font-normal uppercase tracking-wider border",
                       r === "SUPER_ADMIN" ? "bg-rose-50 text-rose-600 border-rose-100" :
                       r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
-                      "bg-emerald-50 text-emerald-600 border-emerald-100"
+                      "bg-emerald-50 text-openclub-800 border-emerald-100"
                     )}>
                       {r.replace("_", " ")}
                     </span>
                   ))}
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
-                  <span className={cn("w-2 h-2 rounded-full", formData.status === "ACTIVE" ? "bg-emerald-500" : "bg-amber-500")} />
+                  <span className={cn("w-2 h-2 rounded-full", formData.status === "ACTIVE" ? "bg-openclub-700" : "bg-amber-500")} />
                   <span>{formData.status} Status</span>
                 </div>
               </div>
@@ -1258,74 +1258,74 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
 
             <div className="grid grid-cols-2 gap-4">
               {/* Left Column — Personal details */}
-              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-4 space-y-3.5 shadow-sm">
-                <div className="flex items-center gap-2 border-b border-[#e7e7e7] pb-2">
+              <div className="rounded-2xl border border-[#e1efe5] bg-white p-4 space-y-3.5 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-[#e1efe5] pb-2">
                   <User className="w-3.5 h-3.5 text-gray-400" />
-                  <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Personal & Contact Info</h5>
+                  <h5 className="text-[11px] font-normal text-gray-500 uppercase tracking-wider">Personal & Contact Info</h5>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3.5">
                   <div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Gender</span>
-                    <span className="text-[12px] text-gray-700 font-semibold">{formData.gender}</span>
+                    <span className="text-[9px] font-normal text-gray-400 uppercase block">Gender</span>
+                    <span className="text-[12px] text-gray-700 font-normal">{formData.gender}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Date of Birth</span>
-                    <span className="text-[12px] text-gray-700 font-semibold">{formData.dob ? `${formData.dob} ${ageText}` : "—"}</span>
+                    <span className="text-[9px] font-normal text-gray-400 uppercase block">Date of Birth</span>
+                    <span className="text-[12px] text-gray-700 font-normal">{formData.dob ? `${formData.dob} ${ageText}` : "—"}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3.5">
                   <div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Phone Number</span>
-                    <span className="text-[12px] text-gray-700 font-semibold">{formData.phone ? `+${countryCode} ${formData.phone}` : "—"}</span>
+                    <span className="text-[9px] font-normal text-gray-400 uppercase block">Phone Number</span>
+                    <span className="text-[12px] text-gray-700 font-normal">{formData.phone ? `+${countryCode} ${formData.phone}` : "—"}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Email Address</span>
-                    <span className="text-[12px] text-gray-700 font-semibold truncate block">{formData.email}</span>
+                    <span className="text-[9px] font-normal text-gray-400 uppercase block">Email Address</span>
+                    <span className="text-[12px] text-gray-700 font-normal truncate block">{formData.email}</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase block">Address Details</span>
-                  <span className="text-[12px] text-gray-700 font-semibold block leading-tight">{formData.address}</span>
+                  <span className="text-[9px] font-normal text-gray-400 uppercase block">Address Details</span>
+                  <span className="text-[12px] text-gray-700 font-normal block leading-tight">{formData.address}</span>
                   <span className="text-[11px] text-gray-400 block mt-1 leading-snug">{cityLabel}, {stateLabel}, {countryLabel}</span>
                 </div>
               </div>
 
               {/* Right Column — Role, Organization and Permissions */}
-              <div className="rounded-2xl border border-[#e7e7e7] bg-white p-4 space-y-3.5 shadow-sm flex flex-col justify-between">
+              <div className="rounded-2xl border border-[#e1efe5] bg-white p-4 space-y-3.5 shadow-sm flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 border-b border-[#e7e7e7] pb-2 mb-3">
+                  <div className="flex items-center gap-2 border-b border-[#e1efe5] pb-2 mb-3">
                     <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-                    <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Access & Permissions</h5>
+                    <h5 className="text-[11px] font-normal text-gray-500 uppercase tracking-wider">Access & Permissions</h5>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5">
                     {formData.roles.includes("PLAYER") && (
                       <div>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase block">Playing Handicap</span>
-                        <span className="text-[12px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{formData.handicap}</span>
+                        <span className="text-[9px] font-normal text-gray-400 uppercase block">Playing Handicap</span>
+                        <span className="text-[12px] text-openclub-800 font-normal bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">{formData.handicap}</span>
                       </div>
                     )}
                     {(formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER")) && (
-                      <div className="col-span-2 space-y-2 border-t border-[#e7e7e7] pt-2.5 mt-1">
-                        <span className="text-[9px] font-bold text-gray-400 uppercase block">Organization Details</span>
+                      <div className="col-span-2 space-y-2 border-t border-[#e1efe5] pt-2.5 mt-1">
+                        <span className="text-[9px] font-normal text-gray-400 uppercase block">Organization Details</span>
                         <div className="grid grid-cols-2 gap-3.5">
                           <div>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase block">Name</span>
-                            <span className="text-[12px] text-gray-700 font-semibold truncate block">{orgProfile.name || "—"}</span>
+                            <span className="text-[8px] font-normal text-gray-400 uppercase block">Name</span>
+                            <span className="text-[12px] text-gray-700 font-normal truncate block">{orgProfile.name || "—"}</span>
                           </div>
                           <div>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase block">Type</span>
-                            <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">
+                            <span className="text-[8px] font-normal text-gray-400 uppercase block">Type</span>
+                            <span className="text-[11px] text-openclub-800 font-normal bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-0.5">
                               {orgProfile.type === "Other" ? orgProfile.customType : orgProfile.type || "—"}
                             </span>
                           </div>
                         </div>
                         <div>
-                          <span className="text-[8px] font-bold text-gray-400 uppercase block">Address</span>
-                          <span className="text-[11px] text-gray-600 font-medium block leading-tight mt-0.5">{orgProfile.address || "—"}</span>
+                          <span className="text-[8px] font-normal text-gray-400 uppercase block">Address</span>
+                          <span className="text-[11px] text-gray-600 font-normal block leading-tight mt-0.5">{orgProfile.address || "—"}</span>
                         </div>
                       </div>
                     )}
@@ -1333,12 +1333,12 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 </div>
 
                 <div className="pt-2">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase block mb-1.5">Authorized Modules ({activeModules.length})</span>
+                  <span className="text-[9px] font-normal text-gray-400 uppercase block mb-1.5">Authorized Modules ({activeModules.length})</span>
                   <div className="flex gap-1.5 flex-wrap">
                     {activeModules.length > 0 ? (
                       activeModules.map(perm => (
-                        <div key={perm.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 border border-[#e7e7e7] text-[10px] text-gray-600 font-semibold">
-                          <perm.icon className="w-3 h-3 text-emerald-500 shrink-0" />
+                        <div key={perm.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-background border border-[#e1efe5] text-[10px] text-gray-600 font-normal">
+                          <perm.icon className="w-3 h-3 text-openclub-700 shrink-0" />
                           <span className="truncate max-w-[100px]">{perm.label}</span>
                         </div>
                       ))
@@ -1361,16 +1361,16 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     return (
       <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
         {/* Page Header */}
-        <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
-              className="w-10 h-10 border border-[#e7e7e7] hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+              className="w-10 h-10 border border-[#e1efe5] hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-[14px] font-bold text-gray-900">{editingUser ? "Edit User" : "Add User"}</h1>
+              <h1 className="text-[14px] font-normal text-gray-900">{editingUser ? "Edit User" : "Add User"}</h1>
               <p className="text-[13px] text-gray-500 mt-0.5">
                 {editingUser ? "Update and configure the user details step by step" : "Setup and configure a new platform user step by step"}
               </p>
@@ -1382,7 +1382,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
+            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -1395,26 +1395,26 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                       active
-                        ? "bg-[#f4fdf8] border-[#10b981] text-[#10b981]"
-                        : "bg-white border-[#e7e7e7] text-[#64748b] hover:border-gray-300 hover:bg-gray-50"
+                        ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                        : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                     )}
                   >
                     <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
                       <div
                         className={cn(
-                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
                           active
-                            ? "bg-[#10b981] text-white"
+                            ? "bg-[#15803D] text-white"
                             : past
-                            ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                            : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
+                            ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                            : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
                         )}
                       >
                         {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                       </div>
                       <span className="text-[13px] font-normal leading-tight">{name}</span>
                     </div>
-                    {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#10b981]" />}
+                    {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                   </button>
                 );
               })}
@@ -1425,14 +1425,14 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           <div className="lg:col-span-4 space-y-6">
             <div className="min-h-[400px]">
               {fetching ? (
-                <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">
+                <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
                   <div className="h-5 w-32 bg-gray-100 rounded-lg" />
-                  <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  <div className="h-12 w-full bg-background rounded-xl" />
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
-                    <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                    <div className="h-12 w-full bg-background rounded-xl" />
+                    <div className="h-12 w-full bg-background rounded-xl" />
                   </div>
-                  <div className="h-32 w-full bg-gray-50 rounded-xl" />
+                  <div className="h-32 w-full bg-background rounded-xl" />
                 </div>
               ) : (
                 renderStep()
@@ -1440,12 +1440,12 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
             </div>
 
             {/* Form Actions Footer */}
-            <div className="bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm flex items-center justify-between">
               <Button
                 variant="outline"
                 onClick={handleBack}
                 disabled={step === 1 || loading}
-                className="h-10 rounded-xl px-5 text-[13px] font-bold"
+                className="h-10 rounded-xl px-5 text-[13px] font-normal"
               >
                 ← Back
               </Button>
@@ -1454,14 +1454,14 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   variant="outline"
                   onClick={onClose}
                   disabled={loading}
-                  className="h-10 rounded-xl px-5 text-[13px] font-bold"
+                  className="h-10 rounded-xl px-5 text-[13px] font-normal"
                 >
                   Cancel
                 </Button>
                 {step < STEPS.length ? (
                   <Button
                     onClick={handleNext}
-                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                    className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                   >
                     Next Step →
                   </Button>
@@ -1469,7 +1469,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <Button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                    className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                   >
                     {loading ? (editingUser ? "Saving Changes..." : "Creating User...") : (editingUser ? "Save Changes" : "Save User")}
                   </Button>
@@ -1494,11 +1494,11 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
             {step < STEPS.length ? (
-              <Button onClick={handleNext} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
+              <Button onClick={handleNext} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
                 Next Step →
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={loading} className="bg-[#10b981] hover:bg-[#0da673] text-white px-6">
+              <Button onClick={handleSubmit} disabled={loading} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
                 {loading ? (editingUser ? "Saving Changes..." : "Creating User...") : (editingUser ? "Save Changes" : "Save User")}
               </Button>
             )}
@@ -1508,22 +1508,22 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     >
       <div className="space-y-8 h-full flex flex-col">
         {/* Step Indicators - Consistent Multistep UI Style */}
-        <div className="flex gap-1 border-b border-[#e7e7e7] pb-4 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 border-b border-[#e1efe5] pb-4 shrink-0 overflow-x-auto no-scrollbar">
           {STEPS.map((name, i) => {
             const active = step === i + 1;
             const past = step > i + 1;
             return (
               <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[70px]">
                 <div className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
-                  active ? "bg-[#10b981] text-white shadow-sm ring-4 ring-emerald-50" : 
-                  past ? "bg-emerald-100 text-emerald-600" : 
+                  "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
+                  active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : 
+                  past ? "bg-emerald-100 text-openclub-800" : 
                   "bg-gray-100 text-gray-400"
                 )}>
                   {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
                 </div>
                 <span className={cn(
-                  "text-[9px] font-bold uppercase tracking-wider text-center leading-tight transition-colors",
+                  "text-[9px] font-normal uppercase tracking-wider text-center leading-tight transition-colors",
                   active ? "text-gray-900" : "text-gray-400"
                 )}>
                   {name}

@@ -74,13 +74,13 @@ export default function TournamentRegistrationPage() {
   }
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
+    <div className="min-h-screen flex items-center justify-center bg-background/50">
       <Icons.spinner className="w-10 h-10 text-primary animate-spin" />
     </div>
   )
 
   if (!tournament) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
+    <div className="min-h-screen flex items-center justify-center bg-background/50">
       <div className="text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
         <h1 className="text-[16px] font-nexa-bold">Tournament Not Found</h1>
@@ -91,7 +91,7 @@ export default function TournamentRegistrationPage() {
 
   const hasTournamentStarted = new Date() > new Date(tournament.startDate);
   if (hasTournamentStarted) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background/50 p-4">
       <div className="text-center space-y-6 bg-white p-8 md:p-12 rounded-3xl border border-gray-100 shadow-xl max-w-md w-full animate-in fade-in zoom-in duration-500">
         <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto">
           <AlertCircle className="w-10 h-10 text-amber-500" />
@@ -110,7 +110,7 @@ export default function TournamentRegistrationPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-nexa-regular">
+    <div className="min-h-screen bg-background/50 p-4 md:p-8 font-nexa-regular">
       <div className="max-w-2xl mx-auto">
         
         {/* Progress Stepper */}
@@ -146,13 +146,13 @@ export default function TournamentRegistrationPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                  <div className="bg-background p-4 rounded-2xl space-y-1">
                     <p className="text-[11px] font-nexa-bold text-gray-400 uppercase tracking-wider">Entry Fee</p>
                     <p className="text-[14px] font-nexa-bold text-gray-900">
                       {tournament.entryFee && tournament.entryFee > 0 ? `$${tournament.entryFee.toFixed(2)}` : 'FREE'}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                  <div className="bg-background p-4 rounded-2xl space-y-1">
                     <p className="text-[11px] font-nexa-bold text-gray-400 uppercase tracking-wider">Player Type</p>
                     <div className="flex items-center gap-2 font-nexa-bold text-primary">
                       <User className="w-4 h-4" />
@@ -207,7 +207,7 @@ export default function TournamentRegistrationPage() {
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <Input 
                       placeholder="e.g. TRN-12345678" 
-                      className="pl-12 h-14 bg-gray-50 border-transparent focus:bg-white focus:border-primary transition-all rounded-xl"
+                      className="pl-12 h-14 bg-background border-transparent focus:bg-white focus:border-primary transition-all rounded-xl"
                       value={paymentRef}
                       onChange={(e) => setPaymentRef(e.target.value)}
                     />

@@ -27,7 +27,7 @@ export function LandingFooter() {
               <div className="flex items-center justify-center w-8 h-8 rounded bg-landing text-landing-foreground">
                 <Icons.logo className="w-5 h-5" />
               </div>
-              <span className="font-bold text-[14px] tracking-tight text-foreground">
+              <span className="font-normal text-[14px] tracking-tight text-foreground">
                 OpenClub<span className="text-landing">OS</span>
               </span>
             </div>
@@ -37,7 +37,7 @@ export function LandingFooter() {
           </div>
 
           <div>
-            <h4 className="font-bold text-foreground mb-6">Product</h4>
+            <h4 className="font-normal text-foreground mb-6">Product</h4>
             <ul className="space-y-4">
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">Features</Link></li>
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">Solutions</Link></li>
@@ -47,7 +47,7 @@ export function LandingFooter() {
           </div>
 
           <div>
-            <h4 className="font-bold text-foreground mb-6">Company</h4>
+            <h4 className="font-normal text-foreground mb-6">Company</h4>
             <ul className="space-y-4">
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">About Us</Link></li>
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">Careers</Link></li>
@@ -57,7 +57,7 @@ export function LandingFooter() {
           </div>
 
           <div>
-            <h4 className="font-bold text-foreground mb-6">Support</h4>
+            <h4 className="font-normal text-foreground mb-6">Support</h4>
             <ul className="space-y-4">
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">Documentation</Link></li>
               <li><Link href="#" className="text-muted-foreground hover:text-landing transition-colors">Help Center</Link></li>

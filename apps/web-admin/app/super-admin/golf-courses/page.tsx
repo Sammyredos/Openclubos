@@ -46,13 +46,13 @@ function StatusPill({ status }: { status: Course["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-normal uppercase whitespace-nowrap",
         isActive
           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
           : "bg-red-50 text-red-700 border-red-100"
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-red-500")} />
+      <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-openclub-700" : "bg-red-500")} />
       {isActive ? "Active" : "Inactive"}
     </span>
   );
@@ -230,7 +230,7 @@ export default function SuperAdminGolfCoursesPage() {
           value={String(stats?.totalCourses ?? 142)}
           icon={Mountain}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-openclub-800"
           loading={loading}
           subValue="Across Africa"
         />
@@ -272,14 +272,14 @@ export default function SuperAdminGolfCoursesPage() {
         />
       </div>
 
-      <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
+      <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-[16px] font-bold">Manage Courses</CardTitle>
+          <CardTitle className="text-[16px] font-normal">Manage Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
-              className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+              className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <Download className="w-4 h-4" /> Export
             </Button>
@@ -309,9 +309,9 @@ export default function SuperAdminGolfCoursesPage() {
                     "courses-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
               </button>
               <button
@@ -330,7 +330,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "Golf Courses Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -338,7 +338,7 @@ export default function SuperAdminGolfCoursesPage() {
             </FloatingMenu>
             <Button
               onClick={() => router.push("/super-admin/golf-courses/create")}
-              className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold"
+              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <Plus className="w-4 h-4" /> Add Golf Course
             </Button>
@@ -350,7 +350,7 @@ export default function SuperAdminGolfCoursesPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search courses by name, LGA, or country..."
-                className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg text-[14px]"
+                className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -363,7 +363,7 @@ export default function SuperAdminGolfCoursesPage() {
               onValueChange={setCountryFilter}
               options={countries}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-white font-normal"
               placeholder="All Countries"
             />
             <SearchableSelect
@@ -371,7 +371,7 @@ export default function SuperAdminGolfCoursesPage() {
               onValueChange={setTypeFilter}
               options={courseTypes}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-white font-normal"
               placeholder="All Types"
             />
             <SearchableSelect
@@ -383,7 +383,7 @@ export default function SuperAdminGolfCoursesPage() {
                 { value: "INACTIVE", label: "Inactive" },
               ]}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-white font-normal"
               placeholder="All Status"
             />
 
@@ -392,7 +392,7 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
                   <th className="px-4 py-4">Course Info</th>
                   <th className="px-4 py-4">Location & Country</th>
                   <th className="px-4 py-4 text-center">Holes & Par</th>
@@ -404,7 +404,7 @@ export default function SuperAdminGolfCoursesPage() {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
@@ -446,10 +446,10 @@ export default function SuperAdminGolfCoursesPage() {
                   ))
                 ) : paginatedCourses.length > 0 ? (
                   paginatedCourses.map((course) => (
-                    <tr key={course.id} className="hover:bg-gray-50/50 transition-colors group">
+                    <tr key={course.id} className="hover:bg-background/50 transition-colors group">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-gray-50 flex-shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-background flex-shrink-0 group-hover:scale-105 transition-transform">
                             {course.coverImage ? (
                               <img src={course.coverImage} alt={course.name} className="w-full h-full object-cover" />
                             ) : (
@@ -459,16 +459,16 @@ export default function SuperAdminGolfCoursesPage() {
                             )}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[14px] font-bold text-gray-900 truncate" title={course.name}>{course.name.toLowerCase()}</span>
-                            <span className="text-[12px] text-gray-400 font-medium truncate mt-0.5">{(course.club?.name || "Independent").toLowerCase()}</span>
+                            <span className="text-[14px] font-normal text-gray-900 truncate" title={course.name}>{course.name.toLowerCase()}</span>
+                            <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5">{(course.club?.name || "Independent").toLowerCase()}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2 min-w-[180px]">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 text-openclub-700 flex-shrink-0" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[13px] font-bold text-gray-700 truncate">{course.city?.toLowerCase()}, {course.state?.toLowerCase()}</span>
+                            <span className="text-[13px] font-normal text-gray-700 truncate">{course.city?.toLowerCase()}, {course.state?.toLowerCase()}</span>
                             <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                               <div className="w-4 h-3 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
                                 <img 
@@ -477,7 +477,7 @@ export default function SuperAdminGolfCoursesPage() {
                                   className="w-full h-full object-cover"
                                 />
                               </div>
-                              <span className="text-[11px] text-gray-400 font-medium truncate">
+                              <span className="text-[11px] text-gray-400 font-normal truncate">
                                 {(Country.getCountryByCode(course.country)?.name || course.country).toLowerCase()}
                               </span>
                             </div>
@@ -486,12 +486,12 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col items-center">
-                          <span className="text-[14px] text-gray-900 font-bold leading-tight">{course.holes} Holes</span>
-                          <span className="text-[11px] text-gray-400 font-medium mt-0.5">Par {course.par}</span>
+                          <span className="text-[14px] text-gray-900 font-normal leading-tight">{course.holes} Holes</span>
+                          <span className="text-[11px] text-gray-400 font-normal mt-0.5">Par {course.par}</span>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-lg whitespace-nowrap uppercase">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-normal text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-lg whitespace-nowrap uppercase">
                           <Mountain className="w-3 h-3 text-blue-400" />
                           {course.type.toLowerCase()}
                         </span>
@@ -502,7 +502,7 @@ export default function SuperAdminGolfCoursesPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}`)}
                             title="View Course"
                           >
@@ -510,7 +510,7 @@ export default function SuperAdminGolfCoursesPage() {
                           </button>
                           <button
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                             title="Edit Course"
                           >
                             <Edit2 className="w-4.5 h-4.5" />
@@ -530,7 +530,7 @@ export default function SuperAdminGolfCoursesPage() {
                                   setDropdownCourse(course);
                                 }
                               }}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
                               title="More Actions"
                             >
                               <MoreHorizontal className="w-4.5 h-4.5" />
@@ -576,13 +576,13 @@ export default function SuperAdminGolfCoursesPage() {
         size="lg"
         footer={
           <div className="flex items-center justify-between w-full">
-            <span className="text-[11px] text-gray-400 font-medium italic">
+            <span className="text-[11px] text-gray-400 font-normal italic">
               Course ID: {selectedCourse?.id || "—"}
             </span>
             <Button
               variant="outline"
               onClick={() => setIsViewModalOpen(false)}
-              className="rounded-lg font-bold border-[#e7e7e7]"
+              className="rounded-lg font-normal border-[#e1efe5]"
             >
               Close Details
             </Button>
@@ -594,7 +594,7 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
               <div className="relative">
-                <div className="h-24 w-24 rounded-full border-2 border-white shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
+                <div className="h-24 w-24 rounded-full border-2 border-white shadow-md bg-background overflow-hidden flex items-center justify-center">
                   {selectedCourse.coverImage ? (
                     <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
                   ) : (
@@ -603,17 +603,17 @@ export default function SuperAdminGolfCoursesPage() {
                 </div>
                 <div className={cn(
                   "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
-                  selectedCourse.status === "ACTIVE" ? "bg-emerald-500" : "bg-red-500"
+                  selectedCourse.status === "ACTIVE" ? "bg-openclub-700" : "bg-red-500"
                 )} />
               </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h4 className="text-[16px] font-bold text-gray-900 truncate">{selectedCourse.name}</h4>
+                  <h4 className="text-[16px] font-normal text-gray-900 truncate">{selectedCourse.name}</h4>
                   <span className={cn(
-                    "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm border",
+                    "px-2.5 py-0.5 rounded-lg text-[10px] font-normal uppercase tracking-wider shadow-sm border",
                     selectedCourse.status === "ACTIVE" 
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                      ? "bg-emerald-50 text-openclub-800 border-emerald-100" 
                       : "bg-red-50 text-red-600 border-red-100"
                   )}>
                     {selectedCourse.status}
@@ -621,12 +621,12 @@ export default function SuperAdminGolfCoursesPage() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
-                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
                     <MapPin className="w-4 h-4 text-gray-400" />
                     {selectedCourse.city}, {selectedCourse.state}
                   </div>
                   <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block" />
-                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
                     <Globe className="w-4 h-4 text-gray-400" />
                     {Country.getCountryByCode(selectedCourse.country)?.name || selectedCourse.country}
                   </div>
@@ -637,23 +637,23 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Course Metrics Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
-                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Course Type</p>
+                <p className="text-[10px] font-normal text-blue-600 uppercase tracking-widest mb-2">Course Type</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-[14px] font-bold text-blue-900">{selectedCourse.type}</p>
+                  <p className="text-[14px] font-normal text-blue-900">{selectedCourse.type}</p>
                   <Trophy className="w-5 h-5 text-blue-300" />
                 </div>
               </div>
               <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
-                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Total Holes</p>
+                <p className="text-[10px] font-normal text-openclub-800 uppercase tracking-widest mb-2">Total Holes</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-[14px] font-bold text-emerald-900">{selectedCourse.holes} Holes</p>
+                  <p className="text-[14px] font-normal text-emerald-900">{selectedCourse.holes} Holes</p>
                   <Flag className="w-5 h-5 text-emerald-300" />
                 </div>
               </div>
               <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
-                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">Course Par</p>
+                <p className="text-[10px] font-normal text-purple-600 uppercase tracking-widest mb-2">Course Par</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-[14px] font-bold text-purple-900">Par {selectedCourse.par}</p>
+                  <p className="text-[14px] font-normal text-purple-900">Par {selectedCourse.par}</p>
                   <Trophy className="w-5 h-5 text-purple-300" />
                 </div>
               </div>
@@ -662,45 +662,45 @@ export default function SuperAdminGolfCoursesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Location Card */}
               <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
-                <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                  <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
+                <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
+                  <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-gray-400" />
                     Full Address
                   </h5>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Street Address</span>
-                    <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.address}</span>
+                    <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Street Address</span>
+                    <span className="text-[14px] text-gray-900 font-normal">{selectedCourse.address}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">{selectedCourse.country === "NG" ? "LGA" : "City"} & State</span>
-                    <span className="text-[14px] text-gray-900 font-bold">{selectedCourse.city}, {selectedCourse.state}</span>
+                    <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">{selectedCourse.country === "NG" ? "LGA" : "City"} & State</span>
+                    <span className="text-[14px] text-gray-900 font-normal">{selectedCourse.city}, {selectedCourse.state}</span>
                   </div>
                 </div>
               </div>
 
               {/* Contact Card */}
               <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
-                <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/30">
-                  <h5 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
+                <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
+                  <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-400" />
                     Contact Details
                   </h5>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                    <span className="text-[13px] text-gray-500 font-medium">Email</span>
-                    <span className="text-[13px] text-gray-900 font-bold">{selectedCourse.email || "—"}</span>
+                    <span className="text-[13px] text-gray-500 font-normal">Email</span>
+                    <span className="text-[13px] text-gray-900 font-normal">{selectedCourse.email || "—"}</span>
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                    <span className="text-[13px] text-gray-500 font-medium">Phone</span>
-                    <span className="text-[13px] text-gray-900 font-bold">{selectedCourse.phone || "—"}</span>
+                    <span className="text-[13px] text-gray-500 font-normal">Phone</span>
+                    <span className="text-[13px] text-gray-900 font-normal">{selectedCourse.phone || "—"}</span>
                   </div>
                   {selectedCourse.website && (
                     <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                      <span className="text-[13px] text-gray-500 font-medium">Website</span>
-                      <a href={selectedCourse.website} target="_blank" rel="noreferrer" className="text-[13px] text-blue-600 font-bold hover:underline">Visit Site</a>
+                      <span className="text-[13px] text-gray-500 font-normal">Website</span>
+                      <a href={selectedCourse.website} target="_blank" rel="noreferrer" className="text-[13px] text-blue-600 font-normal hover:underline">Visit Site</a>
                     </div>
                   )}
                 </div>
@@ -710,13 +710,13 @@ export default function SuperAdminGolfCoursesPage() {
             {/* Amenities Section */}
             {selectedCourse.amenities && selectedCourse.amenities.length > 0 && (
               <div className="bg-white rounded-xl border border-[#efefef] p-6 shadow-sm">
-                <h5 className="text-[12px] font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h5 className="text-[12px] font-normal text-gray-900 mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-gray-400" />
                   Available Amenities
                 </h5>
                 <div className="flex flex-wrap gap-2.5">
                   {selectedCourse.amenities.map(a => (
-                    <span key={a} className="px-4 py-2 bg-gray-50 border border-[#efefef] rounded-xl text-[12px] font-bold text-gray-700 shadow-sm flex items-center gap-2">
+                    <span key={a} className="px-4 py-2 bg-background border border-[#efefef] rounded-xl text-[12px] font-normal text-gray-700 shadow-sm flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                       {a}
                     </span>
@@ -727,10 +727,10 @@ export default function SuperAdminGolfCoursesPage() {
           </div>
         ) : (
           <div className="py-20 text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center mx-auto mb-4">
               <Mountain className="w-8 h-8 text-gray-200" />
             </div>
-            <p className="text-[15px] font-bold text-gray-900">No course selected</p>
+            <p className="text-[15px] font-normal text-gray-900">No course selected</p>
             <p className="text-[13px] text-gray-400 mt-1">Please select a golf course to view its details.</p>
           </div>
         )}
@@ -746,26 +746,26 @@ export default function SuperAdminGolfCoursesPage() {
           <button
             onClick={() => openStatusModal(dropdownCourse)}
             className={cn(
-              "w-full text-left px-4 py-2 text-[12px] font-medium rounded-lg flex items-center gap-3 text-gray-700",
+              "w-full text-left px-4 py-2 text-[12px] font-normal rounded-lg flex items-center gap-3 text-gray-700",
               dropdownCourse.status === "INACTIVE" 
                 ? "hover:bg-emerald-50" 
                 : "hover:bg-red-50"
             )}
           >
             {dropdownCourse.status === "INACTIVE" ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-openclub-800" />
             ) : (
               <Ban className="w-4 h-4 text-red-600" />
             )}
             {dropdownCourse.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
           </button>
-          <div className="h-px bg-gray-50 my-1 mx-2" />
+          <div className="h-px bg-background my-1 mx-2" />
           <button
             onClick={() => {
               closeDropdown();
               router.push(`/super-admin/golf-courses/${dropdownCourse.id}/edit`);
             }}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
           >
             <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
           </button>
@@ -783,14 +783,14 @@ export default function SuperAdminGolfCoursesPage() {
               URL.revokeObjectURL(url);
               toast.success("Course exported");
             }}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
           >
             <Download className="w-4 h-4 text-gray-400" /> Export Data
           </button>
-          <div className="h-px bg-gray-50 my-1 mx-2" />
+          <div className="h-px bg-background my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
           >
             <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>
@@ -804,14 +804,14 @@ export default function SuperAdminGolfCoursesPage() {
         title=""
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               className={cn(
-                "text-white rounded-lg font-bold px-8",
+                "text-white rounded-lg font-normal px-8",
                 statusAction === "activate"
-                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
+                  ? "bg-[#15803D] hover:bg-[#166534] border-openclub-800/30"
                   : "bg-red-500 hover:bg-red-600 border-red-600/30",
               )}
               onClick={confirmStatusChange}
@@ -827,7 +827,7 @@ export default function SuperAdminGolfCoursesPage() {
             <div
               className={cn(
                 "w-20 h-20 rounded-full flex items-center justify-center mb-6",
-                statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-red-50 text-red-500",
+                statusAction === "activate" ? "bg-emerald-50 text-[#15803D]" : "bg-red-50 text-red-500",
               )}
             >
               {statusAction === "activate" ? (
@@ -836,7 +836,7 @@ export default function SuperAdminGolfCoursesPage() {
                 <AlertCircle className="h-10 w-10" />
               )}
             </div>
-            <h4 className="text-[14px] font-bold text-gray-900 mb-2">
+            <h4 className="text-[14px] font-normal text-gray-900 mb-2">
               {statusAction === "activate" ? "Activate Course?" : "Deactivate Course?"}
             </h4>
             <p className="text-gray-500 max-w-sm">
@@ -846,7 +846,7 @@ export default function SuperAdminGolfCoursesPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#efefef] bg-gray-50/50 px-4 py-4 flex items-center gap-3">
+          <div className="rounded-xl border border-[#efefef] bg-background/50 px-4 py-4 flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl overflow-hidden border border-[#efefef] bg-white flex-shrink-0 flex items-center justify-center">
               {selectedCourse?.coverImage ? (
                 <img src={selectedCourse.coverImage} alt={selectedCourse.name} className="w-full h-full object-cover" />
@@ -855,10 +855,10 @@ export default function SuperAdminGolfCoursesPage() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-[14px] font-bold text-gray-900 truncate">
+              <p className="text-[14px] font-normal text-gray-900 truncate">
                 {selectedCourse?.name || "Unknown Course"}
               </p>
-              <p className="text-[12px] text-gray-400 font-medium truncate">
+              <p className="text-[12px] text-gray-400 font-normal truncate">
                 {selectedCourse?.city && selectedCourse?.state ? `${selectedCourse.city}, ${selectedCourse.state}` : selectedCourse?.country || "—"}
               </p>
             </div>
@@ -873,12 +873,12 @@ export default function SuperAdminGolfCoursesPage() {
         title=""
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete Course
@@ -891,18 +891,18 @@ export default function SuperAdminGolfCoursesPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Course Permanently?</h4>
+            <h4 className="text-[14px] font-normal text-gray-900 mb-2">Delete Course Permanently?</h4>
             <p className="text-gray-500 max-w-sm">Deleting this golf course will permanently remove its hole data, tees, ratings, and course details. Past tournaments played here may lose course reference data. This action cannot be undone.</p>
           </div>
           <div className="space-y-3">
-            <Label className="font-bold text-gray-700">
+            <Label className="font-medium text-gray-700">
               Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
+              className="rounded-xl border-[#e1efe5] focus:border-red-500"
             />
           </div>
         </div>

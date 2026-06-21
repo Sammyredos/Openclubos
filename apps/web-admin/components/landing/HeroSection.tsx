@@ -13,12 +13,12 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column Content */}
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-landing/10 text-landing text-[12px] font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-landing/10 text-landing text-[12px] font-normal mb-6">
               <span className="flex h-2 w-2 rounded-full bg-landing"></span>
               New: Live Scoring V2.0
             </div>
             
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.1] mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-normal tracking-tight text-foreground leading-[1.1] mb-6">
               The All-in-One Platform <br />
               <span className="text-landing">Golf Tournaments</span>
             </h1>

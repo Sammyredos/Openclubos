@@ -54,54 +54,58 @@ export function StatCard({
 }: StatCardProps) {
   const resolvedChangeType = changeType ?? inferChangeType(change);
   return (
-    <Card className="border-[#efefef] bg-white rounded-xl hover:border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <div className={cn("p-3 rounded-xl flex-shrink-0 shadow-sm", iconBg)}>
-            <Icon className={cn("h-6 w-6 shadow-emerald-500/10", iconColor)} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-gray-500 truncate">{title}</p>
-            {loading ? (
-              <div className="mt-2">
-                <Skeleton className="h-8 w-28 rounded-lg" />
-              </div>
+    <div className="bg-white rounded-lg p-6 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col justify-between font-sans h-36 border-none transition-all duration-300 hover:shadow-md">
+      <div className="flex justify-between items-start w-full">
+        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0", iconBg)}>
+          <Icon className={cn("w-6 h-6", iconColor)} />
+        </div>
+        
+        {/* Right Corner Metric */}
+        {(!loading && change) && (
+          <div className="flex items-center gap-1 shrink-0 bg-gray-50 px-2 py-1 rounded-full">
+            {resolvedChangeType !== "decrease" ? (
+              <TrendingUp className="h-3.5 w-3.5 text-[#15803D]" />
             ) : (
-              <h3 className="text-[28px] font-bold text-gray-900 mt-1 truncate" title={value}>
-                {formatNumber(value)}
-              </h3>
+              <TrendingDown className="h-3.5 w-3.5 text-red-500" />
             )}
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {!loading && change && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              {resolvedChangeType !== "decrease" ? (
-                <TrendingUp className="h-4.5 w-4.5 text-[#10b981]" />
-              ) : (
-                <TrendingDown className="h-4.5 w-4.5 text-red-500" />
+            <span
+              className={cn(
+                "text-[12px] font-medium",
+                resolvedChangeType !== "decrease" ? "text-[#15803D]" : "text-red-500"
               )}
-              <span
-                className={cn(
-                  "text-[14px] font-bold",
-                  resolvedChangeType !== "decrease" ? "text-[#10b981]" : "text-red-500"
-                )}
-              >
-                {formatChangeDisplay(change)}
-              </span>
-              <span className="text-[13px] text-gray-400">this month</span>
+            >
+              {formatChangeDisplay(change)}
+            </span>
+          </div>
+        )}
+        
+        {(!loading && !change && subValue) && (
+          <div className="flex items-center gap-1 shrink-0 bg-gray-50 px-2 py-1 rounded-full">
+            {SubIcon && <SubIcon className="h-3.5 w-3.5 text-blue-500" />}
+            <span className="text-[12px] text-gray-500 font-medium">
+              {subValue}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col mt-auto gap-1">
+        {loading ? (
+          <>
+            <Skeleton className="h-8 w-28 rounded-lg mt-2" />
+            <Skeleton className="h-4 w-20 rounded-lg" />
+          </>
+        ) : (
+          <>
+            <div className="text-zinc-800 text-[28px] font-medium leading-none truncate" title={value}>
+              {formatNumber(value)}
             </div>
-          )}
-          {loading ? (
-            <Skeleton className="h-4 w-32 rounded-md" />
-          ) : subValue ? (
-            <div className="flex items-center gap-1 shrink-0">
-              {SubIcon && <SubIcon className="h-4 w-4 text-blue-500" />}
-              <span className="text-[13px] text-gray-400 font-medium">{subValue}</span>
+            <div className="text-zinc-500 text-[13px] font-medium truncate">
+              {title}
             </div>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

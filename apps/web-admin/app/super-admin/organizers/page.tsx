@@ -35,6 +35,8 @@ import {
   User,
   FileText,
   FileSpreadsheet,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -570,57 +572,88 @@ export default function OrganizersPage() {
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard
-          title="Total Organizers"
-          value={String(totalOrganizers)}
-          icon={Building2}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Active Organizers"
-          value={String(activeOrganizers)}
-          icon={Users}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Suspended Organizers"
-          value={String(suspendedOrganizers)}
-          icon={ShieldAlert}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Expired Organizers"
-          value={String(expiredOrganizers)}
-          icon={Clock}
-          iconBg="bg-red-50"
-          iconColor="text-red-600"
-          loading={loading}
-        />
-        <StatCard
-          title="New This Month"
-          value={String(newThisMonth)}
-          icon={Target}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-          loading={loading}
-        />
-      </div>
+      {loading ? (
+        <Skeleton className="w-full h-[140px] rounded-xl" />
+      ) : (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            
+            {/* Stat 1: Total Organizers */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-xl font-medium whitespace-nowrap">Total Organizers</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{totalOrganizers}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
 
-      <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 2: Active Organizers */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Organizers</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#15803D]" />
+                  <div className="text-[#15803D] text-xs font-medium">{totalOrganizers > 0 ? Math.round((activeOrganizers / totalOrganizers) * 100) : 0}% of total</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{activeOrganizers}</div>
+              <div className="text-zinc-500 text-sm font-normal">Engagement</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 3: Suspended Organizers */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Suspended</div>
+                <div className="px-2 py-1 bg-amber-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-amber-600 text-[11px] font-medium">Alerts</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{suspendedOrganizers}</div>
+              <div className="text-zinc-500 text-sm font-normal">Action Required</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 4: Expired Organizers */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Expired</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{expiredOrganizers}</div>
+              <div className="text-zinc-500 text-sm font-normal">Inactive Plans</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 5: New This Month */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">New This Month</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#15803D]" />
+                  <div className="text-[#15803D] text-xs font-medium">+{newThisMonth} new</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{newThisMonth}</div>
+              <div className="text-zinc-500 text-sm font-normal">Recent Signups</div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-[16px] font-bold">All Organizers</CardTitle>
+          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
-              className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+              className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <Download className="w-4 h-4" /> Export
             </Button>
@@ -648,9 +681,9 @@ export default function OrganizersPage() {
                     "organizers-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
               </button>
               <button
@@ -668,13 +701,13 @@ export default function OrganizersPage() {
                     "Organizers Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
               </button>
             </FloatingMenu>
-            <Button onClick={() => router.push("/super-admin/organizers/create")} className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+            <Button onClick={() => router.push("/super-admin/organizers/create")} className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal">
               <Plus className="w-4 h-4" /> Add Organizer
             </Button>
           </div>
@@ -685,7 +718,7 @@ export default function OrganizersPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search organizer name, location or admin..."
-                className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg text-[14px]"
+                className="pl-10 h-11 rounded-lg text-[14px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -701,7 +734,7 @@ export default function OrganizersPage() {
               }}
               options={["All Status", "Active", "Suspended", "Expired"].map((v) => ({ value: v, label: v }))}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
             <SearchableSelect
@@ -712,7 +745,7 @@ export default function OrganizersPage() {
               }}
               options={["All Plans", "Pro", "Basic"].map((v) => ({ value: v, label: v }))}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Plans"
             />
             <SearchableSelect
@@ -723,34 +756,34 @@ export default function OrganizersPage() {
               }}
               options={["All Locations", ...uniqueLocations].map((v) => ({ value: v, label: v }))}
               className="min-w-[180px]"
-              triggerClassName="h-11 bg-white font-medium"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Locations"
             />
 
           </div>
 
-          <div className="overflow-x-auto relative">
+          <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5] bg-white shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-4">Organizer Name</th>
-                  <th className="px-4 py-4">Location & Contact</th>
-                  <th className="px-4 py-4">Admin Details</th>
-                  <th className="px-4 py-4">Plan & Joined</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4 text-center">Actions</th>
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                  <th className="px-6 py-4">Organizer Name</th>
+                  <th className="px-6 py-4">Location & Contact</th>
+                  <th className="px-6 py-4">Admin Details</th>
+                  <th className="px-6 py-4">Plan & Joined</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[#e1efe5]">
                 {error ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-medium">
+                    <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-normal">
                       {error}
                     </td>
                   </tr>
                 ) : loading ? (
                   skeletonRows.map((i) => (
-                    <tr key={`sk-${i}`} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
@@ -796,83 +829,79 @@ export default function OrganizersPage() {
                 ) : paginatedOrganizers.length > 0 ? (
                   paginatedOrganizers.map((organizer) => {
                     return (
-                      <tr key={organizer.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-full bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
-                              <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate" title={organizer.name}>
-                                {organizer.name.toLowerCase()}
-                              </span>
-                              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded mt-1 self-start whitespace-nowrap">
-                                {organizer.type.toLowerCase()}
-                              </span>
+                      <tr key={organizer.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-6 py-5">
+                          <div className="inline-flex justify-start items-center gap-3.5 max-w-[200px]">
+                            <img src={organizer.logo} alt={organizer.name} className="size-10 rounded-xl object-cover bg-gray-100 border border-[#e1efe5] flex-shrink-0" />
+                            <div className="inline-flex flex-col justify-start items-start min-w-0">
+                              <div className="text-slate-900 text-[14px] font-medium truncate max-w-[140px] leading-tight" title={organizer.name}>
+                                {organizer.name}
+                              </div>
+                              <div className="text-[11px] text-gray-500 font-medium px-2 py-0.5 rounded border border-gray-200 mt-1.5 self-start whitespace-nowrap bg-white">
+                                {organizer.type}
+                              </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1 text-[13px] text-gray-500 font-medium truncate max-w-[180px]" title={organizer.location}>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col min-w-0 gap-1.5">
+                            <div className="flex items-center gap-1.5 text-[13px] text-gray-600 font-medium truncate max-w-[180px]" title={organizer.location}>
                               <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                              <span>{organizer.location.toLowerCase()}</span>
+                              <span>{organizer.location}</span>
                             </div>
                             {organizer.website && organizer.website !== "—" && (
                               <a
                                 href={organizer.website.startsWith("http") ? organizer.website : `https://${organizer.website}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[12px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 mt-1 normal-case hover:underline self-start"
+                                className="text-[12px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 hover:underline self-start"
                               >
                                 <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-                                <span className="truncate max-w-[150px]">{organizer.website.toLowerCase()}</span>
+                                <span className="truncate max-w-[150px]">{organizer.website}</span>
                               </a>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3 min-w-[200px]">
-                            <div className="w-12 h-12 rounded-full bg-gray-50 border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
-                              <img src={organizer.admin.avatar} alt={organizer.admin.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[14px] font-bold text-gray-800 leading-tight truncate">{organizer.admin.name.toLowerCase()}</span>
-                              <span className="text-[12px] text-gray-400 font-medium truncate normal-case">{organizer.admin.email}</span>
+                        <td className="px-6 py-5">
+                          <div className="inline-flex justify-start items-center gap-3.5 min-w-[200px]">
+                            <img src={organizer.admin.avatar} alt={organizer.admin.name} className="size-9 rounded-full object-cover bg-gray-100 border border-[#e1efe5] flex-shrink-0" />
+                            <div className="inline-flex flex-col justify-start items-start min-w-0">
+                              <div className="text-slate-900 text-[13px] font-medium truncate max-w-[140px] leading-tight">{organizer.admin.name}</div>
+                              <div className="text-gray-600 text-[12px] font-normal mt-0.5 truncate max-w-[140px]">{organizer.admin.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-6 py-5">
                           <div className="flex flex-col gap-1 items-start">
                             <span
                               className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
-                                organizer.plan === "Pro" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-blue-50 text-blue-600 border border-blue-100",
+                                "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
+                                organizer.plan === "Pro" ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]" : "bg-slate-50 text-slate-600 border border-slate-200",
                               )}
                             >
-                              <span className={cn("w-1.5 h-1.5 rounded-full", organizer.plan === "Pro" ? "bg-emerald-500" : "bg-blue-500")} />
+                              <span className={cn("w-1.5 h-1.5 rounded-full", organizer.plan === "Pro" ? "bg-[#15803D]" : "bg-slate-400")} />
                               {organizer.plan}
                             </span>
-                            <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                            <span className="text-[12px] text-gray-600 font-medium whitespace-nowrap mt-1">
                               {organizer.joinedDate}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-6 py-5">
                           <span
                             className={cn(
-                              "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
+                              "text-[11px] font-medium px-2.5 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
                               organizer.status === "Active"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]"
                                 : organizer.status === "Suspended"
-                                  ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                  : "bg-red-50 text-red-600 border border-red-100",
+                                  ? "bg-amber-50 text-amber-600 border border-amber-200"
+                                  : "bg-red-50 text-red-600 border border-red-200",
                             )}
                           >
                             <span
                               className={cn(
                                 "w-1.5 h-1.5 rounded-full",
-                                organizer.status === "Active" ? "bg-emerald-500"
+                                organizer.status === "Active" ? "bg-[#15803D]"
                                   : organizer.status === "Suspended" ? "bg-amber-500"
                                   : "bg-red-500"
                               )}
@@ -880,21 +909,21 @@ export default function OrganizersPage() {
                             {organizer.status}
                           </span>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => openViewModal(organizer)}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-[#10b981]/10 hover:text-[#10b981] transition-colors"
+                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-[#f5faf6] hover:text-[#15803D] transition-colors"
                               title="View Details"
                             >
-                              <Eye className="w-4.5 h-4.5" />
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleEdit(organizer)}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                               title="Edit Organizer"
                             >
-                              <Edit2 className="w-4.5 h-4.5" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
                             <div className="relative">
                               <button
@@ -911,9 +940,9 @@ export default function OrganizersPage() {
                                     setDropdownOrganizer(organizer);
                                   }
                                 }}
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 transition-colors"
                               >
-                                <MoreHorizontal className="w-4.5 h-4.5" />
+                                <MoreHorizontal className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
@@ -937,7 +966,7 @@ export default function OrganizersPage() {
           </div>
 
           <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
-            <p className="text-[13px] text-gray-500 font-medium">
+            <p className="text-[13px] text-gray-500 font-normal">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, filteredOrganizers.length)} of {filteredOrganizers.length} organizers
             </p>
@@ -959,7 +988,7 @@ export default function OrganizersPage() {
               disabled={dropdownOrganizer.status === "Expired"}
               onClick={() => handleStatusChange(dropdownOrganizer)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-gray-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
                 dropdownOrganizer.status === "Expired" 
                   ? "text-gray-300 cursor-not-allowed" 
                   : dropdownOrganizer.status === "Suspended" 
@@ -968,23 +997,23 @@ export default function OrganizersPage() {
               )}
             >
               {dropdownOrganizer.status === "Suspended" ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 text-openclub-800" />
               ) : (
                 <Ban className="w-4 h-4 text-red-600" />
               )}
               {dropdownOrganizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
             </button>
-            <div className="h-px bg-gray-50 my-1" />
+            <div className="h-px bg-background my-1" />
             <button
               onClick={() => handleEdit(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Edit2 className="w-4 h-4 text-gray-400" />
               Edit Organizer
             </button>
             <button
               onClick={() => handleMoreAction("view-analytics", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <BarChart3 className="w-4 h-4 text-gray-400" />
               View Analytics
@@ -992,36 +1021,36 @@ export default function OrganizersPage() {
             <button
               disabled={mutating}
               onClick={() => openForceLogoutModal(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <LogOut className="w-4 h-4 text-gray-400" />
               Force Logout
             </button>
             <button
               onClick={() => handleMoreAction("reset-password", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <KeyRound className="w-4 h-4 text-gray-400" />
               Reset Admin Password
             </button>
             <button
               onClick={() => handleMoreAction("audit-logs", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Clock className="w-4 h-4 text-gray-400" />
               Audit Logs
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Organizer Data
             </button>
-            <div className="h-px bg-gray-50 my-1" />
+            <div className="h-px bg-background my-1" />
             <button
               onClick={() => handleDelete(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Organizer
@@ -1036,14 +1065,14 @@ export default function OrganizersPage() {
         title={statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               className={cn(
-                "rounded-lg font-bold px-8 text-white border",
+                "rounded-lg font-normal px-8 text-white border",
                 statusAction === "activate"
-                  ? "bg-[#10b981] hover:bg-[#0da673] border-emerald-600/30"
+                  ? "bg-[#15803D] hover:bg-[#166534] border-openclub-800/30"
                   : "bg-red-500 hover:bg-red-600 border-red-600/30",
               )}
               onClick={confirmStatusChange}
@@ -1058,7 +1087,7 @@ export default function OrganizersPage() {
           <div
             className={cn(
               "w-20 h-20 rounded-full flex items-center justify-center mb-6",
-              statusAction === "activate" ? "bg-emerald-50 text-[#10b981]" : "bg-amber-50 text-amber-500",
+              statusAction === "activate" ? "bg-emerald-50 text-[#15803D]" : "bg-amber-50 text-amber-500",
             )}
           >
             {statusAction === "activate" ? (
@@ -1067,7 +1096,7 @@ export default function OrganizersPage() {
               <AlertTriangle className="h-10 w-10" />
             )}
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">{statusAction === "activate" ? "Activate Organizer?" : "Suspend Organizer?"}</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             {statusAction === "activate"
               ? `Are you sure you want to activate ${selectedOrganizer?.name}?`
@@ -1082,11 +1111,11 @@ export default function OrganizersPage() {
         title="Force Logout Organizer?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsForceLogoutModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmForceLogout}
               disabled={mutating}
             >
@@ -1099,10 +1128,10 @@ export default function OrganizersPage() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
             <LogOut className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Force logout this organizer user?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Force logout this organizer user?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             This will immediately log out this user <br />
-            <span className="font-bold text-gray-800">{selectedOrganizer?.name ?? "this organizer"}</span>.
+            <span className="font-normal text-gray-800">{selectedOrganizer?.name ?? "this organizer"}</span>.
           </p>
         </div>
       </Modal>
@@ -1113,14 +1142,14 @@ export default function OrganizersPage() {
         title="Reset Password"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsResetPasswordModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsResetPasswordModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             {resetTab === "link" ? (
               <Button
                 onClick={sendResetLink}
                 disabled={mutating}
-                className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+                className="bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal px-8"
               >
                 Send Reset Link
               </Button>
@@ -1128,7 +1157,7 @@ export default function OrganizersPage() {
               <Button
                 onClick={generateAndSetPassword}
                 disabled={mutating}
-                className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+                className="bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal px-8"
               >
                 Generate Password
               </Button>
@@ -1142,10 +1171,10 @@ export default function OrganizersPage() {
               type="button"
               onClick={() => setResetTab("link")}
               className={cn(
-                "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
+                "h-10 px-4 rounded-xl text-[13px] font-normal border transition-colors",
                 resetTab === "link"
                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-white text-gray-500 border-[#e7e7e7] hover:bg-gray-50",
+                  : "bg-white text-gray-500 border-[#e1efe5] hover:bg-background",
               )}
             >
               Send Reset Link
@@ -1154,10 +1183,10 @@ export default function OrganizersPage() {
               type="button"
               onClick={() => setResetTab("generate")}
               className={cn(
-                "h-10 px-4 rounded-xl text-[13px] font-bold border transition-colors",
+                "h-10 px-4 rounded-xl text-[13px] font-normal border transition-colors",
                 resetTab === "generate"
                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-white text-gray-500 border-[#e7e7e7] hover:bg-gray-50",
+                  : "bg-white text-gray-500 border-[#e1efe5] hover:bg-background",
               )}
             >
               Generate Password
@@ -1166,12 +1195,12 @@ export default function OrganizersPage() {
 
           {resetTab === "link" ? (
             <div className="flex flex-col items-center text-center py-2">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#15803D]">
                 <Mail className="h-10 w-10" />
               </div>
-              <h4 className="text-[14px] font-bold text-gray-900 mb-2">Send password reset link to</h4>
+              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Send password reset link to</h4>
               <p className="text-gray-500 max-w-sm">
-                <span className="font-bold text-gray-800">{selectedOrganizer?.admin?.email || "—"}</span>
+                <span className="font-normal text-gray-800">{selectedOrganizer?.admin?.email || "—"}</span>
               </p>
               <p className="text-gray-500 max-w-sm mt-2">
                 Admin will receive an email with instructions to reset their password.
@@ -1180,26 +1209,26 @@ export default function OrganizersPage() {
           ) : (
             <div className="space-y-5">
               <div className="flex flex-col items-center text-center py-2">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#10b981]">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#15803D]">
                   <KeyRound className="h-10 w-10" />
                 </div>
-                <h4 className="text-[14px] font-bold text-gray-900 mb-2">Generate a new password</h4>
+                <h4 className="text-[14px] font-normal text-gray-900 mb-2">Generate a new password</h4>
                 <p className="text-gray-500 max-w-sm">This will immediately set a new password for the organizer admin.</p>
               </div>
 
               {generatedPassword && (
-                <div className="rounded-xl border border-[#efefef] bg-gray-50/60 px-4 py-4 flex items-center justify-between gap-3">
+                <div className="rounded-xl border border-[#efefef] bg-background/60 px-4 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Generated Password</p>
-                    <p className="text-[15px] font-bold text-gray-900 break-all">{generatedPassword}</p>
+                    <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider">Generated Password</p>
+                    <p className="text-[15px] font-normal text-gray-900 break-all">{generatedPassword}</p>
                   </div>
                   <button
                     type="button"
                     onClick={copyGeneratedPassword}
-                    className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
                     title="Copy password"
                   >
-                    {copiedPassword ? <Check className="h-5 w-5 text-[#10b981]" /> : <Clipboard className="h-5 w-5" />}
+                    {copiedPassword ? <Check className="h-5 w-5 text-[#15803D]" /> : <Clipboard className="h-5 w-5" />}
                   </button>
                 </div>
               )}
@@ -1214,12 +1243,12 @@ export default function OrganizersPage() {
         title="Delete Organizer Permanently?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE"}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete Organizer
@@ -1232,7 +1261,7 @@ export default function OrganizersPage() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <Trash2 className="h-10 w-10" />
             </div>
-            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Organizer Permanently?</h4>
+            <h4 className="text-[14px] font-normal text-gray-900 mb-2">Delete Organizer Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               Deleting this organization will permanently remove all of its tournaments, member records, and administrative access. This action cannot be undone.
               <br />
@@ -1241,14 +1270,14 @@ export default function OrganizersPage() {
           </div>
 
           <div className="space-y-3">
-            <Label className="font-bold text-gray-700">
+            <Label className="font-medium text-gray-700">
               Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              className="rounded-xl border-[#e7e7e7] focus:border-red-500"
+              className="rounded-xl border-[#e1efe5] focus:border-red-500"
             />
           </div>
         </div>
@@ -1296,7 +1325,7 @@ export default function OrganizersPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <div className="w-full h-full bg-emerald-50 text-openclub-800 flex items-center justify-center">
                       <Building2 className="w-8 h-8" />
                     </div>
                   )}
@@ -1309,14 +1338,14 @@ export default function OrganizersPage() {
                         className={cn(
                           "text-[10px] px-2.5 py-1 rounded-full border flex items-center gap-1.5",
                           selectedOrganizer.status === "Active"
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                            ? "bg-emerald-50 text-openclub-800 border-emerald-100"
                             : selectedOrganizer.status === "Suspended"
                               ? "bg-amber-50 text-amber-600 border-amber-100"
                               : "bg-red-50 text-red-600 border-red-100",
                         )}
                       >
                         <span className={cn("w-1.5 h-1.5 rounded-full",
-                          selectedOrganizer.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                          selectedOrganizer.status === "Active" ? "bg-openclub-700 animate-pulse" : "bg-amber-500"
                         )} />
                         {selectedOrganizer.status}
                       </span>
@@ -1324,17 +1353,17 @@ export default function OrganizersPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-gray-500">
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-500/80" />
+                      <MapPin className="w-3.5 h-3.5 text-openclub-700/80" />
                       {selectedOrganizer?.location || "No Location"}
                     </span>
                     <span className="h-3 w-px bg-gray-200" />
                     <span className="flex items-center gap-1">
-                      <CreditCard className="w-3.5 h-3.5 text-emerald-500/80" />
-                      Plan: <span className="text-emerald-600">{selectedOrganizer?.plan || "Standard"}</span>
+                      <CreditCard className="w-3.5 h-3.5 text-openclub-700/80" />
+                      Plan: <span className="text-openclub-800">{selectedOrganizer?.plan || "Standard"}</span>
                     </span>
                     <span className="h-3 w-px bg-gray-200" />
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-500/80" />
+                      <Calendar className="w-3.5 h-3.5 text-openclub-700/80" />
                       Joined: {selectedOrganizer?.joinedDate || "—"}
                     </span>
                   </div>
@@ -1342,7 +1371,7 @@ export default function OrganizersPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex items-center gap-2 p-1 bg-gray-50 rounded-xl border border-[#efefef]/50">
+              <div className="flex items-center gap-2 p-1 bg-background rounded-xl border border-[#efefef]/50">
                 {[
                   { id: "overview", label: "Overview", icon: BarChart3 },
                   { id: "tournaments", label: "Tournaments", icon: Trophy },
@@ -1355,8 +1384,8 @@ export default function OrganizersPage() {
                     className={cn(
                       "flex-1 px-4 py-2 rounded-lg text-[13px] flex items-center justify-center gap-2 transition-all duration-200 whitespace-nowrap",
                       viewTab === tab.id
-                        ? "bg-white text-emerald-600 shadow-sm border border-[#efefef]"
-                        : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100/50",
+                        ? "bg-white text-openclub-800 shadow-sm border border-[#efefef]"
+                        : "text-gray-500 hover:text-openclub-800 hover:bg-gray-100/50",
                     )}
                   >
                     <tab.icon className="h-4 w-4 shrink-0" />
@@ -1382,20 +1411,20 @@ export default function OrganizersPage() {
                         {/* KPI Cards Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="p-4 bg-emerald-50/30 rounded-xl border border-emerald-100/50 flex flex-col justify-between h-24">
-                            <span className="text-[11px] text-emerald-600 uppercase tracking-wider">Revenue</span>
+                            <span className="text-[11px] text-openclub-800 uppercase tracking-wider">Revenue</span>
                             <span className="text-[14px] text-emerald-700 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
                             </span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
+                          <div className="p-4 bg-background/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Tournaments</span>
                             <span className="text-[14px] text-gray-800 mt-1">{viewStats?.totalTournaments ?? 0}</span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
+                          <div className="p-4 bg-background/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Members</span>
                             <span className="text-[14px] text-gray-800 mt-1">{viewStats?.totalMembers ?? 0}</span>
                           </div>
-                          <div className="p-4 bg-gray-50/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
+                          <div className="p-4 bg-background/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Unpaid</span>
                             <span className="text-[14px] text-gray-800 mt-1">
                               ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
@@ -1409,7 +1438,7 @@ export default function OrganizersPage() {
                             <h5 className="text-[14px] text-gray-900 border-b border-gray-50 pb-2">Admin Profile</h5>
                             <div className="space-y-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center">
                                   <User className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
@@ -1418,7 +1447,7 @@ export default function OrganizersPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center">
                                   <Mail className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
@@ -1427,7 +1456,7 @@ export default function OrganizersPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center">
                                   <Calendar className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
@@ -1445,12 +1474,12 @@ export default function OrganizersPage() {
                               <div className="space-y-4 relative pl-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
                                 {viewTournaments.slice(0, 3).map((t) => (
                                   <div key={t.id} className="relative flex items-center justify-between gap-4">
-                                    <div className="absolute -left-[14.5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white ring-4 ring-emerald-50" />
+                                    <div className="absolute -left-[14.5px] top-1.5 w-2 h-2 rounded-full bg-openclub-700 border-2 border-white ring-4 ring-emerald-50" />
                                     <div className="min-w-0">
                                       <p className="text-[13px] text-gray-800 truncate">{t.name}</p>
                                       <p className="text-[11px] text-gray-400">{formatJoinedDate(t.startDate)}</p>
                                     </div>
-                                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-100/50">
+                                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-openclub-800 shrink-0 border border-emerald-100/50">
                                       {t.status.replaceAll("_", " ").toLowerCase()}
                                     </span>
                                   </div>
@@ -1473,7 +1502,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search tournaments..."
-                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
+                            className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
                             value={tournamentSearch}
                             onChange={(e) => {
                               setTournamentSearch(e.target.value);
@@ -1483,7 +1512,7 @@ export default function OrganizersPage() {
                         </div>
                         <div className="overflow-hidden rounded-xl border border-[#efefef]">
                           <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
+                            <thead className="bg-background text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
                               <tr>
                                 <th className="px-5 py-3 font-normal">Tournament</th>
                                 <th className="px-5 py-3 font-normal">Date</th>
@@ -1494,7 +1523,7 @@ export default function OrganizersPage() {
                             <tbody className="divide-y divide-gray-50">
                               {paginatedTournaments.length > 0 ? (
                                 paginatedTournaments.map((t) => (
-                                  <tr key={t.id} className="hover:bg-gray-50/30 transition-colors">
+                                  <tr key={t.id} className="hover:bg-background/30 transition-colors">
                                     <td className="px-5 py-4">
                                       <p className="text-[13px] text-gray-800">{t.name}</p>
                                     </td>
@@ -1506,10 +1535,10 @@ export default function OrganizersPage() {
                                         className={cn(
                                           "text-[10px] px-2 py-0.5 rounded",
                                           t.status === "ONGOING"
-                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                                            ? "bg-emerald-50 text-openclub-800 border border-emerald-100/50"
                                             : t.status === "REGISTRATION_OPEN"
                                               ? "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
-                                              : "bg-gray-50 text-gray-400 border border-[#efefef]",
+                                              : "bg-background text-gray-400 border border-[#efefef]",
                                         )}
                                       >
                                         {t.status.replaceAll("_", " ").toLowerCase()}
@@ -1548,7 +1577,7 @@ export default function OrganizersPage() {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
                             placeholder="Search player, email or tournament..."
-                            className="pl-9 h-10 bg-gray-50/50 border-[#efefef] rounded-xl text-[12px]"
+                            className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
                             value={paymentSearch}
                             onChange={(e) => {
                               setPaymentSearch(e.target.value);
@@ -1558,7 +1587,7 @@ export default function OrganizersPage() {
                         </div>
                         <div className="overflow-hidden rounded-xl border border-[#efefef]">
                           <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
+                            <thead className="bg-background text-[11px] text-gray-400 uppercase tracking-wider border-b border-[#efefef]">
                               <tr>
                                 <th className="px-5 py-3 font-normal">Player</th>
                                 <th className="px-5 py-3 font-normal">Tournament</th>
@@ -1569,7 +1598,7 @@ export default function OrganizersPage() {
                             <tbody className="divide-y divide-gray-50">
                               {paginatedPayments.length > 0 ? (
                                 paginatedPayments.map((r) => (
-                                  <tr key={r.id} className="hover:bg-gray-50/30 transition-colors">
+                                  <tr key={r.id} className="hover:bg-background/30 transition-colors">
                                     <td className="px-5 py-4">
                                       <p className="text-[13px] text-gray-800">
                                         {fullName(r.user.firstName, r.user.lastName)}
@@ -1589,7 +1618,7 @@ export default function OrganizersPage() {
                                         className={cn(
                                           "text-[10px] px-2 py-0.5 rounded",
                                           r.paymentStatus === "PAID"
-                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                                            ? "bg-emerald-50 text-openclub-800 border border-emerald-100/50"
                                             : r.paymentStatus === "UNPAID"
                                               ? "bg-amber-50/50 text-amber-700 border border-amber-100/30"
                                               : "bg-red-50/50 text-red-700 border border-red-100/30",

@@ -8,7 +8,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-12 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-2 text-[13px] transition-all file:border-0 file:bg-transparent file:text-[12px] file:font-medium file:text-foreground placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-[12px]",
+          "flex h-11 w-full rounded-lg border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-[15px] py-2 text-sm font-normal transition-all file:border-0 file:bg-transparent file:text-sm file:font-normal file:text-foreground placeholder:text-zinc-500 text-zinc-700 focus:border-openclub-700 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}
@@ -86,16 +86,16 @@ function SearchableSelect({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-[12px] font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-11 w-full items-center justify-between gap-3 rounded-lg border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-4 text-left text-sm font-normal text-zinc-700 transition-colors focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           triggerClassName
         )}
       >
         <div className="flex items-center gap-2.5 flex-1 overflow-hidden pr-2">
           {selected?.image ? (
-            <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#e7e7e7]" alt="" />
+            <img src={selected.image} className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#e1efe5]" alt="" />
           ) : selected?.icon ? (
             <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
-              <selected.icon className="w-3 h-3 text-emerald-600" />
+              <selected.icon className="w-3 h-3 text-openclub-800" />
             </div>
           ) : null}
           <span className={cn(!value ? "text-gray-400" : undefined, "truncate text-left")}>
@@ -122,10 +122,10 @@ function SearchableSelect({
 
       {open && (
         <div className={cn(
-          "absolute z-50 w-full overflow-hidden rounded-lg border border-[#e7e7e7] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
+          "absolute z-50 w-full overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
           openUpwards ? "bottom-full mb-2" : "top-full mt-2"
         )}>
-          <div className="border-b border-[#e7e7e7] p-2">
+          <div className="border-b border-[#e1efe5] p-2">
             <input
               autoFocus
               value={query}
@@ -134,7 +134,7 @@ function SearchableSelect({
                 if (e.key === "Escape") setOpen(false)
               }}
               placeholder={searchPlaceholder}
-              className="h-[35px] w-full rounded-lg border border-[#e7e7e7] bg-gray-50/50 px-3 text-[12px] text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:bg-white focus:border-emerald-500"
+              className="h-11 w-full rounded-lg border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 text-sm font-normal text-zinc-700 outline-none transition-colors placeholder:text-zinc-500 focus:border-openclub-700"
             />
           </div>
           <div className="max-h-60 overflow-auto py-1 custom-scrollbar">
@@ -154,16 +154,16 @@ function SearchableSelect({
                   className={cn(
                     "flex w-full items-center gap-3 px-3 py-2 text-left text-[12px] transition-colors",
                     o.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-emerald-50/50",
-                    o.value === value ? "bg-emerald-50/80 font-bold text-emerald-900" : "text-gray-700"
+                    o.value === value ? "bg-emerald-50/80 font-normal text-emerald-900" : "text-gray-700"
                   )}
                 >
                   <div className="flex items-center justify-between w-full gap-2 overflow-hidden">
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       {o.image ? (
-                        <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e7e7e7]" alt="" />
+                        <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e1efe5]" alt="" />
                       ) : o.icon ? (
                         <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
-                          <o.icon className="w-3.5 h-3.5 text-emerald-600" />
+                          <o.icon className="w-3.5 h-3.5 text-openclub-800" />
                         </div>
                       ) : null}
                       <span className="truncate text-left">{o.label}</span>
@@ -175,7 +175,7 @@ function SearchableSelect({
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className="text-emerald-600 shrink-0 ml-1"
+                        className="text-openclub-800 shrink-0 ml-1"
                       >
                         <path
                           d="M20 6L9 17L4 12"

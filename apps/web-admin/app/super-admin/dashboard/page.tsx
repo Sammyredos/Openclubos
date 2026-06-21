@@ -15,12 +15,17 @@ import {
   Users2,
   ArrowUpRight,
   Mountain,
+  MapPin,
 } from "lucide-react";
 import {
   LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -77,6 +82,9 @@ type DashboardStats = {
   membersGrowth?: string;
   tournamentsGrowth?: string;
   revenueGrowth?: string;
+  menCount?: number;
+  womenCount?: number;
+  subscriptionRevenue?: number;
 };
 
 type ActivityRecord = { title: string; subtitle: string; time: string };
@@ -104,6 +112,7 @@ type PerformingClub = {
 
 type RevenuePoint = { month: string; amount: number };
 type GrowthPoint = { month: string; count: number };
+type TopLocation = { state: string; count: number };
 type ClubListItem = {
   id: string;
   name: string;
@@ -114,7 +123,7 @@ type ClubListItem = {
 
 export default function SuperAdminDashboard() {
   const isMounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => true,
     () => false,
   );
@@ -125,19 +134,24 @@ export default function SuperAdminDashboard() {
   const [subscriptionClubs, setSubscriptionClubs] = useState<SubscriptionClub[]>([]);
   const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
   const [growthData, setGrowthData] = useState<GrowthPoint[]>([]);
+  const [ageDemographicsData, setAgeDemographicsData] = useState<Array<{ age: string, men: number, women: number }>>([]);
   const [clubsList, setClubsList] = useState<ClubListItem[]>([]);
+  const [topLocations, setTopLocations] = useState<TopLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(false);
   const [topClubsLoading, setTopClubsLoading] = useState(false);
   const [revenueLoading, setRevenueLoading] = useState(false);
   const [growthLoading, setGrowthLoading] = useState(false);
+  const [ageLoading, setAgeLoading] = useState(false);
   const [subsLoading, setSubsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [revenueRange, setRevenueRange] = useState("This Year");
   const [growthRange, setGrowthRange] = useState("This Year");
   const [topClubsRange, setTopClubsRange] = useState("This Month");
   const [topSubsRange, setTopSubsRange] = useState("All Time");
+  const [ageDemographicsFilter, setAgeDemographicsFilter] = useState<"All" | "Men" | "Women">("All");
 
   const getHeaders = useCallback(() => {
     const token = getAuthToken();
@@ -168,11 +182,11 @@ export default function SuperAdminDashboard() {
 
     const filtered = rangeBounds
       ? items.filter((c) => {
-          if (!c.createdAt) return true;
-          const ts = new Date(c.createdAt).getTime();
-          if (Number.isNaN(ts)) return true;
-          return ts >= rangeBounds.start && ts < rangeBounds.end;
-        })
+        if (!c.createdAt) return true;
+        const ts = new Date(c.createdAt).getTime();
+        if (Number.isNaN(ts)) return true;
+        return ts >= rangeBounds.start && ts < rangeBounds.end;
+      })
       : items;
 
     return filtered
@@ -202,11 +216,13 @@ export default function SuperAdminDashboard() {
     setStatsLoading(true);
     setActivityLoading(true);
     setSubsLoading(true);
+    setLocationsLoading(true);
     try {
-      const [statsRes, activityRes, clubsListRes] = await Promise.all([
+      const [statsRes, activityRes, clubsListRes, locationsRes] = await Promise.all([
         fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
         fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
         fetch(`${API_BASE}/organizers`, { headers }),
+        fetch(`${API_BASE}/super-admin/dashboard/top-locations`, { headers }),
       ]);
 
       if (statsRes.status === 401 || statsRes.status === 403) {
@@ -229,13 +245,17 @@ export default function SuperAdminDashboard() {
         const items: ClubListItem[] = Array.isArray(clubsData)
           ? (clubsData as ClubListItem[])
           : clubsData &&
-              typeof clubsData === "object" &&
-              "items" in clubsData &&
-              Array.isArray((clubsData as { items?: unknown }).items)
+            typeof clubsData === "object" &&
+            "items" in clubsData &&
+            Array.isArray((clubsData as { items?: unknown }).items)
             ? ((clubsData as { items: unknown }).items as ClubListItem[])
             : [];
         setClubsList(items);
         setSubscriptionClubs(computeTopSubs(items, topSubsRange));
+      }
+
+      if (locationsRes.ok) {
+        setTopLocations(await locationsRes.json());
       }
     } catch {
       setAuthError("Failed to load dashboard data");
@@ -243,6 +263,8 @@ export default function SuperAdminDashboard() {
       setStatsLoading(false);
       setActivityLoading(false);
       setSubsLoading(false);
+      setLocationsLoading(false);
+      if (loading) setLoading(false);
     }
   }, [computeTopSubs, getHeaders, topSubsRange]);
 
@@ -274,6 +296,18 @@ export default function SuperAdminDashboard() {
     }
   }, [getHeaders]);
 
+  const fetchAgeDemographics = useCallback(async () => {
+    const headers = getHeaders();
+    if (!headers) return;
+    setAgeLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/age-demographics`, { headers });
+      if (res.ok) setAgeDemographicsData(await res.json());
+    } finally {
+      setAgeLoading(false);
+    }
+  }, [getHeaders]);
+
   const fetchTopClubs = useCallback(async (range: string) => {
     const headers = getHeaders();
     if (!headers) return;
@@ -299,6 +333,7 @@ export default function SuperAdminDashboard() {
             fetchRevenueTrend(revenueRange),
             fetchClubGrowth(growthRange),
             fetchTopClubs(topClubsRange),
+            fetchAgeDemographics(),
           ]);
         } finally {
           setLoading(false);
@@ -322,7 +357,8 @@ export default function SuperAdminDashboard() {
       unsubscribe();
       window.removeEventListener("focus", onFocus);
     };
-  }, [fetchClubGrowth, fetchRevenueTrend, fetchStatsAndActivityAndClubsList, fetchTopClubs, growthRange, revenueRange, topClubsRange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchClubGrowth, fetchRevenueTrend, fetchStatsAndActivityAndClubsList, fetchTopClubs]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -362,160 +398,545 @@ export default function SuperAdminDashboard() {
 
   if (!isMounted) return null;
 
+  if (loading || !stats) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10">
       {authError && (
-        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-normal text-red-700">
           {authError}
         </div>
       )}
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        <StatCard
-          title="Total Organizers"
-          value={stats?.totalClubs?.toString() || "0"}
-          change={stats?.clubsGrowth}
-          icon={Building2}
-          iconBg="bg-green-50"
-          iconColor="text-green-600"
-          loading={loading || statsLoading}
-        />
-        <StatCard
-          title="Active Organizers"
-          value={stats?.activeClubs?.toString() || "0"}
-          subValue={stats?.activeClubsPercent || undefined}
-          subIcon={Users2}
-          icon={CheckCircle2}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          loading={loading || statsLoading}
-        />
-        <StatCard
-          title="Total Users"
-          value={stats?.totalMembers?.toString() || "0"}
-          change={stats?.membersGrowth}
-          icon={Users}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-          loading={loading || statsLoading}
-        />
-        <StatCard
-          title="Active Tournaments"
-          value={stats?.activeTournaments?.toString() || "0"}
-          change={stats?.tournamentsGrowth}
-          icon={Trophy}
-          iconBg="bg-orange-50"
-          iconColor="text-orange-600"
-          loading={loading || statsLoading}
-        />
-        <StatCard
-          title="Total Revenue"
-          value={stats?.totalRevenue != null ? `₦${formatWithCommas(Math.round(stats.totalRevenue))}` : "₦0"}
-          change={stats?.revenueGrowth}
-          icon={TrendingUp}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
-          loading={loading || statsLoading}
-        />
-        <StatCard
-          title="Total Golf Courses"
-          value={stats?.totalCourses?.toString() || "0"}
-          icon={Mountain}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-          loading={loading || statsLoading}
-          subValue="Across Africa"
-        />
+      <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+        <div className="flex items-center justify-between px-12 py-8 min-w-[1000px]">
+          {/* Stat 1: Total Revenue */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="text-zinc-700 text-base font-medium">Total Revenue for Organizers</div>
+              {stats?.revenueGrowth?.startsWith('-') ? (
+                <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-red-500 text-xs font-medium">{stats.revenueGrowth.replace('-', '')}</div>
+                </div>
+              ) : (
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-openclub-700 text-xs font-medium">{stats?.revenueGrowth || "0.0%"}</div>
+                </div>
+              )}
+            </div>
+            <div className="text-openclub-700 text-3xl font-semibold">
+              {stats?.totalRevenue != null ? `₦${formatNumber(stats.totalRevenue)}` : "₦0"}
+            </div>
+            <div className="text-zinc-500 text-sm font-medium">All Time</div>
+          </div>
+
+          <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
+
+          {/* Stat 2: Total Organizers */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="text-zinc-700 text-base font-medium">Total Organizers</div>
+              {stats?.clubsGrowth?.startsWith('-') ? (
+                <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-red-500 text-xs font-medium">{stats.clubsGrowth.replace('-', '')}</div>
+                </div>
+              ) : (
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-openclub-700 text-xs font-medium">{stats?.clubsGrowth || "0.0%"}</div>
+                </div>
+              )}
+            </div>
+            <div className="text-openclub-700 text-3xl font-semibold">
+              {formatNumber(stats?.totalClubs || 0)}
+            </div>
+            <div className="text-zinc-500 text-sm font-medium">Across Africa</div>
+          </div>
+
+          <div className="w-px h-28 bg-slate-200" />
+
+          {/* Stat 3: Total Users */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="text-zinc-700 text-base font-medium">Total Users</div>
+              {stats?.membersGrowth?.startsWith('-') ? (
+                <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-red-500 text-xs font-medium">{stats.membersGrowth.replace('-', '')}</div>
+                </div>
+              ) : (
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-openclub-700 text-xs font-medium">{stats?.membersGrowth || "0.0%"}</div>
+                </div>
+              )}
+            </div>
+            <div className="text-openclub-700 text-3xl font-semibold">
+              {formatNumber(stats?.totalMembers || 0)}
+            </div>
+            <div className="text-zinc-500 text-sm font-medium">Active Members</div>
+          </div>
+
+          <div className="w-px h-28 bg-slate-200" />
+
+          {/* Stat 4: Active Tournaments */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="text-zinc-700 text-base font-medium">Active Tournaments</div>
+              {stats?.tournamentsGrowth?.startsWith('-') ? (
+                <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-red-500 text-xs font-medium">{stats.tournamentsGrowth.replace('-', '')}</div>
+                </div>
+              ) : (
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-openclub-700 text-xs font-medium">{stats?.tournamentsGrowth || "0.0%"}</div>
+                </div>
+              )}
+            </div>
+            <div className="text-openclub-700 text-3xl font-semibold">
+              {formatNumber(stats?.activeTournaments || 0)}
+            </div>
+            <div className="text-zinc-500 text-sm font-medium">Ongoing Events</div>
+          </div>
+
+          <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
+
+          {/* Stat 5: Active Organizers */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="text-zinc-700 text-base font-medium">Active Organizers</div>
+              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
+                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                </svg>
+                <div className="text-openclub-700 text-xs font-medium">{stats?.activeClubsPercent || "0%"}</div>
+              </div>
+            </div>
+            <div className="text-openclub-700 text-3xl font-semibold">
+              {stats?.subscriptionRevenue != null ? `₦${formatNumber(stats.subscriptionRevenue)}` : "₦0"}
+            </div>
+            <div className="text-zinc-500 text-sm font-medium">Subscription Revenue</div>
+          </div>
+        </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-[#e7e7e7] shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
-            <CardTitle className="text-[16px] font-bold">Revenue Trend</CardTitle>
-            <SearchableSelect
-              value={revenueRange}
-              onValueChange={setRevenueRange}
-              options={["This Year", "Last Year"].map((v) => ({ value: v, label: v }))}
-              triggerClassName="h-10 bg-white text-[14px]"
-            />
-          </CardHeader>
-          <CardContent className="p-6 pt-2">
-            <div className="h-[320px] w-full">
-              {!isMounted || loading || revenueLoading ? (
-                <TrendChartSkeleton variant="line" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#9ca3af" }} dy={10} />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 13, fill: "#9ca3af" }}
-                      tickFormatter={(value) => `₦${value/1000000}M`}
-                    />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
-                      formatter={(value: number | string | readonly (string | number)[] | undefined) => {
-                        const raw = Array.isArray(value) ? value[0] : value;
-                        return [`₦${Number(raw ?? 0).toLocaleString()}`, "Revenue"];
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="amount" 
-                      stroke="#10b981" 
-                      strokeWidth={3} 
-                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }} 
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Charts & Demographics vs Top Organizers */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
+        {/* Left Column */}
+        <div className="xl:col-span-9 flex flex-col gap-6">
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 xl:grid-cols-9 gap-6 w-full">
+            {/* Revenue Trends Card */}
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col gap-2.5 overflow-x-auto w-full xl:col-span-5">
+              <div className="min-w-[500px] relative font-sans w-full flex flex-col h-full">
+                <div className="w-full flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="text-zinc-700 text-xl font-medium">Organizer Revenue Trends</div>
+                    <div className="relative group flex items-center justify-center">
+                      <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg text-center leading-relaxed">
+                        Total revenue generated over time across all organizers.
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
+                    {["This Month", "This Year", "Last Year"].map(range => (
+                      <button
+                        key={range}
+                        onClick={() => setRevenueRange(range)}
+                        className={cn(
+                          "px-3 py-1 text-sm transition-all rounded-md",
+                          revenueRange === range ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                        )}
+                      >
+                        {range}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-        <Card className="border border-[#e7e7e7] shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
-            <CardTitle className="text-[16px] font-bold">Organizer Growth</CardTitle>
-            <SearchableSelect
-              value={growthRange}
-              onValueChange={setGrowthRange}
-              options={["This Year", "Last Year"].map((v) => ({ value: v, label: v }))}
-              triggerClassName="h-10 bg-white text-[14px]"
-            />
-          </CardHeader>
-          <CardContent className="p-6 pt-2">
-            <div className="h-[320px] w-full">
-              {!isMounted || loading || growthLoading ? (
-                <TrendChartSkeleton variant="bar" />
+                <div className="flex-1 w-full min-h-[250px]">
+                  {!isMounted || loading || revenueLoading ? (
+                    <TrendChartSkeleton variant="line" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorFunnel" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#15803D" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#15803D" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
+                        <XAxis
+                          dataKey="month"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#a1a1aa" }}
+                          dy={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#a1a1aa" }}
+                          tickFormatter={(value) => value >= 1000000 ? `₦${value / 1000000}M` : value >= 1000 ? `${value / 1000}k` : `${value}`}
+                        />
+                        <Tooltip
+                          cursor={{ stroke: '#15803D', strokeWidth: 1, strokeDasharray: '3 3' }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-[#15803D] text-white text-xs font-medium px-2.5 py-1.5 rounded shadow-[0px_4px_8px_0px_rgba(0,0,0,0.10)] relative -mt-6">
+                                  {Number(payload[0].value).toLocaleString()}
+                                  <div className="absolute w-2 h-2 bg-[#15803D] rotate-45 -bottom-1 left-1/2 -translate-x-1/2" />
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="#15803D"
+                          strokeWidth={2}
+                          fillOpacity={1}
+                          fill="url(#colorFunnel)"
+                          activeDot={{ r: 4, strokeWidth: 2, stroke: '#15803D', fill: '#fff' }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Organizer Growth Card */}
+            <Card className="border-0 rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full h-full xl:col-span-4">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-zinc-700 text-xl font-medium">Organizer Growth</CardTitle>
+                  <div className="relative group flex items-center justify-center">
+                    <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg text-center leading-relaxed">
+                      The number of new organizers that signed up over time.
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
+                  {["This Year", "Last Year"].map(range => (
+                    <button
+                      key={range}
+                      onClick={() => setGrowthRange(range)}
+                      className={cn(
+                        "px-3 py-1 text-sm transition-all rounded-md",
+                        growthRange === range ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                      )}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 pt-2 flex-1 w-full min-h-[250px]">
+                {!isMounted || loading || growthLoading ? (
+                  <TrendChartSkeleton variant="bar" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={growthData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#a1a1aa" }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#a1a1aa" }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e1efe5', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
+                      />
+                      <Bar dataKey="count" fill="#15803D" radius={[4, 4, 0, 0]} barSize={24} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Demographics Row */}
+          <div className="flex flex-col xl:flex-row gap-6 w-full">
+            {/* Age Range Card */}
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col gap-6 w-full xl:w-auto xl:flex-[1.4] xl:h-[430px] font-sans">
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-2">
+                  <div className="text-zinc-700 text-xl font-medium">Age range</div>
+                  <div className="relative group flex items-center justify-center">
+                    <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                      Distribution of total registered users across different age groups.
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
+                  {["All", "Men", "Women"].map(filter => (
+                    <button
+                      key={filter}
+                      onClick={() => setAgeDemographicsFilter(filter as any)}
+                      className={cn(
+                        "px-3 py-1 text-sm transition-all rounded-md",
+                        ageDemographicsFilter === filter ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                      )}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full flex-1 min-h-[220px] mt-2">
+                {!isMounted || loading || ageLoading ? (
+                  <TrendChartSkeleton variant="bar" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    {(() => {
+                      const hasData = ageDemographicsData && ageDemographicsData.some(d => d.men > 0 || d.women > 0);
+                      const displayData = hasData ? ageDemographicsData : [
+                        { age: "13-17", men: 10, women: 5 },
+                        { age: "18-24", men: 30, women: 45 },
+                        { age: "25-34", men: 50, women: 35 },
+                        { age: "35-44", men: 40, women: 55 },
+                        { age: "45-54", men: 80, women: 45 },
+                        { age: "55-64", men: 15, women: 30 },
+                        { age: "65-74+", men: 25, women: 20 },
+                      ];
+
+                      return (
+                        <BarChart data={displayData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
+                          <XAxis dataKey="age" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717A" }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717A" }} />
+                          <Tooltip
+                            cursor={{ fill: '#f1f5f9' }}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                            itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                            labelStyle={{ color: '#71717A', marginBottom: '4px' }}
+                          />
+                          {(ageDemographicsFilter === "All" || ageDemographicsFilter === "Men") && (
+                            <Bar dataKey="men" name="Men" fill="#15803D" radius={[4, 4, 0, 0]} barSize={ageDemographicsFilter === "All" ? 12 : 24} />
+                          )}
+                          {(ageDemographicsFilter === "All" || ageDemographicsFilter === "Women") && (
+                            <Bar dataKey="women" name="Women" fill="#86EFAC" radius={[4, 4, 0, 0]} barSize={ageDemographicsFilter === "All" ? 12 : 24} />
+                          )}
+                        </BarChart>
+                      );
+                    })()}
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Gender Card */}
+            {(() => {
+              const rawMen = stats?.menCount || 0;
+              const rawWomen = stats?.womenCount || 0;
+
+              // Fallback to visual split if database is completely empty of gender data
+              const hasData = rawMen > 0 || rawWomen > 0;
+              const menCount = hasData ? rawMen : 40;
+              const womenCount = hasData ? rawWomen : 60;
+
+              const totalGender = menCount + womenCount;
+              const menPercent = Math.round((menCount / totalGender) * 100);
+              const womenPercent = Math.round((womenCount / totalGender) * 100);
+
+              const pieData = [
+                { name: "Men", value: menPercent, color: "#15803D" },
+                { name: "Women", value: womenPercent, color: "#86EFAC" },
+              ];
+
+              return (
+                <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-1 xl:h-[430px] font-sans">
+                  <div className="flex justify-between items-center w-full mb-8">
+                    <div className="flex items-center gap-2">
+                      <div className="text-zinc-700 text-xl font-medium">Gender</div>
+                      <div className="relative group flex items-center justify-center">
+                        <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                          Breakdown of registered users by gender.
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative w-full flex-1 min-h-[160px] flex items-end justify-center mb-6">
+                    <ResponsiveContainer width="100%" height="200%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="100%"
+                          startAngle={180}
+                          endAngle={0}
+                          innerRadius={115}
+                          outerRadius={145}
+                          dataKey="value"
+                          stroke="none"
+                          cornerRadius={10}
+                          paddingAngle={5}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          itemStyle={{ color: '#374151', fontSize: '14px', fontWeight: 500 }}
+                          formatter={((value: any) => [`${value}%`, ""]) as any}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex justify-center items-center gap-12 w-full mt-auto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-[#15803D] rounded-full" />
+                      <div className="flex flex-col leading-none">
+                        <span className="text-zinc-700 text-sm font-medium">{menPercent}%</span>
+                        <span className="text-zinc-500 text-[10px] font-medium mt-1">Men</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-[#86EFAC] rounded-full" />
+                      <div className="flex flex-col leading-none">
+                        <span className="text-zinc-700 text-sm font-medium">{womenPercent}%</span>
+                        <span className="text-zinc-500 text-[10px] font-medium mt-1">Women</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Right Column: Top Organizers */}
+        <div className="xl:col-span-3 flex flex-col">
+          {/* Revenue by Organizer Card */}
+          <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full font-sans shrink-0">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="text-zinc-700 text-xl font-medium">Revenue by organizer</div>
+              <div className="relative group flex items-center justify-center">
+                <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                <div className="absolute top-full right-0 translate-x-1/4 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                  The top performing organizers ranked by total revenue generated.
+                  <div className="absolute bottom-full right-4 border-4 border-transparent border-b-[#0a2316]"></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-6 flex-1 justify-center">
+              {loading || topClubsLoading ? (
+                <div className="space-y-6">
+                  {[1, 2, 3, 4, 5, 6, 7].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+                </div>
+              ) : performingClubs.length > 0 ? (
+                performingClubs.slice(0, 7).map((club, i) => {
+                  return (
+                    <div key={i} className="flex justify-between items-center w-full">
+                      <div className="inline-flex justify-start items-center gap-3">
+                        <img className="size-10 rounded-full object-cover bg-gray-100 border border-[#efefef]" src={club.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=10b981&color=fff`} alt={club.name} />
+                        <div className="inline-flex flex-col justify-start items-start">
+                          <div className="text-slate-900 text-sm font-medium truncate max-w-[140px] leading-tight">{club.name}</div>
+                          <div className="text-gray-500 text-xs font-normal mt-0.5">{formatWithCommas(club.tournaments ?? 0)} Tournaments</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <div className="text-zinc-700 text-[14px] font-bold">₦{formatWithCommas(club.revenue ?? 0)}</div>
+                        <div className="text-gray-500 text-xs font-normal mt-0.5">{formatWithCommas(club.registrations ?? 0)} regs</div>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={growthData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#9ca3af" }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#9ca3af" }} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
-                    />
-                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="flex flex-col items-center justify-center py-10 text-center bg-[#f5faf6] rounded-xl border border-dashed border-[#e1efe5] mt-2">
+                  <div className="w-10 h-10 bg-white border border-[#e1efe5] rounded-full flex items-center justify-center mb-3">
+                    <Trophy className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                  <p className="text-[13px] font-medium text-[#15803D]">No organizer data</p>
+                  <p className="text-[12px] text-gray-500 mt-0.5 max-w-[180px]">Organizers with the most revenue will be ranked here.</p>
+                </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Top Locations Card */}
+          <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full font-sans mt-6 flex-1 min-h-[300px]">
+            <div className="flex items-center gap-2 mb-6 shrink-0">
+              <div className="text-zinc-700 text-xl font-medium">Top locations</div>
+              <div className="relative group flex items-center justify-center">
+                <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
+                <div className="absolute top-full right-0 translate-x-1/4 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                  The regions with the highest density of organizers on the platform.
+                  <div className="absolute bottom-full right-4 border-4 border-transparent border-b-[#0a2316]"></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+              {locationsLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full rounded-md" />)}
+                </div>
+              ) : topLocations.length > 0 ? (
+                topLocations.map((loc, i) => (
+                  <div key={i} className="flex justify-between items-center w-full">
+                    <div className="text-sm text-slate-800 font-medium">{loc.state}</div>
+                    <div className="text-[13px] font-medium text-[#15803D] bg-[#f5faf6] px-2.5 py-0.5 rounded-md border border-[#e1efe5]">{loc.count} organizers</div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center bg-[#f5faf6] rounded-xl border border-dashed border-[#e1efe5] mt-2">
+                  <div className="w-10 h-10 bg-white border border-[#e1efe5] rounded-full flex items-center justify-center mb-3">
+                    <MapPin className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                  <p className="text-[13px] font-medium text-[#15803D]">No locations yet</p>
+                  <p className="text-[12px] text-gray-500 mt-0.5 max-w-[180px]">When organizers sign up with their location, they'll appear here.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Activity, Alerts, Top Organizers Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
-            <Button variant="link" className="text-[#10b981] p-0 h-auto font-bold text-[14px] flex items-center gap-2 no-underline hover:no-underline">
+            <CardTitle className="text-[16px] font-normal">Recent Activity</CardTitle>
+            <Button variant="link" className="text-[#15803D] p-0 h-auto font-normal text-[14px] flex items-center gap-2 no-underline hover:no-underline">
               View All Upcoming <ArrowUpRight className="w-4 h-4" />
             </Button>
           </CardHeader>
@@ -526,26 +947,32 @@ export default function SuperAdminDashboard() {
               </div>
             ) : recentActivity.length > 0 ? (
               recentActivity.slice(0, 5).map((activity, i) => (
-                <ActivityItem 
+                <ActivityItem
                   key={i}
                   icon={Building2} // Dynamic icon mapping can be added
-                  title={activity.title} 
-                  subtitle={activity.subtitle} 
-                  time={timeAgo(activity.time)} 
-                  iconBg="bg-green-50" 
-                  iconColor="text-green-600" 
+                  title={activity.title}
+                  subtitle={activity.subtitle}
+                  time={timeAgo(activity.time)}
+                  iconBg="bg-green-50"
+                  iconColor="text-green-600"
                 />
               ))
             ) : (
-              <p className="text-[13px] text-gray-400 font-medium">No recent activity</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center bg-[#f5faf6] rounded-xl border border-dashed border-[#e1efe5] mt-2">
+                <div className="w-10 h-10 bg-white border border-[#e1efe5] rounded-full flex items-center justify-center mb-3">
+                  <Building2 className="w-5 h-5 text-[#15803D]" />
+                </div>
+                <p className="text-[13px] font-medium text-[#15803D]">No recent activity</p>
+                <p className="text-[12px] text-gray-500 mt-0.5 max-w-[180px]">New platform events will appear here.</p>
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Top Organizers by Subscription */}
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-[16px] font-bold">Top Organizers by Subscription</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Top Organizers by Subscription</CardTitle>
             <SearchableSelect
               value={topSubsRange}
               onValueChange={setTopSubsRange}
@@ -560,91 +987,39 @@ export default function SuperAdminDashboard() {
               </div>
             ) : subscriptionClubs.length > 0 ? (
               subscriptionClubs.map((club, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-[#efefef] shadow-sm">
-                    <img src={club.logo} alt={club.name} className="h-full w-full object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <div className="flex flex-col">
-                        <p className="text-[13px] font-bold text-gray-800 truncate">{club.name}</p>
-                        <p className="text-[11px] text-gray-400 font-medium">{club.plan}</p>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <p className="text-[13px] font-bold text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
-                        <span className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase inline-flex items-center gap-1.5 whitespace-nowrap",
-                          club.status === 'Active' ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
-                        )}>
-                          <span className={cn("w-1.5 h-1.5 rounded-full", club.status === 'Active' ? "bg-green-500" : "bg-red-500")} />
-                          {club.status}
-                        </span>
-                      </div>
+                <div key={i} className="flex items-center gap-4 w-full">
+                  <div className="inline-flex justify-start items-center gap-3 flex-1 min-w-0">
+                    <img className="size-10 rounded-full object-cover bg-gray-100 border border-[#efefef] flex-shrink-0" src={club.logo} alt={club.name} />
+                    <div className="inline-flex flex-col justify-start items-start min-w-0 pr-2">
+                      <div className="text-slate-900 text-sm font-medium truncate w-full max-w-[140px] leading-tight">{club.name}</div>
+                      <div className="text-gray-500 text-xs font-normal mt-0.5">{club.plan}</div>
                     </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="text-[13px] font-normal text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
+                    <span className={cn(
+                      "text-[10px] font-normal px-2 py-0.5 rounded-lg border uppercase inline-flex items-center gap-1.5 whitespace-nowrap",
+                      club.status === 'Active' ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
+                    )}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", club.status === 'Active' ? "bg-green-500" : "bg-red-500")} />
+                      {club.status}
+                    </span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-[13px] text-gray-400 font-medium">No subscription data</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center bg-[#f5faf6] rounded-xl border border-dashed border-[#e1efe5] mt-2">
+                <div className="w-10 h-10 bg-white border border-[#e1efe5] rounded-full flex items-center justify-center mb-3">
+                  <Building2 className="w-5 h-5 text-[#15803D]" />
+                </div>
+                <p className="text-[13px] font-medium text-[#15803D]">No subscription data</p>
+                <p className="text-[12px] text-gray-500 mt-0.5 max-w-[180px]">Organizers on paid plans will be listed here.</p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Top Organizers by Tournament */}
-        <Card className="border border-[#e7e7e7] shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-            <CardTitle className="text-[16px] font-bold">Top Organizers by Tournament</CardTitle>
-            <SearchableSelect
-              value={topClubsRange}
-              onValueChange={setTopClubsRange}
-              options={["This Month", "Last Month", "3 Months", "6 Months", "All Time"].map((v) => ({ value: v, label: v }))}
-              triggerClassName="h-10 bg-white text-[13px]"
-            />
-          </CardHeader>
-          <CardContent className="space-y-7 p-3 pt-4">
-            {loading || topClubsLoading ? (
-              <div className="space-y-6">
-                {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
-              </div>
-            ) : performingClubs.length > 0 ? (
-              performingClubs.slice(0, 5).map((club, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-[#efefef] shadow-sm">
-                    <img src={club.logo} alt={club.name} className="h-full w-full object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex flex-col">
-                        <p className="text-[13px] font-bold text-gray-800 truncate leading-tight">{club.name}</p>
-                        <StatusBadge type={club.statusType} label={club.status} />
-                      </div>
-                      <div className="flex flex-col items-end"
-                        title={`Revenue is total entry fees ${topClubsRange === "All Time" ? "all time" : topClubsRange.toLowerCase()} (entry fee × registrations): ${formatWithCommas(club.registrations ?? 0)} registrations across ${formatWithCommas(club.tournaments ?? 0)} tournaments`}
-                      >
-                        <p className="text-[13px] font-bold text-gray-900">{`₦${formatWithCommas(club.revenue ?? 0)}`}</p>
-                        <p className="text-[14px] text-gray-800 font-bold whitespace-nowrap mt-0.5">
-                          {formatWithCommas(club.registrations ?? 0)} regs • {formatWithCommas(club.tournaments ?? 0)} tourns
-                        </p>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className={cn(
-                          "h-full rounded-full transition-all duration-500",
-                          club.statusType === 'success' ? "bg-emerald-500" :
-                          club.statusType === 'warning' ? "bg-orange-500" : "bg-red-500"
-                        )} 
-                        style={{ width: `${club.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-[13px] text-gray-400 font-medium">No organizer performance data</p>
-            )}
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
@@ -653,7 +1028,7 @@ export default function SuperAdminDashboard() {
 function TrendChartSkeleton({ variant }: { variant: "line" | "bar" }) {
   const barHeights = [72, 128, 92, 156, 110, 176, 98, 142];
   return (
-    <div className="h-full w-full rounded-xl border border-[#efefef] bg-gray-50/40 p-5">
+    <div className="h-full w-full rounded-xl border border-[#efefef] bg-background/40 p-5">
       <div className="grid h-full w-full grid-cols-[44px_1fr] gap-4">
         <div className="flex flex-col justify-between py-2">
           <Skeleton className="h-3 w-10 rounded-md" />
@@ -702,7 +1077,7 @@ function StatusBadge({ type, label }: { type: 'success' | 'warning' | 'danger', 
   };
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold border mt-0.5 w-fit uppercase whitespace-nowrap", styles[type].badge)}>
+    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-normal border mt-0.5 w-fit uppercase whitespace-nowrap", styles[type].badge)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", styles[type].dot)} />
       {label}
     </span>
@@ -725,10 +1100,10 @@ function ActivityItem({ icon: Icon, title, subtitle, time, iconBg, iconColor }: 
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-bold text-gray-800 leading-tight">{title}</p>
+        <p className="text-[13px] font-normal text-gray-800 leading-tight">{title}</p>
         <p className="text-[12px] text-gray-500 mt-1">{subtitle}</p>
       </div>
-      <span className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</span>
+      <span className="text-[12px] text-gray-400 font-normal whitespace-nowrap">{time}</span>
     </div>
   );
 }
@@ -756,10 +1131,151 @@ function AlertItem({ type, title, subtitle, time }: AlertItemProps) {
         <Icon className={`h-5 w-5 ${currentStyle.color}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-bold text-gray-800 leading-tight">{title}</p>
+        <p className="text-[13px] font-normal text-gray-800 leading-tight">{title}</p>
         <p className="text-[12px] text-gray-500 mt-1">{subtitle}</p>
       </div>
-      <span className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</span>
+      <span className="text-[12px] text-gray-400 font-normal whitespace-nowrap">{time}</span>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8 w-full max-w-full px-2 pb-10">
+      {/* Stat Cards */}
+      <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+        <div className="flex items-center justify-between px-12 py-8 min-w-[1000px]">
+          {[1, 2, 3, 4, 5].map((i, index) => (
+            <div key={i} className="flex items-center w-full">
+              <div className="flex flex-col gap-3.5 flex-1">
+                <div className="flex items-center gap-3.5">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-6 w-12 rounded-lg" />
+                </div>
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              {index < 4 && <div className="w-px h-28 bg-slate-200 mx-10 shrink-0" />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Charts & Demographics vs Top Organizers Skeleton */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
+        <div className="xl:col-span-9 flex flex-col gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-9 gap-6 w-full">
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col gap-2.5 overflow-x-auto w-full xl:col-span-5 h-[366px]">
+              <div className="flex justify-between items-center mb-6">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-[120px] rounded-lg" />
+              </div>
+              <TrendChartSkeleton variant="line" />
+            </div>
+
+            <div className="p-6 pt-6 bg-white border-0 rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full h-full xl:col-span-4 h-[366px]">
+              <div className="flex justify-between items-center mb-6">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-[120px] rounded-lg" />
+              </div>
+              <TrendChartSkeleton variant="bar" />
+            </div>
+          </div>
+          <div className="flex flex-col xl:flex-row gap-6 w-full">
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-[1.4] h-[366px]">
+              <div className="flex justify-between items-center w-full mb-8">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-32" />
+              </div>
+              <TrendChartSkeleton variant="bar" />
+            </div>
+
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-1 h-[366px]">
+              <div className="flex justify-between items-center w-full mb-8">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+              </div>
+              <div className="relative w-full flex-1 flex items-end justify-center mb-6">
+                <Skeleton className="h-32 w-32 rounded-full" />
+              </div>
+              <div className="flex justify-center items-center gap-12 w-full mt-auto">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-5 h-5 rounded-full" />
+                  <div className="flex flex-col gap-1">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-3 w-6" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-5 h-5 rounded-full" />
+                  <div className="flex flex-col gap-1">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-3 w-6" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="xl:col-span-3 flex flex-col">
+          <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full shrink-0">
+            <Skeleton className="h-6 w-48 mb-6" />
+            <div className="flex flex-col gap-6 flex-1 justify-center">
+              {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                <div key={i} className="flex justify-between items-center w-full">
+                  <div className="flex gap-3 items-center">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 items-end">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full mt-6 flex-1 min-h-[300px]">
+            <Skeleton className="h-6 w-32 mb-6" />
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex justify-between items-center w-full">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-20 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-[#e1efe5] shadow-sm flex flex-col">
+          <div className="flex justify-between items-center px-6 pt-6 pb-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="space-y-7 p-6 pt-4">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-[#e1efe5] shadow-sm flex flex-col">
+          <div className="flex justify-between items-center px-6 pt-6 pb-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-10 w-[120px] rounded-lg" />
+          </div>
+          <div className="space-y-7 p-3 pt-4">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

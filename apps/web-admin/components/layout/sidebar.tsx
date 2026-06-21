@@ -5,25 +5,23 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn, getAvatarUrl } from "@/lib/utils";
 import {
-  Home,
-  User,
-  Flag,
-  CreditCard,
-  Trophy,
-  PieChart,
-  Settings,
-  LogOut,
-  Building2,
-  CalendarDays,
-  ShieldCheck,
-  MonitorDot,
-  CheckSquare,
-  BarChart3,
-  FileText,
-  Activity,
-  Bell,
-  ChevronDown,
-} from "lucide-react";
+  HomeIcon as Home,
+  UserIcon as User,
+  CreditCardIcon as CreditCard,
+  TrophyIcon as Trophy,
+  ChartPieIcon as PieChart,
+  Cog8ToothIcon as Settings,
+  ServerStackIcon as SystemIcon,
+  BuildingOfficeIcon as Building2,
+  MapIcon as Flag,
+  ClipboardDocumentCheckIcon as CheckSquare,
+  ChartBarIcon as BarChart3,
+  DocumentTextIcon as FileText,
+  ClipboardDocumentListIcon as Activity,
+  ShieldCheckIcon as ShieldCheck,
+  BellIcon as Bell,
+  ChevronDownIcon as ChevronDown
+} from "@heroicons/react/24/solid";
 import { Icons } from "@/components/ui/icons";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,7 +49,7 @@ const SUPER_ADMIN_GROUPS = [
   },
   {
     items: [
-      { name: "System", href: "/super-admin/system", icon: Settings },
+      { name: "System", href: "/super-admin/system", icon: SystemIcon },
       { name: "Settings", href: "/super-admin/settings", icon: Settings },
     ],
   },
@@ -93,7 +91,7 @@ export function Sidebar() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex flex-col h-full bg-white text-gray-900 w-72 flex-shrink-0 border-r border-[#e7e7e7]">
+      <div className="flex flex-col h-full bg-white text-gray-900 w-72 flex-shrink-0 border-r border-[#e1efe5]">
         <div className="p-8 h-24 flex items-center gap-4">
           <Skeleton className="h-10 w-10 rounded-full bg-gray-100" />
           <Skeleton className="h-6 w-32 bg-gray-100" />
@@ -106,7 +104,7 @@ export function Sidebar() {
             </div>
           ))}
         </div>
-        <div className="px-4 py-6 border-t border-[#e7e7e7] bg-white space-y-4">
+        <div className="px-4 py-6 border-t border-[#e1efe5] bg-white space-y-4">
           <div className="flex items-center gap-4 px-4">
             <Skeleton className="h-11 w-11 rounded-full bg-gray-100" />
             <div className="space-y-2">
@@ -114,7 +112,7 @@ export function Sidebar() {
               <Skeleton className="h-3 w-32 bg-gray-100" />
             </div>
           </div>
-          <div className="px-4 pt-4 border-t border-[#e7e7e7]">
+          <div className="px-4 pt-4 border-t border-[#e1efe5]">
             <Skeleton className="h-12 w-full rounded-xl bg-gray-100" />
           </div>
         </div>
@@ -125,15 +123,15 @@ export function Sidebar() {
   const sidebarGroups = user.role === 'SUPER_ADMIN' ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
 
   return (
-    <div className="flex flex-col h-full bg-white text-gray-900 w-72 flex-shrink-0 border-r border-[#e7e7e7]">
+    <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
       <div className="p-8 flex flex-col gap-4">
         {user?.role === 'CLUB_ADMIN' ? (
           <div className="flex items-center justify-between group cursor-pointer">
             <div className="flex items-center gap-4">
-              <div className="bg-[#10b981] p-2.5 rounded-full shadow-lg shadow-emerald-500/20">
+              <div className="bg-[#15803D] p-2.5 rounded-full shadow-lg shadow-openclub-700/20">
                 <Icons.logo className="h-7 w-7 text-white" />
               </div>
-              <span className="text-[16px] font-bold text-gray-900 tracking-tight truncate max-w-[160px]">
+              <span className="text-[16px] font-medium text-gray-900 tracking-tight truncate max-w-[160px]">
                 {user?.clubId ? "Oakwood Organizer" : "Select Organizer"}
               </span>
             </div>
@@ -141,65 +139,64 @@ export function Sidebar() {
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <div className="bg-[#10b981] p-2.5 rounded-full shadow-lg shadow-emerald-500/20">
+            <div className="bg-[#15803D] p-2.5 rounded-full shadow-lg shadow-openclub-700/20">
               <Icons.logo className="h-8 w-8 text-white" />
             </div>
-            <span className="text-[16px] font-bold tracking-tight text-gray-900">OpenClub</span>
+            <span className="text-[16px] font-medium tracking-tight text-gray-900">OpenClub</span>
           </div>
         )}
       </div>
 
-      <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 py-4 overflow-y-auto scrollbar-hide relative flex flex-col gap-4">
         {sidebarGroups.map((group, groupIndex) => (
-          <div key={groupIndex} className="space-y-0.5">
-            {group.items.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-4 px-4 py-2.5 rounded-lg text-[14px] font-medium transition-colors duration-200 group border",
-                    isActive
-                      ? "bg-[#f4fdf8] text-[#0da673] border-[#10b981] shadow-sm"
-                      : "text-gray-500 border-transparent hover:text-gray-900 hover:bg-gray-50 hover:border-[#e7e7e7]"
-                  )}
-                >
-                  <item.icon className={cn(
-                    "h-4.5 w-4.5 transition-colors",
-                    isActive ? "text-[#0da673]" : "text-gray-400 group-hover:text-gray-900"
-                  )} />
-                  {item.name}
-                </Link>
-              );
-            })}
+          <div key={groupIndex} className="flex flex-col gap-4">
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <div key={item.name} className="relative flex items-center h-[40px] w-[206px]">
+                    {isActive && (
+                      <div className="w-1.5 h-10 left-0 absolute bg-[#15803D] rounded-tr-[20px] rounded-br-[20px]" />
+                    )}
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group",
+                          isActive
+                            ? "bg-[#e0fbea] text-[#15803D]"
+                            : "text-zinc-700 hover:bg-background hover:text-zinc-900"
+                        )}
+                      >
+                      <item.icon className={cn(
+                        "h-4 w-4 transition-colors",
+                        isActive ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
+                      )} />
+                      {item.name}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
             {groupIndex < sidebarGroups.length - 1 && (
-              <div className="mx-4 mt-4 border-t border-[#e7e7e7]" />
+              <div className="mx-5 border-t border-[#e1efe5]" />
             )}
           </div>
         ))}
       </nav>
 
-      <div className="px-4 py-6 border-t border-[#e7e7e7] bg-gray-50/50">
-        <div className="flex items-center gap-4 px-4 py-3 mb-4">
-          <div className="h-12 w-12 rounded-full border-2 border-[#e7e7e7] p-0.5 flex-shrink-0 flex items-center justify-center overflow-hidden">
-            <div className="h-full w-full rounded-full bg-gray-100 overflow-hidden">
-              <img src={getAvatarUrl(user || undefined)} alt={user?.name || "User Avatar"} className="h-full w-full object-cover" />
+      <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
+        <div className="w-[178px] h-[55px] bg-[#15803D] rounded-lg overflow-hidden flex items-center justify-between px-[10px] relative group cursor-pointer" onClick={logout} title="Click to Logout">
+          <div className="flex items-center gap-2.5">
+            <img 
+              className="w-7 h-7 rounded-full object-cover bg-white" 
+              src={getAvatarUrl(user || undefined)} 
+              alt={user?.name || "User Avatar"} 
+            />
+            <div className="flex flex-col justify-start items-start gap-px overflow-hidden w-[100px]">
+              <div className="text-white text-xs font-medium truncate w-full">{user?.name || "Admin User"}</div>
+              <div className="text-white text-[10px] font-medium truncate w-full">{user?.email || "admin@openclub.os"}</div>
             </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[16px] font-bold text-gray-900 truncate">{user?.name || "Admin User"}</p>
-            <p className="text-[13px] text-gray-500 truncate">{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Organizer Admin'}</p>
-          </div>
-        </div>
-        <div className="px-4 border-t border-[#e7e7e7] pt-4">
-          <button 
-            onClick={logout}
-            className="flex items-center gap-4 w-full px-4 py-3 text-[16px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all group border border-red-100"
-          >
-            <LogOut className="h-5.5 w-5.5 text-red-500 group-hover:text-red-600" />
-            Logout
-          </button>
         </div>
       </div>
     </div>

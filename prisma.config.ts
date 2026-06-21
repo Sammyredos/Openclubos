@@ -1,5 +1,5 @@
 export default {
   datasource: {
-    url: process.env.DATABASE_URL || "postgresql://postgres:OpenClub2024@localhost:5432/openclub?schema=public",
+    url: process.env.DATABASE_URL || "postgresql://postgres:your-secure-password@localhost:5433/openclub?schema=public",
   },
 };

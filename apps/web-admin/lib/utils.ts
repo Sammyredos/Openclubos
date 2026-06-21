@@ -114,8 +114,6 @@ export function getTomorrowYMD(): string {
 
 export function formatNumber(value: string | number): string {
   const raw = value.toString().trim();
-  const rawNoComma = raw.replace(/,/g, "");
-  if (/^-?₦?\d+(\.\d+)?[KMB]$/i.test(rawNoComma)) return raw;
   const numericValue =
     typeof value === "string"
       ? parseFloat(value.replace(/[^0-9.-]+/g, ""))
@@ -126,41 +124,31 @@ export function formatNumber(value: string | number): string {
   const isNaira = raw.includes("₦");
   const absValue = Math.abs(numericValue);
   const sign = numericValue < 0 ? "-" : "";
-  const compactDecimals = 2;
 
-  function truncFixed(n: number, decimals: number) {
-    const factor = 10 ** decimals;
-    const truncated = Math.trunc(n * factor) / factor;
-    return truncated.toFixed(decimals);
+  function formatKMB(n: number, divisor: number, suffix: string) {
+    const val = n / divisor;
+    const formatted = new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 1,
+    }).format(val);
+    return `${formatted}${suffix}`;
   }
 
-  if (isNaira) {
-    if (absValue >= 1_000_000_000) {
-      return `${sign}₦${truncFixed(absValue / 1_000_000_000, compactDecimals)}B`;
-    }
-    if (absValue >= 1_000_000) {
-      return `${sign}₦${truncFixed(absValue / 1_000_000, compactDecimals)}M`;
-    }
-    if (absValue >= 10_000) {
-      return `${sign}₦${truncFixed(absValue / 1_000, compactDecimals)}K`;
-    }
-
-    const nf = new Intl.NumberFormat("en-NG");
-    return `${sign}₦${nf.format(Math.round(absValue))}`;
-  }
+  // To preserve original behavior where "₦" might have been stripped from `value` 
+  // but we still want to output it if `isNaira` is true. We'll handle it nicely.
+  const prefix = isNaira ? "₦" : "";
 
   if (absValue >= 1_000_000_000) {
-    return `${sign}${truncFixed(absValue / 1_000_000_000, compactDecimals)}B`;
+    return `${sign}${prefix}${formatKMB(absValue, 1_000_000_000, "B")}`;
   }
   if (absValue >= 1_000_000) {
-    return `${sign}${truncFixed(absValue / 1_000_000, compactDecimals)}M`;
+    return `${sign}${prefix}${formatKMB(absValue, 1_000_000, "M")}`;
   }
-  if (absValue >= 1_000) {
-    return `${sign}${truncFixed(absValue / 1_000, compactDecimals)}K`;
+  if (absValue >= 10_000) {
+    return `${sign}${prefix}${formatKMB(absValue, 1_000, "K")}`;
   }
 
-  const nf = new Intl.NumberFormat("en-US");
-  return `${sign}${nf.format(absValue)}`;
+  const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US");
+  return `${sign}${prefix}${nf.format(Math.round(absValue))}`;
 }
 
 export type AdminEvent = { type: string; payload?: unknown; at: number };

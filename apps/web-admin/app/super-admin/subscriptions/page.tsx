@@ -56,7 +56,7 @@ const MOCK_SUBSCRIPTIONS = [
     id: "sub-1",
     organizer: "Royal Greens Golf Club",
     email: "admin@royalgreens.com",
-    avatarColor: "bg-emerald-50 text-emerald-600",
+    avatarColor: "bg-emerald-50 text-openclub-800",
     initials: "RG",
     plan: "Professional",
     planLimit: "Up to 50 tournaments / year",
@@ -98,7 +98,7 @@ const MOCK_SUBSCRIPTIONS = [
     id: "sub-4",
     organizer: "Lakeside Golf Resort",
     email: "hello@lakeside.com",
-    avatarColor: "bg-emerald-50 text-emerald-600",
+    avatarColor: "bg-emerald-50 text-openclub-800",
     initials: "LG",
     plan: "Basic",
     planLimit: "Up to 5 tournaments / year",
@@ -154,7 +154,7 @@ const MOCK_SUBSCRIPTIONS = [
 
 // Recharts Donut data
 const OVERVIEW_DATA = [
-  { name: "Active", value: 138, percentage: "88.5%", color: "#10b981" },
+  { name: "Active", value: 138, percentage: "88.5%", color: "#15803D" },
   { name: "Past Due", value: 7, percentage: "4.5%", color: "#f43f5e" },
   { name: "Trialing", value: 8, percentage: "5.1%", color: "#3b82f6" },
   { name: "Cancelled", value: 3, percentage: "1.9%", color: "#94a3b8" },
@@ -244,7 +244,7 @@ export default function SubscriptionsPage() {
           changeType="increase"
           icon={Users}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-openclub-800"
         />
         <StatCard
           title="Total Monthly Revenue"
@@ -280,14 +280,14 @@ export default function SubscriptionsPage() {
 
         {/* Main Content — Left 3 columns */}
         <div className="xl:col-span-3 space-y-6">
-          <Card className="border border-[#e7e7e7] shadow-sm overflow-hidden">
+          <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-[16px] font-bold">All Subscriptions</CardTitle>
+              <CardTitle className="text-[16px] font-normal">All Subscriptions</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button 
                   variant="outline" 
                   onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                  className="h-10 border-[#e7e7e7] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-bold"
+                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
                 >
                   <Download className="w-4 h-4" /> Export
                 </Button>
@@ -316,9 +316,9 @@ export default function SubscriptionsPage() {
                         "subscriptions-export.csv"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                     Export CSV
                   </button>
                   <button
@@ -336,13 +336,13 @@ export default function SubscriptionsPage() {
                         "Subscriptions Export"
                       );
                     }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                   >
                     <FileText className="w-4 h-4 text-rose-600" />
                     Export PDF
                   </button>
                 </FloatingMenu>
-                <Button className="h-10 bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white gap-2 rounded-lg px-4 text-[14px] font-bold">
+                <Button className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal">
                   <Plus className="w-4 h-4" /> Add Subscription
                 </Button>
               </div>
@@ -357,7 +357,7 @@ export default function SubscriptionsPage() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search by organizer, email or plan..."
-                    className="pl-10 h-11 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-lg"
+                    className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -379,7 +379,7 @@ export default function SubscriptionsPage() {
                     { value: "Cancelled", label: "Cancelled" },
                   ]}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Status"
                 />
                 <SearchableSelect
@@ -395,7 +395,7 @@ export default function SubscriptionsPage() {
                     { value: "Professional", label: "Professional" },
                   ]}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Plans"
                 />
                 <SearchableSelect
@@ -410,7 +410,7 @@ export default function SubscriptionsPage() {
                     { value: "Annual", label: "Annual" },
                   ]}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-medium"
+                  triggerClassName="h-11 bg-white font-normal"
                   placeholder="All Cycles"
                 />
               </div>
@@ -419,7 +419,7 @@ export default function SubscriptionsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
                       <th className="px-4 py-4">Organizer</th>
                       <th className="px-4 py-4">Plan</th>
                       <th className="px-4 py-4">Billing Cycle</th>
@@ -432,19 +432,19 @@ export default function SubscriptionsPage() {
                   <tbody className="divide-y divide-gray-50">
                     {paginatedSubscriptions.length > 0 ? (
                       paginatedSubscriptions.map((sub) => (
-                        <tr key={sub.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <tr key={sub.id} className="hover:bg-background/50 transition-colors group">
 
                           {/* Organizer/User */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
+                              <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-[13px] font-normal shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
                                 {sub.initials}
                               </div>
                               <div className="flex flex-col min-w-0">
-                                <span className="text-[14px] font-bold text-gray-900 truncate leading-tight" title={sub.organizer}>
+                                <span className="text-[14px] font-normal text-gray-900 truncate leading-tight" title={sub.organizer}>
                                   {sub.organizer}
                                 </span>
-                                <span className="text-[12px] text-gray-400 font-medium truncate mt-0.5" title={sub.email}>
+                                <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5" title={sub.email}>
                                   {sub.email}
                                 </span>
                               </div>
@@ -454,22 +454,22 @@ export default function SubscriptionsPage() {
                           {/* Plan */}
                           <td className="px-4 py-4">
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-medium truncate leading-tight">{sub.plan}</span>
-                              <span className="text-[10px] text-gray-400 font-medium mt-0.5">{sub.planLimit}</span>
+                              <span className="text-[13px] text-gray-700 font-normal truncate leading-tight">{sub.plan}</span>
+                              <span className="text-[10px] text-gray-400 font-normal mt-0.5">{sub.planLimit}</span>
                             </div>
                           </td>
 
                           {/* Billing Cycle */}
                           <td className="px-4 py-4">
-                            <span className="text-[13px] text-gray-700 font-medium">{sub.billingCycle}</span>
+                            <span className="text-[13px] text-gray-700 font-normal">{sub.billingCycle}</span>
                           </td>
 
                           {/* Status */}
                           <td className="px-4 py-4">
                             <span
                               className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
-                                sub.status === "Active" && "bg-emerald-50 text-emerald-600",
+                                "text-[10px] font-normal px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
+                                sub.status === "Active" && "bg-emerald-50 text-openclub-800",
                                 sub.status === "Past Due" && "bg-red-50 text-red-500",
                                 sub.status === "Trialing" && "bg-blue-50 text-blue-600",
                                 sub.status === "Cancelled" && "bg-gray-100 text-gray-500"
@@ -478,7 +478,7 @@ export default function SubscriptionsPage() {
                               <span
                                 className={cn(
                                   "w-1.5 h-1.5 rounded-full",
-                                  sub.status === "Active" && "bg-emerald-500",
+                                  sub.status === "Active" && "bg-openclub-700",
                                   sub.status === "Past Due" && "bg-red-500",
                                   sub.status === "Trialing" && "bg-blue-500",
                                   sub.status === "Cancelled" && "bg-gray-400"
@@ -491,10 +491,10 @@ export default function SubscriptionsPage() {
                           {/* Next Billing Date */}
                           <td className="px-4 py-4">
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-medium leading-tight">{sub.nextBillingDate}</span>
+                              <span className="text-[13px] text-gray-700 font-normal leading-tight">{sub.nextBillingDate}</span>
                               <span
                                 className={cn(
-                                  "text-[10px] font-medium mt-0.5",
+                                  "text-[10px] font-normal mt-0.5",
                                   sub.status === "Past Due" ? "text-red-500" : "text-gray-400"
                                 )}
                               >
@@ -505,13 +505,13 @@ export default function SubscriptionsPage() {
 
                           {/* Amount */}
                           <td className="px-4 py-4 text-right">
-                            <span className="text-[14px] font-bold text-gray-900 whitespace-nowrap">{sub.amount}</span>
+                            <span className="text-[14px] font-normal text-gray-900 whitespace-nowrap">{sub.amount}</span>
                           </td>
 
                           {/* Actions */}
                           <td className="px-4 py-4">
                             <div className="flex items-center justify-center">
-                              <button className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors">
+                              <button className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors">
                                 <MoreVertical className="w-4.5 h-4.5" />
                               </button>
                             </div>
@@ -521,7 +521,7 @@ export default function SubscriptionsPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-6 py-20 text-center text-gray-400 font-bold text-[13px]">
+                        <td colSpan={7} className="px-6 py-20 text-center text-gray-400 font-normal text-[13px]">
                           No subscriptions matching your selection.
                         </td>
                       </tr>
@@ -552,9 +552,9 @@ export default function SubscriptionsPage() {
         <div className="space-y-8">
 
           {/* Subscription Overview — Donut Chart */}
-          <Card className="border border-[#e7e7e7] shadow-sm">
+          <Card className="border border-[#e1efe5] shadow-sm">
             <CardHeader className="pb-0">
-              <CardTitle className="text-[16px] font-bold">Subscription Overview</CardTitle>
+              <CardTitle className="text-[16px] font-normal">Subscription Overview</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
               <div className="h-[240px] w-full relative">
@@ -579,8 +579,8 @@ export default function SubscriptionsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[13px] text-gray-400 font-medium">Total</p>
-                  <p className="text-[16px] font-bold text-gray-800">156</p>
+                  <p className="text-[13px] text-gray-400 font-normal">Total</p>
+                  <p className="text-[16px] font-normal text-gray-800">156</p>
                 </div>
               </div>
 
@@ -589,29 +589,29 @@ export default function SubscriptionsPage() {
                   <div key={item.name} className="flex items-center justify-between text-[13px]">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-gray-500 font-medium">{item.name}</span>
+                      <span className="text-gray-500 font-normal">{item.name}</span>
                     </div>
-                    <span className="font-bold text-gray-800">
+                    <span className="font-normal text-gray-800">
                       {item.value} ({item.percentage})
                     </span>
                   </div>
                 ))}
               </div>
 
-              <Button variant="link" className="w-full mt-6 text-[#10b981] font-bold no-underline hover:no-underline hover:font-extrabold transition-all duration-200 flex items-center justify-center gap-2">
+              <Button variant="link" className="w-full mt-6 text-[#15803D] font-normal no-underline hover:no-underline hover:font-normal transition-all duration-200 flex items-center justify-center gap-2">
                 View Full Analytics <ArrowUpRight className="w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
 
           {/* Revenue Overview — Line Chart */}
-          <Card className="border border-[#e7e7e7] shadow-sm">
+          <Card className="border border-[#e1efe5] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
+              <CardTitle className="text-[16px] font-normal">Revenue Overview</CardTitle>
               <select 
                 value={revenueFilter}
                 onChange={(e) => setRevenueFilter(e.target.value as "this-year" | "last-6-months" | "this-month")}
-                className="text-[12px] font-bold text-gray-700 bg-white border border-[#e7e7e7] rounded-md px-2.5 py-1.5 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_8px_center] outline-none cursor-pointer hover:bg-gray-50 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                className="text-[12px] font-normal text-gray-700 bg-white border border-[#e1efe5] rounded-md px-2.5 py-1.5 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_8px_center] outline-none cursor-pointer hover:bg-background focus:ring-1 focus:ring-openclub-700 transition-colors"
               >
                 <option value="this-year">This Year</option>
                 <option value="last-6-months">Last 6 Months</option>
@@ -620,11 +620,11 @@ export default function SubscriptionsPage() {
             </CardHeader>
             <CardContent className="p-3 space-y-4">
               <div className="flex items-baseline gap-2 px-1">
-                <span className="text-[16px] font-bold text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
-                <div className="flex items-center text-emerald-500 text-[12px] font-medium">
+                <span className="text-[16px] font-normal text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
+                <div className="flex items-center text-openclub-700 text-[12px] font-normal">
                   <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
                   <span>{REVENUE_CHANGES[revenueFilter]}</span>
-                  <span className="text-gray-400 text-[11px] ml-1 font-medium">from last year</span>
+                  <span className="text-gray-400 text-[11px] ml-1 font-normal">from last year</span>
                 </div>
               </div>
 
@@ -633,8 +633,8 @@ export default function SubscriptionsPage() {
                   <AreaChart data={REVENUE_DATA_OPTIONS[revenueFilter]} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#15803D" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#15803D" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -653,11 +653,11 @@ export default function SubscriptionsPage() {
                     <Area
                       type="monotone"
                       dataKey="revenue"
-                      stroke="#10b981"
+                      stroke="#15803D"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorRevenue)"
-                      dot={{ r: 3, fill: "#10b981" }}
+                      dot={{ r: 3, fill: "#15803D" }}
                       activeDot={{ r: 5 }}
                     />
                   </AreaChart>
@@ -667,12 +667,12 @@ export default function SubscriptionsPage() {
           </Card>
 
           {/* Recent Activity */}
-          <Card className="border border-[#e7e7e7] shadow-sm">
+          <Card className="border border-[#e1efe5] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
+              <CardTitle className="text-[16px] font-normal">Recent Activity</CardTitle>
               <Button
                 variant="link"
-                className="text-[#10b981] p-0 h-auto font-bold text-[12px] hover:no-underline"
+                className="text-[#15803D] p-0 h-auto font-normal text-[12px] hover:no-underline"
               >
                 View All
               </Button>
@@ -681,15 +681,15 @@ export default function SubscriptionsPage() {
 
               {/* Activity 1 */}
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0">
                   <CheckCircle2 className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-bold text-gray-900 truncate">Royal Greens Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-medium shrink-0">2 hours ago</span>
+                    <span className="text-[13px] font-normal text-gray-900 truncate">Royal Greens Golf Club</span>
+                    <span className="text-[11px] text-gray-400 font-normal shrink-0">2 hours ago</span>
                   </div>
-                  <p className="text-[12px] text-gray-400 font-medium mt-0.5">
+                  <p className="text-[12px] text-gray-400 font-normal mt-0.5">
                     Subscription renewed (Professional Annual)
                   </p>
                 </div>
@@ -702,10 +702,10 @@ export default function SubscriptionsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-bold text-gray-900 truncate">Meadowbrook Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-medium shrink-0">1 day ago</span>
+                    <span className="text-[13px] font-normal text-gray-900 truncate">Meadowbrook Golf Club</span>
+                    <span className="text-[11px] text-gray-400 font-normal shrink-0">1 day ago</span>
                   </div>
-                  <p className="text-[12px] text-red-500 font-medium mt-0.5">
+                  <p className="text-[12px] text-red-500 font-normal mt-0.5">
                     Payment failed
                   </p>
                 </div>
@@ -718,10 +718,10 @@ export default function SubscriptionsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-bold text-gray-900 truncate">Pine Valley Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-medium shrink-0">3 days ago</span>
+                    <span className="text-[13px] font-normal text-gray-900 truncate">Pine Valley Golf Club</span>
+                    <span className="text-[11px] text-gray-400 font-normal shrink-0">3 days ago</span>
                   </div>
-                  <p className="text-[12px] text-gray-400 font-medium mt-0.5">
+                  <p className="text-[12px] text-gray-400 font-normal mt-0.5">
                     Upgraded to Professional plan
                   </p>
                 </div>

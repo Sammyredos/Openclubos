@@ -26,7 +26,7 @@ export function TestimonialsSection() {
     <section className="py-24 bg-slate-900 text-slate-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-[16px] md:text-[16px] font-bold">
+          <h2 className="text-[16px] md:text-[16px] font-normal">
             Trusted by the Best
           </h2>
         </div>
@@ -43,11 +43,11 @@ export function TestimonialsSection() {
                 "{testimonial.quote}"
               </p>
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-300">
+                <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center font-normal text-slate-300">
                   {testimonial.initials}
                 </div>
                 <div>
-                  <p className="font-bold text-slate-100">{testimonial.author}</p>
+                  <p className="font-normal text-slate-100">{testimonial.author}</p>
                   <p className="text-[12px] text-gray-400">{testimonial.title}</p>
                 </div>
               </div>

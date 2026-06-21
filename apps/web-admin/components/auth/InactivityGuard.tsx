@@ -145,7 +145,7 @@ export function InactivityGuard() {
                 cx="32" cy="32" r={radius}
                 strokeWidth="4"
                 fill="none"
-                stroke={isUrgent ? "#ef4444" : "#10b981"}
+                stroke={isUrgent ? "#ef4444" : "#15803D"}
                 strokeDasharray={circumference}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="round"
@@ -154,7 +154,7 @@ export function InactivityGuard() {
             </svg>
             <span
               className={cn(
-                "relative text-[16px] font-bold tabular-nums transition-colors",
+                "relative text-[16px] font-normal tabular-nums transition-colors",
                 isUrgent ? "text-red-500" : "text-gray-800"
               )}
             >
@@ -163,10 +163,10 @@ export function InactivityGuard() {
           </div>
 
           <div className="text-center">
-            <h3 className="text-[14px] font-bold text-gray-900">Session Expiring Soon</h3>
+            <h3 className="text-[14px] font-normal text-gray-900">Session Expiring Soon</h3>
             <p className="text-[14px] text-gray-500 mt-1">
               You've been inactive for 10 minutes. Your session will end in{" "}
-              <span className={cn("font-bold", isUrgent ? "text-red-500" : "text-gray-700")}>
+              <span className={cn("font-normal", isUrgent ? "text-red-500" : "text-gray-700")}>
                 {countdown}s
               </span>
               .
@@ -179,7 +179,7 @@ export function InactivityGuard() {
           <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
             <Clock className="w-4.5 h-4.5 text-amber-600" />
           </div>
-          <p className="text-[13px] font-medium text-amber-800 leading-snug">
+          <p className="text-[13px] font-normal text-amber-800 leading-snug">
             For your security, inactive sessions are automatically ended. Continue to stay logged in.
           </p>
         </div>
@@ -188,14 +188,14 @@ export function InactivityGuard() {
         <div className="flex flex-col gap-3 px-8 pt-6 pb-8">
           <button
             onClick={handleContinue}
-            className="w-full h-12 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-colors shadow-sm shadow-emerald-200"
+            className="w-full h-12 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl font-normal text-[15px] flex items-center justify-center gap-2 transition-colors shadow-sm shadow-emerald-200"
           >
             <RefreshCw className="w-5 h-5" />
             Continue Session
           </button>
           <button
             onClick={handleLogout}
-            className="w-full h-12 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-700 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all"
+            className="w-full h-12 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-700 rounded-xl font-normal text-[15px] flex items-center justify-center gap-2 transition-all"
           >
             <LogOut className="w-5 h-5" />
             Log Out

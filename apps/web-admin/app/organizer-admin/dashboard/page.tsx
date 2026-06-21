@@ -136,7 +136,7 @@ export default function OrganizerAdminDashboard() {
   };
 
   const paymentStatusData = [
-    { name: "Paid", value: stats?.paidRegistrations || 0, color: "#10b981" },
+    { name: "Paid", value: stats?.paidRegistrations || 0, color: "#15803D" },
     { name: "Pending", value: stats?.unpaidRegistrations || 0, color: "#f59e0b" },
   ];
 
@@ -149,7 +149,7 @@ export default function OrganizerAdminDashboard() {
           change={stats?.membersGrowth || "0"}
           icon={Users}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-openclub-800"
         />
         <StatCard
           title="Active Tournaments"
@@ -173,7 +173,7 @@ export default function OrganizerAdminDashboard() {
           change={stats?.revenueGrowth || "0"}
           icon={TrendingUp}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-openclub-800"
         />
         <StatCard
           title="Pending Payments"
@@ -186,9 +186,9 @@ export default function OrganizerAdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[16px] font-bold">Registrations Overview</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Registrations Overview</CardTitle>
             <SearchableSelect
               value={registrationsRange}
               onValueChange={setRegistrationsRange}
@@ -208,9 +208,9 @@ export default function OrganizerAdminDashboard() {
                     <Line
                       type="monotone"
                       dataKey="count"
-                      stroke="#10b981"
+                      stroke="#15803D"
                       strokeWidth={3}
-                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                      dot={{ fill: "#15803D", strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, strokeWidth: 0 }}
                     />
                   </LineChart>
@@ -222,9 +222,9 @@ export default function OrganizerAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[16px] font-bold">Revenue Overview</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Revenue Overview</CardTitle>
             <SearchableSelect
               value={revenueRange}
               onValueChange={setRevenueRange}
@@ -253,7 +253,7 @@ export default function OrganizerAdminDashboard() {
                         return [`₦${safe.toLocaleString()}`, "Revenue"];
                       }}
                     />
-                    <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="amount" fill="#15803D" radius={[4, 4, 0, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -265,10 +265,10 @@ export default function OrganizerAdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-bold">Upcoming Tournaments</CardTitle>
-            <Button variant="link" className="text-[#10b981] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200 hover:font-bold">
+            <CardTitle className="text-[16px] font-normal">Upcoming Tournaments</CardTitle>
+            <Button variant="link" className="text-[#15803D] p-0 h-auto font-normal no-underline hover:no-underline transition-all duration-200 hover:font-normal">
               View All Upcoming <ArrowUpRight className="w-4 h-4" />
             </Button>
           </CardHeader>
@@ -277,16 +277,16 @@ export default function OrganizerAdminDashboard() {
               upcomingTournaments.map((t) => (
                 <div key={t.id} className="flex items-center justify-between">
                   <div className="flex flex-col min-w-0">
-                    <p className="text-[14px] font-bold text-gray-800 truncate">{t.name}</p>
-                    <p className="text-[12px] text-gray-500 font-medium mt-1">
+                    <p className="text-[14px] font-normal text-gray-800 truncate">{t.name}</p>
+                    <p className="text-[12px] text-gray-500 font-normal mt-1">
                       {new Date(t.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[12px] font-bold text-gray-900">
+                    <span className="text-[12px] font-normal text-gray-900">
                       {t.entryFee === 0 || !t.entryFee ? "FREE" : `₦${t.entryFee.toLocaleString()}`}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
+                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-emerald-50 text-openclub-800 border border-emerald-100 uppercase">
                       Upcoming
                     </span>
                   </div>
@@ -294,15 +294,15 @@ export default function OrganizerAdminDashboard() {
               ))
             ) : (
               <div className="py-8 text-center">
-                <p className="text-[13px] text-gray-400 font-medium">No upcoming tournaments</p>
+                <p className="text-[13px] text-gray-400 font-normal">No upcoming tournaments</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-[16px] font-bold">Payment Status</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Payment Status</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
             <div className="h-[220px] w-full max-w-[240px]">
@@ -324,9 +324,9 @@ export default function OrganizerAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border border-[#e7e7e7] shadow-sm">
+        <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-[16px] font-bold">Recent Activity</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {recentActivity.length > 0 ? (
@@ -335,7 +335,7 @@ export default function OrganizerAdminDashboard() {
               ))
             ) : (
               <div className="py-8 text-center">
-                <p className="text-[13px] text-gray-400 font-medium">No recent activity</p>
+                <p className="text-[13px] text-gray-400 font-normal">No recent activity</p>
               </div>
             )}
           </CardContent>
@@ -353,13 +353,13 @@ function ActivityItem({ title, subtitle, time, icon: Icon, iconBg, iconColor, am
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[13px] font-bold text-gray-900 truncate">{title}</p>
-          <p className="text-[12px] text-gray-400 font-medium truncate">{subtitle}</p>
+          <p className="text-[13px] font-normal text-gray-900 truncate">{title}</p>
+          <p className="text-[12px] text-gray-400 font-normal truncate">{subtitle}</p>
         </div>
       </div>
       <div className="text-right flex flex-col items-end gap-1">
-        {amount ? <p className="text-[12px] font-bold text-emerald-600">{amount}</p> : null}
-        <p className="text-[12px] text-gray-400 font-medium whitespace-nowrap">{time}</p>
+        {amount ? <p className="text-[12px] font-normal text-openclub-800">{amount}</p> : null}
+        <p className="text-[12px] text-gray-400 font-normal whitespace-nowrap">{time}</p>
       </div>
     </div>
   );

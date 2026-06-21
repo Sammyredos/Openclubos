@@ -45,7 +45,7 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-lg border-[#e7e7e7] text-gray-500 bg-gray-50 hover:bg-gray-100"
+        className="h-9 w-9 rounded-lg border-[#e1efe5] text-gray-500 bg-background hover:bg-gray-100"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
       >
@@ -59,10 +59,10 @@ export function Pagination({
               <button
                 onClick={() => onPageChange(page)}
                 className={cn(
-                  "w-9 h-9 rounded-lg text-[13px] font-bold flex items-center justify-center transition-colors border",
+                  "w-9 h-9 rounded-lg text-[13px] font-normal flex items-center justify-center transition-colors border",
                   currentPage === page
-                    ? "bg-[#10b981] text-white border-[#10b981]"
-                    : "bg-white text-gray-500 border-transparent hover:bg-gray-50 hover:border-[#e7e7e7]"
+                    ? "bg-[#15803D] text-white border-[#15803D]"
+                    : "bg-white text-gray-500 border-transparent hover:bg-background hover:border-[#e1efe5]"
                 )}
               >
                 {page}
@@ -79,7 +79,7 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-lg border-[#e7e7e7] text-gray-500 bg-gray-50 hover:bg-gray-100"
+        className="h-9 w-9 rounded-lg border-[#e1efe5] text-gray-500 bg-background hover:bg-gray-100"
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
       >

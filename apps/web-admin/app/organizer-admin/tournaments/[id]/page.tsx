@@ -120,14 +120,14 @@ type TournamentRow = {
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
   DRAFT: { label: "Draft", color: "#94a3b8", badge: "bg-slate-50 text-gray-600" },
-  REGISTRATION_OPEN: { label: "Upcoming", color: "#10b981", badge: "bg-emerald-50 text-emerald-600 border border-emerald-100" },
+  REGISTRATION_OPEN: { label: "Upcoming", color: "#15803D", badge: "bg-emerald-50 text-openclub-800 border border-emerald-100" },
   ONGOING: { label: "Ongoing", color: "#3b82f6", badge: "bg-blue-50 text-blue-600 border border-blue-100" },
   COMPLETED: { label: "Completed", color: "#8b5cf6", badge: "bg-violet-50 text-violet-600 border border-violet-100" },
   CANCELLED: { label: "Cancelled", color: "#f43f5e", badge: "bg-rose-50 text-rose-600 border border-rose-100" },
 };
 
 const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: string; badge: string; icon: any }> = {
-  PUBLIC: { label: "Public", badge: "bg-emerald-50 text-emerald-600", icon: Globe },
+  PUBLIC: { label: "Public", badge: "bg-emerald-50 text-openclub-800", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
   INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
@@ -1191,9 +1191,9 @@ function ViewTournamentPageInner() {
   if (error || !selectedTournament) {
     return (
       <div className="p-8 text-center text-red-500 font-sans">
-        <p className="font-bold text-[14px]">Error loading tournament</p>
+        <p className="font-normal text-[14px]">Error loading tournament</p>
         <p className="text-[12px] mt-1">{error || "Tournament not found"}</p>
-        <Button onClick={() => router.push("/organizer-admin/tournaments")} className="mt-4 bg-[#10b981] hover:bg-[#0da673] text-white">
+        <Button onClick={() => router.push("/organizer-admin/tournaments")} className="mt-4 bg-[#15803D] hover:bg-[#166534] text-white">
           Back to Tournaments
         </Button>
       </div>
@@ -1203,25 +1203,25 @@ function ViewTournamentPageInner() {
   return (
     <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
       {/* Back Header */}
-      <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-xl p-5 shadow-sm">
+      <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/organizer-admin/tournaments")}
-            className="w-10 h-10 border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+            className="w-10 h-10 border border-gray-200 hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-[14px] font-bold text-gray-900">{selectedTournament.name}</h1>
+              <h1 className="text-[14px] font-normal text-gray-900">{selectedTournament.name}</h1>
               <span className={cn(
-                "px-2.5 py-0.5 rounded-lg text-[11px] font-semibold uppercase tracking-wide border",
+                "px-2.5 py-0.5 rounded-lg text-[11px] font-normal uppercase tracking-wide border",
                 STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
               )}>
                 {selectedTournament.status}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 text-[13px] text-gray-500 font-medium">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 text-[13px] text-gray-500 font-normal">
               <span className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 opacity-70" />
                 {selectedTournament.clubName}
@@ -1238,7 +1238,7 @@ function ViewTournamentPageInner() {
               </span>
               <span className="w-px h-3.5 bg-gray-300"></span>
               <span className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-gray-200 uppercase tracking-wider text-gray-500">HCP</span>
+                <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md border border-gray-200 uppercase tracking-wider text-gray-500">HCP</span>
                 {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
               </span>
             </div>
@@ -1261,7 +1261,7 @@ function ViewTournamentPageInner() {
                 }
               }}
               disabled={mutating}
-              className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[12px] flex items-center gap-2 rounded-xl px-6 shadow-lg shadow-blue-100"
+              className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-normal text-[12px] flex items-center gap-2 rounded-xl px-6 shadow-lg shadow-blue-100"
             >
               <Send className="w-4 h-4" />
               Publish Now
@@ -1272,7 +1272,7 @@ function ViewTournamentPageInner() {
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
             variant="outline"
-            className="bg-white h-10 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-[12px] flex items-center gap-2 rounded-xl shadow-sm"
+            className="bg-white h-10 border-gray-200 text-gray-700 hover:bg-background font-normal text-[12px] flex items-center gap-2 rounded-xl shadow-sm"
           >
             <Edit2 className="w-4 h-4 text-gray-400" />
             Edit Tournament
@@ -1285,7 +1285,7 @@ function ViewTournamentPageInner() {
                 setActiveDropdown(activeDropdown ? null : selectedTournament.id);
                 setDropdownAnchorEl(e.currentTarget);
               }}
-              className="bg-white h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center shadow-sm"
+              className="bg-white h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-background flex items-center justify-center shadow-sm"
             >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
@@ -1299,10 +1299,10 @@ function ViewTournamentPageInner() {
               >
                 <button
                   className={cn(
-                    "w-full text-left px-4 py-2.5 text-[12px] font-medium flex items-center gap-3",
+                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
                     selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
                       ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-700 hover:bg-gray-50"
+                      : "text-gray-700 hover:bg-background"
                   )}
                   onClick={() => {
                     if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
@@ -1312,9 +1312,9 @@ function ViewTournamentPageInner() {
                 >
                   <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
                 </button>
-                <div className="h-px bg-gray-50 my-1 mx-2" />
+                <div className="h-px bg-background my-1 mx-2" />
                 <button
-                  className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg"
+                  className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg"
                   onClick={() => handleMenuAction(selectedTournament, "delete")}
                 >
                   <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
@@ -1329,7 +1329,7 @@ function ViewTournamentPageInner() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-[#e7e7e7] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
+          <div className="bg-white border border-[#e1efe5] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
             {TABS.map((tab, i) => {
               const isActive = activeTab === tab.id;
               return (
@@ -1339,8 +1339,8 @@ function ViewTournamentPageInner() {
                   className={cn(
                     "w-full text-left flex items-center gap-3.5 px-4 py-3 border transition-all duration-200",
                     isActive
-                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-bold tab-shadow shadow-emerald-50"
-                      : "bg-white border-transparent text-gray-500 hover:bg-gray-50/50 hover:text-gray-900"
+                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-normal tab-shadow shadow-emerald-50"
+                      : "bg-white border-transparent text-gray-500 hover:bg-background/50 hover:text-gray-900"
                   )}
                 >
                   <div
@@ -1353,7 +1353,7 @@ function ViewTournamentPageInner() {
                   >
                     <tab.icon className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-[13px] font-semibold uppercase tracking-wider leading-tight">{tab.label}</span>
+                  <span className="text-[13px] font-normal uppercase tracking-wider leading-tight">{tab.label}</span>
                 </button>
               );
             })}
@@ -1367,8 +1367,8 @@ function ViewTournamentPageInner() {
             <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
               <Ban className="w-5 h-5 flex-shrink-0" />
               <div>
-                <p className="text-[16px] font-bold">Tournament Cancelled</p>
-                <p className="text-[12px] text-red-650/80 font-medium">This tournament has been cancelled and modifications are locked.</p>
+                <p className="text-[16px] font-normal">Tournament Cancelled</p>
+                <p className="text-[12px] text-red-650/80 font-normal">This tournament has been cancelled and modifications are locked.</p>
               </div>
             </div>
           )}
@@ -1376,8 +1376,8 @@ function ViewTournamentPageInner() {
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               <div>
-                <p className="text-[16px] font-bold">Tournament Completed</p>
-                <p className="text-[12px] text-emerald-650/80 font-medium">This tournament has concluded and is read-only.</p>
+                <p className="text-[16px] font-normal">Tournament Completed</p>
+                <p className="text-[12px] text-emerald-650/80 font-normal">This tournament has concluded and is read-only.</p>
               </div>
             </div>
           )}
@@ -1386,9 +1386,9 @@ function ViewTournamentPageInner() {
             {/* TABS 1: Registered Players */}
             {activeTab === "players" && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e7e7] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
                   <div>
-                    <h2 className="text-[14px] font-bold text-gray-900">Registered Players</h2>
+                    <h2 className="text-[14px] font-normal text-gray-900">Registered Players</h2>
                     <p className="text-[12px] text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
                 </div>
@@ -1404,7 +1404,7 @@ function ViewTournamentPageInner() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      className="pl-10 h-11 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
                     />
                   </div>
                   <SearchableSelect
@@ -1445,10 +1445,10 @@ function ViewTournamentPageInner() {
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
-                    <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                    <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
                       <div className="flex flex-col">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
                             <div className="flex items-center gap-4 w-1/3">
                               <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
                               <div className="space-y-2 flex-1">
@@ -1469,10 +1469,10 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
                   ) : registrationsPageItems.length > 0 ? (
-                    <div className="overflow-x-auto relative rounded-xl border border-[#e7e7e7]">
+                    <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                          <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#e7e7e7]">
+                          <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider border-b border-[#e1efe5]">
                             <th className="px-4 py-4">Player</th>
                             <th className="px-4 py-4">Status & Payment</th>
                             <th className="px-4 py-4">Details</th>
@@ -1488,13 +1488,13 @@ function ViewTournamentPageInner() {
                               <tr
                                 key={r.id}
                                 className={cn(
-                                  "transition-all hover:bg-gray-50/50",
+                                  "transition-all hover:bg-background/50",
                                   isDisqualified ? "bg-red-50/10 opacity-75" : ""
                                 )}
                               >
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                       <img
                                         src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
                                         alt=""
@@ -1502,7 +1502,7 @@ function ViewTournamentPageInner() {
                                       />
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-[14px] font-bold text-gray-900 truncate">
+                                      <p className="text-[14px] font-normal text-gray-900 truncate">
                                         {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
                                       </p>
                                       <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
@@ -1512,20 +1512,20 @@ function ViewTournamentPageInner() {
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                         r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                           r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                             r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
                                               r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
-                                                "bg-gray-50 text-gray-600 border border-gray-200"
+                                                "bg-background text-gray-600 border border-gray-200"
                                     )}>
                                       {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
                                     </span>
                                     <span className={cn(
-                                      "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                        "bg-gray-50 text-gray-600 border border-gray-250"
+                                        "bg-background text-gray-600 border border-gray-250"
                                     )}>
                                       {r.paymentStatus}
                                     </span>
@@ -1535,14 +1535,14 @@ function ViewTournamentPageInner() {
                                   <div className="flex items-center gap-1.5">
                                     {r.user?.gender && (
                                       <span className={cn(
-                                        "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                        "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
                                         r.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
                                       )}>
                                         {r.user.gender}
                                       </span>
                                     )}
                                     {r.user?.dob && (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
                                         {(() => {
                                           const birthDate = new Date(r.user.dob);
                                           const today = new Date();
@@ -1557,11 +1557,11 @@ function ViewTournamentPageInner() {
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                   <div className="flex items-center justify-center gap-1.5">
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                       HCP {r.user?.handicap ?? 0}
                                     </span>
                                     {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
                                         +{r.extraStrokes} Penalty
                                       </span>
                                     )}
@@ -1576,10 +1576,10 @@ function ViewTournamentPageInner() {
                                           onClick={() => handleMarkPaid(r.id)}
                                           disabled={markingPaidId === r.id}
                                           title="Mark as Paid"
-                                          className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                          className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center"
                                         >
                                           {markingPaidId === r.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                            <Loader2 className="w-4 h-4 animate-spin text-openclub-800" />
                                           ) : (
                                             <Wallet className="w-4 h-4" />
                                           )}
@@ -1613,7 +1613,7 @@ function ViewTournamentPageInner() {
 
                   {!registrationsLoading && registrationsFilteredTotal > 0 && (
                     <div className="pt-4 flex items-center justify-between gap-4">
-                      <p className="text-[13px] text-gray-500 font-medium">
+                      <p className="text-[13px] text-gray-500 font-normal">
                         Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
                         {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
                         {formatWithCommas(registrationsFilteredTotal)} registrations
@@ -1636,16 +1636,16 @@ function ViewTournamentPageInner() {
             {activeTab === "waitlist" && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0">
                     <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] text-emerald-600 font-bold uppercase tracking-wider">Queue Management</p>
-                    <h4 className="text-[15px] font-bold text-gray-900 truncate">Waitlist Queue</h4>
+                    <p className="text-[12px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
+                    <h4 className="text-[15px] font-normal text-gray-900 truncate">Waitlist Queue</h4>
                   </div>
                   <div className="text-right">
-                    <p className="text-[16px] font-black text-emerald-600 leading-none">{formatWithCommas(waitlist.filter(w => w.status === "WAITLISTED").length)}</p>
-                    <p className="text-[11px] text-emerald-650 font-bold uppercase tracking-widest mt-1">Waiting</p>
+                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(waitlist.filter(w => w.status === "WAITLISTED").length)}</p>
+                    <p className="text-[11px] text-emerald-650 font-normal uppercase tracking-widest mt-1">Waiting</p>
                   </div>
                 </div>
 
@@ -1653,17 +1653,17 @@ function ViewTournamentPageInner() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search waitlist by name or email..."
-                    className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                    className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
                     value={waitlistSearch}
                     onChange={(e) => setWaitlistSearch(e.target.value)}
                   />
                 </div>
 
-                <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
                   <button
                     onClick={() => setWaitlistFilter("PENDING")}
                     className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                      "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
                       waitlistFilter === "PENDING" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                     )}
                   >
@@ -1672,7 +1672,7 @@ function ViewTournamentPageInner() {
                   <button
                     onClick={() => setWaitlistFilter("REJECTED")}
                     className={cn(
-                      "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                      "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
                       waitlistFilter === "REJECTED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                     )}
                   >
@@ -1682,10 +1682,10 @@ function ViewTournamentPageInner() {
 
                 <div className="space-y-4">
                   {waitlistLoading ? (
-                    <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                    <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
                       <div className="flex flex-col">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                          <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
                             <div className="flex items-center gap-4 w-1/3">
                               <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
                               <div className="space-y-2 flex-1">
@@ -1706,10 +1706,10 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
                   ) : filteredWaitlist.length > 0 ? (
-                    <div className="overflow-x-auto relative rounded-xl border border-[#e7e7e7]">
+                    <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                          <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#e7e7e7]">
+                          <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider border-b border-[#e1efe5]">
                             <th className="px-4 py-4">Player</th>
                             <th className="px-4 py-4">Details</th>
                             <th className="px-4 py-4 text-center">Handicap</th>
@@ -1720,10 +1720,10 @@ function ViewTournamentPageInner() {
                           {filteredWaitlist
                             .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
                             .map((item) => (
-                              <tr key={item.id} className="transition-all hover:bg-gray-50/50">
+                              <tr key={item.id} className="transition-all hover:bg-background/50">
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                       <img
                                         src={item.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.user?.email || item.id)}`}
                                         alt=""
@@ -1732,11 +1732,11 @@ function ViewTournamentPageInner() {
                                     </div>
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
-                                        <p className="text-[14px] font-bold text-gray-900 truncate">
+                                        <p className="text-[14px] font-normal text-gray-900 truncate">
                                           {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
                                         </p>
                                         {item.status === "REJECTED" && (
-                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-normal bg-red-100 text-red-600 uppercase tracking-wider">Rejected</span>
                                         )}
                                       </div>
                                       <p className="text-[12px] text-gray-500 truncate mt-0.5">{item.user?.email}</p>
@@ -1747,14 +1747,14 @@ function ViewTournamentPageInner() {
                                   <div className="flex items-center gap-1.5">
                                     {item.user?.gender && (
                                       <span className={cn(
-                                        "text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                        "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
                                         item.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
                                       )}>
                                         {item.user.gender}
                                       </span>
                                     )}
                                     {item.user?.dob && (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
                                         {(() => {
                                           const birthDate = new Date(item.user.dob);
                                           const today = new Date();
@@ -1768,7 +1768,7 @@ function ViewTournamentPageInner() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                  <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                     HCP {item.user?.handicap ?? 0}
                                   </span>
                                 </td>
@@ -1779,10 +1779,10 @@ function ViewTournamentPageInner() {
                                         onClick={() => handleApproveWaitlist(item.id)}
                                         disabled={waitlistActionId === item.id}
                                         title="Approve"
-                                        className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                        className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center"
                                       >
                                         {waitlistActionId === item.id ? (
-                                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                          <Loader2 className="w-4 h-4 animate-spin text-openclub-800" />
                                         ) : (
                                           <CheckCircle2 className="w-4 h-4" />
                                         )}
@@ -1804,7 +1804,7 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center">
+                    <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center">
                       <EmptyState
                         icon={Clock}
                         title="Waitlist is empty"
@@ -1816,7 +1816,7 @@ function ViewTournamentPageInner() {
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                  <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
+                  <p className="text-[12px] text-amber-700 leading-relaxed font-normal">
                     <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
                   </p>
                 </div>
@@ -1829,7 +1829,7 @@ function ViewTournamentPageInner() {
                 {groupingsLoading ? (
                   <div className="space-y-8">
                     {/* Day Selection Skeleton */}
-                    <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#e7e7e7] gap-4">
+                    <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#e1efe5] gap-4">
                       <div className="flex items-center gap-3">
                         <div className="w-40 h-[56px] bg-gray-100 animate-pulse rounded-2xl" />
                         <div className="w-8 h-8 bg-gray-100 animate-pulse rounded-xl" />
@@ -1859,7 +1859,7 @@ function ViewTournamentPageInner() {
                     {/* Search & Sub-tabs Skeleton */}
                     <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
                       <div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-xl" />
-                      <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl border border-[#e7e7e7]">
+                      <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl border border-[#e1efe5]">
                         <div className="w-36 h-9 bg-gray-100 animate-pulse rounded-lg" />
                         <div className="w-32 h-9 bg-gray-100 animate-pulse rounded-lg" />
                       </div>
@@ -1868,8 +1868,8 @@ function ViewTournamentPageInner() {
                     {/* Flights Grid Skeleton */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-white rounded-xl border border-[#e7e7e7] flex flex-col shadow-sm">
-                          <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                        <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-sm">
+                          <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-xl bg-gray-100 animate-pulse shrink-0" />
                               <div className="space-y-2">
@@ -1882,7 +1882,7 @@ function ViewTournamentPageInner() {
                               <div className="w-14 h-3 bg-gray-100 animate-pulse rounded" />
                             </div>
                           </div>
-                          <div className="h-1 w-full bg-gray-50" />
+                          <div className="h-1 w-full bg-background" />
                           <div className="p-2 space-y-1">
                             {[1, 2, 3, 4].map(j => (
                               <div key={j} className="flex items-center gap-3 p-2">
@@ -1898,18 +1898,18 @@ function ViewTournamentPageInner() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-[13px] text-gray-500 font-medium mb-3">Select the tournament day you want to manage groupings for:</p>
+                    <p className="text-[13px] text-gray-500 font-normal mb-3">Select the tournament day you want to manage groupings for:</p>
                     {/* Day Selection Linear Flow */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#e7e7e7]">
+                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5]">
                       <div className="flex items-center gap-3">
-                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border border-emerald-200 px-6 py-2.5 text-[13px] font-bold rounded-xl flex items-center gap-2 uppercase tracking-widest">
-                          <Calendar className="w-4 h-4 text-emerald-600" />
+                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border border-emerald-200 px-6 py-2.5 text-[13px] font-normal rounded-xl flex items-center gap-2 uppercase tracking-widest">
+                          <Calendar className="w-4 h-4 text-openclub-800" />
                           DAY {selectedDay}
                         </div>
                         {selectedDay > 1 && (
                           <button
                             onClick={() => setSelectedDay(selectedDay - 1)}
-                            className="px-6 py-2.5 text-[13px] font-bold rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[13px] font-normal rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
                           >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Day {selectedDay - 1}
@@ -1920,7 +1920,7 @@ function ViewTournamentPageInner() {
                         {selectedDay < getTournamentDays() && (
                           <button
                             onClick={() => setSelectedDay(selectedDay + 1)}
-                            className="px-6 py-2.5 text-[13px] font-bold rounded-xl bg-[#10b981] hover:bg-emerald-600 text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[13px] font-normal rounded-xl bg-[#15803D] hover:bg-openclub-800 text-white shadow-sm transition-all duration-300 flex items-center gap-2"
                           >
                             Proceed to Day {selectedDay + 1}
                             <ArrowRight className="w-4 h-4" />
@@ -1932,9 +1932,9 @@ function ViewTournamentPageInner() {
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
                         <div className="flex gap-3">
-                          <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                          <Mail className="w-5 h-5 text-openclub-800 flex-shrink-0" />
                           <div>
-                            <h4 className="text-[14px] font-bold text-emerald-900">Send Tee Times via Email</h4>
+                            <h4 className="text-[14px] font-normal text-emerald-900">Send Tee Times via Email</h4>
                             <p className="text-[12px] text-emerald-700 mt-0.5">
                               Flights & Tee Times have been generated. Publish them via email to notify players.
                             </p>
@@ -1947,8 +1947,8 @@ function ViewTournamentPageInner() {
                           }}
                           disabled={groupingsGenerating || groupingsLoading}
                           className={cn(
-                            "bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-bold rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative",
-                            justGrouped && "animate-pulse ring-4 ring-emerald-500/30"
+                            "bg-openclub-800 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative",
+                            justGrouped && "animate-pulse ring-4 ring-openclub-700/30"
                           )}
                         >
                           <Mail className="w-4 h-4" />
@@ -1965,9 +1965,9 @@ function ViewTournamentPageInner() {
                     {/* Groupings Dashboard Header */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
-                        <h3 className="text-[14px] font-bold text-gray-900 flex items-center gap-3">
+                        <h3 className="text-[14px] font-normal text-gray-900 flex items-center gap-3">
                           Manage Flights & Tee Times
-                          <span className="text-[11px] font-bold text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
+                          <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
@@ -1975,7 +1975,7 @@ function ViewTournamentPageInner() {
                         <p className="text-[13px] text-gray-500">Pair players into groups and assign tee times for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
-                            <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
+                            <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
                               Rule: {groupingsData.rule.replace(/_/g, ' ')}
                             </span>
                           </div>
@@ -1987,16 +1987,16 @@ function ViewTournamentPageInner() {
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           disabled={!!groupingsData?.groups?.length}
-                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e7e7e7] text-gray-600 hover:bg-slate-50 hover:text-gray-900 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed transition-all text-[13px] font-bold shadow-sm"
+                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 disabled:bg-background disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed transition-all text-[13px] font-normal shadow-sm"
                           title="Grouping Rules"
                         >
-                          <Info className="w-4 h-4 text-emerald-600" />
+                          <Info className="w-4 h-4 text-openclub-800" />
                           Grouping Rules
                         </button>
                         <div className="relative inline-block">
                           <Button
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-11 px-5 text-[13px] font-bold gap-2 shadow-sm border border-emerald-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100"
+                            className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100"
                           >
                             {groupingsGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                             Auto Group Players
@@ -2045,7 +2045,7 @@ function ViewTournamentPageInner() {
                         <Button
                           onClick={handleClearGroupings}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                          className="bg-slate-900 hover:bg-slate-800 text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border border-slate-900/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
+                          className="bg-slate-900 hover:bg-slate-800 text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border border-slate-900/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
                         >
                           <RefreshCcw className="w-3.5 h-3.5" />
                           Reset All
@@ -2053,7 +2053,7 @@ function ViewTournamentPageInner() {
                         <Button
                           onClick={handleLockGroupings}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || mutating || groupingsLoading || groupingsData?.unassigned.length !== 0 || groupingsData?.groups.length === 0}
-                          className={cn("text-white h-11 px-5 text-[13px] font-bold rounded-xl shadow-sm border disabled:opacity-50 transition-all gap-2 flex items-center", selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? "bg-slate-800 border-slate-900/20 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700 border-blue-700/20")}
+                          className={cn("text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border disabled:opacity-50 transition-all gap-2 flex items-center", selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? "bg-slate-800 border-slate-900/20 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700 border-blue-700/20")}
                         >
                           <Lock className="w-3.5 h-3.5" />
                           {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? "Locked" : "Lock Flights & Tee Times"}
@@ -2072,20 +2072,20 @@ function ViewTournamentPageInner() {
                             setGroupsPage(1);
                             setUnassignedPage(1);
                           }}
-                          className="pl-10 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                          className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
                         />
                       </div>
                     </div>
 
                     {/* Sub-tabs for Unassigned/Grouped */}
-                    <div className="flex gap-2 mb-6 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                    <div className="flex gap-2 mb-6 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
                       <button
                         onClick={() => {
                           setGroupingsSubTab("unassigned");
                           setUnassignedPage(1);
                         }}
                         className={cn(
-                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
+                          "px-4 py-2 text-[13px] font-normal rounded-lg transition-all flex items-center",
                           groupingsSubTab === "unassigned"
                             ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                             : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
@@ -2093,7 +2093,7 @@ function ViewTournamentPageInner() {
                       >
                         Ungrouped Players
                         <Badge variant="outline" className={cn(
-                          "ml-2 font-black px-1.5 py-0 transition-all",
+                          "ml-2 font-normal px-1.5 py-0 transition-all",
                           groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
                         )}>
                           {groupingsData?.unassigned.length || 0}
@@ -2105,7 +2105,7 @@ function ViewTournamentPageInner() {
                           setGroupsPage(1);
                         }}
                         className={cn(
-                          "px-4 py-2 text-[13px] font-bold rounded-lg transition-all flex items-center",
+                          "px-4 py-2 text-[13px] font-normal rounded-lg transition-all flex items-center",
                           groupingsSubTab === "grouped"
                             ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                             : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
@@ -2113,7 +2113,7 @@ function ViewTournamentPageInner() {
                       >
                         Tee Flights
                         <Badge variant="outline" className={cn(
-                          "ml-2 font-black px-1.5 py-0 transition-all",
+                          "ml-2 font-normal px-1.5 py-0 transition-all",
                           groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
                         )}>
                           {groupingsData?.groups.length || 0}
@@ -2164,15 +2164,15 @@ function ViewTournamentPageInner() {
                                       key={group.id}
                                       className={cn(
                                         "group bg-white rounded-xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
-                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e7e7e7] hover:border-emerald-200 hover:shadow-md"
+                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-md"
                                       )}
                                     >
                                       {/* Group Header */}
-                                      <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                                      <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
                                         <div className="flex items-center gap-3 min-w-0">
                                           <div className={cn(
                                             "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
-                                            isFull ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-white border-[#e7e7e7] text-gray-400"
+                                            isFull ? "bg-emerald-50 border-emerald-100 text-openclub-800" : "bg-white border-[#e1efe5] text-gray-400"
                                           )}>
                                             <Flag className="w-5 h-5" />
                                           </div>
@@ -2183,32 +2183,32 @@ function ViewTournamentPageInner() {
                                                 value={editingGroupNameValue}
                                                 onChange={(e) => setEditingGroupNameValue(e.target.value)}
                                                 onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
-                                                className="h-7 py-0 px-2 text-[13px] font-bold rounded-lg border-emerald-500"
+                                                className="h-7 py-0 px-2 text-[13px] font-normal rounded-lg border-openclub-700"
                                               />
                                             ) : (
                                               <h4
                                                 onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
-                                                className="text-[14px] font-bold text-gray-900 truncate cursor-pointer hover:text-emerald-600"
+                                                className="text-[14px] font-normal text-gray-900 truncate cursor-pointer hover:text-openclub-800"
                                               >
                                                 {group.name}
                                               </h4>
                                             )}
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                               <Clock className="w-3 h-3 text-gray-400" />
-                                              <span className="text-[11px] font-bold text-gray-400 uppercase">{group.startTime || "TBD"}</span>
+                                              <span className="text-[11px] font-normal text-gray-400 uppercase">{group.startTime || "TBD"}</span>
                                             </div>
                                           </div>
                                         </div>
                                         <div className="text-right">
-                                          <div className="text-[12px] font-black text-gray-900">{occupancy}/{capacity}</div>
-                                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Flight Size</div>
+                                          <div className="text-[12px] font-normal text-gray-900">{occupancy}/{capacity}</div>
+                                          <div className="text-[9px] font-normal text-gray-400 uppercase tracking-wider">Flight Size</div>
                                         </div>
                                       </div>
 
                                       {/* Progress Bar */}
                                       <div className="h-1 w-full bg-gray-100">
                                         <div
-                                          className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-blue-500")}
+                                          className={cn("h-full transition-all duration-500", isFull ? "bg-openclub-700" : "bg-blue-500")}
                                           style={{ width: `${(occupancy / capacity) * 100}%` }}
                                         />
                                       </div>
@@ -2220,7 +2220,7 @@ function ViewTournamentPageInner() {
                                             {group.registrations.map((player: GroupingPlayer) => (
                                               <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player">
                                                 <td className="pl-3 py-2 w-[36px] align-middle">
-                                                  <div className="w-7 h-7 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
+                                                  <div className="w-7 h-7 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
                                                     <img
                                                       src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                       alt=""
@@ -2230,7 +2230,7 @@ function ViewTournamentPageInner() {
                                                 </td>
                                                 <td className="py-2 px-2 align-middle max-w-[120px]">
                                                   <NextLink href="#" className="block truncate">
-                                                    <div className="text-[12px] text-gray-900 font-bold hover:text-emerald-600 transition-colors truncate">
+                                                    <div className="text-[12px] text-gray-900 font-normal hover:text-openclub-800 transition-colors truncate">
                                                       {player.user?.firstName} {player.user?.lastName}
                                                     </div>
                                                   </NextLink>
@@ -2239,14 +2239,14 @@ function ViewTournamentPageInner() {
                                                   <div className="flex flex-wrap items-center gap-1">
                                                     {player.user?.gender && (
                                                       <span className={cn(
-                                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                        "text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
                                                       )}>
                                                         {player.user.gender.substring(0, 1)}
                                                       </span>
                                                     )}
                                                     {player.user?.dob && (
-                                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                      <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
                                                         {(() => {
                                                           const birthDate = new Date(player.user.dob);
                                                           const today = new Date();
@@ -2257,7 +2257,7 @@ function ViewTournamentPageInner() {
                                                         })()}
                                                       </span>
                                                     )}
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                    <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
                                                       HCP {player.user?.handicap ?? 0}
                                                     </span>
                                                   </div>
@@ -2270,7 +2270,7 @@ function ViewTournamentPageInner() {
                                                       const val = e.target.value;
                                                       handleMovePlayer(player.id, val === "unassigned" ? null : val);
                                                     }}
-                                                    className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
+                                                    className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
                                                   >
                                                     <option value={group.id}>☰</option>
                                                     <option value="unassigned">Unassign</option>
@@ -2282,10 +2282,10 @@ function ViewTournamentPageInner() {
                                             {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
                                               <tr key={`empty-${i}`} className="opacity-40">
                                                 <td className="pl-3 py-2 w-[36px] align-middle">
-                                                  <div className="w-7 h-7 rounded-full bg-gray-50 border border-dashed border-gray-300" />
+                                                  <div className="w-7 h-7 rounded-full bg-background border border-dashed border-gray-300" />
                                                 </td>
                                                 <td className="py-2 px-2 align-middle" colSpan={3}>
-                                                  <div className="text-[11px] font-bold text-gray-400 italic">Available Space</div>
+                                                  <div className="text-[11px] font-normal text-gray-400 italic">Available Space</div>
                                                 </td>
                                               </tr>
                                             ))}
@@ -2297,8 +2297,8 @@ function ViewTournamentPageInner() {
                                 })}
                             </div>
                             {groupingsData.groups.length > groupsPerPage && (
-                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e7e7e7]">
-                                <p className="text-[13px] text-gray-500 font-medium">
+                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e1efe5]">
+                                <p className="text-[13px] text-gray-500 font-normal">
                                   Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
                                 </p>
                                 <Pagination
@@ -2313,13 +2313,13 @@ function ViewTournamentPageInner() {
 
                         {/* Ungrouped Players Section */}
                         {groupingsSubTab === "unassigned" && (
-                          <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="p-4 border-b border-[#e7e7e7] bg-gray-50/30 flex items-center justify-between">
-                              <h4 className="text-[13px] font-bold text-gray-900 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-emerald-500" />
+                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
+                              <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-openclub-700" />
                                 Unassigned Participants
                               </h4>
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black px-2 py-0.5">
+                              <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
                                 {groupingsData.unassigned.length}
                               </Badge>
                             </div>
@@ -2350,10 +2350,10 @@ function ViewTournamentPageInner() {
                                     <div className="overflow-x-auto">
                                       <table className="w-full text-left">
                                         <thead>
-                                          <tr className="border-b border-[#e7e7e7] bg-gray-50/50">
-                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Player</th>
-                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Attributes</th>
-                                            <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                                          <tr className="border-b border-[#e1efe5] bg-background/50">
+                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider">Player</th>
+                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider">Attributes</th>
+                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider text-right">Action</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#efefef]">
@@ -2362,7 +2362,7 @@ function ViewTournamentPageInner() {
                                               <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
                                                 <td className="pl-4 py-3 align-middle">
                                                   <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e7e7e7] bg-white shadow-sm">
+                                                    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e1efe5] bg-white shadow-sm">
                                                       <img
                                                         src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                         alt=""
@@ -2371,7 +2371,7 @@ function ViewTournamentPageInner() {
                                                     </div>
                                                     <div className="min-w-0">
                                                       <NextLink href="#" className="block truncate">
-                                                        <div className="text-[13px] text-gray-900 font-bold hover:text-emerald-600 transition-colors truncate">
+                                                        <div className="text-[13px] text-gray-900 font-normal hover:text-openclub-800 transition-colors truncate">
                                                           {player.user?.firstName} {player.user?.lastName}
                                                         </div>
                                                       </NextLink>
@@ -2383,7 +2383,7 @@ function ViewTournamentPageInner() {
                                                     {/* Gender Badge */}
                                                     {player.user?.gender && (
                                                       <span className={cn(
-                                                        "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                        "text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
                                                       )}>
                                                         {player.user.gender}
@@ -2391,13 +2391,13 @@ function ViewTournamentPageInner() {
                                                     )}
                                                     {/* Category Badge */}
                                                     {player.user?.handicap !== undefined && (
-                                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
+                                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
                                                         {getGolfCategory(player.user.handicap)}
                                                       </span>
                                                     )}
                                                     {/* Age Badge */}
                                                     {player.user?.dob && (
-                                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
                                                         {(() => {
                                                           const birthDate = new Date(player.user.dob);
                                                           const today = new Date();
@@ -2409,7 +2409,7 @@ function ViewTournamentPageInner() {
                                                       </span>
                                                     )}
                                                     {/* HCP Badge */}
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
                                                       HCP {player.user?.handicap ?? 0}
                                                     </span>
                                                   </div>
@@ -2424,7 +2424,7 @@ function ViewTournamentPageInner() {
                                                         handleMovePlayer(player.id, val);
                                                       }
                                                     }}
-                                                    className="bg-white text-gray-600 border border-[#e7e7e7] text-[11px] font-bold rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-emerald-500 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
+                                                    className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
                                                   >
                                                     <option value="unassigned">Assign To...</option>
                                                     {groupingsData.groups.map((g: GroupingItem) => (
@@ -2449,8 +2449,8 @@ function ViewTournamentPageInner() {
                                       </table>
                                     </div>
                                     {filtered.length > unassignedPerPage && (
-                                      <div className="pt-4 flex items-center justify-between border-t border-[#e7e7e7]">
-                                        <p className="text-[13px] text-gray-500 font-medium">
+                                      <div className="pt-4 flex items-center justify-between border-t border-[#e1efe5]">
+                                        <p className="text-[13px] text-gray-500 font-normal">
                                           Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
                                         </p>
                                         <Pagination
@@ -2484,12 +2484,12 @@ function ViewTournamentPageInner() {
             {activeTab === "leaderboard" && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Day Filtering for Leaderboard */}
-                <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e7]">
+                <div className="flex items-center justify-between pb-2 border-b border-[#e1efe5]">
                   <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
                     <button
                       onClick={() => setSelectedLeaderboardDay("all")}
                       className={cn(
-                        "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
+                        "px-10 py-3 text-[14px] font-normal rounded-xl transition-all duration-300",
                         selectedLeaderboardDay === "all"
                           ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                           : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -2502,7 +2502,7 @@ function ViewTournamentPageInner() {
                         key={i}
                         onClick={() => setSelectedLeaderboardDay(i + 1)}
                         className={cn(
-                          "px-10 py-3 text-[14px] font-bold rounded-xl transition-all duration-300",
+                          "px-10 py-3 text-[14px] font-normal rounded-xl transition-all duration-300",
                           selectedLeaderboardDay === i + 1
                             ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                             : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -2513,7 +2513,7 @@ function ViewTournamentPageInner() {
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
+                    <span className="text-[11px] font-normal text-openclub-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
                       <Activity className="w-3.5 h-3.5" />
                       Viewing: {selectedLeaderboardDay === "all" ? "Tournament Total" : `Day ${selectedLeaderboardDay} Results`}
                     </span>
@@ -2525,13 +2525,13 @@ function ViewTournamentPageInner() {
                   const isLeaderboardLocked = !selectedTournament?.lockedGroupingsDays.includes(checkDay);
                   if (isLeaderboardLocked) {
                     return (
-                      <div className="flex flex-col items-center justify-center py-24 text-center border border-[#e7e7e7] rounded-xl bg-gray-50/50 mt-4">
+                      <div className="flex flex-col items-center justify-center py-24 text-center border border-[#e1efe5] rounded-xl bg-background/50 mt-4">
                         <Lock className="w-12 h-12 text-gray-300 mb-4 mx-auto" />
-                        <h3 className="text-[14px] font-bold text-gray-900 mb-2">Leaderboard Inactive</h3>
+                        <h3 className="text-[14px] font-normal text-gray-900 mb-2">Leaderboard Inactive</h3>
                         <p className="text-[12px] text-gray-500 max-w-md mx-auto mb-6">
                           You must generate and lock groupings for Day {checkDay} before scores can be recorded and tracked.
                         </p>
-                        <Button onClick={() => { setSelectedDay(checkDay); setActiveTab("groupings"); }} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold h-11 px-6 rounded-xl">
+                        <Button onClick={() => { setSelectedDay(checkDay); setActiveTab("groupings"); }} className="bg-openclub-800 hover:bg-emerald-700 text-white shadow-sm font-normal h-11 px-6 rounded-xl">
                           Manage Flights & Tee Times
                         </Button>
                       </div>
@@ -2546,8 +2546,8 @@ function ViewTournamentPageInner() {
                               <AlertTriangle className="w-6 h-6 text-red-500" />
                             </div>
                             <div>
-                              <h4 className="text-red-900 font-bold text-[14px]">Tournament Cut-Off Required</h4>
-                              <p className="text-red-700 text-[13px] mt-1 font-medium max-w-2xl">
+                              <h4 className="text-red-900 font-normal text-[14px]">Tournament Cut-Off Required</h4>
+                              <p className="text-red-700 text-[13px] mt-1 font-normal max-w-2xl">
                                 A cut is configured after Round {selectedTournament?.cutAfterRound}. Once all scores for this round are finalized and verified, please apply the cut to generate the advancing players' list.
                               </p>
                             </div>
@@ -2555,7 +2555,7 @@ function ViewTournamentPageInner() {
                           <Button
                             onClick={() => setShowCutModal(true)}
                             disabled={applyingCut}
-                            className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-6 text-[14px] font-bold shadow-sm transition-colors border border-red-700/20 whitespace-nowrap"
+                            className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-6 text-[14px] font-normal shadow-sm transition-colors border border-red-700/20 whitespace-nowrap"
                           >
                             {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
                             Apply Cut-Off
@@ -2565,9 +2565,9 @@ function ViewTournamentPageInner() {
 
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                         <div className="space-y-1">
-                          <h3 className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+                          <h3 className="text-[14px] font-normal text-gray-900 flex items-center gap-2">
                             Live Standings
-                            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                            <span className="text-[10px] font-normal bg-emerald-50 text-openclub-800 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
                               Live
                             </span>
                           </h3>
@@ -2584,7 +2584,7 @@ function ViewTournamentPageInner() {
                               { value: "FEMALE", label: "Female" },
                             ]}
                             className="min-w-[120px]"
-                            triggerClassName="h-10 bg-[#f8f9fa] font-medium"
+                            triggerClassName="h-10 bg-[#f8f9fa] font-normal"
                           />
 
                           {/* Category Filter */}
@@ -2601,7 +2601,7 @@ function ViewTournamentPageInner() {
                               { value: "Open", label: "Open" },
                             ]}
                             className="min-w-[140px]"
-                            triggerClassName="h-10 bg-[#f8f9fa] font-medium"
+                            triggerClassName="h-10 bg-[#f8f9fa] font-normal"
                           />
 
                           {/* Sort Filter */}
@@ -2613,15 +2613,15 @@ function ViewTournamentPageInner() {
                               { value: "GROSS", label: "Total Strokes (Gross)" },
                             ]}
                             className="min-w-[200px]"
-                            triggerClassName="h-10 bg-[#f8f9fa] font-medium"
+                            triggerClassName="h-10 bg-[#f8f9fa] font-normal"
                           />
                         </div>
                       </div>
 
                       {leaderboardLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                          <p className="text-[12px] text-gray-500 font-medium">Updating rankings...</p>
+                          <Loader2 className="w-8 h-8 text-openclub-700 animate-spin" />
+                          <p className="text-[12px] text-gray-500 font-normal">Updating rankings...</p>
                         </div>
                       ) : (
                         (() => {
@@ -2632,31 +2632,31 @@ function ViewTournamentPageInner() {
                           });
 
                           return filteredLeaderboardData.length > 0 ? (
-                            <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden">
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                   <thead>
-                                    <tr className="bg-gray-50/50 border-b border-[#e7e7e7]">
-                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16 text-center" title="Current Position">Rank</th>
-                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Player</th>
-                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Division</th>
+                                    <tr className="bg-background/50 border-b border-[#e1efe5]">
+                                      <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider w-16 text-center" title="Current Position">Rank</th>
+                                      <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider">Player</th>
+                                      <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Division</th>
                                       {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                                        <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Round {i + 1}</th>
+                                        <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Round {i + 1}</th>
                                       ))}
-                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center" title="Number of holes completed">Holes Played</th>
+                                      <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center" title="Number of holes completed">Holes Played</th>
                                       <th className="px-6 py-4 text-center" title="Total raw strokes taken">
-                                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Strokes</div>
-                                        <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(Gross)</div>
+                                        <div className="text-[11px] font-normal text-gray-400 uppercase tracking-wider">Total Strokes</div>
+                                        <div className="text-[9px] font-normal text-gray-400 normal-case mt-0.5">(Gross)</div>
                                       </th>
                                       <th className="px-6 py-4 text-center" title="Player's handicap allowance">
-                                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Handicap</div>
-                                        <div className="text-[9px] font-medium text-gray-400 normal-case mt-0.5">(HCP)</div>
+                                        <div className="text-[11px] font-normal text-gray-400 uppercase tracking-wider">Handicap</div>
+                                        <div className="text-[9px] font-normal text-gray-400 normal-case mt-0.5">(HCP)</div>
                                       </th>
                                       <th className="px-6 py-4 text-center" title="Score after handicap deduction">
-                                        <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Final Score</div>
-                                        <div className="text-[9px] font-medium text-emerald-500 normal-case mt-0.5">(Net)</div>
+                                        <div className="text-[11px] font-normal text-openclub-800 uppercase tracking-wider">Final Score</div>
+                                        <div className="text-[9px] font-normal text-openclub-700 normal-case mt-0.5">(Net)</div>
                                       </th>
-                                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Status</th>
+                                      <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Status</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-50">
@@ -2667,21 +2667,21 @@ function ViewTournamentPageInner() {
                                         <React.Fragment key={entry.user.id}>
                                           {isFirstMissedCut && (
                                             <tr>
-                                              <td colSpan={20} className="px-0 py-0 bg-gray-50">
+                                              <td colSpan={20} className="px-0 py-0 bg-background">
                                                 <div className="flex items-center justify-center py-3 border-y-2 border-dashed border-red-300">
                                                   <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm border border-red-200">
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
-                                                    <span className="text-[11px] font-bold text-red-600 uppercase tracking-widest">Cut Line</span>
+                                                    <span className="text-[11px] font-normal text-red-600 uppercase tracking-widest">Cut Line</span>
                                                   </div>
                                                 </div>
                                               </td>
                                             </tr>
                                           )}
-                                          <tr className="hover:bg-gray-50/50 transition-colors group">
+                                          <tr className="hover:bg-background/50 transition-colors group">
                                             <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center">
                                               {entry.status === "DISQUALIFIED" ? (
-                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-tight">DQ</span>
+                                                <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-tight">DQ</span>
                                               ) : rank === 1 ? (
                                                 <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
                                                   <Trophy className="w-4 h-4 text-yellow-600" />
@@ -2695,13 +2695,13 @@ function ViewTournamentPageInner() {
                                                   <Award className="w-4 h-4 text-orange-600" />
                                                 </div>
                                               ) : (
-                                                <span className="text-[13px] font-bold text-gray-400">{rank}</span>
+                                                <span className="text-[13px] font-normal text-gray-400">{rank}</span>
                                               )}
                                             </div>
                                           </td>
                                           <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                              <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e7e7e7] bg-white shadow-sm shrink-0">
+                                              <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
                                                 <img
                                                   src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
                                                   className="w-full h-full object-cover"
@@ -2709,17 +2709,17 @@ function ViewTournamentPageInner() {
                                                 />
                                               </div>
                                               <div className="min-w-0">
-                                                <div className="text-[13px] font-bold text-gray-900 truncate">
+                                                <div className="text-[13px] font-normal text-gray-900 truncate">
                                                   {entry.user.firstName} {entry.user.lastName}
                                                 </div>
-                                                <div className="text-[10px] text-gray-400 font-medium truncate">
+                                                <div className="text-[10px] text-gray-400 font-normal truncate">
                                                   {entry.user.email}
                                                 </div>
                                               </div>
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 text-center">
-                                            <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7] uppercase whitespace-nowrap">
+                                            <span className="text-[11px] font-normal text-gray-500 bg-background px-2 py-0.5 rounded-full border border-[#e1efe5] uppercase whitespace-nowrap">
                                               {getGolfCategory(entry.user.handicap)}
                                             </span>
                                           </td>
@@ -2731,26 +2731,26 @@ function ViewTournamentPageInner() {
                                             if (isAfterCut && missedCut) {
                                               return (
                                                 <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                                  <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
+                                                  <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider" title="Missed Cut">MC</span>
                                                 </td>
                                               );
                                             }
 
                                             return (
                                               <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                                <span className="text-[13px] font-bold text-gray-700">{entry.rounds[day] || "-"}</span>
+                                                <span className="text-[13px] font-normal text-gray-700">{entry.rounds[day] || "-"}</span>
                                               </td>
                                             );
                                           })}
                                           <td className="px-6 py-4 text-center">
                                             <div className="space-y-1.5">
-                                              <span className="text-[12px] font-bold text-gray-600">
+                                              <span className="text-[12px] font-normal text-gray-600">
                                                 {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
                                               </span>
                                               {entry.grossStrokes > 0 && (
                                                 <div className="w-20 mx-auto h-1 bg-gray-100 rounded-full overflow-hidden">
                                                   <div
-                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                                    className="h-full bg-openclub-700 rounded-full transition-all duration-500"
                                                     style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
                                                   />
                                                 </div>
@@ -2759,37 +2759,37 @@ function ViewTournamentPageInner() {
                                           </td>
                                           <td className="px-6 py-4 text-center">
                                             <div className="flex flex-col items-center justify-center gap-1">
-                                              <span className="text-[13px] font-bold text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                              <span className="text-[13px] font-normal text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
                                               {entry.extraStrokes > 0 && (
-                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
+                                                <span className="text-[9px] font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
                                                   +{entry.extraStrokes} Pen
                                                 </span>
                                               )}
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 text-center">
-                                            <span className="text-[11px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-[#e7e7e7]">
+                                            <span className="text-[11px] font-normal text-gray-400 bg-background px-2 py-0.5 rounded-full border border-[#e1efe5]">
                                               {entry.user.handicap || 0}
                                             </span>
                                           </td>
                                           <td className="px-6 py-4 text-center">
-                                            <span className="text-[15px] font-black text-emerald-600">
+                                            <span className="text-[15px] font-normal text-openclub-800">
                                               {entry.grossStrokes > 0 ? (entry.netStrokes > 0 ? `+${entry.netStrokes}` : entry.netStrokes === 0 ? "E" : entry.netStrokes) : "-"}
                                             </span>
                                           </td>
                                           <td className="px-6 py-4 text-center">
                                             {entry.status === "DISQUALIFIED" ? (
-                                              <span className="text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                              <span className="text-[10px] font-normal bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
                                             ) : entry.madeCut === false ? (
-                                              <span className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
+                                              <span className="text-[10px] font-normal bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
                                             ) : entry.grossStrokes > 0 ? (
                                               entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
-                                                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                                <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
                                               ) : (
-                                                <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                                <span className="text-[10px] font-normal bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
                                               )
                                             ) : (
-                                              <span className="text-[10px] font-bold bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                              <span className="text-[10px] font-normal bg-background text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
                                             )}
                                           </td>
                                           </tr>
@@ -2800,7 +2800,7 @@ function ViewTournamentPageInner() {
                                 </table>
                               </div>
                               {filteredLeaderboardData.length > 0 && (
-                                <div className="p-4 border-t border-[#e7e7e7] flex justify-end bg-gray-50/30">
+                                <div className="p-4 border-t border-[#e1efe5] flex justify-end bg-background/30">
                                   <Pagination
                                     currentPage={leaderboardPage}
                                     totalPages={Math.max(1, Math.ceil(filteredLeaderboardData.length / leaderboardPerPage))}
@@ -2810,11 +2810,11 @@ function ViewTournamentPageInner() {
                               )}
                             </div>
                           ) : (
-                            <div className="bg-white border border-[#e7e7e7] rounded-xl p-12 text-center shadow-sm">
-                              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e7e7e7]">
+                            <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center shadow-sm">
+                              <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e1efe5]">
                                 <Trophy className="w-8 h-8 text-gray-300" />
                               </div>
-                              <h3 className="text-[14px] font-bold text-gray-900 mb-1">No Scores Yet</h3>
+                              <h3 className="text-[14px] font-normal text-gray-900 mb-1">No Scores Yet</h3>
                               <p className="text-[12px] text-gray-500 max-w-[300px] mx-auto">
                                 There are no matching scores for the selected filters and day.
                               </p>
@@ -2832,12 +2832,12 @@ function ViewTournamentPageInner() {
               <div className="space-y-8">
                 {/* Statistics Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-[16px] font-bold text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Total Players</p>
+                        <p className="text-[16px] font-normal text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
+                        <p className="text-[11px] text-gray-500 font-normal mt-0.5">Total Players</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                         <Users className="w-5 h-5" />
@@ -2845,27 +2845,27 @@ function ViewTournamentPageInner() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-[16px] font-bold text-gray-900">{formatNaira(selectedTournament.entryFee)}</p>
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Per Registration</p>
+                        <p className="text-[16px] font-normal text-gray-900">{formatNaira(selectedTournament.entryFee)}</p>
+                        <p className="text-[11px] text-gray-500 font-normal mt-0.5">Per Registration</p>
                       </div>
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">
                         <Wallet className="w-5 h-5" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-4 border border-[#e7e7e7] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-[16px] font-bold text-gray-900">
+                        <p className="text-[16px] font-normal text-gray-900">
                           {selectedTournament.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
                         </p>
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">Player Limit</p>
+                        <p className="text-[11px] text-gray-500 font-normal mt-0.5">Player Limit</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
                         <Lock className="w-5 h-5" />
@@ -2877,17 +2877,17 @@ function ViewTournamentPageInner() {
                 {/* Course & Organiser Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Golf Course Box */}
-                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {courseDetails?.coverImage ? (
                           <img src={courseDetails.coverImage} className="w-full h-full object-cover" />
                         ) : (
-                          <Flag className="w-7 h-7 text-emerald-600" />
+                          <Flag className="w-7 h-7 text-openclub-800" />
                         )}
                       </div>
                       <div>
-                        <h3 className="text-[16px] font-bold text-gray-900 leading-tight">
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
                           {courseDetails?.name || "Golf Course details"}
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-1">
@@ -2897,33 +2897,33 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Holes</span>
-                        <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.holes || "—"} Holes</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Holes</span>
+                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.holes || "—"} Holes</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Par</span>
-                        <span className="text-[15px] font-extrabold text-gray-800">Par {courseDetails?.par || "—"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Par</span>
+                        <span className="text-[15px] font-normal text-gray-800">Par {courseDetails?.par || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Slope Rating</span>
-                        <span className="text-[15px] font-extrabold text-gray-800">{courseDetails?.slopeRating || "—"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Slope Rating</span>
+                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.slopeRating || "—"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Architect</span>
-                        <span className="text-[15px] font-extrabold text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Architect</span>
+                        <span className="text-[15px] font-normal text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Scoring Rules Box */}
-                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
                         <Activity className="w-7 h-7" />
                       </div>
                       <div>
-                        <h3 className="text-[16px] font-bold text-gray-900 leading-tight">
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
                           Scoring Rules
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-1">
@@ -2933,28 +2933,28 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Format</span>
-                        <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Format</span>
+                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Scoring Type</span>
-                        <span className="text-[14px] font-bold text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Scoring Type</span>
+                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Live Scoring</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Live Scoring</span>
                         <span className={cn(
-                          "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
-                          (selectedTournament as any).enableLiveScoring ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).enableLiveScoring ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
                         )}>
                           {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Marker Verification</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Marker Verification</span>
                         <span className={cn(
-                          "text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block",
-                          (selectedTournament as any).requireMarkerVerification ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).requireMarkerVerification ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
                         )}>
                           {(selectedTournament as any).requireMarkerVerification ? "REQUIRED" : "NOT REQUIRED"}
                         </span>
@@ -2965,17 +2965,17 @@ function ViewTournamentPageInner() {
 
                 {/* Organiser Box */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-xl border border-[#e7e7e7] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e7e7e7] pb-4">
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
                         {clubDetails?.logo ? (
                           <img src={clubDetails.logo} className="w-full h-full object-cover" />
                         ) : (
-                          <Trophy className="w-7 h-7 text-emerald-600" />
+                          <Trophy className="w-7 h-7 text-openclub-800" />
                         )}
                       </div>
                       <div>
-                        <h3 className="text-[16px] font-bold text-gray-900 leading-tight">
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
                           {clubDetails?.name || selectedTournament.clubName}
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-1">
@@ -2985,21 +2985,21 @@ function ViewTournamentPageInner() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Status</span>
-                        <span className="text-[13px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Status</span>
+                        <span className="text-[13px] font-normal text-openclub-800 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.status || "ACTIVE"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7]">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Plan tier</span>
-                        <span className="text-[13px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Plan tier</span>
+                        <span className="text-[13px] font-normal text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                           {clubDetails?.plan || "PRO"}
                         </span>
                       </div>
-                      <div className="p-3 bg-gray-50/60 rounded-xl border border-[#e7e7e7] col-span-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block">Admin Email</span>
-                        <span className="text-[14px] font-bold text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5] col-span-2">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Admin Email</span>
+                        <span className="text-[14px] font-normal text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
                       </div>
                     </div>
                   </div>
@@ -3009,9 +3009,9 @@ function ViewTournamentPageInner() {
 
             {activeTab === "penalize" && (
               <div className="space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e7e7] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
                   <div>
-                    <h2 className="text-[14px] font-bold text-gray-900">Penalize Player</h2>
+                    <h2 className="text-[14px] font-normal text-gray-900">Penalize Player</h2>
                     <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
                   </div>
                 </div>
@@ -3027,7 +3027,7 @@ function ViewTournamentPageInner() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      className="pl-10 h-11 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
                     />
                   </div>
                   <SearchableSelect
@@ -3046,11 +3046,11 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="flex gap-2 bg-gray-50/50 p-1.5 rounded-xl w-fit border border-[#e7e7e7]">
+                  <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
                     <button
                       onClick={() => setPenalizeFilter("APPROVED")}
                       className={cn(
-                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
                         penalizeFilter === "APPROVED" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                       )}
                     >
@@ -3059,7 +3059,7 @@ function ViewTournamentPageInner() {
                     <button
                       onClick={() => setPenalizeFilter("DISQUALIFIED")}
                       className={cn(
-                        "px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
+                        "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
                         penalizeFilter === "DISQUALIFIED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
                       )}
                     >
@@ -3095,10 +3095,10 @@ function ViewTournamentPageInner() {
                     return (
                       <>
                         {registrationsLoading ? (
-                          <div className="border border-[#e7e7e7] rounded-xl overflow-hidden bg-white">
+                          <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
                             <div className="flex flex-col">
                               {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center justify-between p-4 border-b border-[#e7e7e7] last:border-0">
+                                <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
                                   <div className="flex items-center gap-4 w-1/3">
                                     <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
                                     <div className="space-y-2 flex-1">
@@ -3119,10 +3119,10 @@ function ViewTournamentPageInner() {
                             </div>
                           </div>
                         ) : penalizePageItems.length > 0 ? (
-                          <div className="bg-white border border-[#e7e7e7] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
+                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                               <thead>
-                                <tr className="bg-[#fafafa] border-b border-[#e7e7e7] text-[12px] font-bold text-gray-500 uppercase tracking-wider">
+                                <tr className="bg-[#fafafa] border-b border-[#e1efe5] text-[12px] font-normal text-gray-500 uppercase tracking-wider">
                                   <th className="px-4 py-4">Player</th>
                                   <th className="px-4 py-4">Status</th>
                                   <th className="px-4 py-4 text-center">Handicap / Penalty</th>
@@ -3136,13 +3136,13 @@ function ViewTournamentPageInner() {
                                     <tr
                                       key={r.id}
                                       className={cn(
-                                        "transition-all hover:bg-gray-50/50",
+                                        "transition-all hover:bg-background/50",
                                         isDisqualified ? "bg-red-50/10 opacity-75" : ""
                                       )}
                                     >
                                       <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e7e7e7]">
+                                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                             <img
                                               src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
                                               alt=""
@@ -3151,7 +3151,7 @@ function ViewTournamentPageInner() {
                                           </div>
                                           <div className="min-w-0">
                                             <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block">
-                                              <p className="text-[14px] font-bold text-gray-900 truncate hover:text-emerald-600 transition-colors">
+                                              <p className="text-[14px] font-normal text-gray-900 truncate hover:text-openclub-800 transition-colors">
                                                 {r.user?.firstName} {r.user?.lastName}
                                               </p>
                                             </NextLink>
@@ -3162,12 +3162,12 @@ function ViewTournamentPageInner() {
                                       <td className="px-4 py-3">
                                         <div className="flex items-center gap-1.5">
                                           {isDisqualified && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
                                               Disqualified
                                             </span>
                                           )}
                                           {!isDisqualified && r.status === "APPROVED" && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                               Active
                                             </span>
                                           )}
@@ -3175,11 +3175,11 @@ function ViewTournamentPageInner() {
                                       </td>
                                       <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1.5">
-                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                          <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                             HCP {r.user?.handicap ?? 0}
                                           </span>
                                           {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
                                               +{r.extraStrokes} Penalty
                                             </span>
                                           )}
@@ -3192,7 +3192,7 @@ function ViewTournamentPageInner() {
                                               variant="outline"
                                               onClick={() => openStrokeModal(r, "ADD_1")}
                                               title="Add 1-Stroke Penalty"
-                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-bold"
+                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-normal"
                                             >
                                               +1 Stroke
                                             </Button>
@@ -3200,7 +3200,7 @@ function ViewTournamentPageInner() {
                                               variant="outline"
                                               onClick={() => openStrokeModal(r, "ADD_2")}
                                               title="Add 2-Stroke Penalty"
-                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-bold"
+                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-normal"
                                             >
                                               +2 Strokes
                                             </Button>
@@ -3209,7 +3209,7 @@ function ViewTournamentPageInner() {
                                                 variant="outline"
                                                 onClick={() => openStrokeModal(r, "CLEAR")}
                                                 title="Clear Penalties"
-                                                className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-[11px] font-bold"
+                                                className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-background flex items-center justify-center text-[11px] font-normal"
                                               >
                                                 Clear
                                               </Button>
@@ -3230,7 +3230,7 @@ function ViewTournamentPageInner() {
                                               variant="outline"
                                               onClick={() => openEnablePlayer(r)}
                                               title="Restore Player"
-                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center text-[11px] font-bold gap-1.5"
+                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-openclub-800 hover:text-white transition-colors flex items-center justify-center text-[11px] font-normal gap-1.5"
                                             >
                                               <CheckCircle2 className="w-3.5 h-3.5" />
                                               Restore
@@ -3279,12 +3279,12 @@ function ViewTournamentPageInner() {
         title={strokeModalAction === "CLEAR" ? "Clear Penalties?" : "Apply Penalty?"}
         footer={
           <>
-            <Button variant="outline" onClick={() => { setStrokeModalRegistration(null); setStrokeModalAction(null); }} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => { setStrokeModalRegistration(null); setStrokeModalAction(null); }} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               className={cn(
-                "rounded-lg font-bold px-8 text-white border",
+                "rounded-lg font-normal px-8 text-white border",
                 strokeModalAction === "CLEAR"
                   ? "bg-gray-800 hover:bg-gray-900 border-gray-900/30"
                   : "bg-red-500 hover:bg-red-650 border-red-650/30"
@@ -3303,7 +3303,7 @@ function ViewTournamentPageInner() {
           )}>
             <AlertTriangle className="h-10 w-10 animate-bounce" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
             {strokeModalAction === "ADD_1" ? "Add 1-Stroke Penalty?" :
               strokeModalAction === "ADD_2" ? "Add 2-Stroke Penalty?" : "Clear All Penalties?"}
           </h4>
@@ -3321,11 +3321,11 @@ function ViewTournamentPageInner() {
         title="Cancel Tournament?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsCancelModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsCancelModalOpen(false)} className="rounded-lg font-normal">
               Close
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30"
               onClick={confirmCancel}
               disabled={mutating}
             >
@@ -3338,7 +3338,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 border border-amber-100">
             <AlertTriangle className="h-10 w-10 animate-bounce" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Cancel Tournament?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Cancel Tournament?</h4>
           <p className="text-gray-500 max-w-sm">
             This will set the tournament status to Cancelled. Are you sure you want to cancel {selectedTournament.name}?
           </p>
@@ -3351,12 +3351,12 @@ function ViewTournamentPageInner() {
         title="Delete Tournament Permanently?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete
@@ -3369,14 +3369,14 @@ function ViewTournamentPageInner() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
               <Trash2 className="h-10 w-10 animate-pulse" />
             </div>
-            <h4 className="text-[14px] font-bold text-gray-900 mb-2">Delete Tournament Permanently?</h4>
+            <h4 className="text-[14px] font-normal text-gray-900 mb-2">Delete Tournament Permanently?</h4>
             <p className="text-gray-500 max-w-sm">
               Deleting this tournament will permanently erase all associated rounds, leaderboards, player registrations, and payment records. This action cannot be undone.
             </p>
           </div>
 
           <div className="space-y-3">
-            <Label className="font-bold text-gray-700">
+            <Label className="font-medium text-gray-700">
               Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
             </Label>
             <Input
@@ -3398,11 +3398,11 @@ function ViewTournamentPageInner() {
         title="Disqualify Player?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDisqualifyModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsDisqualifyModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
               onClick={confirmDisqualify}
             >
               Confirm
@@ -3414,7 +3414,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 border border-amber-100">
             <Ban className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Disqualify Player?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Disqualify Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
@@ -3431,11 +3431,11 @@ function ViewTournamentPageInner() {
         footer={
           (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -3446,11 +3446,11 @@ function ViewTournamentPageInner() {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-bold">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
                 onClick={confirmRemovePlayer}
               >
                 Remove
@@ -3467,7 +3467,7 @@ function ViewTournamentPageInner() {
               <UserMinus className="h-10 w-10" />
             )}
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
             {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
           </h4>
           <p className="text-gray-500 max-w-sm">
@@ -3493,11 +3493,11 @@ function ViewTournamentPageInner() {
         title="Re-enable Player?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsEnablePlayerModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsEnablePlayerModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-emerald-500 hover:bg-emerald-600 border-emerald-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
               onClick={confirmEnablePlayer}
             >
               Enable
@@ -3506,10 +3506,10 @@ function ViewTournamentPageInner() {
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-emerald-500 border border-emerald-100">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-openclub-700 border border-emerald-100">
             <CheckCircle2 className="h-10 w-10 animate-bounce" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Re-enable Player?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Re-enable Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to re-enable <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
           </p>
@@ -3522,11 +3522,11 @@ function ViewTournamentPageInner() {
         title="Reset All Flights & Tee Times?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
               onClick={confirmResetGroupings}
             >
               Yes, Reset All
@@ -3538,7 +3538,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
           </p>
@@ -3553,32 +3553,32 @@ function ViewTournamentPageInner() {
         className="max-w-xl"
       >
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <Dices className="w-4 h-4 text-emerald-600" /> Random Grouping
+          <div className="p-4 bg-background rounded-xl border border-gray-100">
+            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
+              <Dices className="w-4 h-4 text-openclub-800" /> Random Grouping
             </h4>
             <p className="text-[13px] text-gray-600">Assigns players into groups completely at random. Good for social play.</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <div className="p-4 bg-background rounded-xl border border-gray-100">
+            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
               <Scale className="w-4 h-4 text-blue-600" /> Category Balanced
             </h4>
             <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <div className="p-4 bg-background rounded-xl border border-gray-100">
+            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players last (latest tee times).</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <div className="p-4 bg-background rounded-xl border border-gray-100">
+            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
               <TrendingDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players first (earliest tee times).</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <h4 className="font-bold text-red-600 mb-1">Reset All</h4>
+          <div className="p-4 bg-background rounded-xl border border-gray-100">
+            <h4 className="font-normal text-red-600 mb-1">Reset All</h4>
             <p className="text-[13px] text-gray-600">Clears all current groupings for the selected day, moving all players back to the unassigned list so you can start over.</p>
           </div>
         </div>
@@ -3596,28 +3596,28 @@ function ViewTournamentPageInner() {
             This will send an email to all assigned players with their specific grouping and tee time information. Review the email prototype below before publishing.
           </p>
 
-          <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-5 shadow-sm space-y-4">
-            <div className="border-b border-[#e7e7e7] pb-3 mb-3">
-              <p className="text-[12px] text-gray-500 font-medium">From: <span className="text-gray-900">OpenClubOS &lt;no-reply@openclubos.com&gt;</span></p>
-              <p className="text-[12px] text-gray-500 font-medium mt-1">Subject: <span className="text-gray-900 font-bold">Your Tee Time for Day {selectedDay} - {selectedTournament?.name}</span></p>
+          <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-5 shadow-sm space-y-4">
+            <div className="border-b border-[#e1efe5] pb-3 mb-3">
+              <p className="text-[12px] text-gray-500 font-normal">From: <span className="text-gray-900">OpenClubOS &lt;no-reply@openclubos.com&gt;</span></p>
+              <p className="text-[12px] text-gray-500 font-normal mt-1">Subject: <span className="text-gray-900 font-normal">Your Tee Time for Day {selectedDay} - {selectedTournament?.name}</span></p>
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-[18px] font-bold text-gray-900">{selectedTournament?.name}</h2>
+              <h2 className="text-[18px] font-normal text-gray-900">{selectedTournament?.name}</h2>
               <p className="text-[14px] text-gray-700">Hi [Player First Name],</p>
               <p className="text-[14px] text-gray-700">
                 Your tee time and grouping for Day {selectedDay} has been assigned. Please see the details below:
               </p>
 
-              <div className="bg-white border border-[#e7e7e7] rounded-lg p-4 my-4">
+              <div className="bg-white border border-[#e1efe5] rounded-lg p-4 my-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Tee Time</p>
-                    <p className="text-[16px] font-bold text-emerald-600">[Player Tee Time]</p>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-normal">Tee Time</p>
+                    <p className="text-[16px] font-normal text-openclub-800">[Player Tee Time]</p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">Flight</p>
-                    <p className="text-[16px] font-bold text-gray-900">[Player Flight Name]</p>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-normal">Flight</p>
+                    <p className="text-[16px] font-normal text-gray-900">[Player Flight Name]</p>
                   </div>
                 </div>
               </div>
@@ -3626,7 +3626,7 @@ function ViewTournamentPageInner() {
                 Please ensure you arrive at least 30 minutes before your tee time.
               </p>
 
-              <div className="pt-4 mt-4 border-t border-[#e7e7e7]">
+              <div className="pt-4 mt-4 border-t border-[#e1efe5]">
                 <p className="text-[12px] text-gray-500">
                   Powered by OpenClubOS
                 </p>
@@ -3634,7 +3634,7 @@ function ViewTournamentPageInner() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[#e7e7e7]">
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#e1efe5]">
             <Button
               variant="outline"
               onClick={() => setIsPublishEmailModalOpen(false)}
@@ -3646,7 +3646,7 @@ function ViewTournamentPageInner() {
             <Button
               onClick={confirmPublishGroupingsEmail}
               disabled={groupingsGenerating}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2 font-bold shadow-sm"
+              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-normal shadow-sm"
             >
               {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
               Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
@@ -3665,7 +3665,7 @@ function ViewTournamentPageInner() {
             <Button
               variant="outline"
               onClick={() => setIsDayLockModalOpen(false)}
-              className="rounded-lg font-bold"
+              className="rounded-lg font-normal"
               disabled={mutating}
             >
               Cancel
@@ -3692,7 +3692,7 @@ function ViewTournamentPageInner() {
                   setMutating(false);
                 }
               }}
-              className="rounded-lg font-bold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-650/30"
+              className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-650/30"
               disabled={mutating}
             >
               {mutating ? "Locking..." : `Lock Day ${selectedDay > 1 ? selectedDay - 1 : 1}`}
@@ -3704,9 +3704,9 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 border border-amber-100">
             <Lock className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</h4>
           <p className="text-gray-500 max-w-sm">
-            You must <span className="font-semibold text-gray-700 uppercase">finalize</span> and <span className="font-semibold text-gray-700 uppercase">irreversibly lock</span> groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
+            You must <span className="font-normal text-gray-700 uppercase">finalize</span> and <span className="font-normal text-gray-700 uppercase">irreversibly lock</span> groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
           </p>
         </div>
       </Modal>
@@ -3721,7 +3721,7 @@ function ViewTournamentPageInner() {
             <Button
               variant="outline"
               onClick={() => setIsUngroupedPlayersModalOpen(false)}
-              className="rounded-lg font-bold"
+              className="rounded-lg font-normal"
             >
               Cancel
             </Button>
@@ -3730,7 +3730,7 @@ function ViewTournamentPageInner() {
                 setIsUngroupedPlayersModalOpen(false);
                 setSelectedDay(selectedDay > 1 ? selectedDay - 1 : 1);
               }}
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
             >
               Go to Day {selectedDay > 1 ? selectedDay - 1 : 1}
             </Button>
@@ -3741,9 +3741,9 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <AlertTriangle className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Incomplete Day {selectedDay > 1 ? selectedDay - 1 : 1}</h4>
           <p className="text-gray-500 max-w-sm">
-            All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You <span className="font-semibold text-gray-700 uppercase">cannot lock</span> Day {selectedDay > 1 ? selectedDay - 1 : 1} or <span className="font-semibold text-gray-700 uppercase">generate</span> Day {selectedDay} groupings until all players are assigned a tee time.
+            All players for Day {selectedDay > 1 ? selectedDay - 1 : 1} have not been grouped yet. You <span className="font-normal text-gray-700 uppercase">cannot lock</span> Day {selectedDay > 1 ? selectedDay - 1 : 1} or <span className="font-normal text-gray-700 uppercase">generate</span> Day {selectedDay} groupings until all players are assigned a tee time.
           </p>
         </div>
       </Modal>
@@ -3754,11 +3754,11 @@ function ViewTournamentPageInner() {
         title="Apply Tournament Cut?"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-bold">
+            <Button variant="outline" onClick={() => setShowCutModal(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-bold px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
               onClick={() => {
                 setShowCutModal(false);
                 handleApplyCut();
@@ -3774,9 +3774,9 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <AlertTriangle className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Apply Tournament Cut?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Apply Tournament Cut?</h4>
           <p className="text-gray-500 max-w-sm">
-            Are you sure you want to apply the cut? This will <span className="font-semibold text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-semibold text-gray-700 uppercase">cannot be easily undone</span>.
+            Are you sure you want to apply the cut? This will <span className="font-normal text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-normal text-gray-700 uppercase">cannot be easily undone</span>.
           </p>
         </div>
       </Modal>

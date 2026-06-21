@@ -40,6 +40,11 @@ export class SuperAdminDashboardController {
     );
   }
 
+  @Get('age-demographics')
+  ageDemographics() {
+    return this.dashboard.ageDemographics();
+  }
+
   @Get('top-clubs')
   topClubs(@Query('range') range?: string) {
     return this.dashboard.topClubs(range);
@@ -48,6 +53,11 @@ export class SuperAdminDashboardController {
   @Get('top-organizers')
   topOrganizers(@Query('range') range?: string) {
     return this.dashboard.topClubs(range);
+  }
+
+  @Get('top-locations')
+  topLocations() {
+    return this.dashboard.topLocations();
   }
 
   @Get('activity')

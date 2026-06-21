@@ -95,7 +95,7 @@ export function WaitlistModal({
       title="Tournament Waitlist"
       size="xl"
       footer={
-        <Button variant="outline" onClick={onClose} className="rounded-xl font-bold">
+        <Button variant="outline" onClick={onClose} className="rounded-xl font-normal">
           Close Waitlist
         </Button>
       }
@@ -103,16 +103,16 @@ export function WaitlistModal({
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-openclub-800 flex-shrink-0">
             <Clock className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-emerald-600 font-bold uppercase tracking-wider">Queue Management</p>
-            <h4 className="text-[17px] font-bold text-gray-900 truncate">{tournamentName}</h4>
+            <p className="text-[13px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
+            <h4 className="text-[17px] font-normal text-gray-900 truncate">{tournamentName}</h4>
           </div>
           <div className="text-right">
-            <p className="text-[16px] font-black text-emerald-600 leading-none">{formatWithCommas(waitlist.length)}</p>
-            <p className="text-[11px] text-emerald-600/70 font-bold uppercase tracking-widest mt-1">Waiting</p>
+            <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(waitlist.length)}</p>
+            <p className="text-[11px] text-openclub-800/70 font-normal uppercase tracking-widest mt-1">Waiting</p>
           </div>
         </div>
 
@@ -121,17 +121,17 @@ export function WaitlistModal({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search waitlist by name or email..."
-            className="pl-10 h-12 bg-gray-50/50 border-[#e7e7e7] focus:bg-white rounded-xl text-[14px]"
+            className="pl-10 h-12 bg-background/50 border-[#e1efe5] focus:bg-white rounded-xl text-[14px]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         {/* List */}
-        <div className="border border-[#e7e7e7] rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-[#e1efe5] rounded-2xl overflow-hidden bg-white shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-[#e7e7e7]">
+              <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-widest border-b border-[#e1efe5]">
                 <th className="px-6 py-4">Player Details</th>
                 <th className="px-6 py-4">Joined Date</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -163,14 +163,14 @@ export function WaitlistModal({
                 ))
               ) : filteredWaitlist.length > 0 ? (
                 filteredWaitlist.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/30 transition-colors group">
+                  <tr key={item.id} className="hover:bg-background/30 transition-colors group">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[14px] border border-emerald-100">
+                        <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center font-normal text-[14px] border border-emerald-100">
                           {item.user?.firstName?.[0] || item.user?.email?.[0]?.toUpperCase() || "?"}
                         </div>
                         <div>
-                          <p className="text-[14px] font-bold text-gray-900 leading-tight">
+                          <p className="text-[14px] font-normal text-gray-900 leading-tight">
                             {item.user?.firstName} {item.user?.lastName}
                           </p>
                           <p className="text-[12px] text-gray-500 mt-0.5">{item.user?.email}</p>
@@ -179,14 +179,14 @@ export function WaitlistModal({
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-gray-700">
+                        <span className="text-[13px] font-normal text-gray-700">
                           {new Date(item.registeredAt).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
                           })}
                         </span>
-                        <span className="text-[11px] text-gray-400 font-medium">
+                        <span className="text-[11px] text-gray-400 font-normal">
                           {new Date(item.registeredAt).toLocaleTimeString("en-GB", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -199,7 +199,7 @@ export function WaitlistModal({
                         <Button
                           onClick={() => handleApprove(item.id)}
                           disabled={actionId === item.id}
-                          className="h-9 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[12px] font-bold gap-2 px-3"
+                          className="h-9 bg-emerald-50 text-openclub-800 hover:bg-openclub-800 hover:text-white border border-emerald-200/50 shadow-none rounded-lg text-[12px] font-normal gap-2 px-3"
                         >
                           {actionId === item.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -212,7 +212,7 @@ export function WaitlistModal({
                           onClick={() => handleRemove(item.id)}
                           disabled={actionId === item.id}
                           variant="ghost"
-                          className="h-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-bold gap-2 px-3"
+                          className="h-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-normal gap-2 px-3"
                         >
                           <UserMinus className="w-3.5 h-3.5" />
                           Remove
@@ -225,11 +225,11 @@ export function WaitlistModal({
                 <tr>
                   <td colSpan={3} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-dashed border-[#e7e7e7]">
+                      <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center border border-dashed border-[#e1efe5]">
                         <Clock className="w-8 h-8 text-gray-200" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[15px] font-bold text-gray-900">Waitlist is empty</p>
+                        <p className="text-[15px] font-normal text-gray-900">Waitlist is empty</p>
                         <p className="text-[13px] text-gray-400">No players currently in the queue for this tournament.</p>
                       </div>
                     </div>
@@ -243,7 +243,7 @@ export function WaitlistModal({
         {/* Warning Note */}
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4">
           <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0" />
-          <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
+          <p className="text-[12px] text-amber-700 leading-relaxed font-normal">
             <strong>Capacity Note:</strong> Approving a player from the waitlist will automatically increment the tournament's maximum player limit if the tournament is already full.
           </p>
         </div>

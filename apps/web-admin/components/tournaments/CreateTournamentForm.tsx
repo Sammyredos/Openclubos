@@ -228,17 +228,17 @@ const Toggle = ({ label, checked, onChange, disabled, onClickDisabled }: { label
     className={cn("flex items-center gap-3 select-none group", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}
   >
     <div
-      className={cn("relative w-10 h-6 rounded-full transition-colors flex-shrink-0", checked ? (disabled ? "bg-emerald-400" : "bg-emerald-500") : "bg-gray-200")}
+      className={cn("relative w-10 h-6 rounded-full transition-colors flex-shrink-0", checked ? (disabled ? "bg-emerald-400" : "bg-openclub-700") : "bg-gray-200")}
     >
       <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", checked ? "left-5" : "left-1")} />
     </div>
-    <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+    <span className="text-[12px] font-normal text-gray-700 group-hover:text-gray-900">{label}</span>
   </div>
 );
 
 const Field = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
   <div className="space-y-1.5">
-    <Label className="text-[13px] font-semibold text-gray-600">
+    <Label className="text-[13px] font-medium text-gray-600">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </Label>
@@ -626,13 +626,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Trophy className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Basic Details</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Basic Details</h4>
                   <p className="text-[12px] text-gray-500">Essential information about the tournament</p>
                 </div>
               </div>
@@ -684,8 +684,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
 
                 <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
-                  <Info className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <p className="text-[12px] font-medium text-emerald-700">
+                  <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                  <p className="text-[12px] font-normal text-emerald-700">
                     Note: You will only see golf courses available in the selected country.
                   </p>
                 </div>
@@ -707,7 +707,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Field label="Tournament Banner" required>
                     <div className="relative">
                       {formData.bannerPreview ? (
-                        <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-gray-50 h-40">
+                        <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-background h-40">
                           <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
                           <button
                             onClick={() => {
@@ -727,21 +727,21 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           onClick={() => fileInputRef.current?.click()}
                           className={cn(
                             "h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group",
-                            req(formData.bannerUrl) || "border-[#e7e7e7]"
+                            req(formData.bannerUrl) || "border-[#e1efe5]"
                           )}
                         >
                           {compressing ? (
                             <div className="flex flex-col items-center gap-2">
-                              <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-8 h-8 border-2 border-openclub-700 border-t-transparent rounded-full animate-spin" />
                               <span className="text-[12px] text-gray-400">Compressing image...</span>
                             </div>
                           ) : (
                             <>
                               <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                                <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
+                                <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
                               </div>
                               <div className="text-center">
-                                <p className="text-[13px] font-semibold text-gray-600 group-hover:text-emerald-600">
+                                <p className="text-[13px] font-normal text-gray-600 group-hover:text-openclub-800">
                                   Click to upload banner
                                 </p>
                                 <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
@@ -770,7 +770,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onChange={(e) => set("description", e.target.value)}
                       placeholder="Brief description of the tournament..."
                       className={cn(
-                        "flex h-40 w-full rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-emerald-500 focus-visible:outline-none resize-none font-medium",
+                        "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
                         req(formData.description)
                       )}
                     />
@@ -783,21 +783,21 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 2:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <CalendarDays className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Tournament Schedule</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Tournament Schedule</h4>
                   <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
                 </div>
               </div>
 
               <div className="p-5 space-y-6">
                 <div className="space-y-1.5">
-                  <Label className="text-[13px] font-semibold text-gray-600">Tournament Duration</Label>
-                  <div className="flex rounded-xl border border-[#e7e7e7] overflow-hidden">
+                  <Label className="text-[13px] font-medium text-gray-600">Tournament Duration</Label>
+                  <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                     <button
                       type="button"
                       onClick={() => {
@@ -805,8 +805,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         set("endDate", "");
                       }}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-all",
-                        !isMultiDay ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
+                        !isMultiDay ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
                       )}
                     >
                       <span
@@ -815,7 +815,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           !isMultiDay ? "border-white bg-white" : "border-gray-300"
                         )}
                       >
-                        {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
+                        {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
                       </span>
                       One Day
                     </button>
@@ -824,8 +824,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       type="button"
                       onClick={() => setIsMultiDay(true)}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-all",
-                        isMultiDay ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
+                        isMultiDay ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
                       )}
                     >
                       <span
@@ -834,7 +834,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           isMultiDay ? "border-white bg-white" : "border-gray-300"
                         )}
                       >
-                        {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
+                        {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
                       </span>
                       Multi-Day
                     </button>
@@ -918,20 +918,20 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 3:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <ListOrdered className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Format & Rules</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Format & Rules</h4>
                   <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
                 </div>
               </div>
 
               <div className="p-5 space-y-6">
                 <div className="space-y-2">
-                  <p className="text-[13px] font-semibold text-gray-600">
+                  <p className="text-[13px] font-normal text-gray-600">
                     Tournament Format <span className="text-red-500">*</span>
                   </p>
                   <div className="grid grid-cols-1 gap-2">
@@ -977,15 +977,15 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           className={cn(
                             "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
                             active
-                              ? "border-emerald-500 bg-emerald-50/60"
-                              : "border-[#e7e7e7] bg-white hover:border-gray-300 hover:bg-gray-50/50",
+                              ? "border-openclub-700 bg-emerald-50/60"
+                              : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50",
                             !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
                           )}
                         >
                           <div
                             className={cn(
                               "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                              active ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"
+                              active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
                             )}
                           >
                             {active && <div className="w-2 h-2 rounded-full bg-white" />}
@@ -993,7 +993,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-[13px] leading-none">{icon}</span>
-                              <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-850")}>
+                              <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-850")}>
                                 {label}
                               </span>
                             </div>
@@ -1007,10 +1007,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-[13px] font-semibold text-gray-600">
+                    <p className="text-[13px] font-normal text-gray-600">
                       Scoring Type <span className="text-red-500">*</span>
                     </p>
-                    <div className="flex rounded-xl border border-[#e7e7e7] overflow-hidden">
+                    <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                       {[
                         { value: "GROSS", label: "Gross", desc: "Actual strokes" },
                         { value: "NET", label: "Net", desc: "After handicap" },
@@ -1023,8 +1023,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             onClick={() => set("scoringType", value)}
                             disabled={!!tournamentId}
                             className={cn(
-                              "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-bold transition-all",
-                              active ? "bg-[#10b981] text-white" : "bg-white text-gray-500 hover:bg-gray-50",
+                              "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-normal transition-all",
+                              active ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background",
                               !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
                             )}
                           >
@@ -1053,7 +1053,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[13px] font-semibold text-gray-600">
+                  <p className="text-[13px] font-normal text-gray-600">
                     Divisions <span className="text-red-500">*</span>
                   </p>
                   <p className="text-[11px] text-gray-400">Select common divisions or type a custom one.</p>
@@ -1072,10 +1072,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             }
                           }}
                           className={cn(
-                            "px-3 py-1.5 rounded-full text-[12px] font-bold border-2 transition-all",
+                            "px-3 py-1.5 rounded-full text-[12px] font-normal border-2 transition-all",
                             selected
-                              ? "bg-emerald-500 text-white border-emerald-500"
-                              : "bg-white text-gray-600 border-[#e7e7e7] hover:border-emerald-300"
+                              ? "bg-openclub-700 text-white border-openclub-700"
+                              : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300"
                           )}
                         >
                           {selected ? "✓ " : ""}
@@ -1101,7 +1101,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     />
                     <button
                       type="button"
-                      className="px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-bold rounded-xl transition-colors whitespace-nowrap"
+                      className="px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-normal rounded-xl transition-colors whitespace-nowrap"
                       onClick={(e) => {
                         const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                         const val = input.value.trim();
@@ -1119,7 +1119,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       {formData.divisions.map((d) => (
                         <span
                           key={d}
-                          className="flex items-center gap-1.5 text-[12px] font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
+                          className="flex items-center gap-1.5 text-[12px] font-normal bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
                         >
                           {d}
                           <button
@@ -1141,13 +1141,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 4:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Player Capacity</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Player Capacity</h4>
                   <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
                 </div>
               </div>
@@ -1161,7 +1161,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       placeholder="e.g. 144"
                       onChange={(e) => set("maxPlayers", e.target.value)}
                     />
-                    <p className="text-[11px] text-emerald-600 font-medium mt-2 flex items-center gap-1.5 leading-tight">
+                    <p className="text-[11px] text-openclub-800 font-normal mt-2 flex items-center gap-1.5 leading-tight">
                       <Info className="w-3.5 h-3.5" />
                       Leave empty for unlimited players.
                     </p>
@@ -1174,7 +1174,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       "rounded-xl border p-4 cursor-pointer transition-all",
                       formData.enableWaitlist
                         ? "border-emerald-400 bg-emerald-50/50"
-                        : "border-[#e7e7e7] bg-gray-50/50 hover:bg-gray-100/50"
+                        : "border-[#e1efe5] bg-background/50 hover:bg-gray-100/50"
                     )}
                     onClick={() => set("enableWaitlist", !formData.enableWaitlist)}
                   >
@@ -1182,13 +1182,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       <div
                         className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                          formData.enableWaitlist ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"
+                          formData.enableWaitlist ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
                         )}
                       >
                         {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-gray-900">Enable Waitlist</p>
+                        <p className="text-[13px] font-normal text-gray-900">Enable Waitlist</p>
                         <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
                           Allow players to join a queue if the tournament reaches max capacity.
                         </p>
@@ -1197,24 +1197,24 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   </div>
 
                   {/* Handicap Restrictions Section */}
-                  <div className="bg-gray-50 rounded-xl border border-[#e7e7e7] p-4 space-y-6">
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-6">
                     <div
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-openclub-800">
                           <Shield className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="text-[14px] font-bold text-gray-900">Handicap Restrictions</h4>
+                          <h4 className="text-[14px] font-normal text-gray-900">Handicap Restrictions</h4>
                           <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
                         </div>
                       </div>
                       <div
                         className={cn(
                           "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                          formData.hasHandicapRestriction ? "bg-emerald-500" : "bg-gray-200"
+                          formData.hasHandicapRestriction ? "bg-openclub-700" : "bg-gray-200"
                         )}
                       >
                         <div
@@ -1227,7 +1227,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     </div>
 
                     {formData.hasHandicapRestriction && (
-                      <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
+                      <div className="pt-4 border-t border-[#e1efe5] animate-in slide-in-from-top-2 fade-in duration-200">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <Field label="Minimum Handicap" required>
                             <Input
@@ -1248,7 +1248,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             />
                           </Field>
                         </div>
-                        <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                        <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
                           <Info className="w-3.5 h-3.5" />
                           Only players with a handicap within this range will be allowed to register.
                         </p>
@@ -1258,24 +1258,24 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
                   {/* Cut Rules */}
                   {isMultiDay && (
-                    <div className="bg-gray-50 rounded-xl border border-[#e7e7e7] p-4 space-y-6">
+                    <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-6">
                       <div
                         className="flex items-center justify-between cursor-pointer"
                         onClick={() => set("enableCut", !formData.enableCut)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-openclub-800">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
                           </div>
                           <div>
-                            <h4 className="text-[14px] font-bold text-gray-900">Make Cut</h4>
+                            <h4 className="text-[14px] font-normal text-gray-900">Make Cut</h4>
                             <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
                           </div>
                         </div>
                         <div
                           className={cn(
                             "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                            formData.enableCut ? "bg-emerald-500" : "bg-gray-200"
+                            formData.enableCut ? "bg-openclub-700" : "bg-gray-200"
                           )}
                         >
                           <div
@@ -1288,7 +1288,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       </div>
 
                       {formData.enableCut && (
-                        <div className="pt-4 border-t border-[#e7e7e7] animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div className="pt-4 border-t border-[#e1efe5] animate-in slide-in-from-top-2 fade-in duration-200">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Field label="Cut After What Day" required>
                               <Input
@@ -1337,7 +1337,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                                   />
                                   {formData.cutFormat === "PERCENTAGE" && (
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                      <span className="text-gray-500 sm:text-[12px] font-medium">%</span>
+                                      <span className="text-gray-500 sm:text-[12px] font-normal">%</span>
                                     </div>
                                   )}
                                 </div>
@@ -1345,7 +1345,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             </div>
                           )}
                           {formData.cutFormat && (
-                            <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5 animate-in fade-in">
+                            <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5 animate-in fade-in">
                               <Info className="w-3.5 h-3.5" />
                               {formData.cutFormat === "PERCENTAGE"
                                 ? "The specified percentage of the total active players will advance to the next day."
@@ -1364,13 +1364,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 5:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Registration Fees</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Registration Fees</h4>
                   <p className="text-[12px] text-gray-500">Configure entry fees</p>
                 </div>
               </div>
@@ -1380,7 +1380,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[14px] font-bold text-amber-800">Payments Locked</p>
+                      <p className="text-[14px] font-normal text-amber-800">Payments Locked</p>
                       <p className="text-[13px] text-amber-700 mt-0.5">
                         Registration fees and payment settings are locked and cannot be modified because the tournament has been published.
                       </p>
@@ -1444,15 +1444,15 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onClickDisabled={() => toast.error("Registration fees cannot be modified for a published tournament.")}
                       onChange={(v) => set("isRefundable", v)}
                     />
-                    <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                    <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
                       <Info className="w-3.5 h-3.5" />
                       Players must complete payment during registration to secure their spot.
                     </p>
                   </div>
                 )}
                 {!formData.requiresPayment && (
-                  <div className="py-8 text-center bg-gray-50 rounded-xl border border-[#e7e7e7] animate-in fade-in">
-                    <p className="text-[13px] font-medium text-gray-500">This tournament will be free to enter.</p>
+                  <div className="py-8 text-center bg-background rounded-xl border border-[#e1efe5] animate-in fade-in">
+                    <p className="text-[13px] font-normal text-gray-500">This tournament will be free to enter.</p>
                   </div>
                 )}
               </div>
@@ -1462,22 +1462,22 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center justify-between">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                     <LayoutGrid className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-[14px] font-bold text-gray-900">
+                    <h4 className="text-[14px] font-normal text-gray-900">
                       Tee Off Date on {formatFriendlyDate(formData.startDate)}
                     </h4>
                     <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
-                  <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-emerald-500")}>
+                  <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
+                  <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
                     <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
                   </div>
                 </div>
@@ -1511,7 +1511,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     />
                   </Field>
                 </div>
-                <p className="text-[11px] text-emerald-600 font-medium mt-3 flex items-center gap-1.5">
+                <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
                   <Info className="w-3.5 h-3.5" />
                   Players will be assigned sequential tee times based on these settings.
                 </p>
@@ -1522,13 +1522,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 7:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Activity className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Scoring Rules</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Scoring Rules</h4>
                   <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
                 </div>
               </div>
@@ -1573,13 +1573,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Eye className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-bold text-gray-900">Visibility Status</h4>
+                  <h4 className="text-[14px] font-normal text-gray-900">Visibility Status</h4>
                   <p className="text-[12px] text-gray-500">Control who can see and discover this tournament</p>
                 </div>
               </div>
@@ -1611,20 +1611,20 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       className={cn(
                         "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
                         active
-                          ? "border-emerald-500 bg-emerald-50/60"
-                          : "border-[#e7e7e7] bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                          ? "border-openclub-700 bg-emerald-50/60"
+                          : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50"
                       )}
                     >
                       <div
                         className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                          active ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"
+                          active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
                         )}
                       >
                         {active && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className={cn("text-[14px] font-bold", active ? "text-emerald-700" : "text-gray-800")}>
+                        <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-800")}>
                           {label}
                         </span>
                         <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{desc}</p>
@@ -1635,27 +1635,27 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#e7e7e7] bg-white shadow-sm">
+            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
               <div
-                className={cn("px-5 py-4 border-b border-[#e7e7e7] bg-gray-50/50 rounded-t-2xl flex items-center justify-between", (originalStatus && originalStatus !== "DRAFT") ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+                className={cn("px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between", (originalStatus && originalStatus !== "DRAFT") ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
                 onClick={() => {
                   if (originalStatus && originalStatus !== "DRAFT") return;
                   set("publishImmediately", !formData.publishImmediately);
                 }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                     <Send className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-[14px] font-bold text-gray-900">Publish Immediately</h4>
+                    <h4 className="text-[14px] font-normal text-gray-900">Publish Immediately</h4>
                     <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
                   </div>
                 </div>
                 <div
                   className={cn(
                     "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                    formData.publishImmediately ? "bg-emerald-500" : "bg-gray-200"
+                    formData.publishImmediately ? "bg-openclub-700" : "bg-gray-200"
                   )}
                 >
                   <div
@@ -1670,7 +1670,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               {!formData.publishImmediately && (
                 <div className="p-5">
                   <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
-                    <p className="text-[11px] text-emerald-700 font-medium text-center leading-relaxed">
+                    <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
                       This tournament will be saved as an unpublished <strong>DRAFT</strong>.
                       <br />
                       Players cannot see or register for it until you manually publish it.
@@ -1692,16 +1692,16 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   return (
     <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
       {/* Page Header */}
-      <div className="flex items-center justify-between bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push(redirectPath)}
-            className="w-10 h-10 border border-[#e7e7e7] hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 hover:text-emerald-600 rounded-xl flex items-center justify-center transition-all"
+            className="w-10 h-10 border border-[#e1efe5] hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-[16px] font-black text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
+            <h1 className="text-[16px] font-normal text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
             <p className="text-[13px] text-gray-500 mt-0.5">
               {tournamentId ? "Update and configure the tournament details step by step" : "Setup and configure a new golf tournament step by step"}
             </p>
@@ -1713,7 +1713,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column - Steps Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-[#fafafa] border border-[#e7e7e7] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
+          <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
             {STEPS.map((name, i) => {
               const active = step === i + 1;
               const past = step > i + 1;
@@ -1724,26 +1724,26 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                     active
-                      ? "bg-[#f4fdf8] border-[#10b981] text-[#10b981]"
-                      : "bg-white border-[#e7e7e7] text-[#64748b] hover:border-gray-300 hover:bg-gray-50"
+                      ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                      : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                   )}
                 >
                   <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
                     <div
                       className={cn(
-                        "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                        "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
                         active
-                          ? "bg-[#10b981] text-white"
+                          ? "bg-[#15803D] text-white"
                           : past
-                          ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-[#e7e7e7]"
+                          ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                          : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
                       )}
                     >
                       {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                     </div>
                     <span className="text-[13px] font-normal leading-tight">{name}</span>
                   </div>
-                  {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#10b981]" />}
+                  {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                 </button>
               );
             })}
@@ -1754,14 +1754,14 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         <div className="lg:col-span-4 space-y-6">
           <div className="min-h-[400px]">
             {loading ? (
-              <div className="space-y-6 bg-white border border-[#e7e7e7] rounded-2xl p-6 animate-pulse">
+              <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
                 <div className="h-5 w-32 bg-gray-100 rounded-lg" />
-                <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                <div className="h-12 w-full bg-background rounded-xl" />
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="h-12 w-full bg-gray-50 rounded-xl" />
-                  <div className="h-12 w-full bg-gray-50 rounded-xl" />
+                  <div className="h-12 w-full bg-background rounded-xl" />
+                  <div className="h-12 w-full bg-background rounded-xl" />
                 </div>
-                <div className="h-32 w-full bg-gray-50 rounded-xl" />
+                <div className="h-32 w-full bg-background rounded-xl" />
               </div>
             ) : (
               renderStepContent()
@@ -1769,12 +1769,12 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           </div>
 
           {/* Form Actions Footer */}
-          <div className="bg-white border border-[#e7e7e7] rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div className="bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <Button
               variant="outline"
               onClick={handleBack}
               disabled={step === 1 || loading}
-              className="h-10 rounded-xl px-5 text-[13px] font-bold"
+              className="h-10 rounded-xl px-5 text-[13px] font-normal"
             >
               ← Back
             </Button>
@@ -1783,7 +1783,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 variant="outline"
                 onClick={() => router.push(redirectPath)}
                 disabled={loading || nameCheckLoading}
-                className="h-10 rounded-xl px-5 text-[13px] font-bold"
+                className="h-10 rounded-xl px-5 text-[13px] font-normal"
               >
                 Cancel
               </Button>
@@ -1791,7 +1791,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 <Button
                   onClick={handleNext}
                   disabled={nameCheckLoading}
-                  className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                 >
                   {nameCheckLoading ? "Checking..." : "Next Step →"}
                 </Button>
@@ -1799,7 +1799,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 <Button
                   onClick={handleSubmitClick}
                   disabled={loading}
-                  className="h-10 bg-[#10b981] hover:bg-[#0da673] text-white rounded-xl px-6 text-[13px] font-bold"
+                  className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                 >
                   {loading ? (tournamentId ? "Saving..." : "Creating...") : (tournamentId ? "Save Changes" : "Create Tournament")}
                 </Button>
@@ -1812,18 +1812,18 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       {showPublishConfirm && (
         <Modal isOpen={showPublishConfirm} onClose={() => setShowPublishConfirm(false)} title="Confirm Publishing" className="max-w-md z-[100]">
           <div className="space-y-4 py-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[#10b981] mb-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[#15803D] mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center space-y-2">
-              <h4 className="text-[14px] font-bold text-gray-900">Publish Tournament?</h4>
+              <h4 className="text-[14px] font-normal text-gray-900">Publish Tournament?</h4>
               <p className="text-[12px] text-gray-500">
                 Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
               </p>
             </div>
             <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1" onClick={() => setShowPublishConfirm(false)} disabled={loading}>Cancel</Button>
-              <Button className="flex-1 bg-[#10b981] hover:bg-[#0da673] text-white" onClick={() => { setShowPublishConfirm(false); handleSubmit(); }} disabled={loading}>
+              <Button className="flex-1 bg-[#15803D] hover:bg-[#166534] text-white" onClick={() => { setShowPublishConfirm(false); handleSubmit(); }} disabled={loading}>
                 {loading ? "Publishing..." : "Yes, Publish"}
               </Button>
             </div>

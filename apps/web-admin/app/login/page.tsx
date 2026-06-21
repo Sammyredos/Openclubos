@@ -127,48 +127,48 @@ function LoginPageInner() {
 
         {/* Top Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center text-white shadow-lg">
+          <div className="w-10 h-10 bg-[#15803D] rounded-full flex items-center justify-center text-white shadow-lg">
             <Icons.logo className="w-6 h-6" />
           </div>
-          <span className="text-[22px] font-bold tracking-tight">OpenClubOS</span>
+          <span className="text-[22px] font-normal tracking-tight">OpenClubOS</span>
         </div>
 
         {/* Center Content */}
         <div className="relative z-10 max-w-lg mt-12 mb-auto pb-10">
-          <h1 className="text-[44px] leading-[1.1] font-bold mb-6">
+          <h1 className="text-[44px] leading-[1.1] font-normal mb-6">
             The All-in-One<br />Platform for Golf<br />Tournaments
           </h1>
-          <p className="text-[17px] text-gray-200 mb-12 font-medium leading-relaxed">
+          <p className="text-[17px] text-gray-200 mb-12 font-normal leading-relaxed">
             Manage tournaments, players, courses and scores — all in one seamless platform.
           </p>
 
           <div className="space-y-8">
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <div className="w-10 h-10 rounded-full bg-openclub-700/20 flex items-center justify-center shrink-0 border border-openclub-700/30">
                 <Trophy className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-[15px] mb-1">Organize Tournaments</h3>
+                <h3 className="font-normal text-white text-[15px] mb-1">Organize Tournaments</h3>
                 <p className="text-gray-300 text-[14px] leading-snug">Create and manage professional golf tournaments effortlessly.</p>
               </div>
             </div>
 
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <div className="w-10 h-10 rounded-full bg-openclub-700/20 flex items-center justify-center shrink-0 border border-openclub-700/30">
                 <LineChart className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-[15px] mb-1">Live Scoring</h3>
+                <h3 className="font-normal text-white text-[15px] mb-1">Live Scoring</h3>
                 <p className="text-gray-300 text-[14px] leading-snug">Real-time scores and leaderboards that keep everyone updated.</p>
               </div>
             </div>
 
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <div className="w-10 h-10 rounded-full bg-openclub-700/20 flex items-center justify-center shrink-0 border border-openclub-700/30">
                 <PieChart className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-[15px] mb-1">Powerful Analytics</h3>
+                <h3 className="font-normal text-white text-[15px] mb-1">Powerful Analytics</h3>
                 <p className="text-gray-300 text-[14px] leading-snug">Insights and reports to grow your golf community.</p>
               </div>
             </div>
@@ -183,11 +183,11 @@ function LoginPageInner() {
               <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
               <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" className="w-10 h-10 rounded-full border-2 border-gray-900 object-cover" alt="User" />
-              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-emerald-500 flex items-center justify-center text-[11px] font-bold text-white z-10">
+              <div className="w-10 h-10 rounded-full border-2 border-gray-900 bg-openclub-700 flex items-center justify-center text-[11px] font-normal text-white z-10">
                 +2K
               </div>
             </div>
-            <p className="text-[13px] font-medium text-gray-200 leading-snug">
+            <p className="text-[13px] font-normal text-gray-200 leading-snug">
               Trusted by 2,000+ organizers<br />worldwide
             </p>
           </div>
@@ -199,10 +199,10 @@ function LoginPageInner() {
 
         {/* Top Navigation (Mockup) */}
         <div className="absolute top-6 right-8 flex items-center gap-3">
-          <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
+          <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-background transition-colors">
             <Sun className="w-5 h-5" />
           </button>
-          <button className="h-10 px-4 rounded-xl border border-gray-200 flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors font-medium text-[14px]">
+          <button className="h-10 px-4 rounded-xl border border-gray-200 flex items-center justify-center gap-2 text-gray-600 hover:bg-background transition-colors font-normal text-[14px]">
             English <ChevronDown className="w-4 h-4 text-gray-400" />
           </button>
         </div>
@@ -211,8 +211,8 @@ function LoginPageInner() {
           <div className="w-full max-w-[420px]">
             {/* Title */}
             <div className="mb-8">
-              <h2 className="text-[32px] font-extrabold text-[#0f172a] mb-2 tracking-tight">Welcome back</h2>
-              <p className="text-[15px] font-medium text-gray-500">Sign in to your OpenClubOS account</p>
+              <h2 className="text-[32px] font-normal text-[#0f172a] mb-2 tracking-tight">Welcome back</h2>
+              <p className="text-[15px] font-normal text-gray-500">Sign in to your OpenClubOS account</p>
             </div>
 
             <form
@@ -226,7 +226,7 @@ function LoginPageInner() {
             >
               {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-[14px] font-semibold text-gray-700 block">Email address</label>
+                <label htmlFor="email" className="text-[14px] font-normal text-gray-700 block">Email address</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
                     <Mail className="w-5 h-5" />
@@ -234,18 +234,18 @@ function LoginPageInner() {
                   <Input
                     id="email"
                     placeholder="Enter your email"
-                    className="pl-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                    className="pl-12 h-12 border-gray-200 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] transition-all rounded-xl text-[15px] text-gray-900"
                     {...form.register("email")}
                   />
                 </div>
                 {form.formState.errors.email && (
-                  <p className="text-[12px] text-red-500 font-medium">{form.formState.errors.email.message}</p>
+                  <p className="text-[12px] text-red-500 font-normal">{form.formState.errors.email.message}</p>
                 )}
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-[14px] font-semibold text-gray-700 block">Password</label>
+                <label htmlFor="password" className="text-[14px] font-normal text-gray-700 block">Password</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
                     <Lock className="w-5 h-5" />
@@ -254,7 +254,7 @@ function LoginPageInner() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    className="pl-12 pr-12 h-12 border-gray-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all rounded-xl text-[15px] text-gray-900"
+                    className="pl-12 pr-12 h-12 border-gray-200 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] transition-all rounded-xl text-[15px] text-gray-900"
                     {...form.register("password")}
                   />
                   <button
@@ -266,7 +266,7 @@ function LoginPageInner() {
                   </button>
                 </div>
                 {form.formState.errors.password && (
-                  <p className="text-[12px] text-red-500 font-medium">{form.formState.errors.password.message}</p>
+                  <p className="text-[12px] text-red-500 font-normal">{form.formState.errors.password.message}</p>
                 )}
               </div>
 
@@ -277,19 +277,19 @@ function LoginPageInner() {
                   onClick={() => setRememberMe(!rememberMe)}
                   className="flex items-center gap-2.5 cursor-pointer group focus:outline-none"
                 >
-                  <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${rememberMe ? 'bg-[#10b981] border-[#10b981]' : 'border-2 border-gray-300 group-hover:border-gray-400'}`}>
+                  <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${rememberMe ? 'bg-[#15803D] border-[#15803D]' : 'border-2 border-gray-300 group-hover:border-gray-400'}`}>
                     {rememberMe && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                   </div>
-                  <span className="text-[14px] font-semibold text-gray-700">Remember me</span>
+                  <span className="text-[14px] font-normal text-gray-700">Remember me</span>
                 </button>
-                <a href="/forgot-password" className="text-[14px] text-[#10b981] hover:text-[#0da673] hover:underline font-bold">Forgot password?</a>
+                <a href="/forgot-password" className="text-[14px] text-[#15803D] hover:text-[#166534] hover:underline font-normal">Forgot password?</a>
               </div>
 
               {/* Sign In Button */}
               <Button
                 type="submit"
                 disabled={isLoading || form.formState.isSubmitting}
-                className="w-full h-12 bg-[#006A42] hover:bg-[#005233] text-white rounded-[10px] font-bold text-[15px] transition-colors flex items-center justify-center gap-2"
+                className="w-full h-12 bg-[#006A42] hover:bg-[#005233] text-white rounded-[10px] font-normal text-[15px] transition-colors flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <Icons.spinner className="w-5 h-5 animate-spin" />
@@ -305,14 +305,14 @@ function LoginPageInner() {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
-                <span className="relative bg-white px-4 text-[13px] font-medium text-gray-400">or continue with</span>
+                <span className="relative bg-white px-4 text-[13px] font-normal text-gray-400">or continue with</span>
               </div>
 
               {/* Social Buttons */}
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
-                  className="h-12 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
+                  className="h-12 bg-white border border-gray-200 hover:bg-background text-gray-700 rounded-[10px] font-normal text-[14px] transition-colors flex items-center justify-center gap-2.5"
                 >
                   <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.72 1.85-1.55 2.43v2.03h2.51c1.47-1.35 2.32-3.35 2.32-5.46z" />
@@ -324,7 +324,7 @@ function LoginPageInner() {
                 </button>
                 <button
                   type="button"
-                  className="h-12 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-[10px] font-bold text-[14px] transition-colors flex items-center justify-center gap-2.5"
+                  className="h-12 bg-white border border-gray-200 hover:bg-background text-gray-700 rounded-[10px] font-normal text-[14px] transition-colors flex items-center justify-center gap-2.5"
                 >
                   <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16.365 21.43c-1.327.962-2.75 1.57-4.329 1.57-1.547 0-3.003-.604-4.301-1.558C5.068 19.508 3 15.655 3 11.168c0-3.791 1.884-7.234 5.09-9.155.105-.06.216-.109.332-.143a4.708 4.708 0 0 1 1.25-.17 4.717 4.717 0 0 1 1.156.143c1.517.404 3.036 1.05 4.546 1.83.19.1.378.204.56.315 2.924 1.82 4.664 4.887 4.664 8.237 0 4.382-2.023 8.163-4.233 10.205z" fill="none" stroke="none" />
@@ -336,8 +336,8 @@ function LoginPageInner() {
             </form>
 
             <div className="mt-8 text-center">
-              <p className="text-[14px] text-gray-600 font-medium">
-                Don&apos;t have an account? <a href="/signup-organisation" className="text-[#006A42] font-bold hover:underline">Sign up <span className="ml-0.5">→</span></a>
+              <p className="text-[14px] text-gray-600 font-normal">
+                Don&apos;t have an account? <a href="/signup-organisation" className="text-[#006A42] font-normal hover:underline">Sign up <span className="ml-0.5">→</span></a>
               </p>
             </div>
           </div>
@@ -345,10 +345,10 @@ function LoginPageInner() {
 
         {/* Bottom Security Footer */}
         <div className="w-full px-6 py-6 bg-[#f8fafc] flex items-center justify-center lg:justify-start lg:pl-12 gap-3 mt-auto border-t border-gray-100">
-          <ShieldCheck className="w-6 h-6 text-[#10b981]" />
+          <ShieldCheck className="w-6 h-6 text-[#15803D]" />
           <div>
-            <p className="text-[13px] font-bold text-gray-900">Secure and trusted platform</p>
-            <p className="text-[12px] font-medium text-gray-500 mt-0.5">Your data is protected with enterprise-grade security.</p>
+            <p className="text-[13px] font-normal text-gray-900">Secure and trusted platform</p>
+            <p className="text-[12px] font-normal text-gray-500 mt-0.5">Your data is protected with enterprise-grade security.</p>
           </div>
         </div>
       </div>
@@ -360,13 +360,13 @@ function LoginPageInner() {
         title="Email Not Verified"
         footer={
           <>
-            <Button variant="outline" onClick={() => setUnverifiedEmail(null)} className="rounded-lg font-bold border-gray-200">
+            <Button variant="outline" onClick={() => setUnverifiedEmail(null)} className="rounded-lg font-normal border-gray-200">
               Cancel
             </Button>
             <Button
               onClick={handleResendVerification}
               disabled={isResending}
-              className="bg-[#10b981] hover:bg-[#0da673] border border-emerald-600/30 text-white rounded-lg font-bold px-8"
+              className="bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal px-8"
             >
               {isResending ? <Icons.spinner className="w-5 h-5 animate-spin" /> : "Send New Link"}
             </Button>
@@ -377,9 +377,9 @@ function LoginPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
             <AlertCircle className="h-10 w-10" />
           </div>
-          <h4 className="text-[14px] font-bold text-gray-900 mb-2">Check your email</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Check your email</h4>
           <p className="text-gray-500 max-w-sm mt-1">
-            You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-bold text-gray-800">{unverifiedEmail}</span>?
+            You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-normal text-gray-800">{unverifiedEmail}</span>?
           </p>
         </div>
       </Modal>

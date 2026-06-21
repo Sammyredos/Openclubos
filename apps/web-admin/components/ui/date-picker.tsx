@@ -150,7 +150,7 @@ export function DatePicker({
           setOpen((v) => !v);
         }}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e7e7e7] bg-gray-50/50 px-4 text-left text-[12px] font-medium text-gray-700 transition-colors focus:bg-white focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e1efe5] bg-background/50 px-4 text-left text-[12px] font-normal text-gray-700 transition-colors focus:bg-white focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName,
         )}
       >
@@ -162,13 +162,13 @@ export function DatePicker({
 
       {open && (
         <div className={cn(
-          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-[#e7e7e7] bg-white shadow-xl",
+          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-[#e1efe5] bg-white shadow-xl",
           openUpwards ? "bottom-full mb-2" : "top-full mt-2"
         )}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#e7e7e7]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1efe5]">
             <button
               type="button"
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
               onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
             >
               <ChevronLeft className="h-4.5 w-4.5" />
@@ -176,7 +176,7 @@ export function DatePicker({
             
             <div className="flex gap-1">
               <select 
-                className="bg-transparent border-none text-[13px] font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-emerald-600 transition-colors"
+                className="bg-transparent border-none text-[13px] font-normal text-gray-800 focus:ring-0 cursor-pointer hover:text-openclub-800 transition-colors"
                 value={viewMonth.getMonth()}
                 onChange={(e) => setViewMonth(new Date(viewMonth.getFullYear(), parseInt(e.target.value), 1))}
               >
@@ -187,7 +187,7 @@ export function DatePicker({
                 ))}
               </select>
               <select 
-                className="bg-transparent border-none text-[13px] font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-emerald-600 transition-colors"
+                className="bg-transparent border-none text-[13px] font-normal text-gray-800 focus:ring-0 cursor-pointer hover:text-openclub-800 transition-colors"
                 value={viewMonth.getFullYear()}
                 onChange={(e) => setViewMonth(new Date(parseInt(e.target.value), viewMonth.getMonth(), 1))}
               >
@@ -200,7 +200,7 @@ export function DatePicker({
 
             <button
               type="button"
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e7e7e7] bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
               onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
             >
               <ChevronRight className="h-4.5 w-4.5" />
@@ -210,7 +210,7 @@ export function DatePicker({
           <div className="p-3">
             <div className="grid grid-cols-7 gap-0.5 mb-1.5">
               {WEEKDAYS.map((d) => (
-                <div key={d} className="text-center text-[10px] font-bold text-gray-400">
+                <div key={d} className="text-center text-[10px] font-normal text-gray-400">
                   {d}
                 </div>
               ))}
@@ -229,15 +229,15 @@ export function DatePicker({
                     type="button"
                     disabled={isDisabled}
                     className={cn(
-                      "h-8 rounded-lg text-[12px] font-bold transition-colors relative",
+                      "h-8 rounded-lg text-[12px] font-normal transition-colors relative",
                       isDisabled
                         ? "text-gray-300 cursor-not-allowed opacity-40"
                         : isSelected
-                          ? "bg-[#10b981] text-white ring-2 ring-emerald-400 ring-offset-1 z-10"
+                          ? "bg-[#15803D] text-white ring-2 ring-emerald-400 ring-offset-1 z-10"
                           : inRange
                             ? "bg-emerald-50 text-emerald-700 rounded-none first-of-type:rounded-l-lg last-of-type:rounded-r-lg"
                             : isToday
-                              ? "text-emerald-600 ring-2 ring-emerald-300 ring-offset-1 hover:bg-emerald-50"
+                              ? "text-openclub-800 ring-2 ring-emerald-300 ring-offset-1 hover:bg-emerald-50"
                               : "text-gray-700 hover:bg-emerald-50",
                     )}
                     onClick={() => {
@@ -255,10 +255,10 @@ export function DatePicker({
             </div>
 
             {allowClear && (
-              <div className="pt-3 mt-3 border-t border-[#e7e7e7] flex justify-end">
+              <div className="pt-3 mt-3 border-t border-[#e1efe5] flex justify-end">
                 <button
                   type="button"
-                  className="h-10 px-4 rounded-xl border border-[#e7e7e7] bg-white text-gray-600 text-[13px] font-bold hover:bg-gray-50 transition-colors"
+                  className="h-10 px-4 rounded-xl border border-[#e1efe5] bg-white text-gray-600 text-[13px] font-normal hover:bg-background transition-colors"
                   onClick={() => {
                     onValueChange("");
                     setOpen(false);
