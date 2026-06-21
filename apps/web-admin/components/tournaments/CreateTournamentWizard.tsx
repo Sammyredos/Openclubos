@@ -478,20 +478,67 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const stepContent = () => {
     switch (step) {
       case 1: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                <Trophy className="w-4 h-4" />
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[14px] font-normal text-gray-900">Tournament Details</h4>
+              <p className="text-[12px] text-gray-500">Basic information and location</p>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-5">
+            <Field label="Tournament Name" required>
+              <div className="relative">
+                <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
               </div>
-              <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Basic Details</h4>
-                <p className="text-[12px] text-gray-500">Essential information about the tournament</p>
-              </div>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Include the year so recurring tournaments stay unique — e.g. <span className="font-normal text-gray-500">Lagos Open 2026</span>, <span className="font-normal text-gray-500">Sunshine Tour 2026</span>.
+              </p>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Country" required>
+                <SearchableSelect value={formData.venue} onValueChange={(v) => { set("venue", v); set("courseId", ""); set("location", ""); }}
+                  options={countryOptions} placeholder="Select country..." triggerClassName={req(formData.venue)} />
+              </Field>
+              <Field label="Golf Course" required>
+                <SearchableSelect
+                  value={formData.courseId}
+                  onValueChange={handleCourseChange}
+                  options={filteredCourses.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`
+                  }))}
+                  placeholder="Select course..."
+                  disabled={!formData.venue}
+                  triggerClassName={req(formData.courseId)}
+                />
+              </Field>
             </div>
 
-            <div className="p-5 space-y-5">
-              <Field label="Tournament Name" required>
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3">
+              <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+              <p className="text-[12px] font-normal text-emerald-700">
+                Note: You will only see golf courses available in <strong>{countryOptions.find(c => c.value === formData.venue)?.label || "the selected country"}</strong>.
+              </p>
+            </div>
+
+            {user?.role === "SUPER_ADMIN" && (
+              <div className="pt-1">
+                <Field label="Organizer" required>
+                  <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
+                    options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))} placeholder="Select organizer..." triggerClassName={req(formData.clubId)} disabled={!!tournamentId} />
+                </Field>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Tournament Banner" required>
                 <div className="relative">
                   <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
@@ -584,24 +631,21 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     className={cn("flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none", req(formData.description))} />
                 </Field>
               </div>
-            </div>
-          </div>
         </div>
       );
       case 2: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                <CalendarDays className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Tournament Schedule</h4>
-                <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
-              </div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+              <CalendarDays className="w-4 h-4" />
             </div>
+            <div>
+              <h4 className="text-[14px] font-normal text-gray-900">Tournament Schedule</h4>
+              <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
+            </div>
+          </div>
 
-            <div className="p-5 space-y-6">
+          <div className="p-5 space-y-6">
 
               {/* Radio toggle — One Day vs Multi-Day */}
               <div className="space-y-1.5">
@@ -716,26 +760,22 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     </p>
                   </Field>
                 </div>
-              </div>
-
-            </div>
           </div>
         </div>
       );
       case 3: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                <ListOrdered className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Format & Rules</h4>
-                <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
-              </div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+              <ListOrdered className="w-4 h-4" />
             </div>
+            <div>
+              <h4 className="text-[14px] font-normal text-gray-900">Format & Rules</h4>
+              <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
+            </div>
+          </div>
 
-            <div className="p-5 space-y-6">
+          <div className="p-5 space-y-6">
 
               {/* ── Tournament Format ── */}
               <div className="space-y-2">
@@ -927,11 +967,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   </div>
                 )}
               </div>
-            </div>
-          </div>
         </div>
       );
-
       case 4: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
@@ -1017,19 +1054,18 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         </div>
       );
       case 5: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                <CreditCard className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Registration Fees</h4>
-                <p className="text-[12px] text-gray-500">Configure entry fees</p>
-              </div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+              <CreditCard className="w-4 h-4" />
             </div>
+            <div>
+              <h4 className="text-[14px] font-normal text-gray-900">Registration Fees</h4>
+              <p className="text-[12px] text-gray-500">Configure entry fees</p>
+            </div>
+          </div>
 
-            <div className="p-5 space-y-6">
+          <div className="p-5 space-y-6">
               <Toggle label="Requires Payment?" checked={formData.requiresPayment} onChange={(v) => set("requiresPayment", v)} />
               {formData.requiresPayment && (
                 <div className="space-y-4 pl-4 border-l-2 border-emerald-200 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1067,27 +1103,26 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         </div>
       );
       case 6: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-emerald-50/50 rounded-t-2xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <LayoutGrid className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Tee Off Date on {formatFriendlyDate(formData.startDate)}</h4>
-                  <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
-                </div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-emerald-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <LayoutGrid className="w-4 h-4" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
-                <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
-                  <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
-                </div>
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Tee Off Date on {formatFriendlyDate(formData.startDate)}</h4>
+                <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
+              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
+                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
+              </div>
+            </div>
+          </div>
 
-            <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Tee Off Start Time" required>
                   <TimePicker
@@ -1109,19 +1144,18 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         </div>
       );
       case 7: return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                <Activity className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Scoring Rules</h4>
-                <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
-              </div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+              <Activity className="w-4 h-4" />
             </div>
+            <div>
+              <h4 className="text-[14px] font-normal text-gray-900">Scoring Rules</h4>
+              <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
+            </div>
+          </div>
 
-            <div className="p-5 space-y-4">
+          <div className="p-5 space-y-4">
               <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
               <div className="pl-12">
                 <p className="text-[12px] text-gray-500 -mt-2 mb-2">Players can input scores directly via the app during the round.</p>
@@ -1136,8 +1170,6 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <div className="pl-12">
                 <p className="text-[12px] text-gray-500 -mt-2">Record scores for every single hole rather than just the final total.</p>
               </div>
-            </div>
-          </div>
         </div>
       );
       case 8: return (

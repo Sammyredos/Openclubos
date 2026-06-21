@@ -85,7 +85,6 @@ function LoginPageInner() {
       // Intentionally NOT resetting isLoading here so the button stays
       // disabled while the router.replace() in login() is navigating.
     } catch (err: unknown) {
-      console.error("Login error details:", err);
       const msg = err instanceof Error ? err.message : "Invalid email or password. Please check your credentials and try again.";
       if (msg === "EMAIL_NOT_VERIFIED" || msg.toLowerCase() === "email not verified") {
         setUnverifiedEmail(data.email);

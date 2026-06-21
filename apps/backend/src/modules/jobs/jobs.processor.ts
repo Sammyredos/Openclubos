@@ -1,9 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
-import { TournamentsService } from '../tournaments/tournaments.service';
-import { EmailService } from '../email/email.service';
+import { Job } from 'bullmq';
 import { PrismaService } from '../../common/prisma.service';
+import { EmailService } from '../email/email.service';
+import { TournamentsService } from '../tournaments/tournaments.service';
 
 export interface SendEmailJobPayload {
   template: string;
@@ -24,28 +24,36 @@ export class JobsProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(job: Job): Promise<any> {
     this.logger.log(`Starting job ${job.name} (ID: ${job.id})`);
     try {
       switch (job.name) {
         case 'AUTO_UPDATE_TOURNAMENTS':
           await this.tournamentsService.autoUpdateStatuses();
-          this.logger.log(`Completed job AUTO_UPDATE_TOURNAMENTS (ID: ${job.id}) successfully`);
+          this.logger.log(
+            `Completed job AUTO_UPDATE_TOURNAMENTS (ID: ${job.id}) successfully`,
+          );
           break;
 
         case 'SEND_TOURNAMENT_REMINDERS':
           await this.tournamentsService.sendTournamentReminders();
-          this.logger.log(`Completed job SEND_TOURNAMENT_REMINDERS (ID: ${job.id}) successfully`);
+          this.logger.log(
+            `Completed job SEND_TOURNAMENT_REMINDERS (ID: ${job.id}) successfully`,
+          );
           break;
 
         case 'DATA_RETENTION_CLEANUP':
           await this.runDataRetentionCleanup();
-          this.logger.log(`Completed job DATA_RETENTION_CLEANUP (ID: ${job.id}) successfully`);
+          this.logger.log(
+            `Completed job DATA_RETENTION_CLEANUP (ID: ${job.id}) successfully`,
+          );
           break;
 
         case 'SEND_EMAIL': {
           const { template, to, data } = job.data as SendEmailJobPayload;
-          this.logger.log(`Processing email job "${template}" to ${to} (ID: ${job.id})`);
+          this.logger.log(
+            `Processing email job "${template}" to ${to} (ID: ${job.id})`,
+          );
           const result = await this.dispatchEmail(template, to, data);
           this.logger.log(
             `Completed email job "${template}" to ${to} (ID: ${job.id}) | messageId=${result.messageId}`,
@@ -65,89 +73,177 @@ export class JobsProcessor extends WorkerHost {
     }
   }
 
-  private async dispatchEmail(template: string, to: string, data: Record<string, any>) {
+  private async dispatchEmail(
+    template: string,
+    to: string,
+    data: Record<string, any>,
+  ) {
     switch (template) {
       case 'emailVerification':
-        return this.emailService.sendEmailVerification(to, data.firstName || 'User', data.verifyUrl);
+        return this.emailService.sendEmailVerification(
+          to,
+          data.firstName || 'User',
+          data.verifyUrl,
+        );
 
       case 'WELCOME':
-        return this.emailService.sendWelcome(to, data.firstName || 'User', data.verifyUrl);
+        return this.emailService.sendWelcome(
+          to,
+          data.firstName || 'User',
+          data.verifyUrl,
+        );
 
       case 'PASSWORD_RESET':
-        return this.emailService.sendPasswordReset(to, data.resetToken || '', data.resetUrl || '');
+        return this.emailService.sendPasswordReset(
+          to,
+          data.resetToken || '',
+          data.resetUrl || '',
+        );
 
       case 'REGISTRATION':
         return this.emailService.sendRegistrationConfirmation(
-          to, data.tournamentName || 'Tournament', data.status || 'APPROVED', data.startDate, data.organizerName
+          to,
+          data.tournamentName || 'Tournament',
+          data.status || 'APPROVED',
+          data.startDate,
+          data.organizerName,
         );
 
       case 'REGISTRATION_APPROVED':
-        return this.emailService.sendRegistrationApproved(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendRegistrationApproved(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'REGISTRATION_REJECTED':
-        return this.emailService.sendRegistrationRejected(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendRegistrationRejected(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'WAITLIST':
-        return this.emailService.sendWaitlistNotification(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendWaitlistNotification(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'PAYMENT':
         return this.emailService.sendPaymentReceipt(
-          to, data.tournamentName || 'Tournament', data.amount || 0, data.currency || 'NGN', data.reference || `REF-${Date.now()}`,
+          to,
+          data.tournamentName || 'Tournament',
+          data.amount || 0,
+          data.currency || 'NGN',
+          data.reference || `REF-${Date.now()}`,
         );
 
       case 'REMINDER':
         return this.emailService.sendTournamentReminder(
-          to, data.tournamentName || 'Tournament', data.startDate || new Date().toISOString(), data.venue, data.organizerName
+          to,
+          data.tournamentName || 'Tournament',
+          data.startDate || new Date().toISOString(),
+          data.venue,
+          data.organizerName,
         );
 
       case 'TOURNAMENT_STARTED':
-        return this.emailService.sendTournamentStarted(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendTournamentStarted(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'TOURNAMENT_COMPLETED':
-        return this.emailService.sendTournamentCompleted(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendTournamentCompleted(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'PLAYER_DISQUALIFIED':
-        return this.emailService.sendPlayerDisqualified(to, data.tournamentName || 'Tournament', data.organizerName);
+        return this.emailService.sendPlayerDisqualified(
+          to,
+          data.tournamentName || 'Tournament',
+          data.organizerName,
+        );
 
       case 'PLAYER_STROKE_PENALTY':
-        return this.emailService.sendPlayerStrokePenalty(to, data.tournamentName || 'Tournament', data.strokes || 1, data.organizerName);
+        return this.emailService.sendPlayerStrokePenalty(
+          to,
+          data.tournamentName || 'Tournament',
+          data.strokes || 1,
+          data.organizerName,
+        );
 
       case 'ADMIN_CREDENTIALS':
         return this.emailService.sendAdminCredentials(
-          to, data.clubName || 'Club', data.email || to, data.password || '',
+          to,
+          data.clubName || 'Club',
+          data.email || to,
+          data.password || '',
         );
 
       case 'ACCOUNT_SUSPENDED':
-        return this.emailService.sendAccountSuspended(to, data.clubName || 'Club');
+        return this.emailService.sendAccountSuspended(
+          to,
+          data.clubName || 'Club',
+        );
 
       case 'ACCOUNT_REACTIVATED':
-        return this.emailService.sendAccountReactivated(to, data.clubName || 'Club');
+        return this.emailService.sendAccountReactivated(
+          to,
+          data.clubName || 'Club',
+        );
 
       case 'MEMBER_CREATED':
-        return this.emailService.sendMemberCreated(to, data.firstName || 'User', data.tempPassword || '');
+        return this.emailService.sendMemberCreated(
+          to,
+          data.firstName || 'User',
+          data.tempPassword || '',
+        );
 
       case 'SECURITY_ALERT':
-        return this.emailService.sendSecurityAlert(to, data.action || 'Unknown action');
+        return this.emailService.sendSecurityAlert(
+          to,
+          data.action || 'Unknown action',
+        );
 
       case 'TOURNAMENT_UPDATED':
-        return this.emailService.sendTournamentUpdate(to, data.tournamentName || 'Tournament', data.updateDetails, data.organizerName);
+        return this.emailService.sendTournamentUpdate(
+          to,
+          data.tournamentName || 'Tournament',
+          data.updateDetails,
+          data.organizerName,
+        );
 
       case 'TEE_TIME_PUBLISHED':
         return this.emailService.sendTeeTimePublished(
-          to, 
-          data.tournamentName || 'Tournament', 
-          data.roundName || 'Round 1', 
-          data.teeTime || 'TBA', 
+          to,
+          data.tournamentName || 'Tournament',
+          data.roundName || 'Round 1',
+          data.teeTime || 'TBA',
           data.groupName || 'Flight A',
           data.groupMembers || [],
-          data.organizerName
+          data.organizerName,
         );
 
       case 'TOURNAMENT_CUT_PASSED':
-        return this.emailService.sendTournamentCutPassed(to, data.tournamentName || 'Tournament', data.playerName || 'Player', data.organizerName);
+        return this.emailService.sendTournamentCutPassed(
+          to,
+          data.tournamentName || 'Tournament',
+          data.playerName || 'Player',
+          data.organizerName,
+        );
 
       case 'TOURNAMENT_CUT_MISSED':
-        return this.emailService.sendTournamentCutMissed(to, data.tournamentName || 'Tournament', data.playerName || 'Player', data.organizerName);
+        return this.emailService.sendTournamentCutMissed(
+          to,
+          data.tournamentName || 'Tournament',
+          data.playerName || 'Player',
+          data.organizerName,
+        );
 
       default:
         throw new Error(`Unsupported email template: ${template}`);
@@ -156,27 +252,31 @@ export class JobsProcessor extends WorkerHost {
 
   private async runDataRetentionCleanup() {
     this.logger.log('Starting DATA_RETENTION_CLEANUP...');
-    
+
     // 1. Audit logs: archive after 90 days
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     const deletedLogs = await this.prisma.auditLog.deleteMany({
-      where: { createdAt: { lt: ninetyDaysAgo } }
+      where: { createdAt: { lt: ninetyDaysAgo } },
     });
-    this.logger.log(`Deleted ${deletedLogs.count} audit logs older than 90 days.`);
+    this.logger.log(
+      `Deleted ${deletedLogs.count} audit logs older than 90 days.`,
+    );
 
     // 2. Soft-deleted users: hard delete after 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const deletedUsers = await this.prisma.user.deleteMany({
-      where: { deletedAt: { lt: thirtyDaysAgo } }
+      where: { deletedAt: { lt: thirtyDaysAgo } },
     });
-    this.logger.log(`Hard deleted ${deletedUsers.count} users who were soft-deleted more than 30 days ago.`);
+    this.logger.log(
+      `Hard deleted ${deletedUsers.count} users who were soft-deleted more than 30 days ago.`,
+    );
 
     // 3. Completed tournaments: archive scores after 1 year
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
+
     // Prisma does not currently support `deleteMany` across relation boundaries directly.
     // We must query the affected score IDs first, then delete them.
     const oldScores = await this.prisma.score.findMany({
@@ -184,27 +284,29 @@ export class JobsProcessor extends WorkerHost {
         group: {
           tournament: {
             status: 'COMPLETED',
-            endDate: { lt: oneYearAgo }
-          }
-        }
+            endDate: { lt: oneYearAgo },
+          },
+        },
       },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (oldScores.length > 0) {
-      const scoreIds = oldScores.map(s => s.id);
-      
+      const scoreIds = oldScores.map((s) => s.id);
+
       // Delete in batches to avoid query size limits if there are millions of scores
       const batchSize = 5000;
       let totalDeleted = 0;
       for (let i = 0; i < scoreIds.length; i += batchSize) {
         const batch = scoreIds.slice(i, i + batchSize);
         const res = await this.prisma.score.deleteMany({
-          where: { id: { in: batch } }
+          where: { id: { in: batch } },
         });
         totalDeleted += res.count;
       }
-      this.logger.log(`Deleted ${totalDeleted} scores for completed tournaments older than 1 year.`);
+      this.logger.log(
+        `Deleted ${totalDeleted} scores for completed tournaments older than 1 year.`,
+      );
     } else {
       this.logger.log('No old scores found to delete.');
     }

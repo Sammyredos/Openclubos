@@ -7,5 +7,5 @@ export interface AuditLogMetadata {
   action: string;
 }
 
-export const AuditLog = (resource: string, action: string) => 
-  SetMetadata(AUDIT_LOG_KEY, { resource, action } as AuditLogMetadata);
+export const AuditLog = (resource: string, action: string) =>
+  SetMetadata(AUDIT_LOG_KEY, { resource, action });

@@ -160,7 +160,7 @@ function SearchableSelect({
                   <div className="flex items-center justify-between w-full gap-2 overflow-hidden">
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       {o.image ? (
-                        <img src={o.image} className="w-6 h-6 rounded-md object-cover shrink-0 border border-[#e1efe5]" alt="" />
+                        <img src={o.image} className="w-6 h-6 rounded-full object-cover shrink-0 border border-[#e1efe5]" alt="" />
                       ) : o.icon ? (
                         <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
                           <o.icon className="w-3.5 h-3.5 text-openclub-800" />

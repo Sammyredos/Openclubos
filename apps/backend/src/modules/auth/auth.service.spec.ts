@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
+import { ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
+import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
-import { CacheService } from '../../common/cache/cache.service';
-import { ConflictException } from '@nestjs/common';
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -23,7 +23,9 @@ describe('AuthService', () => {
         findFirst: jest.fn(),
         create: jest.fn(),
       },
-      $transaction: jest.fn((callback: (tx: any) => any) => callback(mockPrismaService)),
+      $transaction: jest.fn((callback: (tx: any) => any) =>
+        callback(mockPrismaService),
+      ),
     };
 
     const mockJwtService = {
@@ -63,26 +65,35 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should throw ConflictException if user already exists', async () => {
-      prismaService.user.findFirst.mockResolvedValue({ id: '1', email: 'test@example.com' });
-      await expect(service.register({ 
-        email: 'test@example.com', 
-        password: 'password', 
-        name: 'John Doe', 
-        gender: 'MALE' as any
-      })).rejects.toThrow(ConflictException);
+      prismaService.user.findFirst.mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+      });
+      await expect(
+        service.register({
+          email: 'test@example.com',
+          password: 'password',
+          name: 'John Doe',
+          gender: 'MALE' as any,
+        }),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should create a new user', async () => {
       prismaService.user.findFirst.mockResolvedValue(null);
-      prismaService.user.create.mockResolvedValue({ id: '1', email: 'test@example.com', firstName: 'John' });
-      
-      const result = await service.register({ 
-        email: 'test@example.com', 
-        password: 'password', 
-        name: 'John Doe', 
-        gender: 'MALE' as any
+      prismaService.user.create.mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'John',
       });
-      
+
+      const result = await service.register({
+        email: 'test@example.com',
+        password: 'password',
+        name: 'John Doe',
+        gender: 'MALE',
+      });
+
       expect(result.email).toBe('test@example.com');
       expect(prismaService.user.create).toHaveBeenCalled();
     });

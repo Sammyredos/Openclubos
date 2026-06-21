@@ -1,5 +1,5 @@
-import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { ClubPlan, ClubStatus } from '@prisma/client';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class UpdateClubDto {
   @IsOptional()

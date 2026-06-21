@@ -8,8 +8,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import {
+  AUDIT_LOG_KEY,
+  AuditLogMetadata,
+} from '../decorators/audit-log.decorator';
 import { PrismaService } from '../prisma.service';
-import { AUDIT_LOG_KEY, AuditLogMetadata } from '../decorators/audit-log.decorator';
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
@@ -33,7 +36,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const userId = user?.userId || user?.id; // Depends on your JWT payload mapping
-    
+
     // Capture the 'before' state from the incoming request body
     // Note: For a true 'before' state of a database entity, you'd need custom logic per entity.
     // For general audit logging, capturing the payload intent is standard.
@@ -49,7 +52,10 @@ export class AuditLogInterceptor implements NestInterceptor {
           this.logAction(auditMeta, userId, beforeState, response);
         },
         error: (error) => {
-          this.logAction(auditMeta, userId, beforeState, { error: error.message, stack: error.stack });
+          this.logAction(auditMeta, userId, beforeState, {
+            error: error.message,
+            stack: error.stack,
+          });
         },
       }),
     );
@@ -72,7 +78,10 @@ export class AuditLogInterceptor implements NestInterceptor {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to create audit log for ${meta.resource}:${meta.action}`, error);
+      this.logger.error(
+        `Failed to create audit log for ${meta.resource}:${meta.action}`,
+        error,
+      );
     }
   }
 }

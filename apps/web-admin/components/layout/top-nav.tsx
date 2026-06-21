@@ -20,6 +20,11 @@ export function TopNav() {
     if (pathname === "/super-admin/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
     if (pathname === "/super-admin/tournaments") return "Tournaments";
+    if (pathname.startsWith("/super-admin/tournaments/")) return "Tournament Details";
+    if (pathname === "/super-admin/subscriptions") return "Subscriptions";
+    if (pathname === "/super-admin/golf-courses") return "Golf Courses";
+    if (pathname.startsWith("/super-admin/golf-courses/")) return "Course Details";
+    if (pathname === "/super-admin/settings") return "Settings";
     return "Dashboard";
   })();
 

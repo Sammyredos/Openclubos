@@ -1,11 +1,21 @@
+import { randomUUID } from 'crypto';
+import * as path from 'path';
+import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
-import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
+import * as Sentry from '@sentry/nestjs';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { redisStore } from 'cache-manager-ioredis-yet';
+import * as dotenv from 'dotenv';
+import { LoggerModule } from 'nestjs-pino';
 import { CacheModule } from './common/cache/cache.module';
+import { ClubGuard } from './common/guards/club.guard';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { PrismaModule } from './common/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
 import { OrganizersModule } from './modules/organizers/organizers.module';
@@ -14,23 +24,13 @@ import { SuperAdminDashboardModule } from './modules/super-admin-dashboard/super
 import { TournamentsModule } from './modules/tournaments/tournaments.module';
 import { RegistrationsModule } from './modules/registrations/registrations.module';
 import { ScoresModule } from './modules/scores/scores.module';
-import { PrismaModule } from './common/prisma.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
-import { JwtModule } from '@nestjs/jwt';
-import { ClubGuard } from './common/guards/club.guard';
-import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 
-import * as Sentry from '@sentry/nestjs';
-import { SentryModule } from '@sentry/nestjs/setup';
-import { LoggerModule } from 'nestjs-pino';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { validate } from './config/env.validation';
-import { randomUUID } from 'crypto';
 
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
@@ -56,7 +56,8 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const redisUrl = configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+        const redisUrl =
+          configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
         return {
           store: await redisStore({
             url: redisUrl,
@@ -83,9 +84,12 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const currentKeyId = configService.get<string>('JWT_CURRENT_KEY_ID') || 'v1';
+        const currentKeyId =
+          configService.get<string>('JWT_CURRENT_KEY_ID') || 'v1';
         const keysJson = configService.get<string>('JWT_KEYS');
-        const keys = keysJson ? JSON.parse(keysJson) : { v1: configService.get<string>('JWT_SECRET') };
+        const keys = keysJson
+          ? JSON.parse(keysJson)
+          : { v1: configService.get<string>('JWT_SECRET') };
         return {
           secret: keys[currentKeyId] || configService.get<string>('JWT_SECRET'),
           signOptions: {

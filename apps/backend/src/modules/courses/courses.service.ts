@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CourseStatus } from '@prisma/client';
+import { PrismaService } from '../../common/prisma.service';
 
 @Injectable()
 export class CoursesService {
@@ -13,7 +17,9 @@ export class CoursesService {
     const skip = query.skip ?? 0;
 
     const courses = await this.prisma.course.findMany({
-      where: query.clubId ? { clubId: query.clubId, status: CourseStatus.ACTIVE } : { status: CourseStatus.ACTIVE },
+      where: query.clubId
+        ? { clubId: query.clubId, status: CourseStatus.ACTIVE }
+        : { status: CourseStatus.ACTIVE },
       take,
       skip,
       select: {
@@ -34,7 +40,7 @@ export class CoursesService {
       orderBy: { name: 'asc' },
     });
 
-    return courses.map(c => ({
+    return courses.map((c) => ({
       ...c,
       holes: c.holesCount,
     }));
@@ -60,7 +66,7 @@ export class CoursesService {
       const tokens = q.split(/[\s-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { name: { contains: token, mode: 'insensitive' } },
             { club: { name: { contains: token, mode: 'insensitive' } } },
@@ -88,8 +94,10 @@ export class CoursesService {
     ]);
 
     const totalCourses = await this.prisma.course.count();
-    const activeCourses = await this.prisma.course.count({ where: { status: CourseStatus.ACTIVE } });
-    
+    const activeCourses = await this.prisma.course.count({
+      where: { status: CourseStatus.ACTIVE },
+    });
+
     // Get unique countries for stats
     const uniqueCountries = await this.prisma.course.groupBy({
       by: ['country'],
@@ -171,7 +179,8 @@ export class CoursesService {
     }
     if (dto.holes !== undefined) data.holesCount = dto.holes;
     if (dto.par !== undefined) data.par = dto.par;
-    if (dto.yearEstablished !== undefined) data.yearEstablished = dto.yearEstablished;
+    if (dto.yearEstablished !== undefined)
+      data.yearEstablished = dto.yearEstablished;
     if (dto.architect !== undefined) data.architect = dto.architect;
     if (dto.courseRating !== undefined) data.courseRating = dto.courseRating;
     if (dto.slopeRating !== undefined) data.slopeRating = dto.slopeRating;
@@ -184,7 +193,8 @@ export class CoursesService {
     if (dto.galleryImages !== undefined) data.galleryImages = dto.galleryImages;
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.isFeatured !== undefined) data.isFeatured = dto.isFeatured;
-    if (dto.clubId !== undefined) data.clubId = dto.clubId === '' ? null : dto.clubId;
+    if (dto.clubId !== undefined)
+      data.clubId = dto.clubId === '' ? null : dto.clubId;
     return data;
   }
 
@@ -193,12 +203,22 @@ export class CoursesService {
 
     // Uniqueness checks
     if (data.email) {
-      const existingEmail = await this.prisma.course.findFirst({ where: { email: data.email } });
-      if (existingEmail) throw new BadRequestException('Email is already in use by another course');
+      const existingEmail = await this.prisma.course.findFirst({
+        where: { email: data.email },
+      });
+      if (existingEmail)
+        throw new BadRequestException(
+          'Email is already in use by another course',
+        );
     }
     if (data.phone) {
-      const existingPhone = await this.prisma.course.findFirst({ where: { phone: data.phone } });
-      if (existingPhone) throw new BadRequestException('Phone number is already in use by another course');
+      const existingPhone = await this.prisma.course.findFirst({
+        where: { phone: data.phone },
+      });
+      if (existingPhone)
+        throw new BadRequestException(
+          'Phone number is already in use by another course',
+        );
     }
 
     // Duplication check (Name + City + Country)
@@ -209,9 +229,11 @@ export class CoursesService {
         country: data.country,
       },
     });
-    if (duplicate) throw new BadRequestException(`A course named "${data.name}" already exists in ${data.city}, ${data.country}`);
-    
-    
+    if (duplicate)
+      throw new BadRequestException(
+        `A course named "${data.name}" already exists in ${data.city}, ${data.country}`,
+      );
+
     // Handle teeBoxes
     if (dto.teeBoxes && Array.isArray(dto.teeBoxes)) {
       data.teeBoxes = {
@@ -239,10 +261,10 @@ export class CoursesService {
 
     const course = await this.prisma.course.create({
       data,
-      include: { 
-        club: { select: { id: true, name: true } }, 
+      include: {
+        club: { select: { id: true, name: true } },
         teeBoxes: true,
-        holes: true 
+        holes: true,
       },
     });
 
@@ -257,12 +279,22 @@ export class CoursesService {
 
     // Uniqueness checks
     if (data.email && data.email !== existing.email) {
-      const existingEmail = await this.prisma.course.findFirst({ where: { email: data.email } });
-      if (existingEmail) throw new BadRequestException('Email is already in use by another course');
+      const existingEmail = await this.prisma.course.findFirst({
+        where: { email: data.email },
+      });
+      if (existingEmail)
+        throw new BadRequestException(
+          'Email is already in use by another course',
+        );
     }
     if (data.phone && data.phone !== existing.phone) {
-      const existingPhone = await this.prisma.course.findFirst({ where: { phone: data.phone } });
-      if (existingPhone) throw new BadRequestException('Phone number is already in use by another course');
+      const existingPhone = await this.prisma.course.findFirst({
+        where: { phone: data.phone },
+      });
+      if (existingPhone)
+        throw new BadRequestException(
+          'Phone number is already in use by another course',
+        );
     }
 
     // Duplication check (Name + City + Country)
@@ -275,9 +307,11 @@ export class CoursesService {
           country: data.country || existing.country,
         },
       });
-      if (duplicate) throw new BadRequestException('A course with this name already exists in this location');
+      if (duplicate)
+        throw new BadRequestException(
+          'A course with this name already exists in this location',
+        );
     }
-    
 
     // Replace all teeBoxes to simplify update
     if (dto.teeBoxes && Array.isArray(dto.teeBoxes)) {
@@ -309,10 +343,10 @@ export class CoursesService {
     const course = await this.prisma.course.update({
       where: { id },
       data,
-      include: { 
-        club: { select: { id: true, name: true } }, 
+      include: {
+        club: { select: { id: true, name: true } },
         teeBoxes: true,
-        holes: true 
+        holes: true,
       },
     });
 
@@ -322,15 +356,17 @@ export class CoursesService {
   async remove(id: string) {
     const existing = await this.prisma.course.findUnique({
       where: { id },
-      select: { 
+      select: {
         id: true,
-        _count: { select: { tournaments: true } }
+        _count: { select: { tournaments: true } },
       },
     });
     if (!existing) throw new NotFoundException('Course not found');
 
     if (existing._count.tournaments > 0) {
-      throw new BadRequestException(`Cannot delete course. It is currently associated with ${existing._count.tournaments} tournament(s). Deactivate the course instead.`);
+      throw new BadRequestException(
+        `Cannot delete course. It is currently associated with ${existing._count.tournaments} tournament(s). Deactivate the course instead.`,
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -343,7 +379,7 @@ export class CoursesService {
         await tx.score.deleteMany({ where: { holeId: { in: holeIds } } });
         await tx.hole.deleteMany({ where: { courseId: id } });
       }
-      
+
       // TeeBoxes will be deleted via Cascade in Prisma, or we can manually delete them:
       await tx.teeBox.deleteMany({ where: { courseId: id } });
       await tx.course.delete({ where: { id } });

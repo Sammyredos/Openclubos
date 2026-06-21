@@ -1,14 +1,12 @@
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { MemberStatus, UserRole } from '@prisma/client';
-
-import { ConfigService } from '@nestjs/config';
-import { CacheService } from '../cache/cache.service';
 import * as crypto from 'crypto';
-
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { MemberStatus, UserRole } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { CacheService } from '../cache/cache.service';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -20,18 +18,31 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKeyProvider: (request: any, rawJwtToken: any, done: (err: any, secret: string | undefined) => void) => {
+      secretOrKeyProvider: (
+        request: any,
+        rawJwtToken: any,
+        done: (err: any, secret: string | undefined) => void,
+      ) => {
         try {
           const decoded = jwt.decode(rawJwtToken, { complete: true });
-          if (!decoded || typeof decoded === 'string' || !decoded.header || !decoded.header.kid) {
-            return done(new Error('No kid in token header'), undefined);
+          if (
+            !decoded ||
+            typeof decoded === 'string' ||
+            !decoded.header ||
+            !decoded.header.kid
+          ) {
+            done(new Error('No kid in token header'), undefined);
+            return;
           }
           const kid = decoded.header.kid;
           const keysJson = configService.get<string>('JWT_KEYS');
-          const keys = keysJson ? JSON.parse(keysJson) : { v1: configService.get<string>('JWT_SECRET') };
+          const keys = keysJson
+            ? JSON.parse(keysJson)
+            : { v1: configService.get<string>('JWT_SECRET') };
           const secret = keys[kid];
           if (!secret) {
-            return done(new Error('Invalid kid'), undefined);
+            done(new Error('Invalid kid'), undefined);
+            return;
           }
           done(null, secret);
         } catch (e) {
@@ -46,8 +57,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Check if token is blacklisted in Redis
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     if (token) {
-      const accessHash = crypto.createHash('sha256').update(token).digest('hex');
-      const isBlacklisted = await this.cacheService.get(`auth:blacklist:${accessHash}`);
+      const accessHash = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+      const isBlacklisted = await this.cacheService.get(
+        `auth:blacklist:${accessHash}`,
+      );
       if (isBlacklisted) {
         throw new UnauthorizedException('TOKEN_REVOKED');
       }
@@ -81,7 +97,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role === UserRole.STAFF ? UserRole.PLAYER : payload.role,
       clubId: payload.clubId,
-      name: user.firstName || user.lastName ? `${user.firstName} ${user.lastName}`.trim() : undefined,
+      name:
+        user.firstName || user.lastName
+          ? `${user.firstName} ${user.lastName}`.trim()
+          : undefined,
     };
   }
 }

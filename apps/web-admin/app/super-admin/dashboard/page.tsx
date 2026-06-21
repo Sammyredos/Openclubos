@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useSyncExternalStore, useCallback, type ElementType } from "react";
 import {
@@ -869,7 +869,7 @@ export default function SuperAdminDashboard() {
                       <div className="inline-flex justify-start items-center gap-3">
                         <img className="size-10 rounded-full object-cover bg-gray-100 border border-[#efefef]" src={club.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=10b981&color=fff`} alt={club.name} />
                         <div className="inline-flex flex-col justify-start items-start">
-                          <div className="text-slate-900 text-sm font-medium truncate max-w-[140px] leading-tight">{club.name}</div>
+                          <div className="text-slate-900 text-sm font-medium whitespace-normal max-w-[180px] leading-tight">{club.name}</div>
                           <div className="text-gray-500 text-xs font-normal mt-0.5">{formatWithCommas(club.tournaments ?? 0)} Tournaments</div>
                         </div>
                       </div>

@@ -12,13 +12,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { AuditLog } from '../../common/decorators/audit-log.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/guards/roles.decorator';
-import { TournamentsService } from './tournaments.service';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
-import { AuditLog } from '../../common/decorators/audit-log.decorator';
+import { TournamentsService } from './tournaments.service';
 
 @Controller('tournaments')
 @UseGuards(JwtAuthGuard, RolesGuard)

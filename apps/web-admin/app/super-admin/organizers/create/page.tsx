@@ -9,7 +9,10 @@ export default function CreateOrganizerPage() {
     <CreateOrganiserWizard
       isPageMode={true}
       onClose={() => router.push("/super-admin/organizers")}
-      onSuccess={() => router.push("/super-admin/organizers")}
+      onSuccess={() => {
+        router.refresh();
+        router.push("/super-admin/organizers");
+      }}
     />
   );
 }

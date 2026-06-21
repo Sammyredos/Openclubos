@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
@@ -448,19 +448,18 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
     switch (step) {
       case 1:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Globe className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">General Information</h4>
-                  <p className="text-[12px] text-gray-500">Basic location and contact details</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <Globe className="w-4 h-4" />
               </div>
-              <div className="p-5 space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">General Information</h4>
+                <p className="text-[12px] text-gray-500">Basic location and contact details</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <Field label="Course Name" required>
                     <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter course name" className={req(formData.name)} />
                   </Field>
@@ -541,24 +540,22 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
               </div>
             </div>
-          </div>
         );
       case 2:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Target className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Course Specifications</h4>
-                  <p className="text-[12px] text-gray-500">Technical ratings and geographic location</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <Target className="w-4 h-4" />
               </div>
-              <div className="p-5 space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="space-y-5">
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Course Specifications</h4>
+                <p className="text-[12px] text-gray-500">Technical ratings and geographic location</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-5">
                     <p className="text-[13px] font-normal text-gray-600">Technical Specs</p>
                     <div className="grid grid-cols-2 gap-5">
                       <Field label="Course Rating" required>
@@ -575,13 +572,13 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       <Field label="Latitude" required>
                         <div className="relative">
                           <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input className={cn("pl-10", req(formData.latitude))} value={formData.latitude} onChange={(e) => set("latitude", e.target.value)} placeholder="e.g. 7.397° N" />
+                          <Input className={cn("pl-10", req(formData.latitude))} value={formData.latitude} onChange={(e) => set("latitude", e.target.value)} placeholder="e.g. 7.397Â° N" />
                         </div>
                       </Field>
                       <Field label="Longitude" required>
                         <div className="relative">
                           <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input className={cn("pl-10", req(formData.longitude))} value={formData.longitude} onChange={(e) => set("longitude", e.target.value)} placeholder="e.g. 3.873° E" />
+                          <Input className={cn("pl-10", req(formData.longitude))} value={formData.longitude} onChange={(e) => set("longitude", e.target.value)} placeholder="e.g. 3.873Â° E" />
                         </div>
                       </Field>
                     </div>
@@ -663,23 +660,21 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
               </div>
             </div>
-          </div>
         );
       case 3:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Mountain className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Facilities & Amenities</h4>
-                  <p className="text-[12px] text-gray-500">What services are available at the course</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <Mountain className="w-4 h-4" />
               </div>
-              <div className="p-5">
-                <p className="text-[13px] font-normal text-gray-600 mb-4">Select Available Amenities</p>
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Facilities & Amenities</h4>
+                <p className="text-[12px] text-gray-500">What services are available at the course</p>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-[13px] font-normal text-gray-600 mb-4">Select Available Amenities</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {AMENITIES.map(({ name: a, icon: Icon }) => (
                     <div 
@@ -722,23 +717,21 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 )}
               </div>
             </div>
-          </div>
         );
       case 4:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Flag className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Tee Boxes</h4>
-                  <p className="text-[12px] text-gray-500">Configure different tee color levels</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <Flag className="w-4 h-4" />
               </div>
-              <div className="p-5 space-y-5">
-                <div className="flex items-center justify-between mb-2">
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Tee Boxes</h4>
+                <p className="text-[12px] text-gray-500">Configure different tee color levels</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-5">
+              <div className="flex items-center justify-between mb-2">
                   <p className="text-[13px] font-normal text-gray-600">Course Tee Boxes</p>
                   <Button type="button" variant="outline" size="sm" onClick={addTeeBox} className="h-8 text-openclub-800 border-emerald-200 hover:bg-emerald-50 px-3">
                     <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Tee
@@ -762,8 +755,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           </Field>
                           <Field label="Color">
                             <SearchableSelect value={tb.color} onValueChange={(v) => updateTeeBox(i, "color", v)} options={[
-                              {value: "Black", label: "⚫ Black"}, {value: "Blue", label: "🔵 Blue"}, {value: "White", label: "⚪ White"},
-                              {value: "Red", label: "🔴 Red"}, {value: "Yellow", label: "🟡 Yellow"}, {value: "Gold", label: "🟠 Gold"},
+                              {value: "Black", label: "âš« Black"}, {value: "Blue", label: "ðŸ”µ Blue"}, {value: "White", label: "âšª White"},
+                              {value: "Red", label: "ðŸ”´ Red"}, {value: "Yellow", label: "ðŸŸ¡ Yellow"}, {value: "Gold", label: "ðŸŸ  Gold"},
                             ]} />
                           </Field>
                           <Field label="Yardage">
@@ -782,23 +775,21 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 )}
               </div>
             </div>
-          </div>
         );
       case 5:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Trophy className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Hole-by-Hole Details</h4>
-                  <p className="text-[12px] text-gray-500">Configure par and handicap index for each hole</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <Trophy className="w-4 h-4" />
               </div>
-              <div className="p-5 space-y-6">
-                <div className="bg-background p-6 rounded-2xl border border-[#e1efe5] space-y-4">
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Hole-by-Hole Details</h4>
+                <p className="text-[12px] text-gray-500">Configure par and handicap index for each hole</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-6">
+              <div className="bg-background p-6 rounded-2xl border border-[#e1efe5] space-y-4">
                   <p className="text-[14px] font-normal text-gray-900 text-center">How many holes does this course have?</p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {[6, 9, 12, 18, 27, 36].map((count) => (
@@ -875,23 +866,21 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
               </div>
             </div>
-          </div>
         );
       case 6:
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <ImageIcon className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Branding & Status</h4>
-                  <p className="text-[12px] text-gray-500">Upload images and set course visibility</p>
-                </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <ImageIcon className="w-4 h-4" />
               </div>
-              <div className="p-5 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-[14px] font-normal text-gray-900">Branding & Status</h4>
+                <p className="text-[12px] text-gray-500">Upload images and set course visibility</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <p className="text-[13px] font-normal text-gray-600">Course Branding</p>
                     <Field label="Club Logo" required error={showValidation && !formData.coverImage.trim() ? "Club Logo is required" : undefined}>
@@ -971,18 +960,16 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 </div>
               </div>
             </div>
-          </div>
         );
       default:
         return null;
     }
   };
-
   if (isPageMode) {
     return (
       <div className={cn("space-y-6 transition-all duration-150", isRedirecting ? "opacity-0 blur-sm pointer-events-none" : "opacity-100")}>
         {/* Page Header */}
-        <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
@@ -1003,7 +990,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Steps Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
+            <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
                 const past = step > i + 1;
@@ -1042,11 +1029,11 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
             </div>
           </div>
 
-          {/* Right Column - Active Step Content */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="min-h-[400px]">
+          {/* Right Column - Active Step Content & Footer */}
+          <div className="lg:col-span-4 bg-white border-none rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden">
+            <div className="min-h-[400px] flex-1">
               {fetching ? (
-                <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
+                <div className="space-y-6 p-6 animate-pulse">
                   <div className="h-5 w-32 bg-gray-100 rounded-lg" />
                   <div className="h-12 w-full bg-background rounded-xl" />
                   <div className="grid grid-cols-2 gap-4">
@@ -1061,14 +1048,14 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
             </div>
 
             {/* Form Actions Footer */}
-            <div className="bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="border-t border-[#e1efe5] bg-white p-5 flex items-center justify-between">
               <Button
                 variant="outline"
                 onClick={handleBack}
                 disabled={step === 1 || loading}
                 className="h-10 rounded-xl px-5 text-[13px] font-normal"
               >
-                ← Back
+                â† Back
               </Button>
               <div className="flex gap-3">
                 <Button
@@ -1084,7 +1071,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     onClick={handleNext}
                     className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                   >
-                    Next Step →
+                    Next Step â†’
                   </Button>
                 ) : (
                   <Button
@@ -1116,7 +1103,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
             <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
             {step < STEPS.length ? (
               <Button onClick={handleNext} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
-                Next Step →
+                Next Step â†’
               </Button>
             ) : (
               <Button onClick={handleSubmit} disabled={loading} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
@@ -1140,7 +1127,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 past ? "bg-emerald-100 text-openclub-800" : 
                 "bg-gray-100 text-gray-400"
               )}>
-                {past ? "✓" : i + 1}
+                {past ? "âœ“" : i + 1}
               </div>
               <span className={cn(
                 "text-[9px] font-normal uppercase tracking-wider text-center leading-tight transition-colors",

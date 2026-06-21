@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
@@ -44,27 +44,27 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className={cn(
-          "bg-white rounded-3xl shadow-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200",
+          "bg-white rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] border-none w-full overflow-hidden animate-in zoom-in-95 duration-200",
           size === "md" ? "max-w-lg" : size === "lg" ? "max-w-2xl" : "max-w-4xl",
           className
         )}
       >
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-50">
-          <h3 className="text-[14px] font-normal text-gray-900">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#d1e0d5] bg-[#f5faf6]">
+          <h3 className="text-sm font-medium text-gray-900 tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
+            className="p-1.5 hover:bg-[#d1e0d5]/40 rounded-lg text-gray-500 hover:text-openclub-800 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="px-8 py-6 overflow-y-auto scrollbar-hide max-h-[calc(100vh-200px)]">
+        <div className="px-6 py-6 overflow-y-auto scrollbar-hide max-h-[calc(100vh-200px)]">
           {children}
         </div>
 
         {footer && (
-          <div className="px-8 py-6 border-t border-gray-50 flex items-center justify-end gap-3 bg-background/30">
+          <div className="px-6 py-4 border-t border-[#d1e0d5] flex items-center justify-end gap-3 bg-[#f5faf6]">
             {footer}
           </div>
         )}

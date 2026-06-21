@@ -1,15 +1,15 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import helmet from 'helmet';
-import * as dotenv from 'dotenv';
 import * as path from 'path';
-import { json, urlencoded } from 'express';
-import cookieParser from 'cookie-parser';
-import compression from 'compression';
+import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import * as dotenv from 'dotenv';
+import { json, urlencoded } from 'express';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 // Load .env from root
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
@@ -32,15 +32,18 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
-    throw new Error('FRONTEND_URL environment variable is required in production.');
+    throw new Error(
+      'FRONTEND_URL environment variable is required in production.',
+    );
   }
 
   // CORS — strict frontend URL in production, localhosts in development
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL as string]
-    : process.env.FRONTEND_URL
-      ? [process.env.FRONTEND_URL]
-      : ['http://localhost:3000'];
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? [process.env.FRONTEND_URL as string]
+      : process.env.FRONTEND_URL
+        ? [process.env.FRONTEND_URL]
+        : ['http://localhost:3000'];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -106,7 +109,3 @@ async function listenWithFallback(
     `No available port found in range ${startPort}-${startPort + maxAttempts - 1}`,
   );
 }
-
-
-
-

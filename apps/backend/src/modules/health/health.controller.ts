@@ -12,8 +12,6 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    return this.health.check([
-      () => this.queueHealth.isHealthy('queue'),
-    ]);
+    return this.health.check([() => this.queueHealth.isHealthy('queue')]);
   }
 }

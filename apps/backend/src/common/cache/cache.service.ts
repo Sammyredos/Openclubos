@@ -1,5 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Inject } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 
 @Injectable()
@@ -47,23 +47,31 @@ export class CacheService {
       const keyv = this.cacheManager.stores?.[0];
       if (keyv) {
         const store = (keyv as any).store || (keyv as any).opts?.store || keyv;
-        
+
         let keys: string[] = [];
         if (typeof store.keys === 'function') {
           keys = await store.keys(pattern);
         } else {
-          const client = store.client || store.redis || (store.opts && (store.opts.client || store.opts.redis));
+          const client =
+            store.client ||
+            store.redis ||
+            (store.opts && (store.opts.client || store.opts.redis));
           if (client && typeof client.keys === 'function') {
             keys = await client.keys(pattern);
           }
         }
-        
+
         if (keys && keys.length > 0) {
-          await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+          await Promise.all(
+            keys.map((key: string) => this.cacheManager.del(key)),
+          );
         }
       }
     } catch (err) {
-      console.error(`[CacheService.invalidatePattern] Error invalidating pattern "${pattern}":`, err);
+      console.error(
+        `[CacheService.invalidatePattern] Error invalidating pattern "${pattern}":`,
+        err,
+      );
     }
   }
 }

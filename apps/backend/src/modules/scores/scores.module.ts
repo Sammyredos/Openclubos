@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ScoresService } from './scores.service';
-import { ScoresController } from './scores.controller';
 import { PrismaModule } from '../../common/prisma.module';
 import { JobsModule } from '../jobs/jobs.module';
+import { ScoresController } from './scores.controller';
+import { ScoresService } from './scores.service';
 
 @Module({
   imports: [PrismaModule, JobsModule],

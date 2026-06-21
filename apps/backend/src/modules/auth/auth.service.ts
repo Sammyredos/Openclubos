@@ -1,3 +1,5 @@
+import * as crypto from 'crypto';
+import { randomBytes } from 'crypto';
 import {
   Injectable,
   ConflictException,
@@ -6,15 +8,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../common/prisma.service';
-import { RegisterDto } from './dto/register.dto';
-import { CreateAdminDto } from './dto/create-admin.dto';
 import { MemberStatus, UserRole } from '@prisma/client';
-import { JobsService } from '../jobs/jobs.service';
+import * as bcrypt from 'bcrypt';
 import { CacheService } from '../../common/cache/cache.service';
-import * as crypto from 'crypto';
-import { randomBytes } from 'crypto';
+import { PrismaService } from '../../common/prisma.service';
+import { JobsService } from '../jobs/jobs.service';
+import { CreateAdminDto } from './dto/create-admin.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +23,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
     private readonly cacheService: CacheService,
-  ) { }
+  ) {}
 
   async register(registerDto: RegisterDto) {
     registerDto.email = registerDto.email?.trim().toLowerCase();
@@ -64,14 +64,10 @@ export class AuthService {
     });
 
     if (user.email) {
-      await this.jobsService.queueEmail(
-        'emailVerification',
-        user.email,
-        {
-          firstName: user.firstName,
-          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
-        }
-      );
+      await this.jobsService.queueEmail('emailVerification', user.email, {
+        firstName: user.firstName,
+        verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+      });
     }
 
     const { password, ...result } = user;
@@ -86,7 +82,10 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Invalid verification token');
     }
-    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+    if (
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires < new Date()
+    ) {
       throw new BadRequestException('Verification token has expired');
     }
 
@@ -105,7 +104,7 @@ export class AuthService {
       where: {
         email: { equals: email.trim(), mode: 'insensitive' },
         emailVerified: false,
-        deletedAt: null
+        deletedAt: null,
       },
     });
 
@@ -125,21 +124,20 @@ export class AuthService {
     });
 
     if (user.email) {
-      await this.jobsService.queueEmail(
-        'emailVerification',
-        user.email,
-        {
-          firstName: user.firstName,
-          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
-        }
-      );
+      await this.jobsService.queueEmail('emailVerification', user.email, {
+        firstName: user.firstName,
+        verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+      });
     }
   }
 
   async createAdmin(dto: CreateAdminDto) {
     const normalizedEmail = dto.email?.trim().toLowerCase();
     const existingUser = await this.prisma.user.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' }, deletedAt: null },
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' },
+        deletedAt: null,
+      },
     });
 
     if (existingUser) {
@@ -164,7 +162,9 @@ export class AuthService {
     return result;
   }
 
-  async registerOrganization(dto: import('./dto/register-organization.dto').RegisterOrganizationDto) {
+  async registerOrganization(
+    dto: import('./dto/register-organization.dto').RegisterOrganizationDto,
+  ) {
     const normalizedEmail = dto.adminEmail?.trim().toLowerCase();
     const existingUser = await this.prisma.user.findFirst({
       where: {
@@ -185,7 +185,9 @@ export class AuthService {
     });
 
     if (existingClub) {
-      throw new ConflictException('An organization with this name already exists');
+      throw new ConflictException(
+        'An organization with this name already exists',
+      );
     }
 
     if (dto.adminPhone) {
@@ -197,7 +199,9 @@ export class AuthService {
       });
 
       if (existingPhoneUser) {
-        throw new ConflictException('A user with this phone number already exists');
+        throw new ConflictException(
+          'A user with this phone number already exists',
+        );
       }
     }
 
@@ -210,9 +214,10 @@ export class AuthService {
       const club = await tx.club.create({
         data: {
           name: dto.organizationName,
-          type: dto.organizationType === "Other" && dto.customOrganizationType
-            ? dto.customOrganizationType
-            : dto.organizationType,
+          type:
+            dto.organizationType === 'Other' && dto.customOrganizationType
+              ? dto.customOrganizationType
+              : dto.organizationType,
           logo: dto.organizationLogo || null,
           status: 'ACTIVE',
           plan: 'BASIC',
@@ -225,7 +230,9 @@ export class AuthService {
 
       // Create the club admin
       const lastName = dto.adminMiddleName
-        ? `${dto.adminMiddleName.trim()} ${dto.adminLastName.trim()}`.replace(/\s+/g, ' ').trim()
+        ? `${dto.adminMiddleName.trim()} ${dto.adminLastName.trim()}`
+            .replace(/\s+/g, ' ')
+            .trim()
         : dto.adminLastName.trim();
 
       const admin = await tx.user.create({
@@ -235,7 +242,9 @@ export class AuthService {
           firstName: dto.adminFirstName,
           lastName: lastName,
           phone: dto.adminPhone,
-          gender: dto.adminGender ? (dto.adminGender.toUpperCase() as any) : null,
+          gender: dto.adminGender
+            ? (dto.adminGender.toUpperCase() as any)
+            : null,
           role: UserRole.CLUB_ADMIN,
           clubId: club.id,
           status: MemberStatus.ACTIVE,
@@ -249,21 +258,19 @@ export class AuthService {
     });
 
     if (user.email) {
-      await this.jobsService.queueEmail(
-        'emailVerification',
-        user.email,
-        {
-          firstName: user.firstName,
-          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
-        }
-      );
+      await this.jobsService.queueEmail('emailVerification', user.email, {
+        firstName: user.firstName,
+        verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+      });
     }
 
     const { password, ...result } = user;
     return result;
   }
 
-  async validateOrganizationUniqueness(organizationName: string): Promise<{ available: boolean; message?: string }> {
+  async validateOrganizationUniqueness(
+    organizationName: string,
+  ): Promise<{ available: boolean; message?: string }> {
     const existingClub = await this.prisma.club.findFirst({
       where: {
         name: { equals: organizationName.trim(), mode: 'insensitive' },
@@ -272,33 +279,47 @@ export class AuthService {
     });
 
     if (existingClub) {
-      return { available: false, message: 'An organization with this name already exists' };
+      return {
+        available: false,
+        message: 'An organization with this name already exists',
+      };
     }
     return { available: true };
   }
 
   async validateAdminUniqueness(
-    email?: string, 
-    phone?: string, 
-    firstName?: string, 
-    middleName?: string, 
-    lastName?: string
+    email?: string,
+    phone?: string,
+    firstName?: string,
+    middleName?: string,
+    lastName?: string,
   ): Promise<{ available: boolean; message?: string; field?: string }> {
     if (email) {
       const existingEmail = await this.prisma.user.findFirst({
-        where: { email: { equals: email.trim(), mode: 'insensitive' }, deletedAt: null },
+        where: {
+          email: { equals: email.trim(), mode: 'insensitive' },
+          deletedAt: null,
+        },
       });
       if (existingEmail) {
-        return { available: false, message: 'A user with this email already exists', field: 'adminEmail' };
+        return {
+          available: false,
+          message: 'A user with this email already exists',
+          field: 'adminEmail',
+        };
       }
     }
-    
+
     if (phone) {
       const existingPhone = await this.prisma.user.findFirst({
         where: { phone: phone.trim(), deletedAt: null },
       });
       if (existingPhone) {
-        return { available: false, message: 'A user with this phone number already exists', field: 'adminPhone' };
+        return {
+          available: false,
+          message: 'A user with this phone number already exists',
+          field: 'adminPhone',
+        };
       }
     }
 
@@ -316,7 +337,11 @@ export class AuthService {
       });
 
       if (existingName) {
-        return { available: false, message: 'User with Same Name Exist', field: 'adminFirstName' };
+        return {
+          available: false,
+          message: 'User with Same Name Exist',
+          field: 'adminFirstName',
+        };
       }
     }
 
@@ -367,7 +392,8 @@ export class AuthService {
     }
 
     // Invalid Credentials Flow: Increment Failure Counter
-    const failedAttempts = parseInt(await this.cacheService.get<string>(failedKey) || '0', 10) + 1;
+    const failedAttempts =
+      parseInt((await this.cacheService.get<string>(failedKey)) || '0', 10) + 1;
     if (failedAttempts >= 5) {
       await this.cacheService.set(lockoutKey, '1', 900); // Lock for 15 mins
       await this.cacheService.del(failedKey);
@@ -391,7 +417,10 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = crypto.randomBytes(40).toString('hex');
-    const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const refreshHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
 
     // Store in Redis with 7 days TTL (7 * 24 * 60 * 60 = 604800 seconds)
     await this.cacheService.set(`auth:refresh:${refreshHash}`, user.id, 604800);
@@ -404,7 +433,10 @@ export class AuthService {
         role: effectiveRole,
         clubId: user.clubId,
         email: user.email,
-        name: user.firstName || user.lastName ? `${user.firstName} ${user.lastName}`.trim() : undefined,
+        name:
+          user.firstName || user.lastName
+            ? `${user.firstName} ${user.lastName}`.trim()
+            : undefined,
         profilePhoto: user.profilePhoto || undefined,
         gender: user.gender || undefined,
       },
@@ -416,8 +448,13 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is required');
     }
 
-    const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const userId = await this.cacheService.get<string>(`auth:refresh:${refreshHash}`);
+    const refreshHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+    const userId = await this.cacheService.get<string>(
+      `auth:refresh:${refreshHash}`,
+    );
 
     if (!userId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -428,7 +465,11 @@ export class AuthService {
 
     // Verify user is still active
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt != null || user.status !== MemberStatus.ACTIVE) {
+    if (
+      !user ||
+      user.deletedAt != null ||
+      user.status !== MemberStatus.ACTIVE
+    ) {
       throw new UnauthorizedException('Account is no longer active');
     }
 
@@ -438,14 +479,23 @@ export class AuthService {
 
   async logout(userId: string, accessToken: string, refreshToken?: string) {
     // Blacklist access token for its remaining lifetime
-    const accessHash = crypto.createHash('sha256').update(accessToken).digest('hex');
+    const accessHash = crypto
+      .createHash('sha256')
+      .update(accessToken)
+      .digest('hex');
     const decoded: any = this.jwtService.decode(accessToken);
-    const ttl = decoded && decoded.exp ? Math.max(0, decoded.exp - Math.floor(Date.now() / 1000)) : 86400;
+    const ttl =
+      decoded && decoded.exp
+        ? Math.max(0, decoded.exp - Math.floor(Date.now() / 1000))
+        : 86400;
     await this.cacheService.set(`auth:blacklist:${accessHash}`, '1', ttl);
 
     // Remove refresh token if provided
     if (refreshToken) {
-      const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+      const refreshHash = crypto
+        .createHash('sha256')
+        .update(refreshToken)
+        .digest('hex');
       await this.cacheService.del(`auth:refresh:${refreshHash}`);
     }
   }
@@ -463,13 +513,16 @@ export class AuthService {
 
     // Generate a cryptographically random single-use token (1 hour expiry)
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
     const passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
 
     // Store tokenHash + expiry in DB
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { 
+      data: {
         passwordResetToken: tokenHash,
         passwordResetExpires,
       },
@@ -480,10 +533,14 @@ export class AuthService {
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     // Queue password reset email (fire-and-forget)
-    this.jobsService.queueEmail('PASSWORD_RESET', user.email, {
-      resetToken,
-      resetUrl,
-    }).catch(err => console.error('Failed to queue password reset email:', err));
+    this.jobsService
+      .queueEmail('PASSWORD_RESET', user.email, {
+        resetToken,
+        resetUrl,
+      })
+      .catch((err) => {
+        console.error('Failed to queue password reset email:', err);
+      });
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

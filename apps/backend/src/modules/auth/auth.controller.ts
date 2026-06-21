@@ -1,4 +1,3 @@
-import { Throttle } from '@nestjs/throttler';
 import {
   Controller,
   Get,
@@ -11,17 +10,18 @@ import {
   UseGuards,
   Headers,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { CreateAdminDto } from './dto/create-admin.dto';
-import { RegisterOrganizationDto } from './dto/register-organization.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
-import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/guards/roles.decorator';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { AuthService } from './auth.service';
+import { CreateAdminDto } from './dto/create-admin.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -40,20 +40,40 @@ export class AuthController {
   }
 
   @Post('register-organization')
-  async registerOrganization(@Body() dto: import('./dto/register-organization.dto').RegisterOrganizationDto) {
+  async registerOrganization(
+    @Body()
+    dto: import('./dto/register-organization.dto').RegisterOrganizationDto,
+  ) {
     return this.authService.registerOrganization(dto);
   }
 
   @Post('validate-organization')
   @HttpCode(HttpStatus.OK)
   async validateOrganization(@Body() body: { organizationName: string }) {
-    return this.authService.validateOrganizationUniqueness(body.organizationName);
+    return this.authService.validateOrganizationUniqueness(
+      body.organizationName,
+    );
   }
 
   @Post('validate-admin')
   @HttpCode(HttpStatus.OK)
-  async validateAdmin(@Body() body: { adminEmail?: string; adminPhone?: string; adminFirstName?: string; adminMiddleName?: string; adminLastName?: string }) {
-    return this.authService.validateAdminUniqueness(body.adminEmail, body.adminPhone, body.adminFirstName, body.adminMiddleName, body.adminLastName);
+  async validateAdmin(
+    @Body()
+    body: {
+      adminEmail?: string;
+      adminPhone?: string;
+      adminFirstName?: string;
+      adminMiddleName?: string;
+      adminLastName?: string;
+    },
+  ) {
+    return this.authService.validateAdminUniqueness(
+      body.adminEmail,
+      body.adminPhone,
+      body.adminFirstName,
+      body.adminMiddleName,
+      body.adminLastName,
+    );
   }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -85,7 +105,11 @@ export class AuthController {
     @Body() body: { refreshToken?: string },
   ) {
     const accessToken = auth?.replace('Bearer ', '');
-    await this.authService.logout(req.user.userId, accessToken, body.refreshToken);
+    await this.authService.logout(
+      req.user.userId,
+      accessToken,
+      body.refreshToken,
+    );
     return { success: true, message: 'Logged out successfully' };
   }
 
@@ -98,7 +122,9 @@ export class AuthController {
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
+  async resendVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
     await this.authService.resendVerification(resendVerificationDto.email);
     return { success: true, message: 'Verification email sent' };
   }
@@ -134,9 +160,7 @@ export class AuthController {
    */
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(
-    @Body() body: { token: string; newPassword: string },
-  ) {
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
     await this.authService.resetPassword(body.token, body.newPassword);
     return { success: true, message: 'Password has been reset successfully.' };
   }

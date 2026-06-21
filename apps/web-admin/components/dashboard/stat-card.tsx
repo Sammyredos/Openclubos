@@ -1,4 +1,4 @@
-import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
+﻿import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatNumber } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";

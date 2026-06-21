@@ -1,8 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { TournamentsService } from './tournaments.service';
-import { TournamentsController } from './tournaments.controller';
 import { CacheModule } from '../../common/cache/cache.module';
 import { JobsModule } from '../jobs/jobs.module';
+import { TournamentsController } from './tournaments.controller';
+import { TournamentsService } from './tournaments.service';
 
 @Module({
   imports: [CacheModule, forwardRef(() => JobsModule)],

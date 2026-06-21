@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { ClubStatus, PaymentStatus, TournamentStatus, Gender } from '@prisma/client';
+import {
+  ClubStatus,
+  PaymentStatus,
+  TournamentStatus,
+  Gender,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 
 @Injectable()
@@ -54,31 +59,43 @@ export class SuperAdminDashboardService {
       new Date(now.getFullYear(), now.getMonth() - 1, 1),
     );
 
-    const [totalClubs, activeClubs, proClubs, totalMembers, activeTournaments, totalCourses, menCount, womenCount] =
-      await Promise.all([
-        this.prisma.club.count({ where: { deletedAt: null } }),
-        this.prisma.club.count({
-          where: { deletedAt: null, status: ClubStatus.ACTIVE },
-        }),
-        this.prisma.club.count({
-          where: { deletedAt: null, plan: 'PRO', status: ClubStatus.ACTIVE },
-        }),
-        this.prisma.user.count({ 
-          where: { 
-            deletedAt: null, 
-            role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] } 
-          } 
-        }),
-        this.prisma.tournament.count({
-          where: {
-            deletedAt: null,
-            status: TournamentStatus.ONGOING,
-          },
-        }),
-        this.prisma.course.count(),
-        this.prisma.user.count({ where: { deletedAt: null, gender: Gender.MALE } }),
-        this.prisma.user.count({ where: { deletedAt: null, gender: Gender.FEMALE } }),
-      ]);
+    const [
+      totalClubs,
+      activeClubs,
+      proClubs,
+      totalMembers,
+      activeTournaments,
+      totalCourses,
+      menCount,
+      womenCount,
+    ] = await Promise.all([
+      this.prisma.club.count({ where: { deletedAt: null } }),
+      this.prisma.club.count({
+        where: { deletedAt: null, status: ClubStatus.ACTIVE },
+      }),
+      this.prisma.club.count({
+        where: { deletedAt: null, plan: 'PRO', status: ClubStatus.ACTIVE },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] },
+        },
+      }),
+      this.prisma.tournament.count({
+        where: {
+          deletedAt: null,
+          status: TournamentStatus.ONGOING,
+        },
+      }),
+      this.prisma.course.count(),
+      this.prisma.user.count({
+        where: { deletedAt: null, gender: Gender.MALE },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, gender: Gender.FEMALE },
+      }),
+    ]);
 
     const [clubsThisMonth, clubsLastMonth] = await Promise.all([
       this.prisma.club.count({
@@ -127,15 +144,24 @@ export class SuperAdminDashboardService {
       }),
     ]);
 
-    const [revenueThisMonth, revenueLastMonth, allTimeRevenue] = await Promise.all([
-      this.revenueForRange(startThisMonth, startNextMonth, PaymentStatus.PAID),
-      this.revenueForRange(startLastMonth, startThisMonth, PaymentStatus.PAID),
-      this.revenueForRange(
-        new Date(0),
-        new Date('9999-12-31T00:00:00.000Z'),
-        PaymentStatus.PAID,
-      ),
-    ]);
+    const [revenueThisMonth, revenueLastMonth, allTimeRevenue] =
+      await Promise.all([
+        this.revenueForRange(
+          startThisMonth,
+          startNextMonth,
+          PaymentStatus.PAID,
+        ),
+        this.revenueForRange(
+          startLastMonth,
+          startThisMonth,
+          PaymentStatus.PAID,
+        ),
+        this.revenueForRange(
+          new Date(0),
+          new Date('9999-12-31T00:00:00.000Z'),
+          PaymentStatus.PAID,
+        ),
+      ]);
 
     const [pendingPayments, pendingAmount] = await Promise.all([
       this.prisma.registration.count({
@@ -162,25 +188,26 @@ export class SuperAdminDashboardService {
         status: TournamentStatus.ONGOING,
       },
       select: { name: true },
-      take: 2
+      take: 2,
     });
-    const activeTournamentNames = activeTournamentsList.map(t => t.name);
+    const activeTournamentNames = activeTournamentsList.map((t) => t.name);
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const scoresLastHour = await this.prisma.score.count({
       where: {
-        recordedAt: { gte: oneHourAgo }
-      }
+        recordedAt: { gte: oneHourAgo },
+      },
     });
-    
+
     // Create a functional proxy for spectators based on active users and recent activity
     const activeUsersLastHour = await this.prisma.user.count({
       where: {
-        updatedAt: { gte: oneHourAgo }
-      }
+        updatedAt: { gte: oneHourAgo },
+      },
     });
     // Base spectators + factor of live scores and active users
-    const spectatorsWatching = activeTournaments * 145 + scoresLastHour * 3 + activeUsersLastHour * 2;
+    const spectatorsWatching =
+      activeTournaments * 145 + scoresLastHour * 3 + activeUsersLastHour * 2;
 
     // Calculate subscription revenue (Placeholder: 50,000 NGN per PRO club)
     const PRO_PLAN_PRICE = 50000;
@@ -193,7 +220,10 @@ export class SuperAdminDashboardService {
       activeClubsPercent,
       clubsGrowth: this.formatPercentChange(clubsThisMonth, clubsLastMonth),
       totalMembers,
-      membersGrowth: this.formatPercentChange(membersThisMonth, membersLastMonth),
+      membersGrowth: this.formatPercentChange(
+        membersThisMonth,
+        membersLastMonth,
+      ),
       menCount,
       womenCount,
       activeTournaments,
@@ -201,7 +231,10 @@ export class SuperAdminDashboardService {
       scoresLastHour,
       spectatorsWatching,
       subscriptionRevenue,
-      tournamentsGrowth: this.formatPercentChange(tournamentsThisMonth, tournamentsLastMonth),
+      tournamentsGrowth: this.formatPercentChange(
+        tournamentsThisMonth,
+        tournamentsLastMonth,
+      ),
       totalRevenue: Math.round(allTimeRevenue),
       revenueGrowth: this.formatPercentChange(
         revenueThisMonth,
@@ -286,12 +319,12 @@ export class SuperAdminDashboardService {
 
   async ageDemographics() {
     const users = await this.prisma.user.findMany({
-      where: { 
-        deletedAt: null, 
-        dob: { not: null }, 
-        role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] } 
+      where: {
+        deletedAt: null,
+        dob: { not: null },
+        role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] },
       },
-      select: { dob: true, gender: true }
+      select: { dob: true, gender: true },
     });
 
     const buckets = {
@@ -368,7 +401,7 @@ export class SuperAdminDashboardService {
 
     const where: any = {
       deletedAt: null,
-      status: { not: TournamentStatus.CANCELLED },
+      status: { not: 'CANCELLED' },
       club: { deletedAt: null },
     };
     if (bounds) {
@@ -381,13 +414,13 @@ export class SuperAdminDashboardService {
         id: true,
         entryFee: true,
         clubId: true,
-        club: { select: { name: true, status: true } },
+        club: { select: { name: true, status: true, logo: true } },
         _count: {
           select: {
             registrations: {
-              where: { status: 'APPROVED' }
-            }
-          }
+              where: { status: 'APPROVED' },
+            },
+          },
         },
       },
     });
@@ -396,7 +429,8 @@ export class SuperAdminDashboardService {
       string,
       {
         name: string;
-        clubStatus: ClubStatus;
+        clubStatus: string;
+        logo: string | null;
         revenue: number;
         registrations: number;
         tournamentIdsThisMonth: Set<string>;
@@ -405,7 +439,7 @@ export class SuperAdminDashboardService {
 
     for (const t of tournamentsThisMonth) {
       const name = t.club?.name || '—';
-      const clubStatus = t.club?.status ?? ClubStatus.ACTIVE;
+      const clubStatus = t.club?.status ?? 'ACTIVE';
       const registrations = t._count?.registrations ?? 0;
       const entryFee = t.entryFee || 0;
       const prev = clubAgg.get(t.clubId);
@@ -413,6 +447,7 @@ export class SuperAdminDashboardService {
         clubAgg.set(t.clubId, {
           name,
           clubStatus,
+          logo: t.club?.logo || null,
           revenue: entryFee * registrations,
           registrations,
           tournamentIdsThisMonth: new Set([t.id]),
@@ -429,6 +464,7 @@ export class SuperAdminDashboardService {
         clubId,
         name: v.name,
         clubStatus: v.clubStatus,
+        logo: v.logo,
         revenue: v.revenue,
         registrations: v.registrations,
         tournaments: v.tournamentIdsThisMonth.size,
@@ -446,15 +482,15 @@ export class SuperAdminDashboardService {
       const progress =
         topRevenue === 0 ? 0 : Math.round((r.revenue / topRevenue) * 100);
       const status =
-        r.clubStatus === ClubStatus.SUSPENDED
+        r.clubStatus === 'SUSPENDED'
           ? 'Suspended'
-          : r.clubStatus === ClubStatus.EXPIRED
+          : r.clubStatus === 'EXPIRED'
             ? 'Expired'
             : 'Active';
       const statusType =
-        r.clubStatus === ClubStatus.SUSPENDED
+        r.clubStatus === 'SUSPENDED'
           ? 'warning'
-          : r.clubStatus === ClubStatus.EXPIRED
+          : r.clubStatus === 'EXPIRED'
             ? 'danger'
             : 'success';
       return {
@@ -466,7 +502,9 @@ export class SuperAdminDashboardService {
         progress,
         status,
         statusType,
-        logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}`,
+        logo:
+          r.logo ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}`,
       };
     });
   }
@@ -525,10 +563,10 @@ export class SuperAdminDashboardService {
             _count: {
               select: {
                 registrations: {
-                  where: { status: 'APPROVED' }
-                }
-              }
-            }
+                  where: { status: 'APPROVED' },
+                },
+              },
+            },
           },
           orderBy: { startDate: 'asc' },
           take: 20,

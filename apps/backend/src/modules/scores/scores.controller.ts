@@ -9,12 +9,12 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
-import { ScoresService } from './scores.service';
-import { CreateScoreDto } from './dto/create-score.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/guards/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { CreateScoreDto } from './dto/create-score.dto';
+import { ScoresService } from './scores.service';
 
 @Controller('scores')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -43,7 +43,11 @@ export class ScoresController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
-    return this.scoresService.findByGroup(groupId, skip ? Number(skip) : undefined, take ? Number(take) : undefined);
+    return this.scoresService.findByGroup(
+      groupId,
+      skip ? Number(skip) : undefined,
+      take ? Number(take) : undefined,
+    );
   }
 
   @Get('tournament/:tournamentId')
@@ -52,6 +56,10 @@ export class ScoresController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
-    return this.scoresService.findByTournament(tournamentId, skip ? Number(skip) : undefined, take ? Number(take) : undefined);
+    return this.scoresService.findByTournament(
+      tournamentId,
+      skip ? Number(skip) : undefined,
+      take ? Number(take) : undefined,
+    );
   }
 }

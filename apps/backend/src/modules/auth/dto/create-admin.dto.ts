@@ -1,5 +1,12 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateAdminDto {
   @IsEmail()

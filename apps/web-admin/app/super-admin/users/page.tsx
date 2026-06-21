@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -251,8 +251,8 @@ export default function SuperAdminUsersPage() {
       });
       setAllUsers(Array.isArray(data.items) ? data.items : []);
       if (data.total !== undefined && !data.stats) {
-         // Some endpoints return total directly
-         setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
+        // Some endpoints return total directly
+        setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
       }
       setStats(data.stats ?? null);
     } catch (e: unknown) {
@@ -570,57 +570,116 @@ export default function SuperAdminUsersPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard
-          title="Total Users"
-          value={String(stats?.totalUsers ?? 0)}
-          icon={Users}
-          iconBg="bg-emerald-50"
-          iconColor="text-openclub-800"
-          loading={loading}
-        />
-        <StatCard
-          title="Active Users"
-          value={String(stats?.activeUsers ?? 0)}
-          subValue={stats?.totalUsers ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}% of total` : "0% of total"}
-          icon={ShieldCheck}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Suspended Users"
-          value={String(stats?.suspendedUsers ?? 0)}
-          subValue={stats?.totalUsers ? `${Math.round((stats.suspendedUsers / stats.totalUsers) * 100)}% of total` : "0% of total"}
-          icon={Ban}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-          loading={loading}
-        />
-        <StatCard
-          title="New This Month"
-          value={String(stats?.newThisMonth ?? 0)}
-          icon={CheckCircle2}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Super Admins"
-          value={String(stats?.superAdmins ?? 0)}
-          icon={Crown}
-          iconBg="bg-sky-50"
-          iconColor="text-sky-600"
-          loading={loading}
-        />
-      </div>
+      {loading || !stats ? (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
 
-      <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+
+            {/* Stat 1: Total Users */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Users</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats.totalUsers}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 2: Active Users */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Users</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-[#15803D] text-xs font-medium">
+                    {stats.totalUsers ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}% of total` : "0%"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats.activeUsers}</div>
+              <div className="text-zinc-500 text-sm font-normal">Active & Operational</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 3: New This Month */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">New This Month</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats.newThisMonth}</div>
+              <div className="text-zinc-500 text-sm font-normal">Recent Signups</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 4: Super Admins */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Super Admins</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-[#15803D] text-xs font-medium">
+                    {stats.totalUsers ? `${Math.round((stats.superAdmins / stats.totalUsers) * 100)}% of total` : "0%"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats.superAdmins}</div>
+              <div className="text-zinc-500 text-sm font-normal">Platform Managers</div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-[16px] font-normal">All Users</CardTitle>
+          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
               className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
@@ -677,7 +736,7 @@ export default function SuperAdminUsersPage() {
                 Export PDF
               </button>
             </FloatingMenu>
-            <Button 
+            <Button
               onClick={() => router.push("/super-admin/users/create")}
               className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
@@ -707,7 +766,7 @@ export default function SuperAdminUsersPage() {
               }}
               options={roleSelectOptions}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Roles"
             />
             <SearchableSelect
@@ -718,7 +777,7 @@ export default function SuperAdminUsersPage() {
               }}
               options={statusSelectOptions}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
             <SearchableSelect
@@ -732,7 +791,7 @@ export default function SuperAdminUsersPage() {
                 label: v,
               }))}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Handicaps"
             />
           </div>
@@ -740,21 +799,21 @@ export default function SuperAdminUsersPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-4">User Profile</th>
-                  <th className="px-4 py-4">Role</th>
-                  <th className="px-4 py-4 text-center">Handicap</th>
-                  <th className="px-4 py-4">Contact & Location</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4">Joined Date</th>
-                  <th className="px-4 py-4 text-center">Actions</th>
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                  <th className="px-6 py-4">User Profile</th>
+                  <th className="px-6 py-4">Role</th>
+                  <th className="px-6 py-4 text-center">Handicap</th>
+                  <th className="px-6 py-4">Contact & Location</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Joined Date</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[#e1efe5]">
                 {loading ? (
                   skeletonRows.map((i) => (
-                    <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
-                      <td className="px-4 py-4">
+                    <tr key={`sk-${i}`} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
@@ -763,37 +822,37 @@ export default function SuperAdminUsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-4 w-8 rounded-md mx-auto" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col gap-1.5">
                           <Skeleton className="h-3.5 w-24 rounded-md" />
                           <Skeleton className="h-3 w-16 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5 w-16 rounded-lg" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-3.5 w-20 rounded-md" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-9 w-9 rounded-lg" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
+                          <Skeleton className="h-7 w-8 rounded-md" />
                         </div>
                       </td>
                     </tr>
                   ))
                 ) : paginatedUsers.length > 0 ? (
                   paginatedUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-background/50 transition-colors group">
-                      <td className="px-4 py-4">
+                    <tr key={u.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-5">
                         <div className="inline-flex justify-start items-center gap-3 min-w-[240px]">
                           <img
                             src={u.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email || u.id)}`}
@@ -810,10 +869,10 @@ export default function SuperAdminUsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <RoleBadge role={u.role} />
                       </td>
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-6 py-5 text-center">
                         <span className="text-[14px] text-gray-900 font-normal">
                           {u.role === "PLAYER"
                             ? typeof u.handicap === "number"
@@ -822,7 +881,7 @@ export default function SuperAdminUsersPage() {
                             : "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col min-w-0">
                           {u.phone ? (
                             <span className="text-[13px] text-gray-700 font-normal truncate">{u.phone}</span>
@@ -837,27 +896,29 @@ export default function SuperAdminUsersPage() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <StatusPill status={u.status} />
                       </td>
-                      <td className="px-4 py-4 text-[13px] text-gray-600 font-normal whitespace-nowrap">
+                      <td className="px-6 py-5 text-[13px] text-gray-600 font-normal whitespace-nowrap">
                         {formatJoinedDate(u.createdAt)}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
-                            title="View User"
                             onClick={() => openViewModal(u)}
+                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
+                            title="View User"
                           >
-                            <Eye className="w-4.5 h-4.5" />
+                            <Eye className="w-3 h-3" />
+                            <span className="text-[11px] font-medium leading-none">View</span>
                           </button>
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                            title="Edit User"
                             onClick={() => openEditModal(u)}
+                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
+                            title="Edit User"
                           >
-                            <Edit2 className="w-4.5 h-4.5" />
+                            <Edit2 className="w-3 h-3" />
+                            <span className="text-[11px] font-medium leading-none">Edit</span>
                           </button>
                           <div className="relative">
                             <button
@@ -874,10 +935,10 @@ export default function SuperAdminUsersPage() {
                                   setDropdownUser(u);
                                 }
                               }}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
+                              className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                               title="More Actions"
                             >
-                              <MoreHorizontal className="w-4.5 h-4.5" />
+                              <MoreHorizontal className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -951,7 +1012,7 @@ export default function SuperAdminUsersPage() {
                     <img
                       src={u.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.email || u.id)}`}
                       alt={u.email}
-                      className="h-10 w-10 rounded-xl border border-[#efefef] bg-background object-cover"
+                      className="h-10 w-10 rounded-full border border-[#efefef] bg-background object-cover"
                     />
                     <div className="min-w-0">
                       <p className="text-[14px] font-normal text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
@@ -984,10 +1045,10 @@ export default function SuperAdminUsersPage() {
               onClick={() => openStatusModal(dropdownUser)}
               className={cn(
                 "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) 
-                  ? "text-gray-300 cursor-not-allowed" 
-                  : dropdownUser.status === "SUSPENDED" 
-                    ? "text-gray-700 hover:bg-emerald-50" 
+                !canManageUser(dropdownUser)
+                  ? "text-gray-300 cursor-not-allowed"
+                  : dropdownUser.status === "SUSPENDED"
+                    ? "text-gray-700 hover:bg-emerald-50"
                     : "text-gray-700 hover:bg-red-50",
               )}
             >
@@ -1159,7 +1220,7 @@ export default function SuperAdminUsersPage() {
             <img
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
               alt={selectedUser?.email || "User"}
-              className="h-11 w-11 rounded-xl border border-[#efefef] bg-white"
+              className="h-11 w-11 rounded-full border border-[#efefef] bg-white"
             />
             <div className="min-w-0">
               <p className="text-[14px] font-normal text-gray-900 truncate">
@@ -1409,327 +1470,327 @@ export default function SuperAdminUsersPage() {
           const totalTournamentPages = Math.ceil(filteredTournaments.length / modalItemsPerPage);
 
           return (
-        <div className="space-y-8">
-          {/* Header Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
-            <div className="relative">
-              <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
-                alt={selectedUser?.email || "User"}
-                className="h-24 w-24 rounded-xl border-2 border-white shadow-md bg-background object-cover"
-              />
-              <div className={cn(
-                "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
-                selectedUser?.status === "ACTIVE" ? "bg-openclub-700" : "bg-red-500"
-              )} />
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h4 className="text-[16px] font-normal text-gray-900 truncate">
-                  {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
-                </h4>
-                {selectedUser && <StatusPill status={selectedUser.status} />}
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  {selectedUser?.email || "No email provided"}
-                </div>
-                <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block" />
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
-                  <Shield className="w-4 h-4 text-gray-400" />
-                  <span className="font-normal text-blue-600">
-                    {selectedUser?.role === "CLUB_ADMIN" ? "ORGANISER ADMIN" : (selectedUser?.role?.replaceAll("_", " ") ?? "USER")}
-                  </span>
-                </div>
-              </div>
-              
-              <p className="text-[12px] text-gray-400 mt-2 font-normal flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                Joined {formatJoinedDate(selectedUser?.createdAt || "")}
-              </p>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 p-1.5 bg-background rounded-xl border border-[#efefef] overflow-x-auto scrollbar-hide">
-            {[
-              { id: "overview", label: "Overview", icon: Users },
-              { id: "activity", label: "History", icon: Clock },
-              { id: "payments", label: "Payments", icon: CreditCard },
-              { id: "tournaments", label: "Tournaments", icon: Trophy },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setViewTab(tab.id as any)}
-                className={cn(
-                  "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-normal flex items-center justify-center gap-2.5 transition-all whitespace-nowrap",
-                  viewTab === tab.id
-                    ? "bg-white text-blue-600 shadow-sm border border-blue-50"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/50"
-                )}
-              >
-                <tab.icon className={cn("h-4 w-4 shrink-0", viewTab === tab.id ? "text-blue-500" : "text-gray-400")} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="min-h-[300px]">
-            {viewLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full rounded-xl" />
-                <Skeleton className="h-40 w-full rounded-xl" />
-              </div>
-            ) : viewTab === "overview" ? (
-              <div className="space-y-6">
-                {/* Player Stats Cards (If Player) */}
-                {selectedUser?.role === "PLAYER" && (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
-                      <p className="text-[10px] font-normal text-openclub-800 uppercase tracking-widest mb-2">Handicap</p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[16px] font-normal text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
-                        <Shield className="w-5 h-5 text-emerald-300" />
-                      </div>
-                    </div>
-                    <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
-                      <p className="text-[10px] font-normal text-blue-600 uppercase tracking-widest mb-2">Tournaments</p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[16px] font-normal text-blue-900">{viewRegistrations.length}</p>
-                        <Trophy className="w-5 h-5 text-blue-300" />
-                      </div>
-                    </div>
-                    <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
-                      <p className="text-[10px] font-normal text-purple-600 uppercase tracking-widest mb-2">Wins</p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[16px] font-normal text-purple-900">0</p>
-                        <Trophy className="w-5 h-5 text-purple-300" />
-                      </div>
-                    </div>
-                    <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100/50 shadow-sm">
-                      <p className="text-[10px] font-normal text-amber-600 uppercase tracking-widest mb-2">Rank</p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[16px] font-normal text-amber-900">—</p>
-                        <Users className="w-5 h-5 text-amber-300" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Personal Info */}
-                  <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
-                    <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
-                      <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        Personal Information
-                      </h5>
-                    </div>
-                    <div className="p-5 space-y-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Full Name</span>
-                        <span className="text-[14px] text-gray-900 font-normal">{fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Email Address</span>
-                        <span className="text-[14px] text-gray-900 font-normal break-all">{selectedUser?.email || "—"}</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Phone Number</span>
-                        <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.phone || "—"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Account Details */}
-                  <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
-                    <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
-                      <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-gray-400" />
-                        Account Details
-                      </h5>
-                    </div>
-                    <div className="p-5 space-y-4">
-                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                        <span className="text-[13px] text-gray-500 font-normal">System Role</span>
-                        <RoleBadge role={selectedUser?.role || "PLAYER"} />
-                      </div>
-                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                        <span className="text-[13px] text-gray-500 font-normal">Account Status</span>
-                        <StatusPill status={selectedUser?.status || "ACTIVE"} />
-                      </div>
-                      <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                        <span className="text-[13px] text-gray-500 font-normal">Organizer</span>
-                        <span className="text-[13px] text-gray-900 font-normal">{selectedUser?.club?.name || "None"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : viewTab === "activity" ? (
-              <div className="space-y-4">
+            <div className="space-y-8">
+              {/* Header Section */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-8 border-b border-gray-50">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search activity..."
-                    className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
-                    value={activitySearch}
-                    onChange={(e) => {
-                      setActivitySearch(e.target.value);
-                      setActivityPage(1);
-                    }}
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser?.email || selectedUser?.id || "user")}`}
+                    alt={selectedUser?.email || "User"}
+                    className="h-24 w-24 rounded-full border-2 border-white shadow-md bg-background object-cover"
                   />
+                  <div className={cn(
+                    "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
+                    selectedUser?.status === "ACTIVE" ? "bg-openclub-700" : "bg-red-500"
+                  )} />
                 </div>
-                <div className="space-y-3">
-                  {paginatedActivity.length > 0 ? (
-                    paginatedActivity.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-50 bg-white hover:border-blue-100 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Trophy className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-[14px] font-normal text-gray-900">Registered for {r.tournament.name}</p>
-                            <p className="text-[12px] text-gray-400 font-normal">{formatJoinedDate(r.registeredAt)}</p>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h4 className="text-[16px] font-normal text-gray-900 truncate">
+                      {fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}
+                    </h4>
+                    {selectedUser && <StatusPill status={selectedUser.status} />}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                    <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
+                      <Globe className="w-4 h-4 text-gray-400" />
+                      {selectedUser?.email || "No email provided"}
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block" />
+                    <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
+                      <Shield className="w-4 h-4 text-gray-400" />
+                      <span className="font-normal text-blue-600">
+                        {selectedUser?.role === "CLUB_ADMIN" ? "ORGANISER ADMIN" : (selectedUser?.role?.replaceAll("_", " ") ?? "USER")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[12px] text-gray-400 mt-2 font-normal flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Joined {formatJoinedDate(selectedUser?.createdAt || "")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-2 p-1.5 bg-background rounded-xl border border-[#efefef] overflow-x-auto scrollbar-hide">
+                {[
+                  { id: "overview", label: "Overview", icon: Users },
+                  { id: "activity", label: "History", icon: Clock },
+                  { id: "payments", label: "Payments", icon: CreditCard },
+                  { id: "tournaments", label: "Tournaments", icon: Trophy },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setViewTab(tab.id as any)}
+                    className={cn(
+                      "flex-1 min-w-fit px-4 py-2.5 rounded-xl text-[13px] font-normal flex items-center justify-center gap-2.5 transition-all whitespace-nowrap",
+                      viewTab === tab.id
+                        ? "bg-white text-blue-600 shadow-sm border border-blue-50"
+                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/50"
+                    )}
+                  >
+                    <tab.icon className={cn("h-4 w-4 shrink-0", viewTab === tab.id ? "text-blue-500" : "text-gray-400")} />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="min-h-[300px]">
+                {viewLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-20 w-full rounded-xl" />
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                  </div>
+                ) : viewTab === "overview" ? (
+                  <div className="space-y-6">
+                    {/* Player Stats Cards (If Player) */}
+                    {selectedUser?.role === "PLAYER" && (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
+                          <p className="text-[10px] font-normal text-openclub-800 uppercase tracking-widest mb-2">Handicap</p>
+                          <div className="flex items-end justify-between">
+                            <p className="text-[16px] font-normal text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
+                            <Shield className="w-5 h-5 text-emerald-300" />
                           </div>
                         </div>
-                        <StatusPill status={r.status === "APPROVED" ? "ACTIVE" : r.status === "REJECTED" ? "SUSPENDED" : "ACTIVE"} />
+                        <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50 shadow-sm">
+                          <p className="text-[10px] font-normal text-blue-600 uppercase tracking-widest mb-2">Tournaments</p>
+                          <div className="flex items-end justify-between">
+                            <p className="text-[16px] font-normal text-blue-900">{viewRegistrations.length}</p>
+                            <Trophy className="w-5 h-5 text-blue-300" />
+                          </div>
+                        </div>
+                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100/50 shadow-sm">
+                          <p className="text-[10px] font-normal text-purple-600 uppercase tracking-widest mb-2">Wins</p>
+                          <div className="flex items-end justify-between">
+                            <p className="text-[16px] font-normal text-purple-900">0</p>
+                            <Trophy className="w-5 h-5 text-purple-300" />
+                          </div>
+                        </div>
+                        <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100/50 shadow-sm">
+                          <p className="text-[10px] font-normal text-amber-600 uppercase tracking-widest mb-2">Rank</p>
+                          <div className="flex items-end justify-between">
+                            <p className="text-[16px] font-normal text-amber-900">—</p>
+                            <Users className="w-5 h-5 text-amber-300" />
+                          </div>
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-[12px] text-gray-400 font-normal">No activity found</p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Personal Info */}
+                      <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
+                        <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
+                          <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-gray-400" />
+                            Personal Information
+                          </h5>
+                        </div>
+                        <div className="p-5 space-y-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Full Name</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{fullName(selectedUser?.firstName ?? null, selectedUser?.lastName ?? null)}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Email Address</span>
+                            <span className="text-[14px] text-gray-900 font-normal break-all">{selectedUser?.email || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Phone Number</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.phone || "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Account Details */}
+                      <div className="bg-white rounded-xl border border-[#efefef] overflow-hidden shadow-sm">
+                        <div className="px-5 py-4 border-b border-gray-50 bg-background/30">
+                          <h5 className="text-[12px] font-normal text-gray-900 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-gray-400" />
+                            Account Details
+                          </h5>
+                        </div>
+                        <div className="p-5 space-y-4">
+                          <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                            <span className="text-[13px] text-gray-500 font-normal">System Role</span>
+                            <RoleBadge role={selectedUser?.role || "PLAYER"} />
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                            <span className="text-[13px] text-gray-500 font-normal">Account Status</span>
+                            <StatusPill status={selectedUser?.status || "ACTIVE"} />
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                            <span className="text-[13px] text-gray-500 font-normal">Organizer</span>
+                            <span className="text-[13px] text-gray-900 font-normal">{selectedUser?.club?.name || "None"}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-                {totalActivityPages > 1 && (
-                  <div className="flex justify-end pt-2">
-                    <Pagination currentPage={activityPage} totalPages={totalActivityPages} onPageChange={setActivityPage} />
                   </div>
-                )}
-              </div>
-            ) : viewTab === "payments" ? (
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search payments..."
-                    className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
-                    value={paymentSearch}
-                    onChange={(e) => {
-                      setPaymentSearch(e.target.value);
-                      setPaymentPage(1);
-                    }}
-                  />
-                </div>
-                <div className="overflow-hidden rounded-xl border border-[#efefef]">
-                  <table className="w-full text-left">
-                    <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                      <tr>
-                        <th className="px-5 py-3">Tournament</th>
-                        <th className="px-5 py-3">Amount</th>
-                        <th className="px-5 py-3">Reference</th>
-                        <th className="px-5 py-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50 text-[13px]">
-                      {paginatedPayments.length > 0 ? (
-                        paginatedPayments.map((r) => (
-                          <tr key={r.id} className="hover:bg-background/50 transition-colors">
-                            <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
-                            <td className="px-5 py-4 font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
-                            <td className="px-5 py-4 font-normal text-gray-500">{r.paymentReference || "—"}</td>
-                            <td className="px-5 py-4">
-                              <span className={cn(
-                                "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-normal",
-                                r.paymentStatus === "PAID" ? "bg-emerald-50 text-openclub-800" : "bg-amber-50 text-amber-600"
-                              )}>
-                                {r.paymentStatus}
-                              </span>
-                            </td>
-                          </tr>
+                ) : viewTab === "activity" ? (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search activity..."
+                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        value={activitySearch}
+                        onChange={(e) => {
+                          setActivitySearch(e.target.value);
+                          setActivityPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      {paginatedActivity.length > 0 ? (
+                        paginatedActivity.map((r) => (
+                          <div key={r.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-50 bg-white hover:border-blue-100 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <Trophy className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-[14px] font-normal text-gray-900">Registered for {r.tournament.name}</p>
+                                <p className="text-[12px] text-gray-400 font-normal">{formatJoinedDate(r.registeredAt)}</p>
+                              </div>
+                            </div>
+                            <StatusPill status={r.status === "APPROVED" ? "ACTIVE" : r.status === "REJECTED" ? "SUSPENDED" : "ACTIVE"} />
+                          </div>
                         ))
                       ) : (
-                        <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-normal">No payments found</td></tr>
+                        <div className="text-center py-8">
+                          <p className="text-[12px] text-gray-400 font-normal">No activity found</p>
+                        </div>
                       )}
-                    </tbody>
-                  </table>
-                </div>
-                {totalPaymentPages > 1 && (
-                  <div className="flex justify-end pt-2">
-                    <Pagination currentPage={paymentPage} totalPages={totalPaymentPages} onPageChange={setPaymentPage} />
+                    </div>
+                    {totalActivityPages > 1 && (
+                      <div className="flex justify-end pt-2">
+                        <Pagination currentPage={activityPage} totalPages={totalActivityPages} onPageChange={setActivityPage} />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ) : viewTab === "tournaments" ? (
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search tournaments..."
-                    className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
-                    value={tournamentSearch}
-                    onChange={(e) => {
-                      setTournamentSearch(e.target.value);
-                      setTournamentPage(1);
-                    }}
-                  />
-                </div>
-                <div className="overflow-hidden rounded-xl border border-[#efefef]">
-                  <table className="w-full text-left">
-                    <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                      <tr>
-                        <th className="px-5 py-3">Tournament</th>
-                        <th className="px-5 py-3">Date</th>
-                        <th className="px-5 py-3">Status</th>
-                        <th className="px-5 py-3 text-right">Fee</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50 text-[13px]">
-                      {paginatedTournaments.length > 0 ? (
-                        paginatedTournaments.map((r) => (
-                          <tr key={r.id} className="hover:bg-background/50 transition-colors">
-                            <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
-                            <td className="px-5 py-4 text-gray-500">{formatJoinedDate(r.tournament.startDate)}</td>
-                            <td className="px-5 py-4">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-normal bg-blue-50 text-blue-600">
-                                {r.status}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4 text-right font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                ) : viewTab === "payments" ? (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search payments..."
+                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        value={paymentSearch}
+                        onChange={(e) => {
+                          setPaymentSearch(e.target.value);
+                          setPaymentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="overflow-hidden rounded-xl border border-[#efefef]">
+                      <table className="w-full text-left">
+                        <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
+                          <tr>
+                            <th className="px-5 py-3">Tournament</th>
+                            <th className="px-5 py-3">Amount</th>
+                            <th className="px-5 py-3">Reference</th>
+                            <th className="px-5 py-3">Status</th>
                           </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-normal">No tournaments found</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {totalTournamentPages > 1 && (
-                  <div className="flex justify-end pt-2">
-                    <Pagination currentPage={tournamentPage} totalPages={totalTournamentPages} onPageChange={setTournamentPage} />
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 text-[13px]">
+                          {paginatedPayments.length > 0 ? (
+                            paginatedPayments.map((r) => (
+                              <tr key={r.id} className="hover:bg-background/50 transition-colors">
+                                <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
+                                <td className="px-5 py-4 font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                                <td className="px-5 py-4 font-normal text-gray-500">{r.paymentReference || "—"}</td>
+                                <td className="px-5 py-4">
+                                  <span className={cn(
+                                    "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-normal",
+                                    r.paymentStatus === "PAID" ? "bg-emerald-50 text-openclub-800" : "bg-amber-50 text-amber-600"
+                                  )}>
+                                    {r.paymentStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-normal">No payments found</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalPaymentPages > 1 && (
+                      <div className="flex justify-end pt-2">
+                        <Pagination currentPage={paymentPage} totalPages={totalPaymentPages} onPageChange={setPaymentPage} />
+                      </div>
+                    )}
+                  </div>
+                ) : viewTab === "tournaments" ? (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search tournaments..."
+                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        value={tournamentSearch}
+                        onChange={(e) => {
+                          setTournamentSearch(e.target.value);
+                          setTournamentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="overflow-hidden rounded-xl border border-[#efefef]">
+                      <table className="w-full text-left">
+                        <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
+                          <tr>
+                            <th className="px-5 py-3">Tournament</th>
+                            <th className="px-5 py-3">Date</th>
+                            <th className="px-5 py-3">Status</th>
+                            <th className="px-5 py-3 text-right">Fee</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 text-[13px]">
+                          {paginatedTournaments.length > 0 ? (
+                            paginatedTournaments.map((r) => (
+                              <tr key={r.id} className="hover:bg-background/50 transition-colors">
+                                <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
+                                <td className="px-5 py-4 text-gray-500">{formatJoinedDate(r.tournament.startDate)}</td>
+                                <td className="px-5 py-4">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-normal bg-blue-50 text-blue-600">
+                                    {r.status}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-4 text-right font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 font-normal">No tournaments found</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalTournamentPages > 1 && (
+                      <div className="flex justify-end pt-2">
+                        <Pagination currentPage={tournamentPage} totalPages={totalTournamentPages} onPageChange={setTournamentPage} />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center mb-4">
+                      <Clock className="h-8 w-8 text-gray-300" />
+                    </div>
+                    <h5 className="text-[14px] font-normal text-gray-900">Coming Soon</h5>
+                    <p className="text-[12px] text-gray-500 max-w-xs mt-1">
+                      This section is currently under development and will be available in a future update.
+                    </p>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center mb-4">
-                  <Clock className="h-8 w-8 text-gray-300" />
-                </div>
-                <h5 className="text-[14px] font-normal text-gray-900">Coming Soon</h5>
-                <p className="text-[12px] text-gray-500 max-w-xs mt-1">
-                  This section is currently under development and will be available in a future update.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    })()}
+            </div>
+          );
+        })()}
       </Modal>
 
 

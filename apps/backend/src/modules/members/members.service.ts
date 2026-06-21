@@ -5,12 +5,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 // Force TS cache refresh
-import { PrismaService } from '../../common/prisma.service';
-import { CreateMemberDto } from './dto/create-member.dto';
-import { UpdateMemberDto } from './dto/update-member.dto';
 import { MemberStatus, UserRole, Gender } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 
 @Injectable()
 export class MembersService {
@@ -25,22 +25,33 @@ export class MembersService {
     currentHandicap?: number | null,
   ): void {
     if (handicap < 0) {
-      throw new BadRequestException('Handicap cannot be negative. Minimum is 0 (scratch).');
+      throw new BadRequestException(
+        'Handicap cannot be negative. Minimum is 0 (scratch).',
+      );
     }
     let max: number;
     switch (gender) {
-      case Gender.MALE: max = 28; break;
-      case Gender.FEMALE: max = 36; break;
-      default: max = 54;
+      case Gender.MALE:
+        max = 28;
+        break;
+      case Gender.FEMALE:
+        max = 36;
+        break;
+      default:
+        max = 54;
     }
     if (handicap > max) {
       throw new BadRequestException(
-        `Handicap exceeds maximum for ${gender || 'unspecified gender'}. Max allowed: ${max}, Provided: ${handicap}`
+        `Handicap exceeds maximum for ${gender || 'unspecified gender'}. Max allowed: ${max}, Provided: ${handicap}`,
       );
     }
-    if (currentHandicap !== null && currentHandicap !== undefined && handicap > currentHandicap) {
+    if (
+      currentHandicap !== null &&
+      currentHandicap !== undefined &&
+      handicap > currentHandicap
+    ) {
       throw new BadRequestException(
-        `Handicap cannot be increased. Current: ${currentHandicap}, Requested: ${handicap}`
+        `Handicap cannot be increased. Current: ${currentHandicap}, Requested: ${handicap}`,
       );
     }
   }
@@ -71,7 +82,9 @@ export class MembersService {
         },
       });
       if (existingPhone) {
-        throw new ConflictException('Member with this phone number already exists');
+        throw new ConflictException(
+          'Member with this phone number already exists',
+        );
       }
     }
 
@@ -80,15 +93,25 @@ export class MembersService {
 
     let clubId = createMemberDto.clubId || null;
 
-    if (!clubId && createMemberDto.clubName && (createMemberDto.role === UserRole.CLUB_ADMIN || createMemberDto.role === UserRole.MARKER)) {
+    if (
+      !clubId &&
+      createMemberDto.clubName &&
+      (createMemberDto.role === UserRole.CLUB_ADMIN ||
+        createMemberDto.role === UserRole.MARKER)
+    ) {
       const existingClub = await this.prisma.club.findFirst({
         where: {
-          name: { equals: createMemberDto.clubName.trim(), mode: 'insensitive' },
+          name: {
+            equals: createMemberDto.clubName.trim(),
+            mode: 'insensitive',
+          },
           deletedAt: null,
         },
       });
       if (existingClub) {
-        throw new ConflictException('An organization with this name already exists');
+        throw new ConflictException(
+          'An organization with this name already exists',
+        );
       }
 
       const newClub = await this.prisma.club.create({
@@ -110,7 +133,10 @@ export class MembersService {
       clubId = newClub.id;
     }
 
-    this.validateHandicap(createMemberDto.handicap ?? 0, createMemberDto.gender as Gender);
+    this.validateHandicap(
+      createMemberDto.handicap ?? 0,
+      createMemberDto.gender,
+    );
 
     const user = await this.prisma.user.create({
       data: {
@@ -134,10 +160,14 @@ export class MembersService {
 
     // Queue member created email with temporary password
     if (user.email) {
-      this.jobsService.queueEmail('MEMBER_CREATED', user.email, {
-        firstName: user.firstName,
-        tempPassword: plainPassword,
-      }).catch(err => console.error('Failed to queue memberCreated email:', err));
+      this.jobsService
+        .queueEmail('MEMBER_CREATED', user.email, {
+          firstName: user.firstName,
+          tempPassword: plainPassword,
+        })
+        .catch((err) => {
+          console.error('Failed to queue memberCreated email:', err);
+        });
     }
 
     return user;
@@ -157,9 +187,9 @@ export class MembersService {
     if (search) {
       const q = search.trim();
       const tokens = q.split(/[\s-]+/).filter(Boolean);
-      
+
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { firstName: { contains: token, mode: 'insensitive' } },
             { lastName: { contains: token, mode: 'insensitive' } },
@@ -218,9 +248,9 @@ export class MembersService {
     if (search) {
       const q = search.trim();
       const tokens = q.split(/[\s-]+/).filter(Boolean);
-      
+
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { firstName: { contains: token, mode: 'insensitive' } },
             { lastName: { contains: token, mode: 'insensitive' } },
@@ -270,7 +300,16 @@ export class MembersService {
           address: true,
           createdAt: true,
           clubId: true,
-          club: { select: { id: true, name: true, logo: true, address: true, state: true, city: true } },
+          club: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+              address: true,
+              state: true,
+              city: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -348,9 +387,13 @@ export class MembersService {
 
     // Queue security alert email
     if (existing.email) {
-      this.jobsService.queueEmail('SECURITY_ALERT', existing.email, {
-        action: 'force_logout',
-      }).catch(err => console.error('Failed to queue securityAlert email:', err));
+      this.jobsService
+        .queueEmail('SECURITY_ALERT', existing.email, {
+          action: 'force_logout',
+        })
+        .catch((err) => {
+          console.error('Failed to queue securityAlert email:', err);
+        });
     }
 
     return { success: true };
@@ -366,7 +409,13 @@ export class MembersService {
 
     const existing = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, role: true, clubId: true, handicap: true, gender: true },
+      select: {
+        id: true,
+        role: true,
+        clubId: true,
+        handicap: true,
+        gender: true,
+      },
     });
     if (!existing) throw new NotFoundException('Member not found');
 
@@ -398,7 +447,9 @@ export class MembersService {
         },
       });
       if (existingPhone) {
-        throw new ConflictException('Member with this phone number already exists');
+        throw new ConflictException(
+          'Member with this phone number already exists',
+        );
       }
     }
 
@@ -416,7 +467,9 @@ export class MembersService {
           },
         });
         if (existingClub) {
-          throw new ConflictException('An organization with this name already exists');
+          throw new ConflictException(
+            'An organization with this name already exists',
+          );
         }
 
         if (clubId) {
@@ -424,17 +477,39 @@ export class MembersService {
             where: { id: clubId },
             data: {
               name: targetName,
-              ...(updateMemberDto.clubAddress !== undefined ? { address: updateMemberDto.clubAddress?.trim() || null } : {}),
-              ...(updateMemberDto.orgState !== undefined ? { state: updateMemberDto.orgState || null } : {}),
-              ...(updateMemberDto.orgCity !== undefined ? { city: updateMemberDto.orgCity || null } : {}),
-              ...(updateMemberDto.clubLogo !== undefined ? { logo: updateMemberDto.clubLogo || null } : {}),
-              ...(updateMemberDto.clubPlan !== undefined ? { plan: updateMemberDto.clubPlan as 'PRO' | 'BASIC' } : {}),
-              ...(updateMemberDto.clubType !== undefined ? { type: updateMemberDto.clubType || 'Golf Club' } : {}),
-              ...(updateMemberDto.clubWebsite !== undefined ? { website: updateMemberDto.clubWebsite || null } : {}),
-              ...(updateMemberDto.clubAbout !== undefined ? { about: updateMemberDto.clubAbout || null } : {}),
-              ...(updateMemberDto.clubFacebook !== undefined ? { facebook: updateMemberDto.clubFacebook || null } : {}),
-              ...(updateMemberDto.clubInstagram !== undefined ? { instagram: updateMemberDto.clubInstagram || null } : {}),
-              ...(updateMemberDto.clubCountry !== undefined ? { country: updateMemberDto.clubCountry || 'NG' } : {}),
+              ...(updateMemberDto.clubAddress !== undefined
+                ? { address: updateMemberDto.clubAddress?.trim() || null }
+                : {}),
+              ...(updateMemberDto.orgState !== undefined
+                ? { state: updateMemberDto.orgState || null }
+                : {}),
+              ...(updateMemberDto.orgCity !== undefined
+                ? { city: updateMemberDto.orgCity || null }
+                : {}),
+              ...(updateMemberDto.clubLogo !== undefined
+                ? { logo: updateMemberDto.clubLogo || null }
+                : {}),
+              ...(updateMemberDto.clubPlan !== undefined
+                ? { plan: updateMemberDto.clubPlan }
+                : {}),
+              ...(updateMemberDto.clubType !== undefined
+                ? { type: updateMemberDto.clubType || 'Golf Club' }
+                : {}),
+              ...(updateMemberDto.clubWebsite !== undefined
+                ? { website: updateMemberDto.clubWebsite || null }
+                : {}),
+              ...(updateMemberDto.clubAbout !== undefined
+                ? { about: updateMemberDto.clubAbout || null }
+                : {}),
+              ...(updateMemberDto.clubFacebook !== undefined
+                ? { facebook: updateMemberDto.clubFacebook || null }
+                : {}),
+              ...(updateMemberDto.clubInstagram !== undefined
+                ? { instagram: updateMemberDto.clubInstagram || null }
+                : {}),
+              ...(updateMemberDto.clubCountry !== undefined
+                ? { country: updateMemberDto.clubCountry || 'NG' }
+                : {}),
             },
           });
         } else {
@@ -480,9 +555,13 @@ export class MembersService {
     delete data.clubInstagram;
     delete data.clubCountry;
 
-    if (updateMemberDto.handicap !== undefined || updateMemberDto.gender !== undefined) {
+    if (
+      updateMemberDto.handicap !== undefined ||
+      updateMemberDto.gender !== undefined
+    ) {
       const newHandicap = updateMemberDto.handicap ?? existing.handicap ?? 0;
-      const newGender = (updateMemberDto.gender as Gender) ?? (existing.gender as Gender);
+      const newGender =
+        (updateMemberDto.gender as Gender) ?? (existing.gender as Gender);
       this.validateHandicap(newHandicap, newGender, existing.handicap);
     }
 
@@ -506,12 +585,19 @@ export class MembersService {
     const email = existing.email?.trim().toLowerCase();
     const toDelete = await this.prisma.user.findMany({
       where: { email: { equals: email, mode: 'insensitive' } },
-      select: { id: true, role: true, clubId: true, club: { select: { name: true } } },
+      select: {
+        id: true,
+        role: true,
+        clubId: true,
+        club: { select: { name: true } },
+      },
     });
     const ids = toDelete.map((u) => u.id);
 
     // Validate that we are not leaving any organizer blank without a CLUB_ADMIN user
-    const adminsToValidate = toDelete.filter((u) => u.role === UserRole.CLUB_ADMIN && u.clubId);
+    const adminsToValidate = toDelete.filter(
+      (u) => u.role === UserRole.CLUB_ADMIN && u.clubId,
+    );
     for (const admin of adminsToValidate) {
       const remainingAdminsCount = await this.prisma.user.count({
         where: {

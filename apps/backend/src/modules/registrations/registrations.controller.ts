@@ -11,12 +11,12 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
-import { RegistrationsService } from './registrations.service';
-import { RegisterTournamentDto } from './dto/register-tournament.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PaymentStatus, RegistrationStatus, UserRole } from '@prisma/client';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { RegisterTournamentDto } from './dto/register-tournament.dto';
+import { RegistrationsService } from './registrations.service';
 
 @Controller('registrations')
 @UseGuards(JwtAuthGuard)
@@ -26,7 +26,8 @@ export class RegistrationsController {
   @Post()
   register(@Request() req: any, @Body() dto: RegisterTournamentDto) {
     const role = req.user?.role as UserRole;
-    const isAdmin = role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
+    const isAdmin =
+      role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
     const userId = isAdmin && dto.userId ? dto.userId : req.user.userId;
     return this.registrationsService.register(userId, dto, isAdmin);
   }
@@ -37,7 +38,11 @@ export class RegistrationsController {
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
-    return this.registrationsService.getMyRegistrations(req.user.userId, skip, take);
+    return this.registrationsService.getMyRegistrations(
+      req.user.userId,
+      skip,
+      take,
+    );
   }
 
   @Get()
@@ -92,8 +97,13 @@ export class RegistrationsController {
     const role = req.user?.role as UserRole;
     const userClubId = req.user?.clubId;
 
-    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this registration');
+    if (
+      role === UserRole.CLUB_ADMIN &&
+      registration.tournament.clubId !== userClubId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this registration',
+      );
     }
     return this.registrationsService.updateStatus(id, status);
   }
@@ -101,15 +111,20 @@ export class RegistrationsController {
   @Patch(':id/strokes')
   async addStrokes(
     @Request() req: any,
-    @Param('id') id: string, 
-    @Body('delta') delta: number
+    @Param('id') id: string,
+    @Body('delta') delta: number,
   ) {
     const registration = await this.registrationsService.findOne(id);
     const role = req.user?.role as UserRole;
     const userClubId = req.user?.clubId;
 
-    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this registration');
+    if (
+      role === UserRole.CLUB_ADMIN &&
+      registration.tournament.clubId !== userClubId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this registration',
+      );
     }
     return this.registrationsService.addStrokes(id, Number(delta));
   }
@@ -120,8 +135,13 @@ export class RegistrationsController {
     const role = req.user?.role as UserRole;
     const userClubId = req.user?.clubId;
 
-    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this registration');
+    if (
+      role === UserRole.CLUB_ADMIN &&
+      registration.tournament.clubId !== userClubId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this registration',
+      );
     }
     return this.registrationsService.clearStrokes(id);
   }
@@ -136,8 +156,13 @@ export class RegistrationsController {
     const role = req.user?.role as UserRole;
     const userClubId = req.user?.clubId;
 
-    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this registration');
+    if (
+      role === UserRole.CLUB_ADMIN &&
+      registration.tournament.clubId !== userClubId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this registration',
+      );
     }
     return this.registrationsService.confirmPayment(id, paymentReference);
   }
@@ -150,8 +175,13 @@ export class RegistrationsController {
     const role = req.user?.role as UserRole;
     const userClubId = req.user?.clubId;
 
-    if (role === UserRole.CLUB_ADMIN && registration.tournament.clubId !== userClubId) {
-      throw new ForbiddenException('You do not have access to this registration');
+    if (
+      role === UserRole.CLUB_ADMIN &&
+      registration.tournament.clubId !== userClubId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this registration',
+      );
     }
     return this.registrationsService.remove(id);
   }

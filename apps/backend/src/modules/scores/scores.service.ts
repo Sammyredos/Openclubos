@@ -4,10 +4,10 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma.service';
-import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoreStatus, UserRole } from '@prisma/client';
+import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { CreateScoreDto } from './dto/create-score.dto';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -16,7 +16,7 @@ export class ScoresService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
-  ) { }
+  ) {}
 
   async upsertScore(createScoreDto: CreateScoreDto, currentUser: any) {
     const { userId, holeId, groupId, strokes, putts, points } = createScoreDto;
@@ -131,10 +131,14 @@ export class ScoresService {
       select: { email: true, firstName: true },
     });
     if (player?.email) {
-      this.jobsService.queueEmail('SCORE_CONFIRMED', player.email, {
-        firstName: player.firstName,
-        holeNumber: score.hole?.number || 'N/A',
-      }).catch(err => console.error('Failed to queue scoreConfirmed email:', err));
+      this.jobsService
+        .queueEmail('SCORE_CONFIRMED', player.email, {
+          firstName: player.firstName,
+          holeNumber: score.hole?.number || 'N/A',
+        })
+        .catch((err) => {
+          console.error('Failed to queue scoreConfirmed email:', err);
+        });
     }
 
     return updated;

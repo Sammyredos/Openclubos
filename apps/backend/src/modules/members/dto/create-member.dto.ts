@@ -1,3 +1,4 @@
+import { MemberStatus, UserRole, Gender } from '@prisma/client';
 import {
   IsEmail,
   IsString,
@@ -7,7 +8,6 @@ import {
   MinLength,
   Min,
 } from 'class-validator';
-import { MemberStatus, UserRole, Gender } from '@prisma/client';
 
 export class CreateMemberDto {
   @IsEmail()

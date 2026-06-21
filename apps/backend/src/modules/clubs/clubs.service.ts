@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   ClubStatus,
@@ -5,10 +6,9 @@ import {
   TournamentStatus,
   UserRole,
 } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma.service';
 import { UpdateClubDto } from './dto/update-club.dto';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ClubsService {
@@ -144,7 +144,7 @@ export class ClubsService {
   async findAll(query: { search?: string; skip?: number; take?: number }) {
     const search = query.search?.trim();
     const where: any = { deletedAt: null };
-    
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },

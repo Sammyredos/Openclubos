@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo } from "react";
 import {
@@ -7,9 +7,6 @@ import {
   Search,
   Download,
   Plus,
-  ArrowUpRight,
-  TrendingUp,
-  TrendingDown,
   MoreVertical,
   Wallet,
   Banknote,
@@ -17,19 +14,9 @@ import {
   CheckCircle2,
   FileText,
   FileSpreadsheet,
+  TrendingUp,
 } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -152,58 +139,13 @@ const MOCK_SUBSCRIPTIONS = [
   },
 ];
 
-// Recharts Donut data
-const OVERVIEW_DATA = [
-  { name: "Active", value: 138, percentage: "88.5%", color: "#15803D" },
-  { name: "Past Due", value: 7, percentage: "4.5%", color: "#f43f5e" },
-  { name: "Trialing", value: 8, percentage: "5.1%", color: "#3b82f6" },
-  { name: "Cancelled", value: 3, percentage: "1.9%", color: "#94a3b8" },
-];
 
-const REVENUE_DATA_OPTIONS = {
-  "this-year": [
-    { name: "Jan", revenue: 58000 },
-    { name: "Feb", revenue: 95000 },
-    { name: "Mar", revenue: 80000 },
-    { name: "Apr", revenue: 110000 },
-    { name: "May", revenue: 150000 },
-    { name: "Jun", revenue: 184500 },
-  ],
-  "last-6-months": [
-    { name: "Jan", revenue: 95000 },
-    { name: "Feb", revenue: 80000 },
-    { name: "Mar", revenue: 110000 },
-    { name: "Apr", revenue: 150000 },
-    { name: "May", revenue: 180000 },
-    { name: "Jun", revenue: 184500 },
-  ],
-  "this-month": [
-    { name: "Week 1", revenue: 40000 },
-    { name: "Week 2", revenue: 48000 },
-    { name: "Week 3", revenue: 65000 },
-    { name: "Week 4", revenue: 79500 },
-  ]
-};
-
-const REVENUE_TOTALS = {
-  "this-year": "₦184,500.00",
-  "last-6-months": "₦184,500.00",
-  "this-month": "₦79,500.00",
-};
-
-const REVENUE_CHANGES = {
-  "this-year": "15.7%",
-  "last-6-months": "12.4%",
-  "this-month": "8.3%",
-};
 
 export default function SubscriptionsPage() {
-  const [activeTab, setActiveTab] = useState<"All" | "Active" | "Past Due" | "Cancelled" | "Trialing">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [planFilter, setPlanFilter] = useState("All");
   const [billingFilter, setBillingFilter] = useState("All");
-  const [revenueFilter, setRevenueFilter] = useState<"this-year" | "last-6-months" | "this-month">("this-year");
   const [page, setPage] = useState(1);
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const itemsPerPage = 10;
@@ -217,14 +159,13 @@ export default function SubscriptionsPage() {
         sub.email.toLowerCase().includes(q) ||
         sub.plan.toLowerCase().includes(q);
 
-      const matchesTab = activeTab === "All" || sub.status === activeTab;
       const matchesStatus = statusFilter === "All" || sub.status === statusFilter;
       const matchesPlan = planFilter === "All" || sub.plan === planFilter;
       const matchesBilling = billingFilter === "All" || sub.billingCycle === billingFilter;
 
-      return matchesSearch && matchesTab && matchesStatus && matchesPlan && matchesBilling;
+      return matchesSearch && matchesStatus && matchesPlan && matchesBilling;
     });
-  }, [searchQuery, activeTab, statusFilter, planFilter, billingFilter]);
+  }, [searchQuery, statusFilter, planFilter, billingFilter]);
 
   // Paginated display
   const paginatedSubscriptions = useMemo(() => {
@@ -235,505 +176,346 @@ export default function SubscriptionsPage() {
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
 
-      {/* Stat Cards — matches tournament page StatCard pattern */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Active Subscriptions"
-          value="156"
-          change="+12.5%"
-          changeType="increase"
-          icon={Users}
-          iconBg="bg-emerald-50"
-          iconColor="text-openclub-800"
-        />
-        <StatCard
-          title="Total Monthly Revenue"
-          value="₦18,450.00"
-          change="+8.3%"
-          changeType="increase"
-          icon={Wallet}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-        />
-        <StatCard
-          title="Total Annual Revenue"
-          value="₦184,500.00"
-          change="+15.7%"
-          changeType="increase"
-          icon={Banknote}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-        />
-        <StatCard
-          title="Past Due Subscriptions"
-          value="7"
-          change="-2"
-          changeType="decrease"
-          icon={AlertTriangle}
-          iconBg="bg-red-50"
-          iconColor="text-red-500"
-        />
+
+      {/* Stats Section */}
+      <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+        <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+
+          {/* Stat 1: Total Active Subscriptions */}
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Subscriptions</div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-bold">156</div>
+            <div className="text-zinc-500 text-sm font-normal">All Time</div>
+          </div>
+
+          <div className="w-px h-16 bg-slate-200" />
+
+          {/* Stat 2: Total Monthly Revenue */}
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Monthly Revenue</div>
+              <div className="px-2 py-1 bg-blue-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                <div className="text-blue-600 text-xs font-medium">+8.3%</div>
+              </div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-bold">₦18,450</div>
+            <div className="text-zinc-500 text-sm font-normal">This Month</div>
+          </div>
+
+          <div className="w-px h-16 bg-slate-200" />
+
+          {/* Stat 3: Total Annual Revenue */}
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Annual Revenue</div>
+              <div className="px-2 py-1 bg-purple-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                <TrendingUp className="w-3.5 h-3.5 text-purple-600" />
+                <div className="text-purple-600 text-xs font-medium">+15.7%</div>
+              </div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-bold">₦184k</div>
+            <div className="text-zinc-500 text-sm font-normal">This Year</div>
+          </div>
+
+          <div className="w-px h-16 bg-slate-200" />
+
+          {/* Stat 4: Past Due */}
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Past Due</div>
+              <div className="px-2 py-1 bg-red-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                <div className="text-red-500 text-[11px] font-medium">Action Required</div>
+              </div>
+            </div>
+            <div className="text-red-500 text-3xl font-bold">7</div>
+            <div className="text-zinc-500 text-sm font-normal">Overdue Accounts</div>
+          </div>
+
+        </div>
       </div>
 
-      {/* Main Grid Layout — matches tournament page xl:grid-cols-4 */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+      <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Subscriptions</CardTitle>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+            >
+              <Download className="w-4 h-4" /> Export
+            </Button>
+            <FloatingMenu
+              open={exportAnchorEl != null}
+              anchorEl={exportAnchorEl}
+              onClose={() => setExportAnchorEl(null)}
+              placement="bottom-end"
+              className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+            >
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToCsv(
+                    filteredSubscriptions,
+                    [
+                      { header: "Organizer", key: "organizer" },
+                      { header: "Email", key: "email" },
+                      { header: "Plan", key: "plan" },
+                      { header: "Limit", key: "planLimit" },
+                      { header: "Billing Cycle", key: "billingCycle" },
+                      { header: "Status", key: "status" },
+                      { header: "Next Billing", key: "nextBillingDate" },
+                      { header: "Amount", key: "amount" },
+                    ],
+                    "subscriptions-export.csv"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  setExportAnchorEl(null);
+                  exportToPdf(
+                    filteredSubscriptions,
+                    [
+                      { header: "Organizer", key: "organizer" },
+                      { header: "Plan", key: "plan" },
+                      { header: "Status", key: "status" },
+                      { header: "Amount", key: "amount" },
+                    ],
+                    "subscriptions-export.pdf",
+                    "Subscriptions Export"
+                  );
+                }}
+                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              >
+                <FileText className="w-4 h-4 text-rose-600" />
+                Export PDF
+              </button>
+            </FloatingMenu>
+            <Button className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal">
+              <Plus className="w-4 h-4" /> Add Subscription
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
 
-        {/* Main Content — Left 3 columns */}
-        <div className="xl:col-span-3 space-y-6">
-          <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-[16px] font-normal">All Subscriptions</CardTitle>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
-                >
-                  <Download className="w-4 h-4" /> Export
-                </Button>
-                <FloatingMenu
-                  open={exportAnchorEl != null}
-                  anchorEl={exportAnchorEl}
-                  onClose={() => setExportAnchorEl(null)}
-                  placement="bottom-end"
-                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
-                >
-                  <button
-                    onClick={() => {
-                      setExportAnchorEl(null);
-                      exportToCsv(
-                        filteredSubscriptions,
-                        [
-                          { header: "Organizer", key: "organizer" },
-                          { header: "Email", key: "email" },
-                          { header: "Plan", key: "plan" },
-                          { header: "Limit", key: "planLimit" },
-                          { header: "Billing Cycle", key: "billingCycle" },
-                          { header: "Status", key: "status" },
-                          { header: "Next Billing", key: "nextBillingDate" },
-                          { header: "Amount", key: "amount" },
-                        ],
-                        "subscriptions-export.csv"
-                      );
-                    }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
-                    Export CSV
-                  </button>
-                  <button
-                    onClick={() => {
-                      setExportAnchorEl(null);
-                      exportToPdf(
-                        filteredSubscriptions,
-                        [
-                          { header: "Organizer", key: "organizer" },
-                          { header: "Plan", key: "plan" },
-                          { header: "Status", key: "status" },
-                          { header: "Amount", key: "amount" },
-                        ],
-                        "subscriptions-export.pdf",
-                        "Subscriptions Export"
-                      );
-                    }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-                  >
-                    <FileText className="w-4 h-4 text-rose-600" />
-                    Export PDF
-                  </button>
-                </FloatingMenu>
-                <Button className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal">
-                  <Plus className="w-4 h-4" /> Add Subscription
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
+          {/* Filters */}
+          <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[280px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by organizer, email or plan..."
+                className="pl-10 h-11 rounded-lg text-[14px]"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <SearchableSelect
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "All", label: "Status: All" },
+                { value: "Active", label: "Active" },
+                { value: "Past Due", label: "Past Due" },
+                { value: "Trialing", label: "Trialing" },
+                { value: "Cancelled", label: "Cancelled" },
+              ]}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              placeholder="All Status"
+            />
+            <SearchableSelect
+              value={planFilter}
+              onValueChange={(v) => {
+                setPlanFilter(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "All", label: "Plan: All" },
+                { value: "Basic", label: "Basic" },
+                { value: "Standard", label: "Standard" },
+                { value: "Professional", label: "Professional" },
+              ]}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              placeholder="All Plans"
+            />
+            <SearchableSelect
+              value={billingFilter}
+              onValueChange={(v) => {
+                setBillingFilter(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "All", label: "Billing Cycle: All" },
+                { value: "Monthly", label: "Monthly" },
+                { value: "Annual", label: "Annual" },
+              ]}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              placeholder="All Cycles"
+            />
+          </div>
 
+          {/* Table */}
+          <div className="overflow-x-auto relative">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                  <th className="px-6 py-4">Organizer Details</th>
+                  <th className="px-6 py-4">Plan Information</th>
+                  <th className="px-6 py-4">Billing Cycle</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Next Billing Date</th>
+                  <th className="px-6 py-4 text-right">Amount</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e1efe5]">
+                {paginatedSubscriptions.length > 0 ? (
+                  paginatedSubscriptions.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors group">
 
+                      {/* Organizer Details */}
+                      <td className="px-6 py-5">
+                        <div className="inline-flex justify-start items-center gap-3.5 min-w-[250px]">
+                          <div className={cn("size-10 rounded-full flex items-center justify-center text-[13px] font-medium shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
+                            {sub.initials}
+                          </div>
+                          <div className="inline-flex flex-col justify-start items-start min-w-0">
+                            <div className="text-slate-900 text-[14px] font-medium whitespace-nowrap" title={sub.organizer}>
+                              {sub.organizer}
+                            </div>
+                            <div className="text-gray-500 text-[12px] font-normal truncate max-w-[200px] mt-0.5" title={sub.email}>
+                              {sub.email}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
 
-              {/* Filters — matches tournament page filter pattern */}
-              <div className="px-6 py-6 flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px]">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by organizer, email or plan..."
-                    className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setPage(1);
-                    }}
-                  />
-                </div>
-                <SearchableSelect
-                  value={statusFilter}
-                  onValueChange={(v) => {
-                    setStatusFilter(v);
-                    setPage(1);
-                  }}
-                  options={[
-                    { value: "All", label: "Status: All" },
-                    { value: "Active", label: "Active" },
-                    { value: "Past Due", label: "Past Due" },
-                    { value: "Trialing", label: "Trialing" },
-                    { value: "Cancelled", label: "Cancelled" },
-                  ]}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
-                  placeholder="All Status"
-                />
-                <SearchableSelect
-                  value={planFilter}
-                  onValueChange={(v) => {
-                    setPlanFilter(v);
-                    setPage(1);
-                  }}
-                  options={[
-                    { value: "All", label: "Plan: All" },
-                    { value: "Basic", label: "Basic" },
-                    { value: "Standard", label: "Standard" },
-                    { value: "Professional", label: "Professional" },
-                  ]}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
-                  placeholder="All Plans"
-                />
-                <SearchableSelect
-                  value={billingFilter}
-                  onValueChange={(v) => {
-                    setBillingFilter(v);
-                    setPage(1);
-                  }}
-                  options={[
-                    { value: "All", label: "Billing Cycle: All" },
-                    { value: "Monthly", label: "Monthly" },
-                    { value: "Annual", label: "Annual" },
-                  ]}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
-                  placeholder="All Cycles"
-                />
-              </div>
+                      {/* Plan Information */}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col min-w-0 gap-1.5">
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5 self-start",
+                              sub.plan === "Professional" ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]" : sub.plan === "Standard" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-gray-50 text-gray-600 border border-gray-200"
+                            )}
+                          >
+                            <span className={cn("w-1.5 h-1.5 rounded-full", sub.plan === "Professional" ? "bg-[#15803D]" : sub.plan === "Standard" ? "bg-blue-500" : "bg-gray-500")} />
+                            {sub.plan}
+                          </span>
+                          <span className="text-[12px] text-gray-500 font-normal mt-0.5 whitespace-nowrap">
+                            {sub.planLimit}
+                          </span>
+                        </div>
+                      </td>
 
-              {/* Table — matches tournament page table pattern */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                      <th className="px-4 py-4">Organizer</th>
-                      <th className="px-4 py-4">Plan</th>
-                      <th className="px-4 py-4">Billing Cycle</th>
-                      <th className="px-4 py-4">Status</th>
-                      <th className="px-4 py-4">Next Billing Date</th>
-                      <th className="px-4 py-4 text-right">Amount</th>
-                      <th className="px-4 py-4 text-center">Actions</th>
+                      {/* Billing Cycle */}
+                      <td className="px-6 py-5">
+                        <span className="text-[13px] text-gray-600 font-medium">{sub.billingCycle}</span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-5">
+                        <span
+                          className={cn(
+                            "text-[11px] font-medium px-2.5 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
+                            sub.status === "Active"
+                              ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]"
+                              : sub.status === "Past Due"
+                                ? "bg-red-50 text-red-600 border border-red-200"
+                                : sub.status === "Trialing"
+                                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              sub.status === "Active" ? "bg-[#15803D]"
+                                : sub.status === "Past Due" ? "bg-red-500"
+                                  : sub.status === "Trialing" ? "bg-blue-500"
+                                    : "bg-gray-400"
+                            )}
+                          />
+                          {sub.status}
+                        </span>
+                      </td>
+
+                      {/* Next Billing Date */}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="text-[13px] text-gray-600 font-medium whitespace-nowrap">
+                            {sub.nextBillingDate}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium px-2 py-0.5 rounded border mt-0.5 whitespace-nowrap",
+                              sub.status === "Past Due" ? "bg-red-50 text-red-600 border-red-100" : "bg-gray-50 text-gray-500 border-gray-100"
+                            )}
+                          >
+                            {sub.nextBillingSub}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Amount */}
+                      <td className="px-6 py-5 text-right">
+                        <span className="text-[14px] font-medium text-slate-900 whitespace-nowrap">{sub.amount}</span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-center">
+                          <button className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {paginatedSubscriptions.length > 0 ? (
-                      paginatedSubscriptions.map((sub) => (
-                        <tr key={sub.id} className="hover:bg-background/50 transition-colors group">
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">
+                      No subscriptions found matching your criteria.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-                          {/* Organizer/User */}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-[13px] font-normal shrink-0 group-hover:scale-105 transition-transform", sub.avatarColor)}>
-                                {sub.initials}
-                              </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-[14px] font-normal text-gray-900 truncate leading-tight" title={sub.organizer}>
-                                  {sub.organizer}
-                                </span>
-                                <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5" title={sub.email}>
-                                  {sub.email}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
+          {/* Pagination */}
+          <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
+            <p className="text-[13px] text-gray-500 font-normal">
+              Showing {(page - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(page * itemsPerPage, filteredSubscriptions.length)} of{" "}
+              {filteredSubscriptions.length} subscriptions
+            </p>
+            <Pagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(filteredSubscriptions.length / itemsPerPage))}
+              onPageChange={(p) => setPage(p)}
+            />
+          </div>
 
-                          {/* Plan */}
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-normal truncate leading-tight">{sub.plan}</span>
-                              <span className="text-[10px] text-gray-400 font-normal mt-0.5">{sub.planLimit}</span>
-                            </div>
-                          </td>
-
-                          {/* Billing Cycle */}
-                          <td className="px-4 py-4">
-                            <span className="text-[13px] text-gray-700 font-normal">{sub.billingCycle}</span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-4">
-                            <span
-                              className={cn(
-                                "text-[10px] font-normal px-2 py-0.5 rounded-lg whitespace-nowrap uppercase inline-flex items-center gap-1.5",
-                                sub.status === "Active" && "bg-emerald-50 text-openclub-800",
-                                sub.status === "Past Due" && "bg-red-50 text-red-500",
-                                sub.status === "Trialing" && "bg-blue-50 text-blue-600",
-                                sub.status === "Cancelled" && "bg-gray-100 text-gray-500"
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  sub.status === "Active" && "bg-openclub-700",
-                                  sub.status === "Past Due" && "bg-red-500",
-                                  sub.status === "Trialing" && "bg-blue-500",
-                                  sub.status === "Cancelled" && "bg-gray-400"
-                                )}
-                              />
-                              {sub.status}
-                            </span>
-                          </td>
-
-                          {/* Next Billing Date */}
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-normal leading-tight">{sub.nextBillingDate}</span>
-                              <span
-                                className={cn(
-                                  "text-[10px] font-normal mt-0.5",
-                                  sub.status === "Past Due" ? "text-red-500" : "text-gray-400"
-                                )}
-                              >
-                                {sub.nextBillingSub}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Amount */}
-                          <td className="px-4 py-4 text-right">
-                            <span className="text-[14px] font-normal text-gray-900 whitespace-nowrap">{sub.amount}</span>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center justify-center">
-                              <button className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors">
-                                <MoreVertical className="w-4.5 h-4.5" />
-                              </button>
-                            </div>
-                          </td>
-
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-20 text-center text-gray-400 font-normal text-[13px]">
-                          No subscriptions matching your selection.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination — matches tournament page pagination pattern */}
-              <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
-                <p className="text-[13px] text-gray-500">
-                  Showing {(page - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(page * itemsPerPage, filteredSubscriptions.length)} of{" "}
-                  {filteredSubscriptions.length} subscriptions
-                </p>
-                <Pagination
-                  currentPage={page}
-                  totalPages={Math.max(1, Math.ceil(filteredSubscriptions.length / itemsPerPage))}
-                  onPageChange={(p) => setPage(p)}
-                />
-              </div>
-
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Sidebar — matches tournament page sidebar pattern */}
-        <div className="space-y-8">
-
-          {/* Subscription Overview — Donut Chart */}
-          <Card className="border border-[#e1efe5] shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-[16px] font-normal">Subscription Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="h-[240px] w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={OVERVIEW_DATA}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {OVERVIEW_DATA.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[13px] text-gray-400 font-normal">Total</p>
-                  <p className="text-[16px] font-normal text-gray-800">156</p>
-                </div>
-              </div>
-
-              <div className="w-full space-y-3 mt-4">
-                {OVERVIEW_DATA.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-[13px]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-gray-500 font-normal">{item.name}</span>
-                    </div>
-                    <span className="font-normal text-gray-800">
-                      {item.value} ({item.percentage})
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <Button variant="link" className="w-full mt-6 text-[#15803D] font-normal no-underline hover:no-underline hover:font-normal transition-all duration-200 flex items-center justify-center gap-2">
-                View Full Analytics <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Revenue Overview — Line Chart */}
-          <Card className="border border-[#e1efe5] shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-normal">Revenue Overview</CardTitle>
-              <select 
-                value={revenueFilter}
-                onChange={(e) => setRevenueFilter(e.target.value as "this-year" | "last-6-months" | "this-month")}
-                className="text-[12px] font-normal text-gray-700 bg-white border border-[#e1efe5] rounded-md px-2.5 py-1.5 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_8px_center] outline-none cursor-pointer hover:bg-background focus:ring-1 focus:ring-openclub-700 transition-colors"
-              >
-                <option value="this-year">This Year</option>
-                <option value="last-6-months">Last 6 Months</option>
-                <option value="this-month">This Month</option>
-              </select>
-            </CardHeader>
-            <CardContent className="p-3 space-y-4">
-              <div className="flex items-baseline gap-2 px-1">
-                <span className="text-[16px] font-normal text-gray-800">{REVENUE_TOTALS[revenueFilter]}</span>
-                <div className="flex items-center text-openclub-700 text-[12px] font-normal">
-                  <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-                  <span>{REVENUE_CHANGES[revenueFilter]}</span>
-                  <span className="text-gray-400 text-[11px] ml-1 font-normal">from last year</span>
-                </div>
-              </div>
-
-              <div className="h-44">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={REVENUE_DATA_OPTIONS[revenueFilter]} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#15803D" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#15803D" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis
-                      stroke="#9ca3af"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `₦${v / 1000}k`}
-                    />
-                    <Tooltip
-                      formatter={(v) => [`₦${v ? Number(v).toLocaleString() : "0"}`, "Revenue"]}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#15803D"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorRevenue)"
-                      dot={{ r: 3, fill: "#15803D" }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="border border-[#e1efe5] shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-normal">Recent Activity</CardTitle>
-              <Button
-                variant="link"
-                className="text-[#15803D] p-0 h-auto font-normal text-[12px] hover:no-underline"
-              >
-                View All
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-6 p-3">
-
-              {/* Activity 1 */}
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-4.5 h-4.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-normal text-gray-900 truncate">Royal Greens Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-normal shrink-0">2 hours ago</span>
-                  </div>
-                  <p className="text-[12px] text-gray-400 font-normal mt-0.5">
-                    Subscription renewed (Professional Annual)
-                  </p>
-                </div>
-              </div>
-
-              {/* Activity 2 */}
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-4.5 h-4.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-normal text-gray-900 truncate">Meadowbrook Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-normal shrink-0">1 day ago</span>
-                  </div>
-                  <p className="text-[12px] text-red-500 font-normal mt-0.5">
-                    Payment failed
-                  </p>
-                </div>
-              </div>
-
-              {/* Activity 3 */}
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                  <ArrowUpRight className="w-4.5 h-4.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-normal text-gray-900 truncate">Pine Valley Golf Club</span>
-                    <span className="text-[11px] text-gray-400 font-normal shrink-0">3 days ago</span>
-                  </div>
-                  <p className="text-[12px] text-gray-400 font-normal mt-0.5">
-                    Upgraded to Professional plan
-                  </p>
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-
-        </div>
-
-      </div>
-
+        </CardContent>
+      </Card>
     </div>
   );
 }

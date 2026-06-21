@@ -12,7 +12,10 @@ export default function EditOrganizerPage() {
       isPageMode={true}
       organizerId={id}
       onClose={() => router.push("/super-admin/organizers")}
-      onSuccess={() => router.push("/super-admin/organizers")}
+      onSuccess={() => {
+        router.refresh();
+        router.push("/super-admin/organizers");
+      }}
     />
   );
 }

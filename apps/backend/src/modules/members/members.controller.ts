@@ -11,13 +11,13 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
-import { MembersService } from './members.service';
-import { CreateMemberDto } from './dto/create-member.dto';
-import { UpdateMemberDto } from './dto/update-member.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { MemberStatus, UserRole } from '@prisma/client';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
+import { MembersService } from './members.service';
 
 @Controller('members')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,15 +42,14 @@ export class MembersController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const effectiveClubId =
-      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
 
-    return this.membersService.findAll({ 
-      skip, 
-      take, 
-      search, 
-      status, 
-      clubId: effectiveClubId 
+    return this.membersService.findAll({
+      skip,
+      take,
+      search,
+      status,
+      clubId: effectiveClubId,
     });
   }
 

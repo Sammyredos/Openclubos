@@ -1,4 +1,10 @@
 import {
+  TournamentStatus,
+  TournamentFormat,
+  ScoringType,
+  TournamentVisibility,
+} from '@openclubos/types';
+import {
   IsString,
   IsDateString,
   IsOptional,
@@ -10,7 +16,6 @@ import {
   IsUUID,
   IsBoolean,
 } from 'class-validator';
-import { TournamentStatus, TournamentFormat, ScoringType, TournamentVisibility } from '@openclubos/types';
 
 export class CreateTournamentDto {
   // Step 1: Basic Details

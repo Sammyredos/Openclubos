@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -40,8 +40,7 @@ export class CoursesController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const effectiveClubId =
-      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
 
     return this.coursesService.findAll({
       clubId: effectiveClubId,
@@ -64,8 +63,7 @@ export class CoursesController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const effectiveClubId =
-      role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
 
     return this.coursesService.findAllAdmin({
       skip: skip ? parseInt(skip) : undefined,

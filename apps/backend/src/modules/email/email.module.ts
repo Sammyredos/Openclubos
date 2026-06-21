@@ -1,8 +1,8 @@
 import { Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { EmailService } from './email.service';
 import { EmailController } from './email.controller';
+import { EmailService } from './email.service';
 
 const logger = new Logger('EmailModule');
 
@@ -18,7 +18,10 @@ const logger = new Logger('EmailModule');
         const user = config.get<string>('SMTP_USER', '');
         const pass = config.get<string>('SMTP_PASS', '');
         const fromName = config.get<string>('SMTP_FROM_NAME', 'OpenClubOS');
-        const fromAddress = config.get<string>('SMTP_FROM_ADDRESS', 'noreply@localhost');
+        const fromAddress = config.get<string>(
+          'SMTP_FROM_ADDRESS',
+          'noreply@localhost',
+        );
 
         const transport: Record<string, any> = {
           host,

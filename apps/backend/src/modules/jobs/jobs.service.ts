@@ -1,5 +1,5 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 @Injectable()
@@ -23,7 +23,9 @@ export class JobsService implements OnModuleInit {
           removeOnFail: true,
         },
       );
-      this.logger.log('Repeatable job AUTO_UPDATE_TOURNAMENTS registered successfully.');
+      this.logger.log(
+        'Repeatable job AUTO_UPDATE_TOURNAMENTS registered successfully.',
+      );
 
       await this.queue.add(
         'SEND_TOURNAMENT_REMINDERS',
@@ -37,7 +39,9 @@ export class JobsService implements OnModuleInit {
           removeOnFail: true,
         },
       );
-      this.logger.log('Repeatable job SEND_TOURNAMENT_REMINDERS registered successfully.');
+      this.logger.log(
+        'Repeatable job SEND_TOURNAMENT_REMINDERS registered successfully.',
+      );
 
       await this.queue.add(
         'DATA_RETENTION_CLEANUP',
@@ -51,9 +55,13 @@ export class JobsService implements OnModuleInit {
           removeOnFail: true,
         },
       );
-      this.logger.log('Repeatable job DATA_RETENTION_CLEANUP registered successfully.');
+      this.logger.log(
+        'Repeatable job DATA_RETENTION_CLEANUP registered successfully.',
+      );
     } catch (err) {
-      this.logger.error(`Failed to schedule repeatable job: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.error(
+        `Failed to schedule repeatable job: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -64,8 +72,14 @@ export class JobsService implements OnModuleInit {
    * @param to Recipient email address
    * @param data Payload data for the selected email template
    */
-  async queueEmail(template: string, to: string, data: Record<string, any> = {}) {
-    this.logger.log(`Enqueuing SEND_EMAIL job (template=${template}, to=${to})`);
+  async queueEmail(
+    template: string,
+    to: string,
+    data: Record<string, any> = {},
+  ) {
+    this.logger.log(
+      `Enqueuing SEND_EMAIL job (template=${template}, to=${to})`,
+    );
     try {
       const job = await this.queue.add(
         'SEND_EMAIL',
@@ -75,7 +89,9 @@ export class JobsService implements OnModuleInit {
           removeOnFail: false,
         },
       );
-      this.logger.log(`SEND_EMAIL job enqueued successfully with ID: ${job.id}`);
+      this.logger.log(
+        `SEND_EMAIL job enqueued successfully with ID: ${job.id}`,
+      );
       return job;
     } catch (err: any) {
       this.logger.error(`Failed to enqueue SEND_EMAIL job: ${err.message}`);
@@ -86,21 +102,30 @@ export class JobsService implements OnModuleInit {
   /**
    * Enqueues multiple email sending jobs in bulk into the background-jobs queue.
    */
-  async queueEmailBulk(jobs: { name: string, data: { template: string, to: string, data?: Record<string, any> } }[]) {
+  async queueEmailBulk(
+    jobs: {
+      name: string;
+      data: { template: string; to: string; data?: Record<string, any> };
+    }[],
+  ) {
     this.logger.log(`Enqueuing ${jobs.length} SEND_EMAIL jobs in bulk`);
     try {
-      const bullJobs = jobs.map(j => ({
+      const bullJobs = jobs.map((j) => ({
         name: j.name,
         data: j.data,
         opts: {
           removeOnComplete: true,
           removeOnFail: false,
-        }
+        },
       }));
       await this.queue.addBulk(bullJobs);
-      this.logger.log(`Successfully enqueued ${jobs.length} SEND_EMAIL jobs in bulk`);
+      this.logger.log(
+        `Successfully enqueued ${jobs.length} SEND_EMAIL jobs in bulk`,
+      );
     } catch (err: any) {
-      this.logger.error(`Failed to enqueue bulk SEND_EMAIL jobs: ${err.message}`);
+      this.logger.error(
+        `Failed to enqueue bulk SEND_EMAIL jobs: ${err.message}`,
+      );
       throw err;
     }
   }

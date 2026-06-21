@@ -1,15 +1,15 @@
+import * as path from 'path';
 import {
   Injectable,
   Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { PrismaClient, UserRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient, UserRole } from '@prisma/client';
 import { readReplicas } from '@prisma/extension-read-replicas';
-import pg from 'pg';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import pg from 'pg';
 
 // Load .env from root
 const envPath = path.join(__dirname, '../../../../.env');
@@ -36,7 +36,10 @@ export class PrismaService
     const adapter = new PrismaPg(pool);
     super({
       adapter,
-      log: process.env.NODE_ENV !== 'production' ? [{ emit: 'event', level: 'query' }] : [],
+      log:
+        process.env.NODE_ENV !== 'production'
+          ? [{ emit: 'event', level: 'query' }]
+          : [],
     });
 
     const replicaUrl = process.env.DATABASE_URL_REPLICA || connectionString;
@@ -64,15 +67,15 @@ export class PrismaService
       },
     };
 
-    const extended = this
-      .$extends(readReplicas({ replicas: [replicaClient] }))
-      .$extends({
-        query: {
-          user: softDeleteOverride,
-          club: softDeleteOverride,
-          tournament: softDeleteOverride,
-        },
-      });
+    const extended = this.$extends(
+      readReplicas({ replicas: [replicaClient] }),
+    ).$extends({
+      query: {
+        user: softDeleteOverride,
+        club: softDeleteOverride,
+        tournament: softDeleteOverride,
+      },
+    });
 
     return new Proxy(this, {
       get: (target, prop) => {

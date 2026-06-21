@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsNumber, Min } from 'class-validator';
 import { UserRole, Gender } from '@prisma/client';
+import { IsEnum, IsOptional, IsString, IsNumber, Min } from 'class-validator';
 import { CreateMemberDto } from './create-member.dto';
 
 export class UpdateMemberDto extends PartialType(CreateMemberDto) {

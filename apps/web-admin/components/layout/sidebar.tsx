@@ -91,30 +91,42 @@ export function Sidebar() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex flex-col h-full bg-white text-gray-900 w-72 flex-shrink-0 border-r border-[#e1efe5]">
-        <div className="p-8 h-24 flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full bg-gray-100" />
-          <Skeleton className="h-6 w-32 bg-gray-100" />
+      <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
+        <div className="p-8 flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-[52px] w-[52px] rounded-full shrink-0" />
+            <Skeleton className="h-5 w-24 shrink-0" />
+          </div>
         </div>
-        <div className="flex-1 px-6 py-4 space-y-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-5 w-5 bg-gray-100" />
-              <Skeleton className="h-4 w-24 bg-gray-100" />
+        <div className="flex-1 py-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
+            <div className="space-y-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="relative flex items-center h-[40px] w-[206px]">
+                  <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
+                    <Skeleton className="h-4 w-4 shrink-0" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="px-4 py-6 border-t border-[#e1efe5] bg-white space-y-4">
-          <div className="flex items-center gap-4 px-4">
-            <Skeleton className="h-11 w-11 rounded-full bg-gray-100" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-24 bg-gray-100" />
-              <Skeleton className="h-3 w-32 bg-gray-100" />
+            <div className="mx-5 border-t border-[#e1efe5]" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="space-y-1">
+              {[1, 2].map((i) => (
+                <div key={i} className="relative flex items-center h-[40px] w-[206px]">
+                  <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
+                    <Skeleton className="h-4 w-4 shrink-0" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="px-4 pt-4 border-t border-[#e1efe5]">
-            <Skeleton className="h-12 w-full rounded-xl bg-gray-100" />
-          </div>
+        </div>
+        <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
+          <Skeleton className="w-[178px] h-[55px] rounded-lg" />
         </div>
       </div>
     );

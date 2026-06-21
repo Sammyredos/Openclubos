@@ -1,8 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UploadsService {
@@ -14,7 +14,8 @@ export class UploadsService {
     const endpoint = this.configService.get<string>('R2_ENDPOINT');
     const accessKeyId = this.configService.get<string>('R2_ACCESS_KEY');
     const secretAccessKey = this.configService.get<string>('R2_SECRET_KEY');
-    this.bucket = this.configService.get<string>('R2_BUCKET') || 'openclub-assets';
+    this.bucket =
+      this.configService.get<string>('R2_BUCKET') || 'openclub-assets';
     this.cdnBaseUrl = this.configService.get<string>('CDN_BASE_URL') || '';
 
     this.s3Client = new S3Client({
@@ -28,7 +29,12 @@ export class UploadsService {
   }
 
   async getPresignedUrl(filename: string, contentType: string) {
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const ALLOWED_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'application/pdf',
+    ];
     if (!ALLOWED_TYPES.includes(contentType)) {
       throw new BadRequestException('Invalid file type');
     }
@@ -41,10 +47,12 @@ export class UploadsService {
       ContentType: contentType,
     });
 
-    const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
-    
-    const publicUrl = this.cdnBaseUrl 
-      ? `${this.cdnBaseUrl.replace(/\/$/, '')}/${key}` 
+    const uploadUrl = await getSignedUrl(this.s3Client, command, {
+      expiresIn: 3600,
+    });
+
+    const publicUrl = this.cdnBaseUrl
+      ? `${this.cdnBaseUrl.replace(/\/$/, '')}/${key}`
       : `${this.s3Client.config.endpoint}/${this.bucket}/${key}`;
 
     return { uploadUrl, publicUrl };

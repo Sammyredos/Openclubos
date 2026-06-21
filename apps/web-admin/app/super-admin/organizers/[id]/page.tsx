@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -134,10 +134,22 @@ function toOrganizerViewModel(o: ApiOrganizer): OrganizerViewModel {
   const adminAvatar = adminUser?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`;
   const status = o.status === "SUSPENDED" ? "Suspended" : o.status === "EXPIRED" ? "Expired" : "Active";
   const plan = o.plan === "PRO" ? "Pro" : o.plan === "BASIC" ? "Basic" : "—";
+  
+  // Parse state and LGA from address if available
+  let displayLocation = "—";
+  if (o.address) {
+    const parts = o.address.split(",").map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      displayLocation = parts.slice(-2).join(", ");
+    } else {
+      displayLocation = o.address;
+    }
+  }
+
   return {
     id: o.id,
     name: o.name,
-    location: o.address || "—",
+    location: displayLocation,
     joinedDate: formatJoinedDate(o.createdAt),
     logo: o.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(o.name)}&background=10b981&color=fff&bold=true`,
     adminAvatar,
@@ -296,7 +308,7 @@ export default function OrganizerDetailsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <Card key={i} className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <CardContent className="p-6">
                 <Skeleton className="h-6 w-40 rounded-md" />
                 <Skeleton className="h-10 w-28 rounded-lg mt-3" />
@@ -741,14 +753,6 @@ export default function OrganizerDetailsPage() {
         </div>
 
         <div className="flex items-center gap-3 py-3">
-          <Button
-            onClick={openEdit}
-            variant="outline"
-            className="h-10 border-gray-200 text-gray-700 gap-2 rounded-lg px-4 text-[14px] font-normal"
-          >
-            <Edit2 className="w-4 h-4 text-gray-400" />
-            Edit Organizer
-          </Button>
           <div className="relative">
             <Button
               variant="outline"
@@ -776,17 +780,17 @@ export default function OrganizerDetailsPage() {
               className="w-60 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden"
             >
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
                 onClick={() => {
                   closeMoreMenu();
                   toast.success("Opening analytics");
                 }}
               >
-                <BarChart3 className="w-4 h-4 text-gray-500" />
+                <BarChart3 className="w-4 h-4 text-emerald-600" />
                 View Analytics
               </button>
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-blue-700 hover:bg-blue-50 transition-colors"
                 onClick={() => {
                   closeMoreMenu();
                   const email = organizer?.email;
@@ -799,21 +803,21 @@ export default function OrganizerDetailsPage() {
                     .catch((e: unknown) => toast.error(getErrorMessage(e) || "Failed to send reset email"));
                 }}
               >
-                <KeyRound className="w-4 h-4 text-gray-500" />
+                <KeyRound className="w-4 h-4 text-blue-600" />
                 Reset Admin Password
               </button>
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-amber-700 hover:bg-amber-50 transition-colors"
                 onClick={() => {
                   closeMoreMenu();
                   setIsForceLogoutModalOpen(true);
                 }}
               >
-                <LogOut className="w-4 h-4 text-gray-500" />
+                <LogOut className="w-4 h-4 text-amber-600" />
                 Force Logout
               </button>
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
                 onClick={() => {
                   closeMoreMenu();
                   const blob = new Blob([JSON.stringify(organizer, null, 2)], { type: "application/json" });
@@ -828,24 +832,24 @@ export default function OrganizerDetailsPage() {
                   toast.success("Organizer data exported");
                 }}
               >
-                <Download className="w-4 h-4 text-gray-500" />
+                <Download className="w-4 h-4 text-indigo-600" />
                 Export Organizer Data
               </button>
               {organizer?.status === "Suspended" ? (
                 <button
-                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
                   onClick={() => {
                     closeMoreMenu();
                     setStatusAction("activate");
                     setIsStatusModalOpen(true);
                   }}
                 >
-                  <CheckCircle2 className="w-4 h-4 text-openclub-800" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   Activate Organizer
                 </button>
               ) : (
                 <button
-                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-background"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-amber-700 hover:bg-amber-50 transition-colors"
                   onClick={() => {
                     closeMoreMenu();
                     setStatusAction("suspend");
@@ -857,7 +861,7 @@ export default function OrganizerDetailsPage() {
                 </button>
               )}
               <button
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-normal text-gray-700 hover:bg-red-50"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-red-700 hover:bg-red-50 transition-colors"
                 onClick={() => {
                   closeMoreMenu();
                   setDeleteConfirmText("");
@@ -876,47 +880,33 @@ export default function OrganizerDetailsPage() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-8 gap-6">
-              <Card className="xl:col-span-3 border border-[#e1efe5] shadow-sm">
-                <CardContent className="p-3">
+              <Card className="xl:col-span-3 border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
+                <CardContent className="p-5">
                   <div className="flex items-start gap-5">
                     <div className="w-[75px] h-[75px] rounded-full bg-background border border-[#efefef] flex items-center justify-center overflow-hidden flex-shrink-0">
                       <img src={organizer.logo} alt={organizer.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[14px] font-normal text-gray-900 truncate">{organizer.name}</p>
-                        <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-lg", activeStatusBadge)}>
+                        <p className="text-[16px] font-medium text-gray-900 truncate">{organizer.name}</p>
+                        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-lg", activeStatusBadge)}>
                           {organizer.status}
                         </span>
                       </div>
-                      <p className="text-[13px] text-gray-400 font-normal mt-1 flex items-center gap-1.5">
+                      <p className="text-[13px] text-gray-500 font-medium mt-1 flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5" />
                         {organizer.location}
                       </p>
-                      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-                        <div className="text-gray-400 font-normal">
-                          Subscription:{" "}
-                          <span className="text-openclub-800 font-normal">
-                            {organizer.plan === "—" ? "—" : `${organizer.plan} Plan`}
+                      <div className="mt-4 flex gap-6 text-[13px]">
+                        <div className="text-gray-500 font-medium">
+                          Plan:{" "}
+                          <span className="text-openclub-800 font-medium">
+                            {organizer.plan === "—" ? "—" : `${organizer.plan}`}
                           </span>
                         </div>
-                        <div className="text-gray-400 font-normal">
-                          Fee:{" "}
-                          <span className="text-gray-700 font-normal">
-                            {subscriptionMonthlyFee ? `₦${formatWithCommas(subscriptionMonthlyFee)}/mo` : "—"}
-                          </span>
-                        </div>
-                        <div className="text-gray-400 font-normal flex items-center gap-2 col-span-2">
-                          <Phone className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-normal">{organizer.phone}</span>
-                        </div>
-                        <div className="text-gray-400 font-normal flex items-center gap-2 col-span-2">
-                          <Mail className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-normal">{organizer.email}</span>
-                        </div>
-                        <div className="text-gray-400 font-normal flex items-center gap-2 col-span-2">
+                        <div className="text-gray-500 font-medium flex items-center gap-1.5">
                           <Globe className="w-3.5 h-3.5" />
-                          <span className="text-gray-700 font-normal">{organizer.website}</span>
+                          <span className="text-gray-800 font-medium">{organizer.website !== "—" ? organizer.website : "No Website"}</span>
                         </div>
                       </div>
                     </div>
@@ -924,10 +914,10 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="xl:col-span-1 border border-[#e1efe5] shadow-sm">
-                <CardContent className="p-3">
-                  <p className="text-[14px] font-normal text-gray-800">Organizer Admin</p>
-                  <div className="mt-6 flex flex-col items-start text-left">
+              <Card className="xl:col-span-2 border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
+                <CardContent className="p-5 h-full flex flex-col justify-center">
+                  <p className="text-[13px] font-medium text-gray-500 mb-4">Account Admin</p>
+                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-background flex-shrink-0">
                       <img
                         src={organizer.adminAvatar}
@@ -935,20 +925,16 @@ export default function OrganizerDetailsPage() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="mt-3">
-                      <p className="text-[15px] font-normal text-gray-900">{organizer.admin}</p>
-                      <p className="text-[13px] text-gray-400 font-normal mt-0.5">{organizer.email}</p>
-                    </div>
-                    <div className="mt-4 flex items-center gap-2 text-[13px] text-gray-400 font-normal">
-                      <Phone className="w-3.5 h-3.5" />
-                      <span className="text-gray-700 font-normal">{organizer.phone}</span>
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-medium text-gray-900 truncate">{organizer.admin}</p>
+                      <p className="text-[13px] text-gray-500 font-medium truncate mt-0.5">{organizer.email}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border border-[#e1efe5] shadow-sm">
-                <CardContent className="p-3">
+              <Card className="xl:col-span-1 border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
+                <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center">
                       <Trophy className="w-5 h-5" />
@@ -964,8 +950,8 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-[#e1efe5] shadow-sm">
-                <CardContent className="p-3">
+              <Card className="xl:col-span-1 border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
+                <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center">
                       <DollarSign className="w-5 h-5" />
@@ -989,8 +975,8 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-[#e1efe5] shadow-sm">
-                <CardContent className="p-3">
+              <Card className="xl:col-span-1 border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
+                <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
                       <CreditCard className="w-5 h-5" />
@@ -1008,7 +994,7 @@ export default function OrganizerDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="border border-[#e1efe5] shadow-sm">
+              <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-normal">Revenue Overview</CardTitle>
                   <SearchableSelect
@@ -1048,7 +1034,7 @@ export default function OrganizerDetailsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-[#e1efe5] shadow-sm">
+              <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
                 <CardHeader className="px-6 pt-6 pb-2">
                   <CardTitle className="text-[16px] font-normal">Subscription Details</CardTitle>
                 </CardHeader>

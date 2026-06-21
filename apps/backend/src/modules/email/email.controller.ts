@@ -29,7 +29,6 @@ export class EmailController {
     return { success: true, ...result };
   }
 
-
   /**
    * POST /api/email/test-reset
    * Body: { to: string }
@@ -69,9 +68,7 @@ export class EmailController {
    */
   @Post('test-reminder')
   @HttpCode(200)
-  async testReminder(
-    @Body() body: { to: string; tournamentName?: string },
-  ) {
+  async testReminder(@Body() body: { to: string; tournamentName?: string }) {
     const result = await this.emailService.sendTournamentReminder(
       body.to,
       body.tournamentName || 'Test Tournament',
@@ -106,9 +103,7 @@ export class EmailController {
    */
   @Post('test-admin-credentials')
   @HttpCode(200)
-  async testAdminCredentials(
-    @Body() body: { to: string; clubName?: string },
-  ) {
+  async testAdminCredentials(@Body() body: { to: string; clubName?: string }) {
     const result = await this.emailService.sendAdminCredentials(
       body.to,
       body.clubName || 'Test Golf Club',
@@ -124,9 +119,7 @@ export class EmailController {
    */
   @Post('test-security-alert')
   @HttpCode(200)
-  async testSecurityAlert(
-    @Body() body: { to: string; action?: string },
-  ) {
+  async testSecurityAlert(@Body() body: { to: string; action?: string }) {
     const result = await this.emailService.sendSecurityAlert(
       body.to,
       body.action || 'Login from new device — Chrome on Windows',

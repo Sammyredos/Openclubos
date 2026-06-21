@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, ConflictException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
+import { PrismaService } from '../../common/prisma.service';
+import { JobsService } from '../jobs/jobs.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
-import { JobsService } from '../jobs/jobs.service';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -29,7 +35,9 @@ export class TournamentsService {
     });
 
     if (existing) {
-      throw new ConflictException('A tournament with this name already exists in this club');
+      throw new ConflictException(
+        'A tournament with this name already exists in this club',
+      );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,8 +54,12 @@ export class TournamentsService {
       // Dates
       startDate: new Date(dto.startDate),
       endDate: dto.endDate ? new Date(dto.endDate) : null,
-      registrationOpenAt: dto.registrationOpenAt ? new Date(dto.registrationOpenAt) : null,
-      registrationCloseAt: dto.registrationCloseAt ? new Date(dto.registrationCloseAt) : null,
+      registrationOpenAt: dto.registrationOpenAt
+        ? new Date(dto.registrationOpenAt)
+        : null,
+      registrationCloseAt: dto.registrationCloseAt
+        ? new Date(dto.registrationCloseAt)
+        : null,
       // Format
       format: dto.format ?? 'STROKE_PLAY',
       scoringType: dto.scoringType ?? 'GROSS',
@@ -72,7 +84,9 @@ export class TournamentsService {
       requiresPayment: dto.requiresPayment ?? false,
       entryFee: dto.entryFee ?? null,
       currency: dto.currency ?? 'NGN',
-      paymentDeadline: dto.paymentDeadline ? new Date(dto.paymentDeadline) : null,
+      paymentDeadline: dto.paymentDeadline
+        ? new Date(dto.paymentDeadline)
+        : null,
       isRefundable: dto.isRefundable ?? false,
       // Divisions
       divisions: dto.divisions ?? [],
@@ -87,7 +101,8 @@ export class TournamentsService {
       // Publish
       publishImmediately: dto.publishImmediately ?? false,
       visibility: dto.visibility ?? 'PUBLIC',
-      status: dto.status ?? (dto.publishImmediately ? 'REGISTRATION_OPEN' : 'DRAFT'),
+      status:
+        dto.status ?? (dto.publishImmediately ? 'REGISTRATION_OPEN' : 'DRAFT'),
     } as any;
     const result = await this.prisma.tournament.create({
       data,
@@ -103,21 +118,23 @@ export class TournamentsService {
       });
 
       const jobs = clubMembers
-        .filter(m => m.email)
-        .map(m => ({
+        .filter((m) => m.email)
+        .map((m) => ({
           name: 'SEND_EMAIL',
           data: {
             template: 'TOURNAMENT_ANNOUNCEMENT',
-            to: m.email!,
+            to: m.email,
             data: {
               tournamentName: result.name,
               startDate: result.startDate,
               venue: result.venue,
-            }
-          }
+            },
+          },
         }));
       if (jobs.length > 0) {
-        this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentAnnouncement emails:', err));
+        this.jobsService.queueEmailBulk(jobs).catch((err) => {
+          console.error('Failed to queue tournamentAnnouncement emails:', err);
+        });
       }
     }
 
@@ -134,7 +151,7 @@ export class TournamentsService {
       const tokens = q.split(/[\s-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { name: { contains: token, mode: 'insensitive' } },
             { club: { name: { contains: token, mode: 'insensitive' } } },
@@ -164,9 +181,9 @@ export class TournamentsService {
         _count: {
           select: {
             registrations: {
-              where: { status: 'APPROVED' }
-            }
-          }
+              where: { status: 'APPROVED' },
+            },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -187,7 +204,9 @@ export class TournamentsService {
     const takeParam = query.take ?? '';
     const cacheKey = `tournaments:list:${clubId}:${status}:${search}:${skip}:${takeParam}`;
 
-    const cached = await this.cacheService.get<{ items: any[]; total: number }>(cacheKey);
+    const cached = await this.cacheService.get<{ items: any[]; total: number }>(
+      cacheKey,
+    );
     if (cached) {
       return cached;
     }
@@ -200,7 +219,7 @@ export class TournamentsService {
       const tokens = q.split(/[\s-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { name: { contains: token, mode: 'insensitive' } },
             { club: { name: { contains: token, mode: 'insensitive' } } },
@@ -236,9 +255,9 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' }
-              }
-            }
+                where: { status: 'APPROVED' },
+              },
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -285,7 +304,10 @@ export class TournamentsService {
 
     // 4. Send Emails for COMPLETED tournaments
     const completedToEmail = await this.prisma.tournament.findMany({
-      where: { status: 'COMPLETED', emailLogs: { none: { emailType: 'COMPLETED' } } },
+      where: {
+        status: 'COMPLETED',
+        emailLogs: { none: { emailType: 'COMPLETED' } },
+      },
       select: { id: true, name: true, club: { select: { name: true } } },
     });
     for (const t of completedToEmail) {
@@ -294,7 +316,10 @@ export class TournamentsService {
 
     // 5. Send Emails for ONGOING (STARTED) tournaments
     const startedToEmail = await this.prisma.tournament.findMany({
-      where: { status: 'ONGOING', emailLogs: { none: { emailType: 'STARTED' } } },
+      where: {
+        status: 'ONGOING',
+        emailLogs: { none: { emailType: 'STARTED' } },
+      },
       select: { id: true, name: true, club: { select: { name: true } } },
     });
     for (const t of startedToEmail) {
@@ -306,16 +331,16 @@ export class TournamentsService {
     try {
       const tournament = await this.prisma.tournament.findUnique({
         where: { id },
-        include: { 
-          club: true, 
+        include: {
+          club: true,
           course: true,
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' }
-              }
-            }
-          }
+                where: { status: 'APPROVED' },
+              },
+            },
+          },
         },
       });
 
@@ -326,7 +351,10 @@ export class TournamentsService {
       return tournament;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      console.error(`[TournamentsService.findOne] Error fetching tournament ${id}:`, error);
+      console.error(
+        `[TournamentsService.findOne] Error fetching tournament ${id}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -343,57 +371,81 @@ export class TournamentsService {
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.clubId !== undefined) data.clubId = dto.clubId;
     if (dto.courseId !== undefined) data.courseId = dto.courseId;
-    
+
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
-    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
-    if (dto.registrationOpenAt !== undefined) data.registrationOpenAt = dto.registrationOpenAt ? new Date(dto.registrationOpenAt) : null;
-    if (dto.registrationCloseAt !== undefined) data.registrationCloseAt = dto.registrationCloseAt ? new Date(dto.registrationCloseAt) : null;
-    
+    if (dto.endDate !== undefined)
+      data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.registrationOpenAt !== undefined)
+      data.registrationOpenAt = dto.registrationOpenAt
+        ? new Date(dto.registrationOpenAt)
+        : null;
+    if (dto.registrationCloseAt !== undefined)
+      data.registrationCloseAt = dto.registrationCloseAt
+        ? new Date(dto.registrationCloseAt)
+        : null;
+
     if (dto.format !== undefined) data.format = dto.format;
     if (dto.scoringType !== undefined) data.scoringType = dto.scoringType;
     if (dto.holes !== undefined) data.holes = dto.holes;
-    
-    if (dto.allowRegisteredPlayers !== undefined) data.allowRegisteredPlayers = dto.allowRegisteredPlayers;
+
+    if (dto.allowRegisteredPlayers !== undefined)
+      data.allowRegisteredPlayers = dto.allowRegisteredPlayers;
     if (dto.allowGuests !== undefined) data.allowGuests = dto.allowGuests;
-    if (dto.allowExternalPlayers !== undefined) data.allowExternalPlayers = dto.allowExternalPlayers;
-    if (dto.hasHandicapRestriction !== undefined) data.hasHandicapRestriction = dto.hasHandicapRestriction;
+    if (dto.allowExternalPlayers !== undefined)
+      data.allowExternalPlayers = dto.allowExternalPlayers;
+    if (dto.hasHandicapRestriction !== undefined)
+      data.hasHandicapRestriction = dto.hasHandicapRestriction;
     if (dto.minHandicap !== undefined) data.minHandicap = dto.minHandicap;
     if (dto.maxHandicap !== undefined) data.maxHandicap = dto.maxHandicap;
     if (dto.playerTypes !== undefined) data.playerTypes = dto.playerTypes;
-    
+
     if (dto.maxPlayers !== undefined) data.maxPlayers = dto.maxPlayers;
-    if (dto.maxPlayersPerGroup !== undefined) data.maxPlayersPerGroup = dto.maxPlayersPerGroup;
-    if (dto.enableWaitlist !== undefined) data.enableWaitlist = dto.enableWaitlist;
-    
+    if (dto.maxPlayersPerGroup !== undefined)
+      data.maxPlayersPerGroup = dto.maxPlayersPerGroup;
+    if (dto.enableWaitlist !== undefined)
+      data.enableWaitlist = dto.enableWaitlist;
+
     if (dto.enableCut !== undefined) data.enableCut = dto.enableCut;
     if (dto.cutAfterRound !== undefined) data.cutAfterRound = dto.cutAfterRound;
     if (dto.cutLine !== undefined) data.cutLine = dto.cutLine;
-    
-    if (dto.requiresPayment !== undefined) data.requiresPayment = dto.requiresPayment;
+
+    if (dto.requiresPayment !== undefined)
+      data.requiresPayment = dto.requiresPayment;
     if (dto.entryFee !== undefined) data.entryFee = dto.entryFee;
     if (dto.currency !== undefined) data.currency = dto.currency;
-    if (dto.paymentDeadline !== undefined) data.paymentDeadline = dto.paymentDeadline ? new Date(dto.paymentDeadline) : null;
+    if (dto.paymentDeadline !== undefined)
+      data.paymentDeadline = dto.paymentDeadline
+        ? new Date(dto.paymentDeadline)
+        : null;
     if (dto.isRefundable !== undefined) data.isRefundable = dto.isRefundable;
-    
+
     if (dto.divisions !== undefined) data.divisions = dto.divisions;
-    
+
     if (dto.autoGrouping !== undefined) data.autoGrouping = dto.autoGrouping;
     if (dto.teeStartTime !== undefined) data.teeStartTime = dto.teeStartTime;
-    if (dto.teeIntervalMinutes !== undefined) data.teeIntervalMinutes = dto.teeIntervalMinutes;
-    
-    if (dto.enableLiveScoring !== undefined) data.enableLiveScoring = dto.enableLiveScoring;
-    if (dto.requireMarkerVerification !== undefined) data.requireMarkerVerification = dto.requireMarkerVerification;
-    if (dto.enableHoleScoring !== undefined) data.enableHoleScoring = dto.enableHoleScoring;
-    
-    if (dto.publishImmediately !== undefined) data.publishImmediately = dto.publishImmediately;
+    if (dto.teeIntervalMinutes !== undefined)
+      data.teeIntervalMinutes = dto.teeIntervalMinutes;
+
+    if (dto.enableLiveScoring !== undefined)
+      data.enableLiveScoring = dto.enableLiveScoring;
+    if (dto.requireMarkerVerification !== undefined)
+      data.requireMarkerVerification = dto.requireMarkerVerification;
+    if (dto.enableHoleScoring !== undefined)
+      data.enableHoleScoring = dto.enableHoleScoring;
+
+    if (dto.publishImmediately !== undefined)
+      data.publishImmediately = dto.publishImmediately;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.status !== undefined) {
       if (['ONGOING', 'COMPLETED'].includes(dto.status)) {
-        throw new ConflictException(`Tournament status cannot be manually set to ${dto.status}. Status is auto-calculated based on dates.`);
+        throw new ConflictException(
+          `Tournament status cannot be manually set to ${dto.status}. Status is auto-calculated based on dates.`,
+        );
       }
       data.status = dto.status;
     }
-    if (dto.lockedGroupingsDays !== undefined) data.lockedGroupingsDays = dto.lockedGroupingsDays;
+    if (dto.lockedGroupingsDays !== undefined)
+      data.lockedGroupingsDays = dto.lockedGroupingsDays;
 
     const existing = await this.prisma.tournament.findUnique({ where: { id } });
     if (!existing) {
@@ -401,20 +453,45 @@ export class TournamentsService {
     }
 
     // Dynamic Status Recalculation based on dates
-    const intendedStatus = dto.status !== undefined ? dto.status : existing.status;
+    const intendedStatus =
+      dto.status !== undefined ? dto.status : existing.status;
     if (!['DRAFT', 'CANCELLED'].includes(intendedStatus)) {
       const targetStartDate = data.startDate || existing.startDate;
-      const targetEndDate = data.endDate !== undefined ? data.endDate : existing.endDate;
-      
+      const targetEndDate =
+        data.endDate !== undefined ? data.endDate : existing.endDate;
+
       // Use strictly UTC dates for comparison to avoid timezone drift
       const today = new Date();
-      const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-      const startUTC = new Date(Date.UTC(targetStartDate.getUTCFullYear(), targetStartDate.getUTCMonth(), targetStartDate.getUTCDate()));
-      const endUTC = targetEndDate ? new Date(Date.UTC(targetEndDate.getUTCFullYear(), targetEndDate.getUTCMonth(), targetEndDate.getUTCDate())) : null;
+      const todayUTC = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        ),
+      );
+      const startUTC = new Date(
+        Date.UTC(
+          targetStartDate.getUTCFullYear(),
+          targetStartDate.getUTCMonth(),
+          targetStartDate.getUTCDate(),
+        ),
+      );
+      const endUTC = targetEndDate
+        ? new Date(
+            Date.UTC(
+              targetEndDate.getUTCFullYear(),
+              targetEndDate.getUTCMonth(),
+              targetEndDate.getUTCDate(),
+            ),
+          )
+        : null;
 
       if (endUTC && endUTC.getTime() < todayUTC.getTime()) {
         data.status = 'COMPLETED';
-      } else if (startUTC.getTime() <= todayUTC.getTime() && (!endUTC || endUTC.getTime() >= todayUTC.getTime())) {
+      } else if (
+        startUTC.getTime() <= todayUTC.getTime() &&
+        (!endUTC || endUTC.getTime() >= todayUTC.getTime())
+      ) {
         data.status = 'ONGOING';
       } else if (startUTC.getTime() > todayUTC.getTime()) {
         data.status = 'REGISTRATION_OPEN';
@@ -422,18 +499,59 @@ export class TournamentsService {
     }
 
     const changedFields: string[] = [];
-    if (data.name !== undefined && data.name !== existing.name) changedFields.push(`<strong>Tournament Name:</strong> ${data.name}`);
-    if (data.startDate !== undefined && existing.startDate && data.startDate.getTime() !== existing.startDate.getTime()) changedFields.push(`<strong>Start Date:</strong> ${data.startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`);
-    if (data.endDate !== undefined && ((data.endDate?.getTime() || 0) !== (existing.endDate?.getTime() || 0))) changedFields.push(`<strong>End Date:</strong> ${data.endDate ? data.endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'None'}`);
-    if (data.venue !== undefined && data.venue !== existing.venue) changedFields.push(`<strong>Location:</strong> ${data.venue}`);
-    if (data.courseId !== undefined && data.courseId !== existing.courseId) changedFields.push(`<strong>Golf Course:</strong> Updated`);
-    if (data.maxPlayers !== undefined && data.maxPlayers !== existing.maxPlayers) changedFields.push(`<strong>Player Capacity:</strong> ${data.maxPlayers === null ? 'Unlimited' : data.maxPlayers}`);
-    if (data.entryFee !== undefined && data.entryFee !== existing.entryFee) changedFields.push(`<strong>Entry Fee:</strong> ${data.entryFee === null ? 'Free' : data.entryFee}`);
-    if (data.format !== undefined && data.format !== existing.format) changedFields.push(`<strong>Format:</strong> ${data.format}`);
-    if (data.scoringType !== undefined && data.scoringType !== existing.scoringType) changedFields.push(`<strong>Scoring Type:</strong> ${data.scoringType}`);
-    if (data.holes !== undefined && data.holes !== existing.holes) changedFields.push(`<strong>Holes Per Round:</strong> ${data.holes}`);
-    if (data.teeStartTime !== undefined && data.teeStartTime !== existing.teeStartTime) changedFields.push(`<strong>Tee Start Time:</strong> ${data.teeStartTime || 'None'}`);
-    if (data.description !== undefined && data.description !== existing.description) changedFields.push(`<strong>Description:</strong> Updated`);
+    if (data.name !== undefined && data.name !== existing.name)
+      changedFields.push(`<strong>Tournament Name:</strong> ${data.name}`);
+    if (
+      data.startDate !== undefined &&
+      existing.startDate &&
+      data.startDate.getTime() !== existing.startDate.getTime()
+    )
+      changedFields.push(
+        `<strong>Start Date:</strong> ${data.startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      );
+    if (
+      data.endDate !== undefined &&
+      (data.endDate?.getTime() || 0) !== (existing.endDate?.getTime() || 0)
+    )
+      changedFields.push(
+        `<strong>End Date:</strong> ${data.endDate ? data.endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'None'}`,
+      );
+    if (data.venue !== undefined && data.venue !== existing.venue)
+      changedFields.push(`<strong>Location:</strong> ${data.venue}`);
+    if (data.courseId !== undefined && data.courseId !== existing.courseId)
+      changedFields.push(`<strong>Golf Course:</strong> Updated`);
+    if (
+      data.maxPlayers !== undefined &&
+      data.maxPlayers !== existing.maxPlayers
+    )
+      changedFields.push(
+        `<strong>Player Capacity:</strong> ${data.maxPlayers === null ? 'Unlimited' : data.maxPlayers}`,
+      );
+    if (data.entryFee !== undefined && data.entryFee !== existing.entryFee)
+      changedFields.push(
+        `<strong>Entry Fee:</strong> ${data.entryFee === null ? 'Free' : data.entryFee}`,
+      );
+    if (data.format !== undefined && data.format !== existing.format)
+      changedFields.push(`<strong>Format:</strong> ${data.format}`);
+    if (
+      data.scoringType !== undefined &&
+      data.scoringType !== existing.scoringType
+    )
+      changedFields.push(`<strong>Scoring Type:</strong> ${data.scoringType}`);
+    if (data.holes !== undefined && data.holes !== existing.holes)
+      changedFields.push(`<strong>Holes Per Round:</strong> ${data.holes}`);
+    if (
+      data.teeStartTime !== undefined &&
+      data.teeStartTime !== existing.teeStartTime
+    )
+      changedFields.push(
+        `<strong>Tee Start Time:</strong> ${data.teeStartTime || 'None'}`,
+      );
+    if (
+      data.description !== undefined &&
+      data.description !== existing.description
+    )
+      changedFields.push(`<strong>Description:</strong> Updated`);
 
     let updateDetails = '';
     if (changedFields.length > 0) {
@@ -450,9 +568,9 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' }
-              }
-            }
+                where: { status: 'APPROVED' },
+              },
+            },
           },
         },
       });
@@ -467,29 +585,34 @@ export class TournamentsService {
         });
 
         const jobs = approvedRegistrations
-          .filter(reg => reg.user?.email)
-          .map(reg => ({
+          .filter((reg) => reg.user?.email)
+          .map((reg) => ({
             name: 'SEND_EMAIL',
             data: {
               template: 'TOURNAMENT_UPDATED',
-              to: reg.user!.email,
+              to: reg.user.email,
               data: {
                 tournamentName: result.name,
                 updateDetails,
                 organizerName: result.club?.name,
-              }
-            }
+              },
+            },
           }));
         if (jobs.length > 0) {
-          this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue TOURNAMENT_UPDATED emails:', err));
+          this.jobsService.queueEmailBulk(jobs).catch((err) => {
+            console.error('Failed to queue TOURNAMENT_UPDATED emails:', err);
+          });
         }
       }
 
       return result;
     } catch (error) {
-      console.error(`[TournamentsService.update] Error updating tournament ${id}:`, error);
+      console.error(
+        `[TournamentsService.update] Error updating tournament ${id}:`,
+        error,
+      );
       // Prisma error for record not found is P2025
-      if ((error as any).code === 'P2025') {
+      if (error.code === 'P2025') {
         throw new NotFoundException('Tournament not found');
       }
       throw error; // Let NestJS handle other errors (will return 500 but now it's logged)
@@ -498,7 +621,9 @@ export class TournamentsService {
 
   async remove(id: string) {
     // Check tournament exists first
-    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id },
+    });
     if (!tournament) {
       throw new NotFoundException('Tournament not found');
     }
@@ -507,7 +632,10 @@ export class TournamentsService {
     // then delete the tournament itself (hard/permanent delete).
     await this.prisma.$transaction(async (tx) => {
       // Delete scores linked to groups of this tournament
-      const groups = await tx.group.findMany({ where: { tournamentId: id }, select: { id: true } });
+      const groups = await tx.group.findMany({
+        where: { tournamentId: id },
+        select: { id: true },
+      });
       const groupIds = groups.map((g) => g.id);
       if (groupIds.length > 0) {
         await tx.score.deleteMany({ where: { groupId: { in: groupIds } } });
@@ -565,81 +693,107 @@ export class TournamentsService {
 
     for (const tournament of upcomingTournaments) {
       await this.prisma.tournamentEmailLog.create({
-        data: { tournamentId: tournament.id, emailType: 'REMINDER', recipientCount: tournament.registrations.length }
+        data: {
+          tournamentId: tournament.id,
+          emailType: 'REMINDER',
+          recipientCount: tournament.registrations.length,
+        },
       });
 
       const jobs = tournament.registrations
-        .filter(reg => reg.user?.email)
-        .map(reg => ({
+        .filter((reg) => reg.user?.email)
+        .map((reg) => ({
           name: 'SEND_EMAIL',
           data: {
             template: 'TOURNAMENT_REMINDER',
-            to: reg.user!.email,
+            to: reg.user.email,
             data: {
               tournamentName: tournament.name,
               startDate: tournament.startDate,
               venue: tournament.venue || 'TBA',
               organizerName: tournament.club?.name,
-            }
-          }
+            },
+          },
         }));
 
       if (jobs.length > 0) {
-        this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue REMINDER emails:', err));
+        this.jobsService.queueEmailBulk(jobs).catch((err) => {
+          console.error('Failed to queue REMINDER emails:', err);
+        });
       }
     }
   }
 
-  private async sendTournamentStartedEmails(tournamentId: string, tournamentName: string, organizerName?: string) {
+  private async sendTournamentStartedEmails(
+    tournamentId: string,
+    tournamentName: string,
+    organizerName?: string,
+  ) {
     const regs = await this.prisma.registration.findMany({
       where: { tournamentId, status: 'APPROVED' },
       select: { user: { select: { email: true } } },
     });
 
     const jobs = regs
-      .filter(reg => reg.user?.email)
-      .map(reg => ({
+      .filter((reg) => reg.user?.email)
+      .map((reg) => ({
         name: 'SEND_EMAIL',
         data: {
           template: 'TOURNAMENT_STARTED',
-          to: reg.user!.email,
+          to: reg.user.email,
           data: {
             tournamentName,
             organizerName,
-          }
-        }
+          },
+        },
       }));
     if (jobs.length > 0) {
-      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentStarted emails:', err));
+      this.jobsService.queueEmailBulk(jobs).catch((err) => {
+        console.error('Failed to queue tournamentStarted emails:', err);
+      });
       await this.prisma.tournamentEmailLog.create({
-        data: { tournamentId, emailType: 'STARTED', recipientCount: jobs.length }
+        data: {
+          tournamentId,
+          emailType: 'STARTED',
+          recipientCount: jobs.length,
+        },
       });
     }
   }
 
-  private async sendTournamentCompletedEmails(tournamentId: string, tournamentName: string, organizerName?: string) {
+  private async sendTournamentCompletedEmails(
+    tournamentId: string,
+    tournamentName: string,
+    organizerName?: string,
+  ) {
     const regs = await this.prisma.registration.findMany({
       where: { tournamentId, status: 'APPROVED' },
       select: { user: { select: { email: true } } },
     });
 
     const jobs = regs
-      .filter(reg => reg.user?.email)
-      .map(reg => ({
+      .filter((reg) => reg.user?.email)
+      .map((reg) => ({
         name: 'SEND_EMAIL',
         data: {
           template: 'TOURNAMENT_COMPLETED',
-          to: reg.user!.email,
+          to: reg.user.email,
           data: {
             tournamentName,
             organizerName,
-          }
-        }
+          },
+        },
       }));
     if (jobs.length > 0) {
-      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tournamentCompleted emails:', err));
+      this.jobsService.queueEmailBulk(jobs).catch((err) => {
+        console.error('Failed to queue tournamentCompleted emails:', err);
+      });
       await this.prisma.tournamentEmailLog.create({
-        data: { tournamentId, emailType: 'COMPLETED', recipientCount: jobs.length }
+        data: {
+          tournamentId,
+          emailType: 'COMPLETED',
+          recipientCount: jobs.length,
+        },
       });
     }
   }
@@ -647,7 +801,7 @@ export class TournamentsService {
   async publishGroupingsEmail(tournamentId: string, dto: any) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
-      include: { club: true }
+      include: { club: true },
     });
 
     if (!tournament) throw new NotFoundException('Tournament not found');
@@ -659,7 +813,7 @@ export class TournamentsService {
       const roundName = `Day ${dto.day || 1}`;
 
       const members = group.registrations || [];
-      
+
       for (let i = 0; i < members.length; i++) {
         const player = members[i];
         if (!player.user?.email) continue;
@@ -667,7 +821,9 @@ export class TournamentsService {
         // Extract the names of all OTHER players in the group
         const groupMembers = members
           .filter((_: any, index: number) => index !== i)
-          .map((m: any) => `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim())
+          .map((m: any) =>
+            `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim(),
+          )
           .filter(Boolean);
 
         jobs.push({
@@ -682,13 +838,15 @@ export class TournamentsService {
               groupName,
               groupMembers,
               organizerName: tournament.club?.name,
-            }
-          }
+            },
+          },
         });
       }
     }
     if (jobs.length > 0) {
-      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue tee time emails:', err));
+      this.jobsService.queueEmailBulk(jobs).catch((err) => {
+        console.error('Failed to queue tee time emails:', err);
+      });
     }
 
     return { success: true, message: 'Groupings publication emails queued' };
@@ -745,7 +903,10 @@ export class TournamentsService {
       // It's a percentage
       const percentage = Math.abs(targetCount);
       // Calculate how many players should advance
-      targetCount = Math.max(1, Math.floor((playerScores.length * percentage) / 100));
+      targetCount = Math.max(
+        1,
+        Math.floor((playerScores.length * percentage) / 100),
+      );
     }
 
     // Find the score at the cut line position (e.g. 50th player).
@@ -757,13 +918,15 @@ export class TournamentsService {
       return { success: true, message: 'Not enough players to apply cut' };
     }
 
-    const passedPlayers: { email: string, name: string }[] = [];
-    const missedPlayers: { email: string, name: string }[] = [];
+    const passedPlayers: { email: string; name: string }[] = [];
+    const missedPlayers: { email: string; name: string }[] = [];
 
-    const updates = playerScores.map(player => {
+    const updates = playerScores.map((player) => {
       const madeCut = player.totalStrokes <= cutScoreThreshold;
-      
-      const reg = tournament.registrations.find(r => r.id === player.registrationId);
+
+      const reg = tournament.registrations.find(
+        (r) => r.id === player.registrationId,
+      );
       if (reg && reg.user && reg.user.email) {
         const playerName = `${reg.user.firstName} ${reg.user.lastName}`.trim();
         if (madeCut) {
@@ -792,11 +955,11 @@ export class TournamentsService {
           data: {
             tournamentName: tournament.name,
             playerName: player.name,
-          }
-        }
+          },
+        },
       });
     }
-    
+
     for (const player of missedPlayers) {
       jobs.push({
         name: 'SEND_EMAIL',
@@ -806,13 +969,15 @@ export class TournamentsService {
           data: {
             tournamentName: tournament.name,
             playerName: player.name,
-          }
-        }
+          },
+        },
       });
     }
 
     if (jobs.length > 0) {
-      this.jobsService.queueEmailBulk(jobs).catch(err => console.error('Failed to queue cut emails:', err));
+      this.jobsService.queueEmailBulk(jobs).catch((err) => {
+        console.error('Failed to queue cut emails:', err);
+      });
     }
 
     return { success: true, message: 'Cut applied successfully' };

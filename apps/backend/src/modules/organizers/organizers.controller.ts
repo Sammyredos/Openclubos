@@ -13,8 +13,8 @@ import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { OrganizersService } from './organizers.service';
 import { UpdateOrganizerDto } from './dto/update-organizer.dto';
+import { OrganizersService } from './organizers.service';
 
 @Controller('organizers')
 @UseGuards(JwtAuthGuard, RolesGuard)

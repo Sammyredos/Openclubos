@@ -1,15 +1,19 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import {
   ClubStatus as OrganizerStatus,
   MemberStatus,
   TournamentStatus,
   UserRole,
 } from '@prisma/client';
-import { PrismaService } from '../../common/prisma.service';
-import { UpdateOrganizerDto } from './dto/update-organizer.dto';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { UpdateOrganizerDto } from './dto/update-organizer.dto';
 
 @Injectable()
 export class OrganizersService {
@@ -170,7 +174,14 @@ export class OrganizersService {
         _count: { select: { tournaments: true, courses: true } },
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            profilePhoto: true,
+            phone: true,
+          },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -186,7 +197,14 @@ export class OrganizersService {
         _count: { select: { tournaments: true, courses: true } },
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            profilePhoto: true,
+            phone: true,
+          },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -202,7 +220,14 @@ export class OrganizersService {
       include: {
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, phone: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            profilePhoto: true,
+            phone: true,
+          },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -278,11 +303,15 @@ export class OrganizersService {
 
             // Queue admin credentials email with the generated password
             const targetName = dto.name?.trim();
-            this.jobsService.queueEmail('ADMIN_CREDENTIALS', email, {
-              clubName: targetName || existing.name,
-              email,
-              password: passwordPlain,
-            }).catch(err => console.error('Failed to queue adminCredentials email:', err));
+            this.jobsService
+              .queueEmail('ADMIN_CREDENTIALS', email, {
+                clubName: targetName || existing.name,
+                email,
+                password: passwordPlain,
+              })
+              .catch((err) => {
+                console.error('Failed to queue adminCredentials email:', err);
+              });
           }
         }
       }
@@ -330,9 +359,13 @@ export class OrganizersService {
     });
     for (const admin of suspendedAdmins) {
       if (admin.email) {
-        this.jobsService.queueEmail('ACCOUNT_SUSPENDED', admin.email, {
-          clubName: organizer.name,
-        }).catch(err => console.error('Failed to queue accountSuspended email:', err));
+        this.jobsService
+          .queueEmail('ACCOUNT_SUSPENDED', admin.email, {
+            clubName: organizer.name,
+          })
+          .catch((err) => {
+            console.error('Failed to queue accountSuspended email:', err);
+          });
       }
     }
 
@@ -368,9 +401,13 @@ export class OrganizersService {
     });
     for (const admin of reactivatedAdmins) {
       if (admin.email) {
-        this.jobsService.queueEmail('ACCOUNT_REACTIVATED', admin.email, {
-          clubName: organizer.name,
-        }).catch(err => console.error('Failed to queue accountReactivated email:', err));
+        this.jobsService
+          .queueEmail('ACCOUNT_REACTIVATED', admin.email, {
+            clubName: organizer.name,
+          })
+          .catch((err) => {
+            console.error('Failed to queue accountReactivated email:', err);
+          });
       }
     }
 

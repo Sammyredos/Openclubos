@@ -4,15 +4,14 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma.service';
-import { RegisterTournamentDto } from './dto/register-tournament.dto';
 import {
   RegistrationStatus,
   PaymentStatus,
   TournamentStatus,
 } from '@prisma/client';
-
+import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { RegisterTournamentDto } from './dto/register-tournament.dto';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -21,20 +20,22 @@ export class RegistrationsService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
-  ) { }
+  ) {}
 
-  async register(
-    userId: string,
-    dto: RegisterTournamentDto,
-    isAdmin = false,
-  ) {
-    const { tournamentId, playerType, paymentReference, status: requestedStatus, paymentStatus: requestedPaymentStatus } = dto;
+  async register(userId: string, dto: RegisterTournamentDto, isAdmin = false) {
+    const {
+      tournamentId,
+      playerType,
+      paymentReference,
+      status: requestedStatus,
+      paymentStatus: requestedPaymentStatus,
+    } = dto;
 
     // 1. Fetch tournament, user details, and approved registration count in parallel
     const [tournament, user, approvedCount] = await Promise.all([
       this.prisma.tournament.findUnique({
         where: { id: tournamentId },
-        include: { club: { select: { name: true } } }
+        include: { club: { select: { name: true } } },
       }),
       this.prisma.user.findUnique({ where: { id: userId } }),
       this.prisma.registration.count({
@@ -67,7 +68,9 @@ export class RegistrationsService {
 
     // 3.5 Validate if Tournament has started
     if (new Date() > new Date(tournament.startDate)) {
-      throw new BadRequestException('Registration is closed. The tournament has already started and we do not accept new registrations after Day 1 has commenced.');
+      throw new BadRequestException(
+        'Registration is closed. The tournament has already started and we do not accept new registrations after Day 1 has commenced.',
+      );
     }
 
     // 4. Check for existing registration
@@ -121,20 +124,28 @@ export class RegistrationsService {
     const userHandicap = user.handicap ?? 0;
     let platformMax: number;
     switch (user.gender) {
-      case 'MALE': platformMax = 28; break;
-      case 'FEMALE': platformMax = 36; break;
-      default: platformMax = 54;
+      case 'MALE':
+        platformMax = 28;
+        break;
+      case 'FEMALE':
+        platformMax = 36;
+        break;
+      default:
+        platformMax = 54;
     }
 
     if (userHandicap > platformMax) {
       throw new BadRequestException(
-        `Your handicap ${userHandicap} exceeds the platform maximum for ${user.gender?.toLowerCase() || 'unspecified'} golfers (${platformMax}). Please update your handicap in your profile.`
+        `Your handicap ${userHandicap} exceeds the platform maximum for ${user.gender?.toLowerCase() || 'unspecified'} golfers (${platformMax}). Please update your handicap in your profile.`,
       );
     }
 
     // 7. Check Capacity & Waitlist
 
-    let status: RegistrationStatus = isAdmin && requestedStatus ? (requestedStatus as RegistrationStatus) : RegistrationStatus.PENDING;
+    let status: RegistrationStatus =
+      isAdmin && requestedStatus
+        ? (requestedStatus as RegistrationStatus)
+        : RegistrationStatus.PENDING;
 
     if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
       if (isAdmin) {
@@ -150,7 +161,9 @@ export class RegistrationsService {
         if (tournament.enableWaitlist) {
           status = RegistrationStatus.WAITLISTED;
         } else {
-          throw new BadRequestException('Tournament has reached maximum capacity');
+          throw new BadRequestException(
+            'Tournament has reached maximum capacity',
+          );
         }
       }
     }
@@ -162,29 +175,49 @@ export class RegistrationsService {
         tournamentId,
         playerType: effectivePlayerType,
         status,
-        paymentStatus: isAdmin && requestedPaymentStatus ? (requestedPaymentStatus as PaymentStatus) : (paymentReference ? PaymentStatus.PAID : PaymentStatus.UNPAID),
+        paymentStatus:
+          isAdmin && requestedPaymentStatus
+            ? (requestedPaymentStatus as PaymentStatus)
+            : paymentReference
+              ? PaymentStatus.PAID
+              : PaymentStatus.UNPAID,
         paymentReference,
       },
     });
 
     if (user?.email) {
       if (status === RegistrationStatus.APPROVED) {
-        this.jobsService.queueEmail('REGISTRATION_APPROVED', user.email, {
-          tournamentName: tournament.name,
-          organizerName: tournament.club?.name,
-        }).catch(err => console.error('Failed to queue registrationApproved email:', err));
+        this.jobsService
+          .queueEmail('REGISTRATION_APPROVED', user.email, {
+            tournamentName: tournament.name,
+            organizerName: tournament.club?.name,
+          })
+          .catch((err) => {
+            console.error('Failed to queue registrationApproved email:', err);
+          });
       } else if (status === RegistrationStatus.WAITLISTED) {
-        this.jobsService.queueEmail('WAITLIST_NOTIFICATION', user.email, {
-          tournamentName: tournament.name,
-          organizerName: tournament.club?.name,
-        }).catch(err => console.error('Failed to queue waitlistNotification email:', err));
+        this.jobsService
+          .queueEmail('WAITLIST_NOTIFICATION', user.email, {
+            tournamentName: tournament.name,
+            organizerName: tournament.club?.name,
+          })
+          .catch((err) => {
+            console.error('Failed to queue waitlistNotification email:', err);
+          });
       } else if (status === RegistrationStatus.PENDING) {
-        this.jobsService.queueEmail('REGISTRATION_CONFIRMATION', user.email, {
-          tournamentName: tournament.name,
-          status: 'PENDING',
-          startDate: tournament.startDate,
-          organizerName: tournament.club?.name,
-        }).catch(err => console.error('Failed to queue registrationConfirmation email:', err));
+        this.jobsService
+          .queueEmail('REGISTRATION_CONFIRMATION', user.email, {
+            tournamentName: tournament.name,
+            status: 'PENDING',
+            startDate: tournament.startDate,
+            organizerName: tournament.club?.name,
+          })
+          .catch((err) => {
+            console.error(
+              'Failed to queue registrationConfirmation email:',
+              err,
+            );
+          });
       }
     }
 
@@ -247,13 +280,23 @@ export class RegistrationsService {
         where.status = RegistrationStatus.DISQUALIFIED;
       } else {
         where.status = query.excludeWaitlist
-          ? { notIn: [RegistrationStatus.DISQUALIFIED, RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] }
+          ? {
+              notIn: [
+                RegistrationStatus.DISQUALIFIED,
+                RegistrationStatus.WAITLISTED,
+                RegistrationStatus.REJECTED,
+              ],
+            }
           : { not: RegistrationStatus.DISQUALIFIED };
       }
     } else if (query.waitlistOnly) {
-      where.status = { in: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] };
+      where.status = {
+        in: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED],
+      };
     } else if (query.excludeWaitlist) {
-      where.status = { notIn: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED] };
+      where.status = {
+        notIn: [RegistrationStatus.WAITLISTED, RegistrationStatus.REJECTED],
+      };
     }
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.clubId) where.tournament = { clubId: query.clubId };
@@ -264,13 +307,17 @@ export class RegistrationsService {
       const tokens = q.split(/[\s-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
-        where.AND = tokens.map(token => ({
+        where.AND = tokens.map((token) => ({
           OR: [
             { user: { email: { contains: token, mode: 'insensitive' } } },
             { user: { firstName: { contains: token, mode: 'insensitive' } } },
             { user: { lastName: { contains: token, mode: 'insensitive' } } },
             { tournament: { name: { contains: token, mode: 'insensitive' } } },
-            { tournament: { club: { name: { contains: token, mode: 'insensitive' } } } },
+            {
+              tournament: {
+                club: { name: { contains: token, mode: 'insensitive' } },
+              },
+            },
           ],
         }));
       }
@@ -284,7 +331,16 @@ export class RegistrationsService {
         orderBy: { registeredAt: 'desc' },
         include: {
           user: {
-            select: { id: true, email: true, firstName: true, lastName: true, profilePhoto: true, gender: true, dob: true, handicap: true },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              profilePhoto: true,
+              gender: true,
+              dob: true,
+              handicap: true,
+            },
           },
           tournament: {
             select: {
@@ -312,21 +368,33 @@ export class RegistrationsService {
       if (!registration) throw new NotFoundException('Registration not found');
 
       // If moving to APPROVED status, check capacity
-      if (status === RegistrationStatus.APPROVED && registration.status !== RegistrationStatus.APPROVED) {
+      if (
+        status === RegistrationStatus.APPROVED &&
+        registration.status !== RegistrationStatus.APPROVED
+      ) {
         const [tournament, approvedCount] = await Promise.all([
           this.prisma.tournament.findUnique({
             where: { id: registration.tournamentId },
           }),
           this.prisma.registration.count({
-            where: { tournamentId: registration.tournamentId, status: RegistrationStatus.APPROVED },
+            where: {
+              tournamentId: registration.tournamentId,
+              status: RegistrationStatus.APPROVED,
+            },
           }),
         ]);
 
         if (tournament && new Date() > new Date(tournament.startDate)) {
-          throw new BadRequestException('Cannot approve waitlist. The tournament has already started.');
+          throw new BadRequestException(
+            'Cannot approve waitlist. The tournament has already started.',
+          );
         }
 
-        if (tournament && tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
+        if (
+          tournament &&
+          tournament.maxPlayers &&
+          approvedCount >= tournament.maxPlayers
+        ) {
           // Auto-increment maxPlayers if at capacity
           await this.prisma.tournament.update({
             where: { id: tournament.id },
@@ -341,21 +409,37 @@ export class RegistrationsService {
       });
 
       // Queue status-change emails
-      if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.REJECTED || status === RegistrationStatus.DISQUALIFIED) {
+      if (
+        status === RegistrationStatus.APPROVED ||
+        status === RegistrationStatus.REJECTED ||
+        status === RegistrationStatus.DISQUALIFIED
+      ) {
         const [statusUser, statusTournament] = await Promise.all([
-          this.prisma.user.findUnique({ where: { id: registration.userId }, select: { email: true, firstName: true } }),
-          this.prisma.tournament.findUnique({ where: { id: registration.tournamentId }, select: { name: true, club: { select: { name: true } } } }),
+          this.prisma.user.findUnique({
+            where: { id: registration.userId },
+            select: { email: true, firstName: true },
+          }),
+          this.prisma.tournament.findUnique({
+            where: { id: registration.tournamentId },
+            select: { name: true, club: { select: { name: true } } },
+          }),
         ]);
 
         if (statusUser?.email && statusTournament) {
           let template = 'REGISTRATION_REJECTED';
-          if (status === RegistrationStatus.APPROVED) template = 'REGISTRATION_APPROVED';
-          else if (status === RegistrationStatus.DISQUALIFIED) template = 'PLAYER_DISQUALIFIED';
+          if (status === RegistrationStatus.APPROVED)
+            template = 'REGISTRATION_APPROVED';
+          else if (status === RegistrationStatus.DISQUALIFIED)
+            template = 'PLAYER_DISQUALIFIED';
 
-          this.jobsService.queueEmail(template, statusUser.email, {
-            tournamentName: statusTournament.name,
-            organizerName: statusTournament.club?.name,
-          }).catch(err => console.error(`Failed to queue ${template} email:`, err));
+          this.jobsService
+            .queueEmail(template, statusUser.email, {
+              tournamentName: statusTournament.name,
+              organizerName: statusTournament.club?.name,
+            })
+            .catch((err) => {
+              console.error(`Failed to queue ${template} email:`, err);
+            });
         }
       }
 
@@ -401,16 +485,22 @@ export class RegistrationsService {
       data: { extraStrokes: { increment: delta } },
       include: {
         user: { select: { email: true } },
-        tournament: { select: { name: true, club: { select: { name: true } } } },
-      }
+        tournament: {
+          select: { name: true, club: { select: { name: true } } },
+        },
+      },
     });
 
     if (updated.user?.email && updated.tournament) {
-      this.jobsService.queueEmail('PLAYER_STROKE_PENALTY', updated.user.email, {
-        tournamentName: updated.tournament.name,
-        strokes: delta,
-        organizerName: updated.tournament.club?.name,
-      }).catch(err => console.error(`Failed to queue PLAYER_STROKE_PENALTY email:`, err));
+      this.jobsService
+        .queueEmail('PLAYER_STROKE_PENALTY', updated.user.email, {
+          tournamentName: updated.tournament.name,
+          strokes: delta,
+          organizerName: updated.tournament.club?.name,
+        })
+        .catch((err) => {
+          console.error(`Failed to queue PLAYER_STROKE_PENALTY email:`, err);
+        });
     }
 
     return updated;
@@ -437,12 +527,16 @@ export class RegistrationsService {
     });
 
     if (registration.user?.email && registration.tournament) {
-      this.jobsService.queueEmail('PAYMENT_RECEIPT', registration.user.email, {
-        tournamentName: registration.tournament.name,
-        amount: registration.tournament.entryFee || 0,
-        currency: registration.tournament.currency || 'USD',
-        reference: paymentReference,
-      }).catch(err => console.error('Failed to queue paymentReceipt email:', err));
+      this.jobsService
+        .queueEmail('PAYMENT_RECEIPT', registration.user.email, {
+          tournamentName: registration.tournament.name,
+          amount: registration.tournament.entryFee || 0,
+          currency: registration.tournament.currency || 'USD',
+          reference: paymentReference,
+        })
+        .catch((err) => {
+          console.error('Failed to queue paymentReceipt email:', err);
+        });
     }
 
     return registration;
@@ -453,7 +547,9 @@ export class RegistrationsService {
       where: { id },
       include: {
         user: { select: { email: true } },
-        tournament: { select: { name: true, club: { select: { name: true } } } },
+        tournament: {
+          select: { name: true, club: { select: { name: true } } },
+        },
       },
     });
 
@@ -462,11 +558,22 @@ export class RegistrationsService {
     });
 
     if (registration?.user?.email && registration?.tournament?.name) {
-      if (registration.status === RegistrationStatus.WAITLISTED || registration.status === RegistrationStatus.PENDING || registration.status === RegistrationStatus.APPROVED) {
-        this.jobsService.queueEmail('REGISTRATION_REJECTED', registration.user.email, {
-          tournamentName: registration.tournament.name,
-          organizerName: registration.tournament.club?.name,
-        }).catch(err => console.error('Failed to queue REGISTRATION_REJECTED email on removal:', err));
+      if (
+        registration.status === RegistrationStatus.WAITLISTED ||
+        registration.status === RegistrationStatus.PENDING ||
+        registration.status === RegistrationStatus.APPROVED
+      ) {
+        this.jobsService
+          .queueEmail('REGISTRATION_REJECTED', registration.user.email, {
+            tournamentName: registration.tournament.name,
+            organizerName: registration.tournament.club?.name,
+          })
+          .catch((err) => {
+            console.error(
+              'Failed to queue REGISTRATION_REJECTED email on removal:',
+              err,
+            );
+          });
       }
     }
 

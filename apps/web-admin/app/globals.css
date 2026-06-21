@@ -166,6 +166,10 @@
     text-transform: none !important;
   }
 
+  .overflow-x-auto:has(table) {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-lg !border-none;
+  }
+
   ::placeholder {
     opacity: 0.5 !important;
   }

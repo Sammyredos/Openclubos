@@ -1,3 +1,4 @@
+import { Gender } from '@prisma/client';
 import {
   IsEmail,
   IsString,
@@ -8,7 +9,6 @@ import {
   IsUUID,
   IsEnum,
 } from 'class-validator';
-import { Gender } from '@prisma/client';
 
 export class RegisterDto {
   @IsEmail()

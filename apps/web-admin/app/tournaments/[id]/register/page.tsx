@@ -149,7 +149,7 @@ export default function TournamentRegistrationPage() {
                   <div className="bg-background p-4 rounded-2xl space-y-1">
                     <p className="text-[11px] font-nexa-bold text-gray-400 uppercase tracking-wider">Entry Fee</p>
                     <p className="text-[14px] font-nexa-bold text-gray-900">
-                      {tournament.entryFee && tournament.entryFee > 0 ? `$${tournament.entryFee.toFixed(2)}` : 'FREE'}
+                      {tournament.entryFee && tournament.entryFee > 0 ? `₦${tournament.entryFee.toFixed(2)}` : 'FREE'}
                     </p>
                   </div>
                   <div className="bg-background p-4 rounded-2xl space-y-1">
@@ -197,7 +197,7 @@ export default function TournamentRegistrationPage() {
 
               <div className="bg-primary/5 rounded-2xl p-6 flex items-center justify-between">
                 <span className="font-nexa-bold text-gray-600">Amount to Pay</span>
-                <span className="text-[16px] font-nexa-bold text-primary">${tournament.entryFee?.toFixed(2)}</span>
+                <span className="text-[16px] font-nexa-bold text-primary">₦{tournament.entryFee?.toFixed(2)}</span>
               </div>
 
               <div className="space-y-4">

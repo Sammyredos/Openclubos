@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -75,6 +75,8 @@ type ApiOrganizer = {
   logo?: string | null;
   status?: "ACTIVE" | "SUSPENDED" | "EXPIRED";
   plan?: "PRO" | "BASIC";
+  state?: string | null;
+  city?: string | null;
   createdAt: string;
   type?: string | null;
   website?: string | null;
@@ -89,7 +91,7 @@ type OrganizerRow = {
   id: string;
   name: string;
   location: string;
-  admin: { id: string | null; name: string; email: string; avatar: string };
+  admin: { id: string | null; name: string; email: string; phone: string; avatar: string };
   plan: string;
   status: "Active" | "Suspended" | "Expired";
   joinedDate: string;
@@ -170,16 +172,22 @@ function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
   const adminUser = o.users?.[0] || null;
   const adminName = adminUser ? fullName(adminUser.firstName, adminUser.lastName) : "—";
   const adminEmail = adminUser?.email || "—";
+  const adminPhone = adminUser?.phone || "—";
   const plan = o.plan === "PRO" ? "Pro" : o.plan === "BASIC" ? "Basic" : "—";
   const status = o.status === "SUSPENDED" ? "Suspended" : o.status === "EXPIRED" ? "Expired" : "Active";
+
+  // Format location as State, City (Local Government) if available, otherwise fallback to address
+  const locationStr = [o.state, o.city].filter(Boolean).join(', ') || o.address || "—";
+
   return {
     id: o.id,
     name: o.name,
-    location: o.address || "—",
+    location: locationStr,
     admin: {
       id: adminUser?.id ?? null,
       name: adminName,
       email: adminEmail,
+      phone: adminPhone,
       avatar: adminUser?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`,
     },
     plan,
@@ -340,7 +348,7 @@ export default function OrganizersPage() {
       `${organizer.admin.name} ${organizer.admin.email}`,
     ];
 
-    const matchesSearch = tokens.length === 0 || tokens.every(token => 
+    const matchesSearch = tokens.length === 0 || tokens.every(token =>
       searchableFields.some(field => field?.toLowerCase().includes(token))
     );
 
@@ -548,7 +556,7 @@ export default function OrganizersPage() {
       .catch((e: unknown) =>
         toast.error(
           getErrorMessage(e) ||
-            (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
+          (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
         ),
       )
       .finally(() => setMutating(false));
@@ -573,15 +581,57 @@ export default function OrganizersPage() {
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
       {loading ? (
-        <Skeleton className="w-full h-[140px] rounded-xl" />
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            
+
             {/* Stat 1: Total Organizers */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-xl font-medium whitespace-nowrap">Total Organizers</div>
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Organizers</div>
               </div>
               <div className="text-[#15803D] text-3xl font-bold">{totalOrganizers}</div>
               <div className="text-zinc-500 text-sm font-normal">All Time</div>
@@ -646,12 +696,12 @@ export default function OrganizersPage() {
         </div>
       )}
 
-      <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
+      <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Organizers</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
               className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
@@ -762,7 +812,7 @@ export default function OrganizersPage() {
 
           </div>
 
-          <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
@@ -783,8 +833,8 @@ export default function OrganizersPage() {
                   </tr>
                 ) : loading ? (
                   skeletonRows.map((i) => (
-                    <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
-                      <td className="px-4 py-4">
+                    <tr key={`sk-${i}`} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
@@ -793,13 +843,13 @@ export default function OrganizersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col gap-1.5">
                           <Skeleton className="h-4 w-28 rounded-md" />
                           <Skeleton className="h-3.5 w-24 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
@@ -808,20 +858,20 @@ export default function OrganizersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col gap-1.5">
                           <Skeleton className="h-4.5 w-12 rounded-md" />
                           <Skeleton className="h-3.5 w-20 rounded-md" />
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5 w-16 rounded-lg" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-9 w-9 rounded-lg" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
+                          <Skeleton className="h-7 w-8 rounded-md" />
                         </div>
                       </td>
                     </tr>
@@ -831,13 +881,13 @@ export default function OrganizersPage() {
                     return (
                       <tr key={organizer.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-6 py-5">
-                          <div className="inline-flex justify-start items-center gap-3.5 max-w-[200px]">
-                            <img src={organizer.logo} alt={organizer.name} className="size-10 rounded-xl object-cover bg-gray-100 border border-[#e1efe5] flex-shrink-0" />
+                          <div className="inline-flex justify-start items-center gap-3.5 min-w-[250px]">
+                            <img src={organizer.logo} alt={organizer.name} className="size-10 rounded-full object-cover bg-gray-100 border border-[#e1efe5] flex-shrink-0" />
                             <div className="inline-flex flex-col justify-start items-start min-w-0">
-                              <div className="text-slate-900 text-[14px] font-medium truncate max-w-[140px] leading-tight" title={organizer.name}>
+                              <div className="text-slate-900 text-[14px] font-medium whitespace-nowrap" title={organizer.name}>
                                 {organizer.name}
                               </div>
-                              <div className="text-[11px] text-gray-500 font-medium px-2 py-0.5 rounded border border-gray-200 mt-1.5 self-start whitespace-nowrap bg-white">
+                              <div className="text-[11px] font-medium px-2 py-0.5 rounded border mt-1.5 self-start whitespace-nowrap bg-emerald-50 text-openclub-700 border-emerald-100">
                                 {organizer.type}
                               </div>
                             </div>
@@ -845,8 +895,8 @@ export default function OrganizersPage() {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col min-w-0 gap-1.5">
-                            <div className="flex items-center gap-1.5 text-[13px] text-gray-600 font-medium truncate max-w-[180px]" title={organizer.location}>
-                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <div className="flex items-center gap-1.5 text-[13px] text-gray-600 font-medium whitespace-normal max-w-[200px]" title={organizer.location}>
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
                               <span>{organizer.location}</span>
                             </div>
                             {organizer.website && organizer.website !== "—" && (
@@ -865,9 +915,11 @@ export default function OrganizersPage() {
                         <td className="px-6 py-5">
                           <div className="inline-flex justify-start items-center gap-3.5 min-w-[200px]">
                             <img src={organizer.admin.avatar} alt={organizer.admin.name} className="size-9 rounded-full object-cover bg-gray-100 border border-[#e1efe5] flex-shrink-0" />
-                            <div className="inline-flex flex-col justify-start items-start min-w-0">
-                              <div className="text-slate-900 text-[13px] font-medium truncate max-w-[140px] leading-tight">{organizer.admin.name}</div>
-                              <div className="text-gray-600 text-[12px] font-normal mt-0.5 truncate max-w-[140px]">{organizer.admin.email}</div>
+                            <div className="inline-flex flex-col justify-start items-start min-w-0 gap-0.5">
+                              <div className="text-slate-900 text-[13px] font-medium truncate max-w-[140px] leading-tight" title={organizer.admin.name}>{organizer.admin.name}</div>
+                              <div className="text-gray-500 text-[12px] font-normal truncate max-w-[140px] mt-0.5" title={organizer.admin.email}>
+                                {organizer.admin.email}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -876,10 +928,10 @@ export default function OrganizersPage() {
                             <span
                               className={cn(
                                 "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
-                                organizer.plan === "Pro" ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]" : "bg-slate-50 text-slate-600 border border-slate-200",
+                                organizer.plan === "Pro" ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]" : "bg-blue-50 text-blue-600 border border-blue-100",
                               )}
                             >
-                              <span className={cn("w-1.5 h-1.5 rounded-full", organizer.plan === "Pro" ? "bg-[#15803D]" : "bg-slate-400")} />
+                              <span className={cn("w-1.5 h-1.5 rounded-full", organizer.plan === "Pro" ? "bg-[#15803D]" : "bg-blue-500")} />
                               {organizer.plan}
                             </span>
                             <span className="text-[12px] text-gray-600 font-medium whitespace-nowrap mt-1">
@@ -903,27 +955,29 @@ export default function OrganizersPage() {
                                 "w-1.5 h-1.5 rounded-full",
                                 organizer.status === "Active" ? "bg-[#15803D]"
                                   : organizer.status === "Suspended" ? "bg-amber-500"
-                                  : "bg-red-500"
+                                    : "bg-red-500"
                               )}
                             />
                             {organizer.status}
                           </span>
                         </td>
                         <td className="px-6 py-5">
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => openViewModal(organizer)}
-                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-[#f5faf6] hover:text-[#15803D] transition-colors"
+                              className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
                               title="View Details"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3 h-3" />
+                              <span className="text-[11px] font-medium leading-none">View</span>
                             </button>
                             <button
                               onClick={() => handleEdit(organizer)}
-                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                              className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
                               title="Edit Organizer"
                             >
-                              <Edit2 className="w-4 h-4" />
+                              <Edit2 className="w-3 h-3" />
+                              <span className="text-[11px] font-medium leading-none">Edit</span>
                             </button>
                             <div className="relative">
                               <button
@@ -940,9 +994,9 @@ export default function OrganizersPage() {
                                     setDropdownOrganizer(organizer);
                                   }
                                 }}
-                                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 transition-colors"
+                                className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                               >
-                                <MoreHorizontal className="w-4 h-4" />
+                                <MoreHorizontal className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -988,71 +1042,65 @@ export default function OrganizersPage() {
               disabled={dropdownOrganizer.status === "Expired"}
               onClick={() => handleStatusChange(dropdownOrganizer)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                dropdownOrganizer.status === "Expired" 
-                  ? "text-gray-300 cursor-not-allowed" 
-                  : dropdownOrganizer.status === "Suspended" 
-                    ? "text-gray-700 hover:bg-emerald-50" 
-                    : "text-gray-700 hover:bg-red-50",
+                "w-full text-left px-4 py-2.5 text-[12px] font-medium transition-colors flex items-center gap-3",
+                dropdownOrganizer.status === "Expired"
+                  ? "text-gray-300 cursor-not-allowed"
+                  : dropdownOrganizer.status === "Suspended"
+                    ? "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                    : "text-red-600 hover:bg-red-50 hover:text-red-700",
               )}
             >
               {dropdownOrganizer.status === "Suspended" ? (
-                <CheckCircle2 className="w-4 h-4 text-openclub-800" />
+                <CheckCircle2 className="w-4 h-4" />
               ) : (
-                <Ban className="w-4 h-4 text-red-600" />
+                <Ban className="w-4 h-4" />
               )}
               {dropdownOrganizer.status === "Suspended" ? "Activate Organizer" : "Suspend Organizer"}
             </button>
             <div className="h-px bg-background my-1" />
-            <button
-              onClick={() => handleEdit(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-            >
-              <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit Organizer
-            </button>
+
             <button
               onClick={() => handleMoreAction("view-analytics", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3 group"
             >
-              <BarChart3 className="w-4 h-4 text-gray-400" />
+              <BarChart3 className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
               View Analytics
             </button>
             <button
               disabled={mutating}
               onClick={() => openForceLogoutModal(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 group"
             >
-              <LogOut className="w-4 h-4 text-gray-400" />
+              <LogOut className="w-4 h-4 text-amber-500 group-hover:text-amber-600" />
               Force Logout
             </button>
             <button
               onClick={() => handleMoreAction("reset-password", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-3 group"
             >
-              <KeyRound className="w-4 h-4 text-gray-400" />
+              <KeyRound className="w-4 h-4 text-purple-500 group-hover:text-purple-600" />
               Reset Admin Password
             </button>
             <button
               onClick={() => handleMoreAction("audit-logs", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-gray-700 hover:bg-slate-100 hover:text-slate-800 transition-colors flex items-center gap-3 group"
             >
-              <Clock className="w-4 h-4 text-gray-400" />
+              <Clock className="w-4 h-4 text-slate-500 group-hover:text-slate-600" />
               Audit Logs
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center gap-3 group"
             >
-              <Download className="w-4 h-4 text-gray-400" />
+              <Download className="w-4 h-4 text-indigo-500 group-hover:text-indigo-600" />
               Export Organizer Data
             </button>
             <div className="h-px bg-background my-1" />
             <button
               onClick={() => handleDelete(dropdownOrganizer)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-3 group"
             >
-              <Trash2 className="w-4 h-4 text-red-500" />
+              <Trash2 className="w-4 h-4 text-red-500 group-hover:text-red-600" />
               Delete Organizer
             </button>
           </>
@@ -1655,7 +1703,7 @@ export default function OrganizersPage() {
               </div>
             </div>
           );
-    })()}
+        })()}
       </Modal>
 
 

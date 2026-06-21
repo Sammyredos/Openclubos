@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { UploadsService } from './uploads.service';
-import { PresignedUrlDto } from './dto/presigned-url.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PresignedUrlDto } from './dto/presigned-url.dto';
+import { UploadsService } from './uploads.service';
 
 @Controller('uploads')
 @UseGuards(JwtAuthGuard)

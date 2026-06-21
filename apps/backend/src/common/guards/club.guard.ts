@@ -56,7 +56,9 @@ export class ClubGuard implements CanActivate {
     // 3. Extract and verify JWT token to get user context
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid authorization header');
+      throw new UnauthorizedException(
+        'Missing or invalid authorization header',
+      );
     }
 
     const token = authHeader.substring(7);
@@ -87,7 +89,9 @@ export class ClubGuard implements CanActivate {
       // If the CLUB_ADMIN is creating a resource, ensure they pass their own clubId
       if (request.body && request.body.clubId) {
         if (request.body.clubId !== userClubId) {
-          throw new ForbiddenException('You cannot create resources for another club');
+          throw new ForbiddenException(
+            'You cannot create resources for another club',
+          );
         }
       } else {
         // If clubId is missing, inject it securely so they don't have to provide it
@@ -105,7 +109,9 @@ export class ClubGuard implements CanActivate {
           select: { clubId: true },
         });
         if (tournament && tournament.clubId !== userClubId) {
-          throw new ForbiddenException('You do not have access to this tournament');
+          throw new ForbiddenException(
+            'You do not have access to this tournament',
+          );
         }
       } else if (controllerName === 'CoursesController') {
         const course = await this.prisma.course.findUnique({
@@ -125,7 +131,9 @@ export class ClubGuard implements CanActivate {
           },
         });
         if (registration && registration.tournament?.clubId !== userClubId) {
-          throw new ForbiddenException('You do not have access to this registration');
+          throw new ForbiddenException(
+            'You do not have access to this registration',
+          );
         }
       } else if (controllerName === 'MembersController') {
         const member = await this.prisma.user.findUnique({
