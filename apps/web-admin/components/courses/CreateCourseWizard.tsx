@@ -454,7 +454,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <Globe className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">General Information</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">General Information</h4>
                 <p className="text-[12px] text-gray-500">Basic location and contact details</p>
               </div>
             </div>
@@ -549,7 +549,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <Target className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Course Specifications</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Course Specifications</h4>
                 <p className="text-[12px] text-gray-500">Technical ratings and geographic location</p>
               </div>
             </div>
@@ -669,7 +669,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <Mountain className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Facilities & Amenities</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Facilities & Amenities</h4>
                 <p className="text-[12px] text-gray-500">What services are available at the course</p>
               </div>
             </div>
@@ -726,7 +726,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <Flag className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Tee Boxes</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Tee Boxes</h4>
                 <p className="text-[12px] text-gray-500">Configure different tee color levels</p>
               </div>
             </div>
@@ -784,13 +784,13 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <Trophy className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Hole-by-Hole Details</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Hole-by-Hole Details</h4>
                 <p className="text-[12px] text-gray-500">Configure par and handicap index for each hole</p>
               </div>
             </div>
             <div className="p-5 space-y-6">
               <div className="bg-background p-6 rounded-2xl border border-[#e1efe5] space-y-4">
-                  <p className="text-[14px] font-normal text-gray-900 text-center">How many holes does this course have?</p>
+                  <p className="text-[14px] font-medium text-gray-900 text-center">How many holes does this course have?</p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {[6, 9, 12, 18, 27, 36].map((count) => (
                       <button
@@ -875,7 +875,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 <ImageIcon className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Branding & Status</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Branding & Status</h4>
                 <p className="text-[12px] text-gray-500">Upload images and set course visibility</p>
               </div>
             </div>
@@ -978,7 +978,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-[14px] font-normal text-gray-900">{courseId ? "Edit Golf Course" : "Add Golf Course"}</h1>
+              <h1 className="text-[14px] font-medium text-gray-900">{courseId ? "Edit Golf Course" : "Add Golf Course"}</h1>
               <p className="text-[13px] text-gray-500 mt-0.5">
                 {courseId ? "Update and configure the course details step by step" : "Setup and configure a new golf course step by step"}
               </p>
@@ -1010,7 +1010,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
                       <div
                         className={cn(
-                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
+                          "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
                           active
                             ? "bg-[#15803D] text-white"
                             : past
@@ -1020,7 +1020,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       >
                         {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                       </div>
-                      <span className="text-[13px] font-normal leading-tight">{name}</span>
+                      <span className="text-[13px] font-medium leading-tight">{name}</span>
                     </div>
                     {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                   </button>
@@ -1122,7 +1122,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
           return (
             <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[70px]">
               <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
+                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
                 active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : 
                 past ? "bg-emerald-100 text-openclub-800" : 
                 "bg-gray-100 text-gray-400"

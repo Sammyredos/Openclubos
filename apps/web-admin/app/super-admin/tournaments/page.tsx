@@ -948,57 +948,129 @@ export default function TournamentsPage() {
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard
-          title="Total Tournaments"
-          value={formatWithCommas(totalTournaments)}
-          icon={Trophy}
-          iconBg="bg-emerald-50"
-          iconColor="text-openclub-800"
-          loading={loading}
-        />
-        <StatCard
-          title="Active Tournaments"
-          value={formatWithCommas(activeTournaments.length)}
-          subValue={loading ? undefined : `Across ${formatWithCommas(activeClubs)} organizers`}
-          icon={Calendar}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Completed This Month"
-          value={String(completedThisMonth.length)}
-          icon={Trophy}
-          iconBg="bg-orange-50"
-          iconColor="text-orange-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Total Participants"
-          value={formatWithCommas(totalParticipants)}
-          icon={Users}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          loading={loading}
-        />
-        <StatCard
-          title="Total Entry Fees"
-          value={formatNaira(totalEntryFeesThisMonth)}
-          subValue="This month"
-          icon={Wallet}
-          iconBg="bg-red-50"
-          iconColor="text-red-600"
-          loading={loading}
-        />
-      </div>
+      {loading ? (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            
+            {/* Stat 1: Total Tournaments */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Tournaments</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatWithCommas(totalTournaments)}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 2: Active Tournaments */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Tournaments</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <Activity className="w-3.5 h-3.5 text-[#15803D]" />
+                  <div className="text-[#15803D] text-xs font-medium">Across {formatWithCommas(activeClubs)} organizers</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatWithCommas(activeTournaments.length)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Active</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 3: Completed This Month */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Completed</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{completedThisMonth.length}</div>
+              <div className="text-zinc-500 text-sm font-normal">This Month</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 4: Total Participants */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Participants</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatWithCommas(totalParticipants)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Across all</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 5: Total Entry Fees */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Entry Fees</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNaira(totalEntryFeesThisMonth)}</div>
+              <div className="text-zinc-500 text-sm font-normal">This Month</div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         {/* Main Content - Table Area */}
         <div className="xl:col-span-3 space-y-6">
-          <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
+          <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-[16px] font-normal">All Tournaments</CardTitle>
+              <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button 
                   variant="outline" 
@@ -1071,10 +1143,10 @@ export default function TournamentsPage() {
               {/* Filters */}
               <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
                 <div className="relative flex-1 min-w-[240px]">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                   <Input
                     placeholder="Search tournament name, organizer..."
-                    className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
+                    className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1084,7 +1156,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setClubFilter(v)}
                   options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Organizers"
                 />
                 <SearchableSelect
@@ -1092,7 +1164,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setStatusFilter(v)}
                   options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Status"
                 />
                 <SearchableSelect
@@ -1100,7 +1172,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setMonthFilter(v)}
                   options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Months"
                 />
                 <SearchableSelect
@@ -1108,64 +1180,68 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setYearFilter(v)}
                   options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-white font-normal"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Years"
                 />
 
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="w-full overflow-x-auto min-h-[400px]">
+                <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                   <thead>
-                    <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                      <th className="px-4 py-4">Tournament Info</th>
-                      <th className="px-4 py-4">Schedule & Visibility</th>
-                      <th className="px-4 py-4">Players</th>
-                      <th className="px-4 py-4">Status</th>
-                      <th className="px-4 py-4 text-right">Entry Fee</th>
-                      <th className="px-4 py-4 text-center">Actions</th>
+                    <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-xs uppercase tracking-wider text-gray-500 font-medium">
+                      <th className="px-6 py-4">Tournament</th>
+                      <th className="px-6 py-4">Organizer & Visibility</th>
+                      <th className="px-6 py-4">Dates</th>
+                      <th className="px-6 py-4">Players</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Entry Fee</th>
+                      <th className="px-6 py-4 text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-[#e1efe5]">
                     {error ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
+                        <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
                           {error}
                         </td>
                       </tr>
                     ) : loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="hover:bg-background/50 transition-colors">
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <div className="flex items-center gap-3">
-                              <Skeleton className="w-12 h-12 rounded-full" />
+                              <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
                               <div className="flex flex-col gap-1.5">
                                 <Skeleton className="h-4 w-32 rounded-md" />
                                 <Skeleton className="h-3 w-24 rounded-md" />
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <div className="flex flex-col gap-1.5">
                               <Skeleton className="h-4 w-28 rounded-md" />
                               <Skeleton className="h-3 w-16 rounded-md" />
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <Skeleton className="h-4 w-12 rounded-md" />
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <Skeleton className="h-5.5 w-16 rounded-full" />
                           </td>
-                          <td className="px-4 py-4 text-right">
-                            <Skeleton className="h-4 w-20 rounded-md ml-auto" />
+                          <td className="px-6 py-5">
+                            <Skeleton className="h-4 w-20 rounded-md" />
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
+                            <Skeleton className="h-4 w-16 rounded-md ml-auto" />
+                          </td>
+                          <td className="px-6 py-5">
                             <div className="flex items-center justify-center gap-2">
-                              <Skeleton className="h-9 w-9 rounded-lg" />
-                              <Skeleton className="h-9 w-9 rounded-lg" />
-                              <Skeleton className="h-9 w-9 rounded-lg" />
+                              <Skeleton className="h-7 w-12 rounded-md" />
+                              <Skeleton className="h-7 w-12 rounded-md" />
+                              <Skeleton className="h-7 w-7 rounded-md" />
                             </div>
                           </td>
                         </tr>
@@ -1173,7 +1249,7 @@ export default function TournamentsPage() {
                     ) : paginatedTournaments.length > 0 ? (
                       paginatedTournaments.map((t) => (
                         <tr key={t.id} className="hover:bg-background/50 transition-colors group">
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <div className="flex items-center gap-3 min-w-[220px]">
                               <div className="w-12 h-12 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                                 <Trophy className="w-4.5 h-4.5" />
@@ -1184,50 +1260,61 @@ export default function TournamentsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-700 font-normal truncate leading-tight">{t.dates}</span>
+                              <span className="text-[14px] text-gray-900 font-normal truncate leading-tight">{t.clubName}</span>
                               <div className={cn("inline-flex items-center w-fit px-1.5 py-0.5 rounded gap-1 mt-1 text-[9px] font-normal uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
                                 {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-2.5 h-2.5 flex-shrink-0" })}
                                 <span>{t.visibility}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[14px] text-gray-900 font-normal truncate leading-tight">{t.dates}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
                             <div className="flex flex-col items-start">
                               <span className="text-[14px] text-gray-900 font-normal leading-tight">{t.players}</span>
                               <span className="text-[10px] text-gray-400 font-normal mt-0.5">Registered</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <span className={`text-[10px] font-normal px-2 py-0.5 rounded-lg whitespace-nowrap uppercase ${t.badge}`}>
                               {t.status}
                             </span>
                           </td>
-                          <td className="px-4 py-4 text-right">
+                          <td className="px-6 py-5 text-right">
                             <span className="text-[14px] font-normal text-gray-900 whitespace-nowrap">{formatNaira(t.entryFee)}</span>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-6 py-5">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => openView(t)}
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
+                                className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
                                 title="View Tournament"
                               >
-                                <Eye className="w-4.5 h-4.5" />
+                                <Eye className="w-3 h-3" />
+                                <span className="text-[11px] font-medium leading-none">View</span>
                               </button>
                               <button
-                                onClick={() => openEdit(t)}
+                                onClick={() => {
+                                  if (t.statusKey !== "CANCELLED" && t.statusKey !== "COMPLETED") {
+                                    openEdit(t);
+                                  }
+                                }}
                                 className={cn(
-                                  "h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white transition-colors",
+                                  "h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md transition-colors border",
                                   t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
-                                    ? "text-gray-300 cursor-not-allowed bg-background/50 border-[#efefef]"
-                                    : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+                                    ? "text-gray-300 cursor-not-allowed bg-gray-50 border-gray-100"
+                                    : "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100"
                                 )}
                                 title="Edit Tournament"
                                 disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
                               >
-                                <Edit2 className="w-4.5 h-4.5" />
+                                <Edit2 className="w-3 h-3" />
+                                <span className="text-[11px] font-medium leading-none">Edit</span>
                               </button>
                               <div className="relative">
                                 <button
@@ -1244,10 +1331,10 @@ export default function TournamentsPage() {
                                       setDropdownTournament(t);
                                     }
                                   }}
-                                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
+                                  className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                                   title="More Actions"
                                 >
-                                  <MoreHorizontal className="w-4.5 h-4.5" />
+                                  <MoreHorizontal className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>

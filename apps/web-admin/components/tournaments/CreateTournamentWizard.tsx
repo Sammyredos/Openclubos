@@ -485,7 +485,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <Trophy className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[14px] font-normal text-gray-900">Tournament Details</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Tournament Details</h4>
               <p className="text-[12px] text-gray-500">Basic information and location</p>
             </div>
           </div>
@@ -594,7 +594,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <CalendarDays className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[14px] font-normal text-gray-900">Tournament Schedule</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Tournament Schedule</h4>
               <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
             </div>
           </div>
@@ -725,7 +725,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <ListOrdered className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[14px] font-normal text-gray-900">Format & Rules</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Format & Rules</h4>
               <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
             </div>
           </div>
@@ -935,7 +935,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Users className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Player Capacity</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Player Capacity</h4>
                 <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
               </div>
             </div>
@@ -963,7 +963,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
                   </div>
                   <div>
-                    <p className="text-[13px] font-normal text-gray-900">Enable Waitlist</p>
+                    <p className="text-[13px] font-medium text-gray-900">Enable Waitlist</p>
                     <p className="text-[11px] text-gray-500 leading-snug mt-0.5">Allow players to join a queue if the tournament reaches max capacity.</p>
                   </div>
                 </div>
@@ -980,7 +980,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Handicap Restrictions</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Handicap Restrictions</h4>
                   <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
                 </div>
               </div>
@@ -1016,7 +1016,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <CreditCard className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[14px] font-normal text-gray-900">Registration Fees</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Registration Fees</h4>
               <p className="text-[12px] text-gray-500">Configure entry fees</p>
             </div>
           </div>
@@ -1065,7 +1065,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <LayoutGrid className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Tee Off Date on {formatFriendlyDate(formData.startDate)}</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Tee Off Date on {formatFriendlyDate(formData.startDate)}</h4>
                 <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
               </div>
             </div>
@@ -1104,7 +1104,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <Activity className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[14px] font-normal text-gray-900">Scoring Rules</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Scoring Rules</h4>
               <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
             </div>
           </div>
@@ -1136,7 +1136,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Eye className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-normal text-gray-900">Visibility Status</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Visibility Status</h4>
                 <p className="text-[12px] text-gray-500">Control who can see and discover this tournament</p>
               </div>
             </div>
@@ -1185,7 +1185,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <Send className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Publish Immediately</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
                   <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
                 </div>
               </div>
@@ -1240,7 +1240,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           const active = step === i + 1, past = step > i + 1;
           return (
             <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[60px]">
-              <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
+              <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
                 active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : past ? "bg-emerald-100 text-openclub-800" : "bg-gray-100 text-gray-400")}>
                 {past ? "✓" : i + 1}
               </div>
@@ -1285,7 +1285,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center space-y-2">
-              <h4 className="text-[14px] font-normal text-gray-900">Publish Tournament?</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Publish Tournament?</h4>
               <p className="text-[12px] text-gray-500">
                 Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
               </p>

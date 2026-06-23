@@ -633,7 +633,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Trophy className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Basic Details</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Basic Details</h4>
                   <p className="text-[12px] text-gray-500">Essential information about the tournament</p>
                 </div>
               </div>
@@ -790,7 +790,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <CalendarDays className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Tournament Schedule</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Tournament Schedule</h4>
                   <p className="text-[12px] text-gray-500">Define the dates and registration window</p>
                 </div>
               </div>
@@ -925,7 +925,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <ListOrdered className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Format & Rules</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Format & Rules</h4>
                   <p className="text-[12px] text-gray-500">Configure how the tournament will be played and scored</p>
                 </div>
               </div>
@@ -1148,7 +1148,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Player Capacity</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Player Capacity</h4>
                   <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
                 </div>
               </div>
@@ -1189,7 +1189,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                       <div>
-                        <p className="text-[13px] font-normal text-gray-900">Enable Waitlist</p>
+                        <p className="text-[13px] font-medium text-gray-900">Enable Waitlist</p>
                         <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
                           Allow players to join a queue if the tournament reaches max capacity.
                         </p>
@@ -1208,7 +1208,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           <Shield className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="text-[14px] font-normal text-gray-900">Handicap Restrictions</h4>
+                          <h4 className="text-[14px] font-medium text-gray-900">Handicap Restrictions</h4>
                           <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
                         </div>
                       </div>
@@ -1269,7 +1269,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
                           </div>
                           <div>
-                            <h4 className="text-[14px] font-normal text-gray-900">Make Cut</h4>
+                            <h4 className="text-[14px] font-medium text-gray-900">Make Cut</h4>
                             <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
                           </div>
                         </div>
@@ -1371,7 +1371,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Registration Fees</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Registration Fees</h4>
                   <p className="text-[12px] text-gray-500">Configure entry fees</p>
                 </div>
               </div>
@@ -1470,7 +1470,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <LayoutGrid className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-[14px] font-normal text-gray-900">
+                    <h4 className="text-[14px] font-medium text-gray-900">
                       Tee Off Date on {formatFriendlyDate(formData.startDate)}
                     </h4>
                     <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
@@ -1529,7 +1529,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Activity className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Scoring Rules</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Scoring Rules</h4>
                   <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
                 </div>
               </div>
@@ -1580,7 +1580,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Eye className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-normal text-gray-900">Visibility Status</h4>
+                  <h4 className="text-[14px] font-medium text-gray-900">Visibility Status</h4>
                   <p className="text-[12px] text-gray-500">Control who can see and discover this tournament</p>
                 </div>
               </div>
@@ -1649,7 +1649,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <Send className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-[14px] font-normal text-gray-900">Publish Immediately</h4>
+                    <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
                     <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
                   </div>
                 </div>
@@ -1702,7 +1702,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-[16px] font-normal text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
+            <h1 className="text-[16px] font-medium text-gray-900">{tournamentId ? "Edit Tournament" : "Add Tournament"}</h1>
             <p className="text-[13px] text-gray-500 mt-0.5">
               {tournamentId ? "Update and configure the tournament details step by step" : "Setup and configure a new golf tournament step by step"}
             </p>
@@ -1732,7 +1732,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
                     <div
                       className={cn(
-                        "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
+                        "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
                         active
                           ? "bg-[#15803D] text-white"
                           : past
@@ -1742,7 +1742,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     >
                       {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                     </div>
-                    <span className="text-[13px] font-normal leading-tight">{name}</span>
+                    <span className="text-[13px] font-medium leading-tight">{name}</span>
                   </div>
                   {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                 </button>
@@ -1817,7 +1817,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center space-y-2">
-              <h4 className="text-[14px] font-normal text-gray-900">Publish Tournament?</h4>
+              <h4 className="text-[14px] font-medium text-gray-900">Publish Tournament?</h4>
               <p className="text-[12px] text-gray-500">
                 Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
               </p>

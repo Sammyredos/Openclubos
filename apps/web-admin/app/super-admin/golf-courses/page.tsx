@@ -557,18 +557,20 @@ export default function SuperAdminGolfCoursesPage() {
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}`)}
+                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
                             title="View Course"
                           >
-                            <Eye className="w-4.5 h-4.5" />
+                            <Eye className="w-3 h-3" />
+                            <span className="text-[11px] font-medium leading-none">View</span>
                           </button>
                           <button
                             onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
-                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
                             title="Edit Course"
                           >
-                            <Edit2 className="w-4.5 h-4.5" />
+                            <Edit2 className="w-3 h-3" />
+                            <span className="text-[11px] font-medium leading-none">Edit</span>
                           </button>
                           <div className="relative">
                             <button
@@ -585,10 +587,10 @@ export default function SuperAdminGolfCoursesPage() {
                                   setDropdownCourse(course);
                                 }
                               }}
-                              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-background transition-colors"
+                              className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                               title="More Actions"
                             >
-                              <MoreHorizontal className="w-4.5 h-4.5" />
+                              <MoreHorizontal className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
