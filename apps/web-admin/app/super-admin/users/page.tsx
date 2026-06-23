@@ -213,13 +213,7 @@ export default function SuperAdminUsersPage() {
   };
 
 
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
+
 
   const filteredUsers = useMemo(() => {
     return allUsers; // The backend now handles filtering
@@ -245,7 +239,7 @@ export default function SuperAdminUsersPage() {
       const data = await getAdminUsers({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
-        search: debouncedSearch || undefined,
+        search: searchQuery || undefined,
         role: roleFilter !== "All Roles" ? roleFilter : undefined,
         status: statusFilter !== "All Status" ? statusFilter : undefined,
       });
@@ -273,7 +267,7 @@ export default function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, roleFilter, statusFilter, currentPage]);
+  }, [searchQuery, roleFilter, statusFilter, currentPage]);
 
   useEffect(() => {
     if (!isViewModalOpen) return;

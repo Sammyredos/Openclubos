@@ -186,7 +186,7 @@ export class MembersService {
 
     if (search) {
       const q = search.trim();
-      const tokens = q.split(/[\s-]+/).filter(Boolean);
+      const tokens = q.split(/[\s,;-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
         where.AND = tokens.map((token) => ({
@@ -247,7 +247,7 @@ export class MembersService {
 
     if (search) {
       const q = search.trim();
-      const tokens = q.split(/[\s-]+/).filter(Boolean);
+      const tokens = q.split(/[\s,;-]+/).filter(Boolean);
 
       if (tokens.length > 0) {
         where.AND = tokens.map((token) => ({

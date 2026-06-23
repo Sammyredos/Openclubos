@@ -176,21 +176,26 @@ export class ClubsService {
     const take = Math.min(query.take ?? 20, MAX_PAGE_SIZE);
     const skip = query.skip ?? 0;
 
-    return this.prisma.club.findMany({
-      where,
-      take,
-      skip,
-      include: {
-        _count: { select: { tournaments: true, courses: true } },
-        users: {
-          where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
-          select: { id: true, email: true, firstName: true, lastName: true },
-          orderBy: { createdAt: 'asc' },
-          take: 1,
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.club.findMany({
+        where,
+        take,
+        skip,
+        include: {
+          _count: { select: { tournaments: true, courses: true } },
+          users: {
+            where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
+            select: { id: true, email: true, firstName: true, lastName: true },
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.club.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   async findOne(id: string) {

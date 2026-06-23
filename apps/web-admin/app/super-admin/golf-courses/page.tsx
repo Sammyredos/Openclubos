@@ -23,6 +23,7 @@ import {
   Trophy,
   FileText,
   FileSpreadsheet,
+  TrendingUp,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -97,47 +98,27 @@ export default function SuperAdminGolfCoursesPage() {
     }, 160);
   };
 
-  const filteredCourses = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    const tokens = q.split(/[\s-]+/).filter(Boolean);
+  const [totalCourses, setTotalCourses] = useState(0);
 
-    return allCourses.filter((c) => {
-      const countryName = (Country.getCountryByCode(c.country)?.name || c.country || "").toLowerCase();
-      const searchableFields = [
-        c.name,
-        c.city,
-        c.state,
-        countryName,
-        c.club?.name || "Independent"
-      ];
+  const filteredCourses = allCourses;
 
-      const matchesSearch = tokens.length === 0 || tokens.every(token => 
-        searchableFields.some(field => field?.toLowerCase().includes(token))
-      );
-
-      const matchesCountry = countryFilter === "All Countries" || c.country === countryFilter;
-      const matchesStatus = statusFilter === "All Status" || c.status === statusFilter;
-      const matchesType = typeFilter === "All Types" || c.type === typeFilter;
-      return matchesSearch && matchesCountry && matchesStatus && matchesType;
-    });
-  }, [allCourses, searchQuery, countryFilter, statusFilter, typeFilter]);
-
-  const total = filteredCourses.length;
-  const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalCourses / itemsPerPage));
   const pageSafe = Math.min(currentPage, totalPages);
-  const paginatedCourses = useMemo(
-    () => filteredCourses.slice((pageSafe - 1) * itemsPerPage, pageSafe * itemsPerPage),
-    [filteredCourses, pageSafe, itemsPerPage],
-  );
+  const paginatedCourses = filteredCourses;
 
   const fetchCourses = async () => {
     setLoading(true);
     try {
       const res = await getAdminCourses({
-        skip: 0,
-        take: 100,
+        skip: (currentPage - 1) * itemsPerPage,
+        take: itemsPerPage,
+        search: searchQuery || undefined,
+        country: countryFilter !== "All Countries" ? countryFilter : undefined,
+        status: statusFilter !== "All Status" ? statusFilter : undefined,
+        type: typeFilter !== "All Types" ? typeFilter : undefined,
       });
       setAllCourses(res.items);
+      setTotalCourses(res.total || res.items.length);
       if (res.stats) setStats(res.stats);
     } catch (e: any) {
       toast.error(e.message || "Failed to load golf courses");
@@ -148,7 +129,7 @@ export default function SuperAdminGolfCoursesPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [currentPage, itemsPerPage, searchQuery, countryFilter, statusFilter, typeFilter]);
 
   const openStatusModal = (c: Course) => {
     setSelectedCourse(c);
@@ -224,57 +205,131 @@ export default function SuperAdminGolfCoursesPage() {
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard
-          title="Total Courses"
-          value={String(stats?.totalCourses ?? 142)}
-          icon={Mountain}
-          iconBg="bg-emerald-50"
-          iconColor="text-openclub-800"
-          loading={loading}
-          subValue="Across Africa"
-        />
-        <StatCard
-          title="Countries"
-          value={String(stats?.countries ?? 18)}
-          icon={Flag}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          loading={loading}
-          subValue="Active"
-        />
-        <StatCard
-          title="LGAs"
-          value={String(stats?.cities ?? 57)}
-          icon={MapPin}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-          loading={loading}
-          subValue="Across Africa"
-        />
-        <StatCard
-          title="Active Courses"
-          value={String(stats?.activeCourses ?? 128)}
-          icon={CheckCircle2}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-          loading={loading}
-          subValue={stats ? `${Math.round((stats.activeCourses / stats.totalCourses) * 100)}% of total` : "90.1% of total"}
-        />
-        <StatCard
-          title="Inactive Courses"
-          value={String(stats?.inactiveCourses ?? 14)}
-          icon={AlertCircle}
-          iconBg="bg-red-50"
-          iconColor="text-red-600"
-          loading={loading}
-          subValue={stats ? `${Math.round((stats.inactiveCourses / stats.totalCourses) * 100)}% of total` : "9.9% of total"}
-        />
-      </div>
+      {loading ? (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
 
-      <Card className="border border-[#e1efe5] shadow-sm overflow-hidden">
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-24" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <Skeleton className="h-[22px] w-28" />
+              </div>
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            
+            {/* Stat 1: Total Courses */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Courses</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats?.totalCourses ?? 0}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 2: Active Courses */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Courses</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#15803D]" />
+                  <div className="text-[#15803D] text-xs font-medium">{stats && stats.totalCourses > 0 ? Math.round((stats.activeCourses / stats.totalCourses) * 100) : 0}% of total</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats?.activeCourses ?? 0}</div>
+              <div className="text-zinc-500 text-sm font-normal">Active</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 3: Inactive Courses */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Inactive Courses</div>
+                <div className="px-2 py-1 bg-red-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-red-600 text-xs font-medium">{stats && stats.totalCourses > 0 ? Math.round((stats.inactiveCourses / stats.totalCourses) * 100) : 0}% of total</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats?.inactiveCourses ?? 0}</div>
+              <div className="text-zinc-500 text-sm font-normal">Alerts</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 4: Countries */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Countries</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats?.countries ?? 0}</div>
+              <div className="text-zinc-500 text-sm font-normal">Active Locations</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 5: LGAs / Cities */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">LGAs</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{stats?.cities ?? 0}</div>
+              <div className="text-zinc-500 text-sm font-normal">Across Regions</div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-[16px] font-normal">Manage Courses</CardTitle>
+          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button 
               variant="outline" 
@@ -350,7 +405,7 @@ export default function SuperAdminGolfCoursesPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search courses by name, LGA, or country..."
-                className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg text-[14px]"
+                className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -363,7 +418,7 @@ export default function SuperAdminGolfCoursesPage() {
               onValueChange={setCountryFilter}
               options={countries}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Countries"
             />
             <SearchableSelect
@@ -371,7 +426,7 @@ export default function SuperAdminGolfCoursesPage() {
               onValueChange={setTypeFilter}
               options={courseTypes}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Types"
             />
             <SearchableSelect
@@ -383,7 +438,7 @@ export default function SuperAdminGolfCoursesPage() {
                 { value: "INACTIVE", label: "Inactive" },
               ]}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-white font-normal"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
 
@@ -392,20 +447,20 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-4">Course Info</th>
-                  <th className="px-4 py-4">Location & Country</th>
-                  <th className="px-4 py-4 text-center">Holes & Par</th>
-                  <th className="px-4 py-4">Type</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4 text-center">Actions</th>
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                  <th className="px-6 py-4">Course Info</th>
+                  <th className="px-6 py-4">Location & Country</th>
+                  <th className="px-6 py-4 text-center">Holes & Par</th>
+                  <th className="px-6 py-4">Type</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[#e1efe5]">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
@@ -414,7 +469,7 @@ export default function SuperAdminGolfCoursesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-2">
                           <Skeleton className="w-3.5 h-3.5 rounded-full flex-shrink-0" />
                           <div className="flex flex-col gap-1.5">
@@ -423,19 +478,19 @@ export default function SuperAdminGolfCoursesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col items-center gap-1.5">
                           <Skeleton className="h-4 w-12 rounded-md mx-auto" />
                           <Skeleton className="h-3.5 w-10 rounded-md mx-auto" />
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
                           <Skeleton className="h-9 w-9 rounded-lg" />
                           <Skeleton className="h-9 w-9 rounded-lg" />
@@ -447,7 +502,7 @@ export default function SuperAdminGolfCoursesPage() {
                 ) : paginatedCourses.length > 0 ? (
                   paginatedCourses.map((course) => (
                     <tr key={course.id} className="hover:bg-background/50 transition-colors group">
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3 min-w-[220px]">
                           <div className="w-12 h-12 rounded-full overflow-hidden border border-[#efefef] bg-background flex-shrink-0 group-hover:scale-105 transition-transform">
                             {course.coverImage ? (
@@ -464,7 +519,7 @@ export default function SuperAdminGolfCoursesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-2 min-w-[180px]">
                           <MapPin className="w-3.5 h-3.5 text-openclub-700 flex-shrink-0" />
                           <div className="flex flex-col min-w-0">
@@ -484,22 +539,22 @@ export default function SuperAdminGolfCoursesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex flex-col items-center">
                           <span className="text-[14px] text-gray-900 font-normal leading-tight">{course.holes} Holes</span>
                           <span className="text-[11px] text-gray-400 font-normal mt-0.5">Par {course.par}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-normal text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-lg whitespace-nowrap uppercase">
                           <Mountain className="w-3 h-3 text-blue-400" />
                           {course.type.toLowerCase()}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <StatusPill status={course.status} />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-[#e1efe5] bg-white text-gray-500 hover:bg-[#15803D]/10 hover:text-[#15803D] transition-colors"
@@ -557,7 +612,7 @@ export default function SuperAdminGolfCoursesPage() {
 
           <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between">
             <p className="text-[13px] text-gray-500">
-              Showing <strong>{paginatedCourses.length}</strong> of <strong>{total}</strong> courses
+              Showing <strong>{paginatedCourses.length}</strong> of <strong>{totalCourses}</strong> courses
             </p>
             <Pagination
               currentPage={pageSafe}

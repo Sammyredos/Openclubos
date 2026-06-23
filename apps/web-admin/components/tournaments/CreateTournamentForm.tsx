@@ -307,9 +307,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     setIsMultiDay(false);
 
     if (user?.role === "SUPER_ADMIN") {
-      getOrganizers()
-        .then((d: any[]) => {
-          if (Array.isArray(d)) setOrganizers(d.map((o) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
+      getOrganizers({ take: 100 })
+        .then((d: any) => {
+          const list = Array.isArray(d) ? d : (d.items || []);
+          setOrganizers(list.map((o: any) => ({ id: o.id, name: o.name, logo: o.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(o.name)}&backgroundColor=10b981` })));
         })
         .catch(() => { });
     }

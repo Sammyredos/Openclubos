@@ -226,6 +226,7 @@ export default function OrganizersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizersData, setOrganizersData] = useState<OrganizerRow[]>([]);
+  const [totalOrganizers, setTotalOrganizers] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [planFilter, setPlanFilter] = useState("All Plans");
@@ -280,12 +281,18 @@ export default function OrganizersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = (await getOrganizers()) as ApiOrganizer[];
-      const rows = Array.isArray(data) ? data.map(toOrganizerRow) : [];
+      const data = (await getOrganizers({
+        skip: (currentPage - 1) * itemsPerPage,
+        take: itemsPerPage,
+        search: searchQuery || undefined,
+      })) as { items: ApiOrganizer[]; total: number };
+      const rows = Array.isArray(data?.items) ? data.items.map(toOrganizerRow) : Array.isArray(data) ? data.map(toOrganizerRow) : [];
       setOrganizersData(rows);
+      setTotalOrganizers((data as any)?.total || rows.length);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to fetch organizers");
       setOrganizersData([]);
+      setTotalOrganizers(0);
     } finally {
       setLoading(false);
     }
@@ -299,19 +306,26 @@ export default function OrganizersPage() {
         if (!token) {
           setError("Not authenticated. Please login again.");
           setOrganizersData([]);
+          setTotalOrganizers(0);
           setLoading(false);
           return;
         }
         setLoading(true);
         setError(null);
-        const data = (await getOrganizers()) as ApiOrganizer[];
+        const data = (await getOrganizers({
+          skip: (currentPage - 1) * itemsPerPage,
+          take: itemsPerPage,
+          search: searchQuery || undefined,
+        })) as { items: ApiOrganizer[]; total: number };
         if (cancelled) return;
-        const rows = Array.isArray(data) ? data.map(toOrganizerRow) : [];
+        const rows = Array.isArray(data?.items) ? data.items.map(toOrganizerRow) : Array.isArray(data) ? data.map(toOrganizerRow) : [];
         setOrganizersData(rows);
+        setTotalOrganizers((data as any)?.total || rows.length);
       } catch (e: unknown) {
         if (cancelled) return;
         setError(getErrorMessage(e) || "Failed to fetch organizers");
         setOrganizersData([]);
+        setTotalOrganizers(0);
       } finally {
         if (cancelled) return;
         setLoading(false);
@@ -321,7 +335,7 @@ export default function OrganizersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [searchQuery, currentPage, itemsPerPage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -336,35 +350,13 @@ export default function OrganizersPage() {
     };
   }, []);
 
-  const filteredOrganizers = organizersData.filter((organizer) => {
-    const q = searchQuery.trim().toLowerCase();
-    const tokens = q.split(/[\s-]+/).filter(Boolean);
+  const filteredOrganizers = organizersData; // The backend now handles search filtering
 
-    const searchableFields = [
-      organizer.name,
-      organizer.location,
-      organizer.admin.name,
-      organizer.admin.email,
-      `${organizer.admin.name} ${organizer.admin.email}`,
-    ];
-
-    const matchesSearch = tokens.length === 0 || tokens.every(token =>
-      searchableFields.some(field => field?.toLowerCase().includes(token))
-    );
-
-    const matchesStatus = statusFilter === "All Status" || organizer.status === statusFilter;
-    const matchesPlan = planFilter === "All Plans" || organizer.plan === planFilter;
-    const matchesLocation = locationFilter === "All Locations" || organizer.location.includes(locationFilter);
-
-    return matchesSearch && matchesStatus && matchesPlan && matchesLocation;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredOrganizers.length / itemsPerPage));
-  const paginatedOrganizers = filteredOrganizers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalOrganizers / itemsPerPage));
+  const paginatedOrganizers = filteredOrganizers;
 
   const uniqueLocations = Array.from(new Set(organizersData.map((o) => o.location))).filter((v) => v !== "—");
 
-  const totalOrganizers = organizersData.length;
   const activeOrganizers = organizersData.filter((o) => o.status === "Active").length;
   const suspendedOrganizers = organizersData.filter((o) => o.status === "Suspended").length;
   const expiredOrganizers = organizersData.filter((o) => o.status === "Expired").length;

@@ -9,9 +9,15 @@ async function fetchWithSuperAdminFallback(path: string, init: RequestInit) {
   return fetch(`${API_BASE}/super-admin${path}`, init);
 }
 
-export async function getOrganizers() {
+export async function getOrganizers(query?: { search?: string; skip?: number; take?: number }) {
   const token = getAuthToken();
-  const res = await fetchWithSuperAdminFallback(`/organizers`, {
+  const searchParams = new URLSearchParams();
+  if (query?.skip !== undefined) searchParams.append('skip', query.skip.toString());
+  if (query?.take !== undefined) searchParams.append('take', query.take.toString());
+  if (query?.search) searchParams.append('search', query.search);
+
+  const qs = searchParams.toString();
+  const res = await fetchWithSuperAdminFallback(`/organizers${qs ? `?${qs}` : ''}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: 'no-store',
   });
