@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -750,7 +750,7 @@ export default function SuperAdminUsersPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search users by name or email..."
-                className="pl-10 h-11 rounded-lg text-[14px]"
+                className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1637,7 +1637,7 @@ export default function SuperAdminUsersPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         placeholder="Search activity..."
-                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={activitySearch}
                         onChange={(e) => {
                           setActivitySearch(e.target.value);
@@ -1679,7 +1679,7 @@ export default function SuperAdminUsersPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         placeholder="Search payments..."
-                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={paymentSearch}
                         onChange={(e) => {
                           setPaymentSearch(e.target.value);
@@ -1732,7 +1732,7 @@ export default function SuperAdminUsersPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         placeholder="Search tournaments..."
-                        className="pl-9 h-10 bg-background/50 border-[#efefef] rounded-xl text-[12px]"
+                        className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={tournamentSearch}
                         onChange={(e) => {
                           setTournamentSearch(e.target.value);

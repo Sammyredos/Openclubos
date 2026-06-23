@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Modal } from "@/components/ui/modal";
@@ -1152,7 +1152,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                 disabled={step === 1 || loading}
                 className="h-10 rounded-xl px-5 text-[13px] font-normal"
               >
-                â† Back
+                ← Back
               </Button>
               <div className="flex gap-3">
                 <Button
@@ -1168,7 +1168,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                     onClick={handleNext}
                     className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                   >
-                    Next Step â†’
+                    Next Step →
                   </Button>
                 ) : (
                   <Button
@@ -1200,7 +1200,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
             <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
             {step < STEPS.length ? (
               <Button onClick={handleNext} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
-                Next Step â†’
+                Next Step →
               </Button>
             ) : (
               <Button onClick={handleSubmit} disabled={loading} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">

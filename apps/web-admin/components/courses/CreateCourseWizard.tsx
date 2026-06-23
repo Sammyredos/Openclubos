@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
@@ -572,13 +572,13 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       <Field label="Latitude" required>
                         <div className="relative">
                           <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input className={cn("pl-10", req(formData.latitude))} value={formData.latitude} onChange={(e) => set("latitude", e.target.value)} placeholder="e.g. 7.397Â° N" />
+                          <Input className={cn("pl-10", req(formData.latitude))} value={formData.latitude} onChange={(e) => set("latitude", e.target.value)} placeholder="e.g. 7.397° N" />
                         </div>
                       </Field>
                       <Field label="Longitude" required>
                         <div className="relative">
                           <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input className={cn("pl-10", req(formData.longitude))} value={formData.longitude} onChange={(e) => set("longitude", e.target.value)} placeholder="e.g. 3.873Â° E" />
+                          <Input className={cn("pl-10", req(formData.longitude))} value={formData.longitude} onChange={(e) => set("longitude", e.target.value)} placeholder="e.g. 3.873° E" />
                         </div>
                       </Field>
                     </div>
@@ -755,8 +755,8 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                           </Field>
                           <Field label="Color">
                             <SearchableSelect value={tb.color} onValueChange={(v) => updateTeeBox(i, "color", v)} options={[
-                              {value: "Black", label: "âš« Black"}, {value: "Blue", label: "ðŸ”µ Blue"}, {value: "White", label: "âšª White"},
-                              {value: "Red", label: "ðŸ”´ Red"}, {value: "Yellow", label: "ðŸŸ¡ Yellow"}, {value: "Gold", label: "ðŸŸ  Gold"},
+                              {value: "Black", label: "⚫ Black"}, {value: "Blue", label: "🔵 Blue"}, {value: "White", label: "⚪ White"},
+                              {value: "Red", label: "🔴 Red"}, {value: "Yellow", label: "🟡 Yellow"}, {value: "Gold", label: "🟡 Gold"},
                             ]} />
                           </Field>
                           <Field label="Yardage">
@@ -1055,7 +1055,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 disabled={step === 1 || loading}
                 className="h-10 rounded-xl px-5 text-[13px] font-normal"
               >
-                â† Back
+                ← Back
               </Button>
               <div className="flex gap-3">
                 <Button
@@ -1071,7 +1071,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     onClick={handleNext}
                     className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                   >
-                    Next Step â†’
+                    Next Step →
                   </Button>
                 ) : (
                   <Button
@@ -1103,7 +1103,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
             <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
             {step < STEPS.length ? (
               <Button onClick={handleNext} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
-                Next Step â†’
+                Next Step →
               </Button>
             ) : (
               <Button onClick={handleSubmit} disabled={loading} className="bg-[#15803D] hover:bg-[#166534] text-white px-6">
@@ -1127,7 +1127,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 past ? "bg-emerald-100 text-openclub-800" : 
                 "bg-gray-100 text-gray-400"
               )}>
-                {past ? "âœ“" : i + 1}
+                {past ? "✓" : i + 1}
               </div>
               <span className={cn(
                 "text-[9px] font-normal uppercase tracking-wider text-center leading-tight transition-colors",

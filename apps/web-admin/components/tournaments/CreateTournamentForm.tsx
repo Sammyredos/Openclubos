@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -719,7 +719,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             <X className="w-4 h-4" />
                           </button>
                           <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
-                            Compressed to â‰¤50KB
+                            Compressed to ≤50KB
                           </div>
                         </div>
                       ) : (
@@ -939,31 +939,31 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       {
                         value: "STROKE_PLAY",
                         label: "Stroke Play",
-                        icon: "ðŸŒï¸",
+                        icon: "⛳",
                         desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
                       },
                       {
                         value: "STABLEFORD",
                         label: "Stableford",
-                        icon: "â­",
+                        icon: "⭐",
                         desc: "Players earn points based on their score relative to par on each hole (e.g. 2pts for par). Highest total points wins. Encourages risk-taking.",
                       },
                       {
                         value: "MATCH_PLAY",
                         label: "Match Play",
-                        icon: "âš”ï¸",
+                        icon: "⚔️",
                         desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match.",
                       },
                       {
                         value: "SCRAMBLE",
                         label: "Scramble",
-                        icon: "ðŸ¤",
+                        icon: "🤝",
                         desc: "All team members tee off, the best shot is selected, and everyone plays their next shot from that spot.",
                       },
                       {
                         value: "BEST_BALL",
                         label: "Best Ball",
-                        icon: "ðŸ¥‡",
+                        icon: "🏆",
                         desc: "Each player plays their own ball. The team score is the lowest individual score.",
                       },
                     ].map(({ value, label, icon, desc }) => {
@@ -1078,7 +1078,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                               : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300"
                           )}
                         >
-                          {selected ? "âœ“ " : ""}
+                          {selected ? "✓ " : ""}
                           {preset}
                         </button>
                       );
@@ -1127,7 +1127,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
                             className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
                           >
-                            Ã—
+                            ×
                           </button>
                         </span>
                       ))}
@@ -1776,7 +1776,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               disabled={step === 1 || loading}
               className="h-10 rounded-xl px-5 text-[13px] font-normal"
             >
-              â† Back
+              ← Back
             </Button>
             <div className="flex gap-3">
               <Button
@@ -1793,7 +1793,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   disabled={nameCheckLoading}
                   className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal"
                 >
-                  {nameCheckLoading ? "Checking..." : "Next Step â†’"}
+                  {nameCheckLoading ? "Checking..." : "Next Step →"}
                 </Button>
               ) : (
                 <Button
