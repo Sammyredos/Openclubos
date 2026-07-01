@@ -69,7 +69,7 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    const msg = error.message || 'Invalid email or password';
+    const msg = error.message || 'The email or password you entered is incorrect.';
     if (msg === 'ACCOUNT_SUSPENDED') {
       throw new Error('Your account has been suspended. Please contact support.');
     }
@@ -78,6 +78,12 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
     }
     if (msg === 'DATABASE_UNAVAILABLE') {
       throw new Error('Backend database is not running. Start Postgres (docker compose) and try again.');
+    }
+    if (msg === 'INVALID_CREDENTIALS') {
+      throw new Error('The email or password you entered is incorrect. Please try again.');
+    }
+    if (msg === 'ACCOUNT_LOCKED_15_MIN') {
+      throw new Error('Your account is temporarily locked for 15 minutes due to too many failed login attempts.');
     }
     throw new Error(msg);
   }
@@ -155,7 +161,9 @@ export async function registerOrganizationRequest(payload: {
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to register organization');
+    let msg = error.message;
+    if (Array.isArray(msg)) msg = msg.join(' ');
+    throw new Error(msg || 'Failed to register organization. Please check your details and try again.');
   }
 
   return res.json();

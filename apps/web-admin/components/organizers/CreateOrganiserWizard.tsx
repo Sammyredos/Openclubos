@@ -116,6 +116,20 @@ function mergeRolePermissions(roles: string[]): Record<string, Record<string, bo
   return merged;
 }
 
+function formatDateString(dateStr: any): string {
+  if (!dateStr) return "";
+  if (typeof dateStr === "string") {
+    if (dateStr.includes("T")) return dateStr.split("T")[0];
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (m) return dateStr;
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return String(dateStr);
+}
+
 const DEFAULT_FORM = {
   firstName: "",
   middleName: "",
@@ -272,12 +286,12 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           surname: sur,
           email: editingUser.email || "",
           phone: phoneStr,
-          dob: editingUser.dob || "",
+          dob: formatDateString(editingUser.dob),
           gender: editingUser.gender || "Male",
           country: editingUser.country || "NG",
-          state: editingUser.state || "",
-          city: editingUser.city || "",
-          address: editingUser.address || "",
+          state: editingUser.state || editingUser.club?.state || "",
+          city: editingUser.city || editingUser.club?.city || "",
+          address: editingUser.address || editingUser.club?.address || "",
           roles: [editingUser.role],
           permissions: editingUser.permissions || mergeRolePermissions([editingUser.role]),
           clubId: editingUser.clubId || "",
@@ -301,9 +315,9 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           about: editingUser.club?.about || "",
           facebook: editingUser.club?.facebook || "",
           instagram: editingUser.club?.instagram || "",
-          country: editingUser.club?.country || "NG",
-          state: editingUser.club?.state || "",
-          city: editingUser.club?.city || "",
+          country: editingUser.club?.country || editingUser.country || "NG",
+          state: editingUser.club?.state || editingUser.state || "",
+          city: editingUser.club?.city || editingUser.city || "",
         });
       } else {
         setFormData(DEFAULT_FORM);

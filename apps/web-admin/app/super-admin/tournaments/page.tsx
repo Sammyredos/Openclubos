@@ -1065,11 +1065,10 @@ export default function TournamentsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+      <div className="w-full space-y-6">
         {/* Main Content - Table Area */}
-        <div className="xl:col-span-3 space-y-6">
-          <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+        <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
               <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Tournaments</CardTitle>
               <div className="flex flex-wrap items-center gap-3">
                 <Button 
@@ -1370,125 +1369,6 @@ export default function TournamentsPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-8">
-          {/* Status Donut Chart */}
-          <Card className="border border-[#e1efe5] shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-[16px] font-normal">Tournaments by Status</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="h-[240px] w-full relative">
-                {isMounted && !loading ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RePieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {statusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
-                      />
-                    </RePieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Skeleton className="h-full w-full rounded-full" />
-                )}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[13px] text-gray-400 font-normal">Total</p>
-                  <p className="text-[16px] font-normal text-gray-800">{loading ? "—" : formatWithCommas(totalTournaments)}</p>
-                </div>
-              </div>
-
-              <div className="w-full space-y-3 mt-4">
-                {statusData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-[13px]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-gray-500 font-normal">{item.name}</span>
-                    </div>
-                    <span className="font-normal text-gray-800">
-                      {item.value} ({item.percentage})
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <Button variant="link" className="w-full mt-6 text-[#15803D] font-normal no-underline hover:no-underline hover:font-normal transition-all duration-200 flex items-center justify-center gap-2">
-                View Full Analytics <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Upcoming List */}
-          <Card className="border border-[#e1efe5] shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-[16px] font-normal">Upcoming Tournaments</CardTitle>
-              {upcomingList.length > 0 && (
-                <Button
-                  variant="link"
-                  className="text-[#15803D] p-0 h-auto font-normal text-[12px] hover:no-underline"
-                  onClick={() => setStatusFilter("Upcoming")}
-                >
-                  View All
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-6 p-3">
-              {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4 rounded-md" />
-                      <Skeleton className="h-3 w-1/2 rounded-md" />
-                      <Skeleton className="h-3 w-1/3 rounded-md" />
-                    </div>
-                  </div>
-                ))
-              ) : upcomingList.length > 0 ? (
-                upcomingList.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => openView(item)}
-                    className="flex items-start gap-4 p-2 rounded-xl hover:bg-background cursor-pointer transition-colors group"
-                  >
-                    <div className={`w-12 h-12 flex items-center justify-center rounded-full ${item.bg} ${item.color} flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                      <item.icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-normal text-gray-800 leading-tight group-hover:text-[#15803D] transition-colors line-clamp-1">{item.name}</p>
-                      <p className="text-[13px] text-gray-500 mt-1 line-clamp-1">{item.clubName}</p>
-                      <p className="text-[12px] text-gray-400 mt-0.5">{item.dates}</p>
-                    </div>
-                    <span className="text-[11px] font-normal bg-background text-openclub-800 px-2 py-1 rounded-lg whitespace-nowrap">
-                      {item.days}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="py-8 text-center">
-                  <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Calendar className="w-6 h-6 text-gray-300" />
-                  </div>
-                  <p className="text-[12px] text-gray-500 font-normal">No upcoming tournaments</p>
-                  <p className="text-[12px] text-gray-400 mt-1">Check back later or add a new one</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
 
       <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (

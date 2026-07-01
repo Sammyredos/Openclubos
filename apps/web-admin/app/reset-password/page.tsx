@@ -4,10 +4,8 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
-import { Lock, Eye, EyeOff, ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react"
+import { Eye, EyeOff, CheckCircle2 } from "lucide-react"
 import { resetPasswordRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
@@ -67,175 +65,143 @@ function ResetPasswordPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center font-sans overflow-hidden bg-gray-900">
-      {/* Full Screen Background Image - Missed Putt or Golf Course */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop" 
-          alt="Missed Putt on Green" 
-          className="w-full h-full object-cover opacity-90"
-        />
-        {/* Dark Overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      </div>
-
-      <div className="w-full max-w-[460px] px-4 z-10 relative transform scale-90 sm:scale-100 py-12">
-        {/* Main Card */}
-        <div className="bg-white/95 backdrop-blur-md rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] px-10 py-10 border border-white/20 flex flex-col items-center">
+    <div className="min-h-screen w-full flex bg-[#f4f6f3] font-[family-name:var(--font-space-grotesk)] text-[#111111]">
+      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
+        
+        {/* LEFT COLUMN - Image */}
+        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r-[4px] border-[#111111] p-16 items-end"
+             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop')" }}>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
           
-          {/* Logo */}
-          <div className="flex flex-col items-center gap-2 mb-6">
-            <div className="w-12 h-12 bg-[#15803D] rounded-full flex items-center justify-center text-white shadow-lg shadow-openclub-700/20">
-              <Icons.logo className="w-7 h-7" />
-            </div>
-            <span className="text-[14px] font-normal text-[#1a2332] tracking-tight">OpenClub</span>
+          <div className="relative z-10 text-white">
+            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#cfff3d] mb-4 leading-none">
+              BACK IN<br/>THE GAME.
+            </h1>
+            <p className="text-xl max-w-[400px]">
+              Set a strong new password to secure your tournament data and get back to managing your events.
+            </p>
           </div>
-
-          {pageState === "success" ? (
-            <>
-              {/* Success State Header */}
-              <div className="text-center mb-8">
-                <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-[#15803D] mb-4">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h1 className="text-[28px] font-normal text-[#1a2332] mb-1 tracking-tight">Password Reset!</h1>
-                <p className="text-[14px] font-normal text-gray-500">Your password has been changed successfully.</p>
-              </div>
-
-              <div className="w-full space-y-6">
-                <a href="/login" className="block w-full">
-                  <Button
-                    className="w-full h-12 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal text-[15px] transition-colors flex items-center justify-center gap-3"
-                  >
-                    Continue to Sign In
-                  </Button>
-                </a>
-              </div>
-            </>
-          ) : pageState === "error" ? (
-            <>
-              {/* Error State Header */}
-              <div className="text-center mb-8">
-                <h1 className="text-[28px] font-normal text-[#1a2332] mb-1 tracking-tight">Invalid Link</h1>
-                <p className="text-[14px] font-normal text-gray-500">The password reset link is invalid or has expired.</p>
-              </div>
-
-              <div className="w-full space-y-6">
-                <a href="/forgot-password" className="block w-full">
-                  <Button
-                    className="w-full h-12 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal text-[15px] transition-colors flex items-center justify-center gap-3"
-                  >
-                    Request a New Link
-                  </Button>
-                </a>
-                <div className="text-center">
-                  <a
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-[14px] font-normal text-gray-400 hover:text-[#15803D] transition-all duration-200 group"
-                  >
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Sign In
-                  </a>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Title */}
-              <div className="text-center mb-8">
-                <h1 className="text-[28px] font-normal text-[#1a2332] mb-1 tracking-tight">Create New Password</h1>
-                <p className="text-[14px] font-normal text-gray-500">Enter your new password below.</p>
-              </div>
-
-              <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
-                {/* New Password field */}
-                <div className="space-y-2.5">
-                  <label htmlFor="newPassword" className="text-[14px] font-normal text-[#1a2332] block px-1">New Password</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
-                      <Lock className="h-5 w-5 transition-colors group-focus-within:text-[#15803D]" />
-                    </div>
-                    <Input
-                      id="newPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter new password"
-                      className="pl-12 pr-12 h-14 bg-background/50 border-gray-200 focus:bg-white focus:border-[#15803D] transition-all rounded-xl text-[15px]"
-                      disabled={pageState === "loading"}
-                      {...form.register("newPassword")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  {form.formState.errors.newPassword && (
-                    <p className="text-[12px] text-red-500 px-1">{form.formState.errors.newPassword.message}</p>
-                  )}
-                </div>
-
-                {/* Confirm Password field */}
-                <div className="space-y-2.5">
-                  <label htmlFor="confirmPassword" className="text-[14px] font-normal text-[#1a2332] block px-1">Confirm Password</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
-                      <ShieldCheck className="h-5 w-5 transition-colors group-focus-within:text-[#15803D]" />
-                    </div>
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm new password"
-                      className="pl-12 pr-12 h-14 bg-background/50 border-gray-200 focus:bg-white focus:border-[#15803D] transition-all rounded-xl text-[15px]"
-                      disabled={pageState === "loading"}
-                      {...form.register("confirmPassword")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  {form.formState.errors.confirmPassword && (
-                    <p className="text-[12px] text-red-500 px-1">{form.formState.errors.confirmPassword.message}</p>
-                  )}
-                </div>
-
-                {/* Submit */}
-                <Button
-                  disabled={pageState === "loading"}
-                  className="w-full h-12 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal text-[15px] transition-colors flex items-center justify-center gap-3 mt-4"
-                >
-                  {pageState === "loading" ? (
-                    <Icons.spinner className="h-5 w-5 animate-spin" />
-                  ) : (
-                    "Reset Password"
-                  )}
-                </Button>
-
-                {/* Back to login */}
-                <div className="pt-4 text-center">
-                  <a
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-[14px] font-normal text-gray-400 hover:text-[#15803D] transition-all duration-200 group"
-                  >
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Sign In
-                  </a>
-                </div>
-              </form>
-            </>
-          )}
         </div>
 
-        {/* Footer Text */}
-        <div className="mt-8 text-center">
-          <p className="text-[12px] font-normal text-white/70 tracking-wide drop-shadow-sm">
-            © 2026 OpenClub. All rights reserved.
-          </p>
+        {/* RIGHT COLUMN - Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
+          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#cfff3d] relative">
+            
+            {pageState === "success" ? (
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 bg-[#cfff3d] border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                  <CheckCircle2 className="h-10 w-10 text-[#111111]" />
+                </div>
+                
+                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-4 tracking-tighter">Password Reset!</h2>
+                <p className="text-[#6b7280] text-[1.125rem] mb-8 font-bold">
+                  Your password has been changed successfully.
+                </p>
+
+                <a href="/login" className="w-full">
+                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                    Continue to Sign In
+                  </button>
+                </a>
+              </div>
+            ) : pageState === "error" ? (
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 bg-red-100 border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                  <Icons.logo className="h-10 w-10 text-[#111111]" />
+                </div>
+                
+                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-4 tracking-tighter">Invalid Link</h2>
+                <p className="text-[#6b7280] text-[1.125rem] mb-8 font-bold">
+                  The password reset link is invalid or has expired.
+                </p>
+
+                <a href="/forgot-password" className="w-full mb-6">
+                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                    Request a New Link
+                  </button>
+                </a>
+                
+                <div className="text-center font-bold">
+                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-2 tracking-tighter">New Password</h2>
+                <p className="text-[#6b7280] text-[1.125rem] mb-10">Enter your new password below.</p>
+
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* New Password field */}
+                  <div>
+                    <label htmlFor="newPassword" className="block font-bold uppercase tracking-tight mb-2">New Password</label>
+                    <div className="relative">
+                      <input
+                        id="newPassword"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                        disabled={pageState === "loading"}
+                        {...form.register("newPassword")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#cfff3d]"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {form.formState.errors.newPassword && (
+                      <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.newPassword.message}</p>
+                    )}
+                  </div>
+
+                  {/* Confirm Password field */}
+                  <div>
+                    <label htmlFor="confirmPassword" className="block font-bold uppercase tracking-tight mb-2">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                        disabled={pageState === "loading"}
+                        {...form.register("confirmPassword")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#cfff3d]"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {form.formState.errors.confirmPassword && (
+                      <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={pageState === "loading"}
+                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
+                  >
+                    {pageState === "loading" ? (
+                      <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-8 text-center font-bold">
+                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                </div>
+              </>
+            )}
+
+          </div>
         </div>
       </div>
     </div>

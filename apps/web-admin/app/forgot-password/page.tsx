@@ -4,10 +4,8 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
-import { Mail, ArrowLeft, CheckCircle2, Send, ShieldCheck } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 import { forgotPasswordRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
 
@@ -41,135 +39,99 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center font-sans overflow-hidden bg-gray-900">
-      {/* Full Screen Background Image - Missed Putt */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop" 
-          alt="Missed Putt on Green" 
-          className="w-full h-full object-cover opacity-90"
-        />
-        {/* Dark Overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      </div>
-
-      <div className="w-full max-w-[460px] px-4 z-10 relative transform scale-90 sm:scale-100 py-12">
-        {/* Main Card */}
-        <div className="bg-white/95 backdrop-blur-md rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] px-10 py-10 border border-white/20 flex flex-col items-center">
+    <div className="min-h-screen w-full flex bg-[#f4f6f3] font-[family-name:var(--font-space-grotesk)] text-[#111111]">
+      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
+        
+        {/* LEFT COLUMN - Image */}
+        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r-[4px] border-[#111111] p-16 items-end"
+             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop')" }}>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
           
-          {/* Logo */}
-          <div className="flex flex-col items-center gap-2 mb-6">
-            <div className="w-12 h-12 bg-[#15803D] rounded-full flex items-center justify-center text-white shadow-lg shadow-openclub-700/20">
-              <Icons.logo className="w-7 h-7" />
-            </div>
-            <span className="text-[14px] font-normal text-[#1a2332] tracking-tight">OpenClub</span>
+          <div className="relative z-10 text-white">
+            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#cfff3d] mb-4 leading-none">
+              LOST YOUR<br/>SCORECARD?
+            </h1>
+            <p className="text-xl max-w-[400px]">
+              Don't let a forgotten password disrupt your tournament. Enter your email to regain access to the organizer dashboard.
+            </p>
           </div>
+        </div>
 
-          {pageState !== "sent" ? (
-            <>
-              {/* Title */}
-              <div className="text-center mb-8">
-                <h1 className="text-[28px] font-normal text-[#1a2332] mb-1 tracking-tight">Forgot Password?</h1>
-                <p className="text-[14px] font-normal text-gray-500">Don&apos;t worry, it happens to the best of us. We&apos;ll send you a link to reset it.</p>
-              </div>
+        {/* RIGHT COLUMN - Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
+          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#cfff3d] relative">
+            
+            {pageState !== "sent" ? (
+              <>
+                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-2 tracking-tighter">Reset Password</h2>
+                <p className="text-[#6b7280] text-[1.125rem] mb-10">Enter your email to receive a recovery link.</p>
 
-              <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
-                {/* Email field */}
-                <div className="space-y-2.5">
-                  <label htmlFor="reset-email" className="text-[14px] font-normal text-[#1a2332] block px-1">Email address</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
-                      <Mail className="h-5 w-5 transition-colors group-focus-within:text-[#15803D]" />
-                    </div>
-                    <Input
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="reset-email" className="block font-bold uppercase tracking-tight mb-2">Email Address</label>
+                    <input
                       id="reset-email"
                       type="email"
-                      placeholder="name@example.com"
-                      className="pl-12 h-14 bg-background/50 border-gray-200 focus:bg-white focus:border-[#15803D] transition-all rounded-xl text-[15px]"
+                      placeholder="golfer@example.com"
+                      className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
                       disabled={pageState === "loading"}
                       {...form.register("email")}
                     />
+                    {form.formState.errors.email && (
+                      <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
-                  {form.formState.errors.email && (
-                    <p className="text-[12px] text-red-500 px-1">{form.formState.errors.email.message}</p>
-                  )}
-                </div>
 
-                {/* Submit */}
-                <Button
-                  disabled={pageState === "loading"}
-                  className="w-full h-12 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal text-[15px] transition-colors flex items-center justify-center gap-3 mt-4"
-                >
-                  {pageState === "loading" ? (
-                    <Icons.spinner className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <Send className="w-4 h-4" />
-                    </>
-                  )}
-                </Button>
-
-                {/* Back to login */}
-                <div className="pt-4 text-center">
-                  <a
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-[14px] font-normal text-[#15803D] hover:no-underline transition-all duration-200 group"
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={pageState === "loading"}
+                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
                   >
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Sign In
-                  </a>
-                </div>
-              </form>
-            </>
-          ) : (
-            <>
-              {/* Success State Header */}
-              <div className="text-center mb-8">
-                <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-[#15803D] mb-4">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h1 className="text-[28px] font-normal text-[#1a2332] mb-1 tracking-tight">Check Your Email</h1>
-                <p className="text-[14px] font-normal text-gray-500">We&apos;ve sent a password reset link to <span className="font-normal text-gray-700">{sentEmail}</span></p>
-              </div>
+                    {pageState === "loading" ? (
+                      <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </button>
+                </form>
 
-              <div className="w-full space-y-6">
-                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5">
-                  <p className="text-[13px] text-emerald-800 leading-relaxed text-center font-normal">
-                    Click the link in the email to reset your password. The link will expire in 30 minutes.
+                <div className="mt-8 text-center font-bold">
+                  <p className="text-[#111111]">
+                    Remembered your password? <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Sign in</a>
                   </p>
                 </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-[#cfff3d] border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                    <CheckCircle2 className="h-10 w-10 text-[#111111]" />
+                  </div>
+                  
+                  <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-4 tracking-tighter">Check Your Email</h2>
+                  <p className="text-[#6b7280] text-[1.125rem] mb-8">
+                    We've sent a password reset link to <span className="font-bold text-[#111111]">{sentEmail}</span>. The link will expire in 30 minutes.
+                  </p>
 
-                <Button
-                  onClick={() => { setPageState("idle"); form.setValue("email", sentEmail) }}
-                  variant="outline"
-                  className="w-full h-12 border-gray-100 text-[#15803D] font-normal hover:bg-emerald-50 rounded-xl"
-                >
-                  Resend Email
-                </Button>
-
-                <div className="text-center">
-                  <a
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-[14px] font-normal text-gray-400 hover:text-[#15803D] transition-all duration-200 group"
+                  <button
+                    onClick={() => { setPageState("idle"); form.setValue("email", sentEmail) }}
+                    className="w-full bg-white border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] mb-6"
                   >
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Sign In
-                  </a>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+                    Resend Email
+                  </button>
 
-        {/* Footer Text */}
-        <div className="mt-8 text-center">
-          <p className="text-[12px] font-normal text-white/70 tracking-wide drop-shadow-sm">
-            © 2026 OpenClub. All rights reserved.
-          </p>
+                  <div className="text-center font-bold">
+                    <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                  </div>
+                </div>
+              </>
+            )}
+
+          </div>
         </div>
       </div>
     </div>
   )
-
 }

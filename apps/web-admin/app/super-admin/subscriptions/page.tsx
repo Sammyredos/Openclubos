@@ -27,121 +27,16 @@ import { FloatingMenu } from "@/components/ui/floating-menu";
 import { exportToCsv, exportToPdf } from "@/lib/export";
 import { addDays, format } from "date-fns";
 
-const today = new Date();
-const generateMockDate = (days: number) => format(addDays(today, days), "dd MMM yyyy");
-const getBillingSubText = (diff: number, status: string, cancelDate?: string) => {
-  if (status === "Cancelled") return `Cancelled on ${cancelDate}`;
-  if (diff < 0) return `${Math.abs(diff)} days overdue`;
-  if (diff === 0) return "Today";
-  if (diff === 1) return "In 1 day";
-  return `In ${diff} days`;
-};
-
-// Static Subscriptions Mock Data
-const MOCK_SUBSCRIPTIONS = [
-  {
-    id: "sub-1",
-    organizer: "Royal Greens Golf Club",
-    email: "admin@royalgreens.com",
-    avatarColor: "bg-emerald-50 text-openclub-800",
-    initials: "RG",
-    plan: "Professional",
-    planLimit: "Up to 50 tournaments / year",
-    billingCycle: "Annual",
-    status: "Active",
-    nextBillingDate: generateMockDate(20),
-    nextBillingSub: getBillingSubText(20, "Active"),
-    amount: "₦2,400.00 / year",
-  },
-  {
-    id: "sub-2",
-    organizer: "Pine Valley Golf Club",
-    email: "info@pinevalley.com",
-    avatarColor: "bg-blue-50 text-blue-600",
-    initials: "PV",
-    plan: "Standard",
-    planLimit: "Up to 20 tournaments / year",
-    billingCycle: "Monthly",
-    status: "Active",
-    nextBillingDate: generateMockDate(1),
-    nextBillingSub: getBillingSubText(1, "Active"),
-    amount: "₦99.00 / month",
-  },
-  {
-    id: "sub-3",
-    organizer: "Meadowbrook Golf Club",
-    email: "contact@meadowbrook.com",
-    avatarColor: "bg-purple-50 text-purple-600",
-    initials: "MG",
-    plan: "Professional",
-    planLimit: "Up to 50 tournaments / year",
-    billingCycle: "Monthly",
-    status: "Past Due",
-    nextBillingDate: generateMockDate(-16),
-    nextBillingSub: getBillingSubText(-16, "Past Due"),
-    amount: "₦199.00 / month",
-  },
-  {
-    id: "sub-4",
-    organizer: "Lakeside Golf Resort",
-    email: "hello@lakeside.com",
-    avatarColor: "bg-emerald-50 text-openclub-800",
-    initials: "LG",
-    plan: "Basic",
-    planLimit: "Up to 5 tournaments / year",
-    billingCycle: "Annual",
-    status: "Active",
-    nextBillingDate: generateMockDate(218),
-    nextBillingSub: getBillingSubText(218, "Active"),
-    amount: "₦600.00 / year",
-  },
-  {
-    id: "sub-5",
-    organizer: "Birdie Hunters Club",
-    email: "admin@birdiehunters.com",
-    avatarColor: "bg-amber-50 text-amber-600",
-    initials: "BH",
-    plan: "Standard",
-    planLimit: "Up to 20 tournaments / year",
-    billingCycle: "Monthly",
-    status: "Trialing",
-    nextBillingDate: generateMockDate(10),
-    nextBillingSub: getBillingSubText(10, "Trialing"),
-    amount: "₦0.00 / month",
-  },
-  {
-    id: "sub-6",
-    organizer: "The Swingers Club",
-    email: "info@theswingers.com",
-    avatarColor: "bg-cyan-50 text-cyan-600",
-    initials: "SG",
-    plan: "Standard",
-    planLimit: "Up to 20 tournaments / year",
-    billingCycle: "Annual",
-    status: "Cancelled",
-    nextBillingDate: "—",
-    nextBillingSub: getBillingSubText(0, "Cancelled", "12 Apr 2025"),
-    amount: "₦0.00",
-  },
-  {
-    id: "sub-7",
-    organizer: "City Golf Club",
-    email: "admin@citygolf.com",
-    avatarColor: "bg-pink-50 text-pink-600",
-    initials: "CG",
-    plan: "Basic",
-    planLimit: "Up to 5 tournaments / year",
-    billingCycle: "Monthly",
-    status: "Active",
-    nextBillingDate: generateMockDate(25),
-    nextBillingSub: getBillingSubText(25, "Active"),
-    amount: "₦49.00 / month",
-  },
-];
+import { getSubscriptionsAdmin, Subscription, SubscriptionStats } from "@/lib/api/subscriptions";
+import { formatCurrency } from "@/lib/utils";
 
 
 
 export default function SubscriptionsPage() {
+  const [subscriptions, setSubscriptions] = React.useState<Subscription[]>([]);
+  const [stats, setStats] = React.useState<SubscriptionStats | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [planFilter, setPlanFilter] = useState("All");
@@ -150,9 +45,24 @@ export default function SubscriptionsPage() {
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const itemsPerPage = 10;
 
+  React.useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        const res = await getSubscriptionsAdmin();
+        setSubscriptions(res.items);
+        setStats(res.stats);
+      } catch (e) {
+        console.error("Failed to load subscriptions", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSubscriptions();
+  }, []);
+
   // Filter & Search Logic
   const filteredSubscriptions = useMemo(() => {
-    return MOCK_SUBSCRIPTIONS.filter((sub) => {
+    return subscriptions.filter((sub) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         sub.organizer.toLowerCase().includes(q) ||
@@ -186,7 +96,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Subscriptions</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">156</div>
+            <div className="text-[#15803D] text-3xl font-bold">{stats?.activeSubscriptions || 0}</div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
@@ -196,12 +106,8 @@ export default function SubscriptionsPage() {
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Monthly Revenue</div>
-              <div className="px-2 py-1 bg-blue-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-                <div className="text-blue-600 text-xs font-medium">+8.3%</div>
-              </div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">₦18,450</div>
+            <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.monthlyRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             <div className="text-zinc-500 text-sm font-normal">This Month</div>
           </div>
 
@@ -211,12 +117,8 @@ export default function SubscriptionsPage() {
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Annual Revenue</div>
-              <div className="px-2 py-1 bg-purple-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <TrendingUp className="w-3.5 h-3.5 text-purple-600" />
-                <div className="text-purple-600 text-xs font-medium">+15.7%</div>
-              </div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">₦184k</div>
+            <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.annualRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             <div className="text-zinc-500 text-sm font-normal">This Year</div>
           </div>
 
@@ -230,7 +132,7 @@ export default function SubscriptionsPage() {
                 <div className="text-red-500 text-[11px] font-medium">Action Required</div>
               </div>
             </div>
-            <div className="text-red-500 text-3xl font-bold">7</div>
+            <div className="text-red-500 text-3xl font-bold">{stats?.pastDue || 0}</div>
             <div className="text-zinc-500 text-sm font-normal">Overdue Accounts</div>
           </div>
 
@@ -489,6 +391,12 @@ export default function SubscriptionsPage() {
 
                     </tr>
                   ))
+                ) : loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">
+                      Loading subscriptions...
+                    </td>
+                  </tr>
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">
