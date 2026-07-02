@@ -1189,7 +1189,7 @@ export default function TournamentsPage() {
               <div className="w-full overflow-x-auto min-h-[400px]">
                 <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                   <thead>
-                    <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-xs uppercase tracking-wider text-gray-500 font-medium">
+                    <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
                       <th className="px-6 py-4">Tournament</th>
                       <th className="px-6 py-4">Organizer & Visibility</th>
                       <th className="px-6 py-4">Dates</th>
@@ -1250,42 +1250,48 @@ export default function TournamentsPage() {
                         <tr key={t.id} className="hover:bg-background/50 transition-colors group">
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className="w-12 h-12 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <Trophy className="w-4.5 h-4.5" />
+                              <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
+                                <Trophy className="w-4 h-4" />
                               </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-[14px] font-normal text-gray-900 truncate leading-tight" title={t.name}>{t.name.toLowerCase()}</span>
-                                <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5" title={t.clubName}>{t.clubName.toLowerCase()}</span>
+                              <div className="flex flex-col min-w-0 gap-0.5">
+                                <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
+                                <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.clubName}>{t.clubName}</span>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-5">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[14px] text-gray-900 font-normal truncate leading-tight">{t.clubName}</span>
-                              <div className={cn("inline-flex items-center w-fit px-1.5 py-0.5 rounded gap-1 mt-1 text-[9px] font-normal uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400")}>
-                                {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-2.5 h-2.5 flex-shrink-0" })}
+                            <div className="flex flex-col min-w-0 gap-1.5">
+                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
+                              <div className={cn("inline-flex items-center w-fit px-2 py-0.5 rounded border gap-1.5 text-[11px] font-medium uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400 border-gray-200")}>
+                                {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3 flex-shrink-0" })}
                                 <span>{t.visibility}</span>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-5">
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[14px] text-gray-900 font-normal truncate leading-tight">{t.dates}</span>
+                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.dates}</span>
                             </div>
                           </td>
                           <td className="px-6 py-5">
-                            <div className="flex flex-col items-start">
-                              <span className="text-[14px] text-gray-900 font-normal leading-tight">{t.players}</span>
-                              <span className="text-[10px] text-gray-400 font-normal mt-0.5">Registered</span>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.players}</span>
+                              <span className="text-gray-500 text-[12px] font-normal mt-0.5">Registered</span>
                             </div>
                           </td>
                           <td className="px-6 py-5">
-                            <span className={`text-[10px] font-normal px-2 py-0.5 rounded-lg whitespace-nowrap uppercase ${t.badge}`}>
+                            <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border", t.badge)}>
+                              <span className={cn("w-1.5 h-1.5 rounded-full", 
+                                t.statusKey === "ONGOING" ? "bg-[#15803D]" : 
+                                t.statusKey === "REGISTRATION_OPEN" ? "bg-[#15803D]" : 
+                                t.statusKey === "COMPLETED" ? "bg-blue-500" : 
+                                t.statusKey === "CANCELLED" ? "bg-red-500" : 
+                                "bg-gray-400")} />
                               {t.status}
                             </span>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            <span className="text-[14px] font-normal text-gray-900 whitespace-nowrap">{formatNaira(t.entryFee)}</span>
+                            <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{formatNaira(t.entryFee)}</span>
                           </td>
                           <td className="px-6 py-5">
                             <div className="flex items-center justify-center gap-2">

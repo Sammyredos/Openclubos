@@ -934,7 +934,7 @@ export default function OrganizersPage() {
                         <td className="px-6 py-5">
                           <span
                             className={cn(
-                              "text-[11px] font-medium px-2.5 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
+                              "text-[11px] font-medium uppercase px-2.5 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5",
                               organizer.status === "Active"
                                 ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]"
                                 : organizer.status === "Suspended"

@@ -44,6 +44,7 @@ model User {
   scores        Score[]
   registrations Registration[]
   auditLogs     AuditLog[]
+  subscriptions Subscription[]
 
   @@index([clubId])
   @@index([role])
@@ -104,9 +105,10 @@ model Club {
   deletedAt DateTime?
 
   // Relations
-  users       User[]
-  tournaments Tournament[]
-  courses     Course[]
+  users        User[]
+  tournaments  Tournament[]
+  courses      Course[]
+  subscriptions Subscription[]
 }
 
 enum CourseStatus {
@@ -407,4 +409,47 @@ model TournamentEmailLog {
   @@index([tournamentId])
   @@index([emailType])
   @@index([tournamentId, emailType])
+}
+
+model SubscriptionPlan {
+  id             String   @id @default(uuid())
+  name           String   @unique
+  description    String?
+  amount         Float
+  currency       String   @default("NGN")
+  billingCycle   String   @default("MONTHLY") // MONTHLY, ANNUAL
+  targetAudience String   @default("ORGANIZER") // ORGANIZER, PLAYER
+  features       String[] @default([])
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscriptions  Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  clubId             String?
+  userId             String?
+  subscriptionPlanId String
+  status             SubscriptionStatus @default(ACTIVE)
+  nextBillingDate    DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  club             Club?            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user             User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
+  @@index([clubId])
+  @@index([userId])
+  @@index([subscriptionPlanId])
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
 }

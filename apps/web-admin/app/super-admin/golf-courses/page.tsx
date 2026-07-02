@@ -47,7 +47,7 @@ function StatusPill({ status }: { status: Course["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-normal uppercase whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase whitespace-nowrap",
         isActive
           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
           : "bg-red-50 text-red-700 border-red-100"
@@ -513,9 +513,9 @@ export default function SuperAdminGolfCoursesPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[14px] font-normal text-gray-900 truncate" title={course.name}>{course.name.toLowerCase()}</span>
-                            <span className="text-[12px] text-gray-400 font-normal truncate mt-0.5">{(course.club?.name || "Independent").toLowerCase()}</span>
+                          <div className="flex flex-col min-w-0 gap-0.5">
+                            <span className="text-slate-900 text-[14px] font-medium truncate" title={course.name}>{course.name}</span>
+                            <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5">{(course.club?.name || "Independent")}</span>
                           </div>
                         </div>
                       </td>
@@ -523,7 +523,7 @@ export default function SuperAdminGolfCoursesPage() {
                         <div className="flex items-center gap-2 min-w-[180px]">
                           <MapPin className="w-3.5 h-3.5 text-openclub-700 flex-shrink-0" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[13px] font-normal text-gray-700 truncate">{course.city?.toLowerCase()}, {course.state?.toLowerCase()}</span>
+                            <span className="text-[13px] text-gray-600 font-medium truncate">{course.city}, {course.state}</span>
                             <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                               <div className="w-4 h-3 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
                                 <img 
@@ -532,8 +532,8 @@ export default function SuperAdminGolfCoursesPage() {
                                   className="w-full h-full object-cover"
                                 />
                               </div>
-                              <span className="text-[11px] text-gray-400 font-normal truncate">
-                                {(Country.getCountryByCode(course.country)?.name || course.country).toLowerCase()}
+                              <span className="text-[12px] text-gray-500 font-normal truncate">
+                                {(Country.getCountryByCode(course.country)?.name || course.country)}
                               </span>
                             </div>
                           </div>
@@ -541,13 +541,13 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col items-center">
-                          <span className="text-[14px] text-gray-900 font-normal leading-tight">{course.holes} Holes</span>
-                          <span className="text-[11px] text-gray-400 font-normal mt-0.5">Par {course.par}</span>
+                          <span className="text-slate-900 text-[13px] font-medium leading-tight">{course.holes} Holes</span>
+                          <span className="text-gray-500 text-[12px] font-normal mt-0.5">Par {course.par}</span>
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-normal text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-lg whitespace-nowrap uppercase">
-                          <Mountain className="w-3 h-3 text-blue-400" />
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md whitespace-nowrap uppercase">
+                          <Mountain className="w-3 h-3 text-blue-500" />
                           {course.type.toLowerCase()}
                         </span>
                       </td>
@@ -667,13 +667,12 @@ export default function SuperAdminGolfCoursesPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
                   <h4 className="text-[16px] font-normal text-gray-900 truncate">{selectedCourse.name}</h4>
-                  <span className={cn(
-                    "px-2.5 py-0.5 rounded-lg text-[10px] font-normal uppercase tracking-wider shadow-sm border",
-                    selectedCourse.status === "ACTIVE" 
-                      ? "bg-emerald-50 text-openclub-800 border-emerald-100" 
-                      : "bg-red-50 text-red-600 border-red-100"
-                  )}>
-                    {selectedCourse.status}
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border ${selectedCourse.status === "ACTIVE"
+                            ? "bg-[#f5faf6] text-[#15803D] border-[#e1efe5]"
+                            : "bg-red-50 text-red-600 border-red-200"
+                            }`}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", selectedCourse.status === "ACTIVE" ? "bg-[#15803D]" : "bg-red-500")} />
+                          {selectedCourse.status}
                   </span>
                 </div>
                 

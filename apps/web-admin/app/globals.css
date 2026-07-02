@@ -57,6 +57,12 @@
   --color-openclub-800: #166534;
   --color-openclub-900: #14532D;
 
+  /* Overriding Tailwind v4 default oklch gray/zinc colors to the requested hex */
+  --color-gray-500: #6b7280;
+  --color-zinc-500: #6b7280;
+  --color-slate-500: #6b7280;
+  --color-neutral-500: #6b7280;
+
   --animate-marquee: marquee 40s linear infinite;
 
   @keyframes marquee {

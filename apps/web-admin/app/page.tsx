@@ -4,6 +4,7 @@ import { StatsSection } from "@/components/landing/StatsSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { StepsSection } from "@/components/landing/StepsSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { PricingSection } from "@/components/landing/PricingSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 export default function LandingPage() {
@@ -14,6 +15,7 @@ export default function LandingPage() {
         <HeroSection />
         <StatsSection />
         <FeaturesSection />
+        <PricingSection />
         <StepsSection />
         <TestimonialsSection />
       </main>

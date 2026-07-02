@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -26,12 +27,32 @@ import { Icons } from "@/components/ui/icons";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-const SUPER_ADMIN_GROUPS = [
+type SidebarItem = {
+  name: string;
+  href: string;
+  icon: any;
+  subItems?: { name: string; href: string }[];
+};
+
+type SidebarGroup = {
+  items: SidebarItem[];
+};
+
+const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Overview", href: "/super-admin/dashboard", icon: Home },
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
-      { name: "Subscriptions", href: "/super-admin/subscriptions", icon: CreditCard },
+      { 
+        name: "Subscriptions", 
+        href: "/super-admin/subscriptions", 
+        icon: CreditCard,
+        subItems: [
+          { name: "Plans", href: "/super-admin/subscriptions/plans" },
+          { name: "Organizers", href: "/super-admin/subscriptions/organizers" },
+          { name: "Players", href: "/super-admin/subscriptions/players" }
+        ]
+      },
       { name: "Users", href: "/super-admin/users", icon: User },
       { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Flag },
     ],
@@ -55,7 +76,7 @@ const SUPER_ADMIN_GROUPS = [
   },
 ];
 
-const CLUB_ADMIN_GROUPS = [
+const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Dashboard", href: "/organizer-admin/dashboard", icon: Home },
@@ -88,6 +109,24 @@ const CLUB_ADMIN_GROUPS = [
 export function Sidebar() {
   const pathname = usePathname();
   const { logout, user, isLoading } = useAuth();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const newExpanded: Record<string, boolean> = {};
+    const groups = user?.role === 'SUPER_ADMIN' ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
+    groups.forEach(group => {
+      group.items.forEach(item => {
+        if (item.subItems && pathname.startsWith(item.href)) {
+          newExpanded[item.name] = true;
+        }
+      });
+    });
+    setExpandedGroups(newExpanded);
+  }, [pathname, user?.role]);
+
+  const toggleGroup = (name: string) => {
+    setExpandedGroups(prev => ({ ...prev, [name]: !prev[name] }));
+  };
 
   if (isLoading || !user) {
     return (
@@ -165,26 +204,74 @@ export function Sidebar() {
             <div className="space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const isExpanded = !!expandedGroups[item.name];
                 return (
-                  <div key={item.name} className="relative flex items-center h-[40px] w-[206px]">
-                    {isActive && (
-                      <div className="w-1.5 h-10 left-0 absolute bg-[#15803D] rounded-tr-[20px] rounded-br-[20px]" />
+                  <div key={item.name} className="flex flex-col">
+                    <div className="relative flex items-center h-[40px] w-[206px]">
+                      {isActive && !item.subItems && (
+                        <div className="w-1.5 h-10 left-0 absolute bg-[#15803D] rounded-tr-[20px] rounded-br-[20px]" />
+                      )}
+                      {item.subItems ? (
+                        <button
+                          onClick={() => toggleGroup(item.name)}
+                          className={cn(
+                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group w-full",
+                            isActive && !item.subItems
+                              ? "bg-[#e0fbea] text-[#15803D]"
+                              : "text-zinc-700 hover:bg-background hover:text-zinc-900"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <item.icon className={cn(
+                              "h-4 w-4 transition-colors",
+                              isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
+                            )} />
+                            {item.name}
+                          </div>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded ? "rotate-180 text-[#15803D]" : "text-zinc-400")} />
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group",
+                            isActive && !item.subItems
+                              ? "bg-[#e0fbea] text-[#15803D]"
+                              : "text-zinc-700 hover:bg-background hover:text-zinc-900"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <item.icon className={cn(
+                              "h-4 w-4 transition-colors",
+                              isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
+                            )} />
+                            {item.name}
+                          </div>
+                        </Link>
+                      )}
+                    </div>
+                    {item.subItems && isExpanded && (
+                      <div className="flex flex-col mt-1 ml-[44px] gap-1 relative">
+                        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-slate-200" />
+                        {item.subItems.map((subItem) => {
+                          const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+                          return (
+                            <Link
+                              key={subItem.name}
+                              href={subItem.href}
+                              className={cn(
+                                "flex items-center h-[34px] px-3 text-[13px] rounded-lg transition-colors duration-200 w-[148px] relative z-10",
+                                isSubActive
+                                  ? "bg-[#e0fbea] text-[#15803D] font-medium"
+                                  : "text-zinc-600 hover:bg-background hover:text-zinc-900"
+                              )}
+                            >
+                              {subItem.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group",
-                          isActive
-                            ? "bg-[#e0fbea] text-[#15803D]"
-                            : "text-zinc-700 hover:bg-background hover:text-zinc-900"
-                        )}
-                      >
-                      <item.icon className={cn(
-                        "h-4 w-4 transition-colors",
-                        isActive ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
-                      )} />
-                      {item.name}
-                    </Link>
                   </div>
                 );
               })}

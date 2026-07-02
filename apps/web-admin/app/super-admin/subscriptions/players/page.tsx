@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { exportToCsv, exportToPdf } from "@/lib/export";
 import { addDays, format } from "date-fns";
+import { toast } from "sonner";
 
 import { getSubscriptionsAdmin, Subscription, SubscriptionStats } from "@/lib/api/subscriptions";
 import { formatCurrency } from "@/lib/utils";
@@ -48,11 +49,12 @@ export default function SubscriptionsPage() {
   React.useEffect(() => {
     const fetchSubscriptions = async () => {
       try {
-        const res = await getSubscriptionsAdmin();
+        const res = await getSubscriptionsAdmin('PLAYER');
         setSubscriptions(res.items);
         setStats(res.stats);
       } catch (e) {
         console.error("Failed to load subscriptions", e);
+        toast.error("Failed to load subscriptions data");
       } finally {
         setLoading(false);
       }
@@ -163,7 +165,7 @@ export default function SubscriptionsPage() {
                   exportToCsv(
                     filteredSubscriptions,
                     [
-                      { header: "Organizer", key: "organizer" },
+                      { header: "Player", key: "organizer" },
                       { header: "Email", key: "email" },
                       { header: "Plan", key: "plan" },
                       { header: "Limit", key: "planLimit" },
@@ -174,6 +176,7 @@ export default function SubscriptionsPage() {
                     ],
                     "subscriptions-export.csv"
                   );
+                  toast.success("CSV export downloaded successfully");
                 }}
                 className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
@@ -186,7 +189,7 @@ export default function SubscriptionsPage() {
                   exportToPdf(
                     filteredSubscriptions,
                     [
-                      { header: "Organizer", key: "organizer" },
+                      { header: "Player", key: "organizer" },
                       { header: "Plan", key: "plan" },
                       { header: "Status", key: "status" },
                       { header: "Amount", key: "amount" },
@@ -194,6 +197,7 @@ export default function SubscriptionsPage() {
                     "subscriptions-export.pdf",
                     "Subscriptions Export"
                   );
+                  toast.success("PDF export downloaded successfully");
                 }}
                 className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
               >
@@ -213,7 +217,7 @@ export default function SubscriptionsPage() {
             <div className="relative flex-1 min-w-[280px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search by organizer, email or plan..."
+                placeholder="Search by player, email or plan..."
                 className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
                 onChange={(e) => {
@@ -277,7 +281,7 @@ export default function SubscriptionsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                  <th className="px-6 py-4">Organizer Details</th>
+                  <th className="px-6 py-4">Player Details</th>
                   <th className="px-6 py-4">Plan Information</th>
                   <th className="px-6 py-4">Billing Cycle</th>
                   <th className="px-6 py-4">Status</th>
@@ -335,7 +339,7 @@ export default function SubscriptionsPage() {
                       <td className="px-6 py-5">
                         <span
                           className={cn(
-                            "text-[11px] font-medium px-2.5 py-0.5 rounded-md whitespace-nowrap inline-flex items-center gap-1.5",
+                            "text-[11px] font-medium uppercase px-2.5 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5",
                             sub.status === "Active"
                               ? "bg-[#f5faf6] text-[#15803D] border border-[#e1efe5]"
                               : sub.status === "Past Due"

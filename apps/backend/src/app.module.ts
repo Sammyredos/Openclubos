@@ -29,6 +29,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 
 import { validate } from './config/env.validation';
 
@@ -80,6 +81,7 @@ if (process.env.SENTRY_DSN) {
     JobsModule,
     HealthModule,
     EmailModule,
+    SubscriptionsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

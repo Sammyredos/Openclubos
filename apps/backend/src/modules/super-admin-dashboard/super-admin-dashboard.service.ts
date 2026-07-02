@@ -509,6 +509,8 @@ export class SuperAdminDashboardService {
     });
   }
 
+
+
   async activity() {
     const regs = await this.prisma.registration.findMany({
       where: { tournament: { deletedAt: null, club: { deletedAt: null } } },
