@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatThousandsInput } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -197,11 +198,31 @@ export default function PlansPage() {
                     </tr>
                   ))
                 ) : loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">
-                      Loading plans...
-                    </td>
-                  </tr>
+                  <>{[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i} className="border-b border-[#e1efe5]">
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-2">
+                          <Skeleton className="h-4 w-36 rounded" />
+                          <Skeleton className="h-3 w-56 rounded" />
+                          <div className="flex gap-1.5 mt-1">
+                            <Skeleton className="h-5 w-20 rounded-full" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                            <Skeleton className="h-5 w-24 rounded-full" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5"><Skeleton className="h-4 w-20 rounded" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-4 w-16 rounded" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-4 w-24 rounded" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-center gap-2">
+                          <Skeleton className="h-7 w-7 rounded-md" />
+                          <Skeleton className="h-7 w-7 rounded-md" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}</>
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">

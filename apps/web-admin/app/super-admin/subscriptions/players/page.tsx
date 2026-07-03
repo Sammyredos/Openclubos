@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { exportToCsv, exportToPdf } from "@/lib/export";
@@ -29,7 +30,6 @@ import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 
 import { getSubscriptionsAdmin, Subscription, SubscriptionStats } from "@/lib/api/subscriptions";
-import { formatCurrency } from "@/lib/utils";
 
 
 
@@ -98,7 +98,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Subscriptions</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">{stats?.activeSubscriptions || 0}</div>
+            {loading ? <Skeleton className="h-9 w-16 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">{stats?.activeSubscriptions || 0}</div>}
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
@@ -109,7 +109,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Monthly Revenue</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.monthlyRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.monthlyRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
             <div className="text-zinc-500 text-sm font-normal">This Month</div>
           </div>
 
@@ -120,7 +120,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Annual Revenue</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.annualRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.annualRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
             <div className="text-zinc-500 text-sm font-normal">This Year</div>
           </div>
 
@@ -134,7 +134,7 @@ export default function SubscriptionsPage() {
                 <div className="text-red-500 text-[11px] font-medium">Action Required</div>
               </div>
             </div>
-            <div className="text-red-500 text-3xl font-bold">{stats?.pastDue || 0}</div>
+            {loading ? <Skeleton className="h-9 w-12 rounded-md" /> : <div className="text-red-500 text-3xl font-bold">{stats?.pastDue || 0}</div>}
             <div className="text-zinc-500 text-sm font-normal">Overdue Accounts</div>
           </div>
 
@@ -396,11 +396,25 @@ export default function SubscriptionsPage() {
                     </tr>
                   ))
                 ) : loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">
-                      Loading subscriptions...
-                    </td>
-                  </tr>
+                  <>{[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i} className="border-b border-[#e1efe5]">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3.5">
+                          <Skeleton className="size-10 rounded-full shrink-0" />
+                          <div className="flex flex-col gap-1.5">
+                            <Skeleton className="h-4 w-32 rounded" />
+                            <Skeleton className="h-3 w-40 rounded" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5"><Skeleton className="h-5 w-24 rounded-md" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-4 w-16 rounded" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="px-6 py-5"><Skeleton className="h-4 w-24 rounded" /></td>
+                      <td className="px-6 py-5 text-right"><Skeleton className="h-4 w-20 rounded ml-auto" /></td>
+                      <td className="px-6 py-5"><div className="flex justify-center"><Skeleton className="h-7 w-8 rounded-md" /></div></td>
+                    </tr>
+                  ))}</>
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-20 text-center text-gray-500 font-normal text-[13px]">

@@ -232,6 +232,7 @@ async function main() {
         lastName: `${last}-${globalMemberIndex}`,
         role: UserRole.PLAYER,
         clubId: club.id,
+        gender: pick(['MALE', 'FEMALE']) as any,
       };
     });
     if (playerRows.length > 0) {

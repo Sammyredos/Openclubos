@@ -30,9 +30,11 @@ export interface SubscriptionsResponse {
   stats: SubscriptionStats;
 }
 
-export const getSubscriptionsAdmin = async (): Promise<SubscriptionsResponse> => {
+export const getSubscriptionsAdmin = async (audience?: string): Promise<SubscriptionsResponse> => {
   const token = getAuthToken();
-  const res = await fetch(`${API_URL}/subscriptions/admin`, {
+  const url = new URL(`${API_URL}/subscriptions/admin`);
+  if (audience) url.searchParams.set('audience', audience);
+  const res = await fetch(url.toString(), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
