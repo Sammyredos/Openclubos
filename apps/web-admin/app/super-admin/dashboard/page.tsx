@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useSyncExternalStore, useCallback, type ElementType } from "react";
 import {
@@ -435,7 +435,7 @@ export default function SuperAdminDashboard() {
             <div className="text-openclub-700 text-3xl font-semibold">
               {stats?.totalRevenue != null ? `₦${formatNumber(stats.totalRevenue)}` : "₦0"}
             </div>
-            <div className="text-zinc-500 text-sm font-medium">All Time</div>
+            <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
           <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
@@ -463,7 +463,7 @@ export default function SuperAdminDashboard() {
             <div className="text-openclub-700 text-3xl font-semibold">
               {formatNumber(stats?.totalClubs || 0)}
             </div>
-            <div className="text-zinc-500 text-sm font-medium">Across Africa</div>
+            <div className="text-zinc-500 text-sm font-normal">Across Africa</div>
           </div>
 
           <div className="w-px h-28 bg-slate-200" />
@@ -491,7 +491,7 @@ export default function SuperAdminDashboard() {
             <div className="text-openclub-700 text-3xl font-semibold">
               {formatNumber(stats?.totalMembers || 0)}
             </div>
-            <div className="text-zinc-500 text-sm font-medium">Active Members</div>
+            <div className="text-zinc-500 text-sm font-normal">Active Members</div>
           </div>
 
           <div className="w-px h-28 bg-slate-200" />
@@ -519,7 +519,7 @@ export default function SuperAdminDashboard() {
             <div className="text-openclub-700 text-3xl font-semibold">
               {formatNumber(stats?.activeTournaments || 0)}
             </div>
-            <div className="text-zinc-500 text-sm font-medium">Ongoing Events</div>
+            <div className="text-zinc-500 text-sm font-normal">Ongoing Events</div>
           </div>
 
           <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
@@ -538,7 +538,7 @@ export default function SuperAdminDashboard() {
             <div className="text-openclub-700 text-3xl font-semibold">
               {stats?.subscriptionRevenue != null ? `₦${formatNumber(stats.subscriptionRevenue)}` : "₦0"}
             </div>
-            <div className="text-zinc-500 text-sm font-medium">Subscription Revenue</div>
+            <div className="text-zinc-500 text-sm font-normal">Subscription Revenue</div>
           </div>
         </div>
       </div>
@@ -570,7 +570,7 @@ export default function SuperAdminDashboard() {
                         onClick={() => setRevenueRange(range)}
                         className={cn(
                           "px-3 py-1 text-sm transition-all rounded-md",
-                          revenueRange === range ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                          revenueRange === range ? "bg-white text-openclub-700 font-medium shadow-sm border border-[#e1efe5]" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
                         )}
                       >
                         {range}
@@ -655,7 +655,7 @@ export default function SuperAdminDashboard() {
                       onClick={() => setGrowthRange(range)}
                       className={cn(
                         "px-3 py-1 text-sm transition-all rounded-md",
-                        growthRange === range ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                        growthRange === range ? "bg-white text-openclub-700 font-medium shadow-sm border border-[#e1efe5]" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
                       )}
                     >
                       {range}
@@ -706,7 +706,7 @@ export default function SuperAdminDashboard() {
                       onClick={() => setAgeDemographicsFilter(filter as any)}
                       className={cn(
                         "px-3 py-1 text-sm transition-all rounded-md",
-                        ageDemographicsFilter === filter ? "bg-white text-openclub-700 font-medium shadow-sm" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                        ageDemographicsFilter === filter ? "bg-white text-openclub-700 font-medium shadow-sm border border-[#e1efe5]" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
                       )}
                     >
                       {filter}
@@ -759,22 +759,19 @@ export default function SuperAdminDashboard() {
 
             {/* Gender Card */}
             {(() => {
-              const rawMen = stats?.menCount || 0;
-              const rawWomen = stats?.womenCount || 0;
-
-              // Fallback to visual split if database is completely empty of gender data
-              const hasData = rawMen > 0 || rawWomen > 0;
-              const menCount = hasData ? rawMen : 40;
-              const womenCount = hasData ? rawWomen : 60;
+              const menCount = stats?.menCount || 0;
+              const womenCount = stats?.womenCount || 0;
 
               const totalGender = menCount + womenCount;
-              const menPercent = Math.round((menCount / totalGender) * 100);
-              const womenPercent = Math.round((womenCount / totalGender) * 100);
+              const menPercent = totalGender === 0 ? 0 : Math.round((menCount / totalGender) * 100);
+              const womenPercent = totalGender === 0 ? 0 : Math.round((womenCount / totalGender) * 100);
 
-              const pieData = [
-                { name: "Men", value: menPercent, color: "#15803D" },
-                { name: "Women", value: womenPercent, color: "#86EFAC" },
-              ];
+              const pieData = totalGender === 0 
+                ? [{ name: "No Data", value: 100, color: "#e1efe5" }]
+                : [
+                    { name: "Men", value: menPercent, color: "#15803D" },
+                    { name: "Women", value: womenPercent, color: "#86EFAC" },
+                  ];
 
               return (
                 <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-1 xl:h-[430px] font-sans">

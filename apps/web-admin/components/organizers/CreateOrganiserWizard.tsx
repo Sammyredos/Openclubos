@@ -287,7 +287,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           email: editingUser.email || "",
           phone: phoneStr,
           dob: formatDateString(editingUser.dob),
-          gender: editingUser.gender || "Male",
+          gender: editingUser.gender || "MALE",
           country: editingUser.country || "NG",
           state: editingUser.state || editingUser.club?.state || "",
           city: editingUser.city || editingUser.club?.city || "",
@@ -661,9 +661,9 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       value={formData.gender}
                       onValueChange={v => setFormData({...formData, gender: v})}
                       options={[
-                        { value: "Male", label: "Male" },
-                        { value: "Female", label: "Female" },
-                        { value: "Other", label: "Other" },
+                        { value: "MALE", label: "Male" },
+                        { value: "FEMALE", label: "Female" },
+                        { value: "OTHER", label: "Other" },
                       ]}
                       triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
                       placeholder="Select gender"
@@ -1010,7 +1010,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   <div className="grid grid-cols-2 gap-3.5">
                     <div>
                       <span className="text-[10px] font-normal text-gray-400 uppercase block">Gender</span>
-                      <span className="text-[13px] text-gray-700 font-normal">{formData.gender}</span>
+                      <span className="text-[13px] text-gray-700 font-normal">{formData.gender === "MALE" ? "Male" : formData.gender === "FEMALE" ? "Female" : formData.gender === "OTHER" ? "Other" : formData.gender}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-normal text-gray-400 uppercase block">Date of Birth</span>

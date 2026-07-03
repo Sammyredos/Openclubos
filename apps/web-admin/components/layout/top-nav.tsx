@@ -11,14 +11,15 @@ export function TopNav() {
   const isOrganizerAdmin = user?.role === 'CLUB_ADMIN';
 
   const pageTitle = (() => {
-    if (isOrganizerAdmin) {
+    if (isOrganizerAdmin && pathname.startsWith("/organizer-admin")) {
       if (pathname === "/organizer-admin/dashboard") return "Dashboard";
       return "Dashboard";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Dashboard";
-    if (pathname === "/super-admin/users") return "Users";
     if (pathname === "/super-admin/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
+    if (pathname === "/super-admin/users") return "Users";
+    if (pathname.startsWith("/super-admin/users/")) return "User Details";
     if (pathname === "/super-admin/tournaments") return "Tournaments";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Tournament Details";
     if (pathname === "/super-admin/subscriptions/organizers") return "Subscribed Organizers";
@@ -42,14 +43,15 @@ export function TopNav() {
     || pathname === "/super-admin/settings";
 
   const pageDescription = (() => {
-    if (isOrganizerAdmin) {
+    if (isOrganizerAdmin && pathname.startsWith("/organizer-admin")) {
       if (pathname === "/organizer-admin/dashboard") return "Overview of your club's key metrics and recent activities.";
       return "";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview of platform key metrics and recent activities.";
-    if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
     if (pathname === "/super-admin/organizers") return "Manage and monitor all club organizers on the platform.";
     if (pathname.startsWith("/super-admin/organizers/")) return "Detailed view and settings for the selected organizer.";
+    if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
+    if (pathname.startsWith("/super-admin/users/")) return "Detailed view and settings for the selected user.";
     if (pathname === "/super-admin/tournaments") return "Track and manage all golf tournaments across clubs.";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
     if (pathname === "/super-admin/subscriptions/organizers") return "Monitor billing, plans, and organizer subscription statuses.";

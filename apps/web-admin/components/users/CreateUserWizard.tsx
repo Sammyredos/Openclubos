@@ -263,7 +263,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           email: editingUser.email || "",
           phone: phoneStr,
           dob: editingUser.dob || "",
-          gender: editingUser.gender || "Male",
+          gender: editingUser.gender || "MALE",
           country: editingUser.country || "NG",
           state: editingUser.state || "",
           city: editingUser.city || "",
@@ -395,8 +395,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       if (formData.roles.includes("PLAYER")) {
         if (!formData.handicap) return "Playing handicap is required";
         const h = parseFloat(formData.handicap);
-        const maxHandicap = formData.gender === "Female" ? 36 : 28;
-        if (h > maxHandicap) return `Handicap cannot exceed the maximum limit (${maxHandicap}.0) for ${formData.gender} players`;
+        const maxHandicap = formData.gender === "FEMALE" ? 36 : 28;
+        if (h > maxHandicap) return `Handicap cannot exceed the maximum limit (${maxHandicap}.0) for ${formData.gender === "FEMALE" ? "Female" : "Male"} players`;
       }
     }
     if (s === 2) {
@@ -672,9 +672,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                       value={formData.gender}
                       onValueChange={v => setFormData({...formData, gender: v})}
                       options={[
-                        { value: "Male", label: "Male" },
-                        { value: "Female", label: "Female" },
-                        { value: "Other", label: "Other" },
+                        { value: "MALE", label: "Male" },
+                        { value: "FEMALE", label: "Female" },
+                        { value: "OTHER", label: "Other" },
                       ]}
                       triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
                       placeholder="Select gender"
@@ -775,7 +775,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           onChange={(e) => setFormData({...formData, handicap: e.target.value})} 
                           className={cn("pr-16 font-normal text-openclub-800", showValidation && !formData.handicap && "!border-red-500")}
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-openclub-700 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "Female" ? 36 : 28}</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-openclub-700 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "FEMALE" ? 36 : 28}</span>
                       </div>
                     </Field>
                   ) : <div />}
@@ -1263,7 +1263,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                 <div className="grid grid-cols-2 gap-3.5">
                   <div>
                     <span className="text-[10px] font-normal text-gray-400 uppercase block">Gender</span>
-                    <span className="text-[13px] text-gray-700 font-normal">{formData.gender}</span>
+                    <span className="text-[13px] text-gray-700 font-normal">{formData.gender === "MALE" ? "Male" : formData.gender === "FEMALE" ? "Female" : formData.gender === "OTHER" ? "Other" : formData.gender}</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-normal text-gray-400 uppercase block">Date of Birth</span>
