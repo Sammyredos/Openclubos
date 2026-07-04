@@ -1547,7 +1547,7 @@ export default function TournamentsPage() {
                 </h4>
                 {selectedTournament && (
                   <span className={cn(
-                    "px-3 py-1 rounded-lg text-[11px] font-normal uppercase tracking-wider border",
+                    "px-3 py-1 rounded-lg text-[11px] font-normal capitalize tracking-wider border",
                     selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
                       selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
                         selectedTournament.statusKey === "COMPLETED" ? "bg-background text-gray-600 border-[#e1efe5]" :
@@ -1942,7 +1942,7 @@ export default function TournamentsPage() {
           {/* Payment Status Selection */}
           {selectedTournament?.requiresPayment && (
             <div className="space-y-3 px-1">
-              <Label className="text-[12px] font-medium text-gray-400 uppercase tracking-wider ml-1">Initial Payment Status</Label>
+              <Label className="text-[12px] font-medium text-gray-400 capitalize tracking-wider ml-1">Initial Payment Status</Label>
               <div className="flex gap-3">
                 <button
                   type="button"

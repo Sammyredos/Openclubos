@@ -147,7 +147,7 @@ export default function TournamentRegistrationPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-background p-4 rounded-2xl space-y-1">
-                    <p className="text-[11px] font-nexa-bold text-gray-400 uppercase tracking-wider">Entry Fee</p>
+                    <p className="text-[11px] font-nexa-bold text-gray-400 capitalize tracking-wider">Entry Fee</p>
                     <p className="text-[14px] font-nexa-bold text-gray-900">
                       {tournament.entryFee && tournament.entryFee > 0 ? `₦${tournament.entryFee.toFixed(2)}` : 'FREE'}
                     </p>

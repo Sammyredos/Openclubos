@@ -107,7 +107,7 @@ export function WaitlistModal({
             <Clock className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
+            <p className="text-[13px] text-openclub-800 font-normal capitalize tracking-wider">Queue Management</p>
             <h4 className="text-[17px] font-normal text-gray-900 truncate">{tournamentName}</h4>
           </div>
           <div className="text-right">

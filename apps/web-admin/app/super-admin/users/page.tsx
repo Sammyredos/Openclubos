@@ -39,7 +39,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { broadcastAdminEvent, cn } from "@/lib/utils";
+import { broadcastAdminEvent, cn, formatCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
@@ -88,13 +88,6 @@ function getErrorMessage(e: unknown) {
     return (e as { message: string }).message;
   }
   return null;
-}
-
-function formatCompactCurrency(value: number) {
-  if (value >= 100) {
-    return (Math.floor(value / 10) / 100).toFixed(2) + "k";
-  }
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function RoleBadge({ role }: { role: AdminUser["role"] }) {
@@ -1396,7 +1389,7 @@ export default function SuperAdminUsersPage() {
               {generatedPassword && (
                 <div className="rounded-xl border border-[#efefef] bg-background/60 px-4 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider">Generated Password</p>
+                    <p className="text-[12px] font-normal text-gray-400 capitalize tracking-wider">Generated Password</p>
                     <p className="text-[15px] font-normal text-gray-900 break-all">{generatedPassword}</p>
                   </div>
                   <button
@@ -1545,7 +1538,7 @@ export default function SuperAdminUsersPage() {
                     {selectedUser?.role === "PLAYER" && (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50 shadow-sm">
-                          <p className="text-[10px] font-normal text-openclub-800 uppercase tracking-widest mb-2">Handicap</p>
+                          <p className="text-[10px] font-normal text-openclub-800 capitalize tracking-widest mb-2">Handicap</p>
                           <div className="flex items-end justify-between">
                             <p className="text-[16px] font-normal text-emerald-900">{selectedUser?.handicap?.toFixed(1) || "0.0"}</p>
                             <Shield className="w-5 h-5 text-emerald-300" />
@@ -1696,7 +1689,7 @@ export default function SuperAdminUsersPage() {
                             paginatedPayments.map((r) => (
                               <tr key={r.id} className="hover:bg-background/50 transition-colors">
                                 <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
-                                <td className="px-5 py-4 font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                                <td className="px-5 py-4 font-normal text-gray-700">{formatCurrency(r.tournament.entryFee ?? 0)}</td>
                                 <td className="px-5 py-4 font-normal text-gray-500">{r.paymentReference || "—"}</td>
                                 <td className="px-5 py-4">
                                   <span className={cn(
@@ -1755,7 +1748,7 @@ export default function SuperAdminUsersPage() {
                                     {r.status}
                                   </span>
                                 </td>
-                                <td className="px-5 py-4 text-right font-normal text-gray-700">₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}</td>
+                                <td className="px-5 py-4 text-right font-normal text-gray-700">{formatCurrency(r.tournament.entryFee ?? 0)}</td>
                               </tr>
                             ))
                           ) : (

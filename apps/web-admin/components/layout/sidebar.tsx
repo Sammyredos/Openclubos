@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -37,6 +37,48 @@ type SidebarItem = {
 type SidebarGroup = {
   items: SidebarItem[];
 };
+
+function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { name: string; href: string }[]; isExpanded: boolean; pathname: string }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [subItems]);
+
+  return (
+    <div
+      style={{
+        maxHeight: isExpanded ? `${height}px` : "0px",
+        opacity: isExpanded ? 1 : 0,
+      }}
+      className="overflow-hidden transition-all duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+    >
+      <div ref={contentRef} className="flex flex-col mt-1 ml-[44px] gap-1 relative">
+        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-slate-200" />
+        {subItems.map((subItem) => {
+          const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+          return (
+            <Link
+              key={subItem.name}
+              href={subItem.href}
+              className={cn(
+                "flex items-center h-[34px] px-3 text-[13px] rounded-lg transition-colors duration-200 w-[148px] relative z-10",
+                isSubActive
+                  ? "bg-[#e0fbea] text-[#15803D] font-medium"
+                  : "text-zinc-600 hover:bg-background hover:text-zinc-900"
+              )}
+            >
+              {subItem.name}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
@@ -228,7 +270,7 @@ export function Sidebar() {
                             )} />
                             {item.name}
                           </div>
-                          <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded ? "rotate-180 text-[#15803D]" : "text-zinc-400")} />
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]", isExpanded ? "rotate-180 text-[#15803D]" : "text-zinc-400")} />
                         </button>
                       ) : (
                         <Link
@@ -250,27 +292,8 @@ export function Sidebar() {
                         </Link>
                       )}
                     </div>
-                    {item.subItems && isExpanded && (
-                      <div className="flex flex-col mt-1 ml-[44px] gap-1 relative">
-                        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-slate-200" />
-                        {item.subItems.map((subItem) => {
-                          const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
-                          return (
-                            <Link
-                              key={subItem.name}
-                              href={subItem.href}
-                              className={cn(
-                                "flex items-center h-[34px] px-3 text-[13px] rounded-lg transition-colors duration-200 w-[148px] relative z-10",
-                                isSubActive
-                                  ? "bg-[#e0fbea] text-[#15803D] font-medium"
-                                  : "text-zinc-600 hover:bg-background hover:text-zinc-900"
-                              )}
-                            >
-                              {subItem.name}
-                            </Link>
-                          );
-                        })}
-                      </div>
+                    {item.subItems && (
+                      <SubItemsAccordion subItems={item.subItems} isExpanded={isExpanded} pathname={pathname} />
                     )}
                   </div>
                 );

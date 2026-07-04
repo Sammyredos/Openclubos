@@ -973,7 +973,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[11px] font-normal uppercase tracking-wider text-openclub-800 block">New User Account</span>
+                  <span className="text-[11px] font-normal capitalize tracking-wider text-openclub-800 block">New User Account</span>
                   <h4 className="text-[16px] font-normal text-gray-900 flex items-center gap-2 mt-1 leading-tight">
                     {formData.firstName} {formData.middleName} {formData.surname}
                   </h4>
@@ -1242,7 +1242,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
                 </div>
                 <span className={cn(
-                  "text-[9px] font-normal uppercase tracking-wider text-center leading-tight transition-colors",
+                  "text-[9px] font-normal capitalize tracking-wider text-center leading-tight transition-colors",
                   active ? "text-gray-900" : "text-gray-400"
                 )}>
                   {name}

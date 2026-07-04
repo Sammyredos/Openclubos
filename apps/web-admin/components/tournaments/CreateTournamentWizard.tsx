@@ -150,10 +150,15 @@ const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean;
   </label>
 );
 
-const Field = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+const Field = ({ label, required, children, error, optional }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean }) => (
   <div className="space-y-1.5">
-    <Label className="text-[13px] font-medium text-gray-600">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+    <Label className="text-[13px] font-medium text-gray-600">
+      {label}
+      {required && <span className="text-red-500 ml-0.5">*</span>}
+      {optional && <span className="text-gray-400 font-normal ml-1">(Optional)</span>}
+    </Label>
     {children}
+    {error && <p className="text-[11px] text-red-500 font-normal">{error}</p>}
   </div>
 );
 
@@ -1065,12 +1070,12 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <LayoutGrid className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-medium text-gray-900">Tee Off Date on {formatFriendlyDate(formData.startDate)}</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Tee Off Date on <span className="font-normal">{formatFriendlyDate(formData.startDate)}</span></h4>
                 <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
+              <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full capitalize">Required</span>
               <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
                 <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
               </div>
@@ -1244,7 +1249,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : past ? "bg-emerald-100 text-openclub-800" : "bg-gray-100 text-gray-400")}>
                 {past ? "✓" : i + 1}
               </div>
-              <span className={cn("text-[9px] font-normal uppercase tracking-wide text-center leading-tight transition-colors",
+              <span className={cn("text-[9px] font-normal capitalize tracking-wide text-center leading-tight transition-colors",
                 active ? "text-gray-900" : "text-gray-400")}>{name}</span>
             </div>
           );

@@ -43,7 +43,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { broadcastAdminEvent, cn, subscribeAdminEvents } from "@/lib/utils";
+import { broadcastAdminEvent, cn, subscribeAdminEvents, formatCurrency } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
@@ -214,12 +214,7 @@ function getErrorMessage(e: unknown) {
   return null;
 }
 
-function formatCompactCurrency(value: number) {
-  if (value >= 100) {
-    return (Math.floor(value / 10) / 100).toFixed(2) + "k";
-  }
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+
 
 export default function OrganizersPage() {
   const router = useRouter();
@@ -1259,7 +1254,7 @@ export default function OrganizersPage() {
               {generatedPassword && (
                 <div className="rounded-xl border border-[#efefef] bg-background/60 px-4 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider">Generated Password</p>
+                    <p className="text-[12px] font-normal text-gray-400 capitalize tracking-wider">Generated Password</p>
                     <p className="text-[15px] font-normal text-gray-900 break-all">{generatedPassword}</p>
                   </div>
                   <button
@@ -1451,9 +1446,9 @@ export default function OrganizersPage() {
                         {/* KPI Cards Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="p-4 bg-emerald-50/30 rounded-xl border border-emerald-100/50 flex flex-col justify-between h-24">
-                            <span className="text-[11px] text-openclub-800 uppercase tracking-wider">Revenue</span>
+                            <span className="text-[11px] text-openclub-800 capitalize tracking-wider">Revenue</span>
                             <span className="text-[14px] text-emerald-700 mt-1">
-                              ₦{viewStats ? formatCompactCurrency(viewStats.totalRevenue / 100) : "0.00"}
+                              {viewStats ? formatCurrency(viewStats.totalRevenue / 100) : "₦0.00"}
                             </span>
                           </div>
                           <div className="p-4 bg-background/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
@@ -1467,7 +1462,7 @@ export default function OrganizersPage() {
                           <div className="p-4 bg-background/50 rounded-xl border border-[#efefef] flex flex-col justify-between h-24">
                             <span className="text-[11px] text-gray-500 uppercase tracking-wider">Unpaid</span>
                             <span className="text-[14px] text-gray-800 mt-1">
-                              ₦{viewStats ? formatCompactCurrency(viewStats.unpaidAmount / 100) : "0.00"}
+                              {viewStats ? formatCurrency(viewStats.unpaidAmount / 100) : "₦0.00"}
                             </span>
                           </div>
                         </div>
@@ -1650,7 +1645,7 @@ export default function OrganizersPage() {
                                     </td>
                                     <td className="px-5 py-4">
                                       <p className="text-[13px] text-gray-800">
-                                        ₦{formatCompactCurrency(r.tournament.entryFee ?? 0)}
+                                        {formatCurrency(r.tournament.entryFee ?? 0)}
                                       </p>
                                     </td>
                                     <td className="px-5 py-4 text-right">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -1144,7 +1144,7 @@ export default function OrganizerDetailsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider">
+                        <tr className="bg-background/50 text-[11px] font-normal text-gray-400 capitalize tracking-wider">
                           <th className="px-6 py-3">Date</th>
                           <th className="px-6 py-3">Description</th>
                           <th className="px-6 py-3 text-right">Amount</th>

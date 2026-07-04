@@ -236,13 +236,15 @@ const Toggle = ({ label, checked, onChange, disabled, onClickDisabled }: { label
   </div>
 );
 
-const Field = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+const Field = ({ label, required, children, error, optional }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean }) => (
   <div className="space-y-1.5">
     <Label className="text-[13px] font-medium text-gray-600">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
+      {optional && <span className="text-gray-400 font-normal ml-1">(Optional)</span>}
     </Label>
     {children}
+    {error && <p className="text-[11px] text-red-500 font-normal">{error}</p>}
   </div>
 );
 
@@ -355,8 +357,12 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 location: loadedLocation,
                 startDate: t.startDate ? t.startDate.slice(0, 10) : "",
                 endDate: t.endDate ? t.endDate.slice(0, 10) : "",
-                registrationOpenAt: t.registrationOpenAt ? t.registrationOpenAt.slice(0, 10) : "",
-                registrationCloseAt: t.registrationCloseAt ? t.registrationCloseAt.slice(0, 10) : "",
+                registrationOpenAt: t.registrationOpenAt 
+                  ? t.registrationOpenAt.slice(0, 10) 
+                  : (t.startDate ? shiftDate(t.startDate.slice(0, 10), -14) : ""),
+                registrationCloseAt: t.registrationCloseAt 
+                  ? t.registrationCloseAt.slice(0, 10) 
+                  : (t.startDate ? shiftDate(t.startDate.slice(0, 10), -1) : ""),
                 format: t.format || "STROKE_PLAY",
                 scoringType: t.scoringType || "GROSS",
                 holes: t.holes || 18,
@@ -627,7 +633,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Trophy className="w-4 h-4" />
@@ -784,7 +790,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 2:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <CalendarDays className="w-4 h-4" />
@@ -919,7 +925,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 3:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <ListOrdered className="w-4 h-4" />
@@ -1142,7 +1148,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 4:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Users className="w-4 h-4" />
@@ -1365,7 +1371,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 5:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <CreditCard className="w-4 h-4" />
@@ -1463,7 +1469,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
@@ -1471,13 +1477,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   </div>
                   <div>
                     <h4 className="text-[14px] font-medium text-gray-900">
-                      Tee Off Date on {formatFriendlyDate(formData.startDate)}
+                      Tee Off Date on <span className="font-normal">{formatFriendlyDate(formData.startDate)}</span>
                     </h4>
                     <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Required</span>
+                  <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full capitalize">Required</span>
                   <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
                     <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
                   </div>
@@ -1523,7 +1529,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 7:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Activity className="w-4 h-4" />
@@ -1574,7 +1580,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                   <Eye className="w-4 h-4" />
@@ -1636,7 +1642,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
             </div>
 
-            <div className="rounded-2xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="">
               <div
                 className={cn("px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between", (originalStatus && originalStatus !== "DRAFT") ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
                 onClick={() => {
@@ -1752,7 +1758,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         </div>
 
         {/* Right Column - Active Step Content */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 bg-white rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
           <div className="min-h-[400px]">
             {loading ? (
               <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
@@ -1770,7 +1776,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           </div>
 
           {/* Form Actions Footer */}
-          <div className="bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex items-center justify-between">
+          <div className="border-t border-[#e1efe5] bg-gray-50/50 p-5 flex items-center justify-between">
             <Button
               variant="outline"
               onClick={handleBack}

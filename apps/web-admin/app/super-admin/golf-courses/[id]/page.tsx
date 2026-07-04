@@ -347,7 +347,7 @@ export default function GolfCourseDetailPage() {
                   >
                     {i + 1}
                   </div>
-                  <span className="text-[13px] font-normal uppercase tracking-wider leading-tight">{tab}</span>
+                  <span className="text-[13px] font-normal capitalize tracking-wider leading-tight">{tab}</span>
                 </button>
               );
             })}
@@ -494,7 +494,7 @@ export default function GolfCourseDetailPage() {
                           className="p-4 rounded-xl border border-[#efefef] bg-white shadow-sm space-y-3 hover:border-emerald-200 transition-colors"
                         >
                           <div className="flex items-center justify-between border-b border-gray-50 pb-2">
-                            <span className="text-[12px] font-normal text-gray-400 uppercase">Hole</span>
+                            <span className="text-[12px] font-normal text-gray-400 capitalize">Hole</span>
                             <span className="text-[14px] font-normal text-openclub-800 bg-emerald-50 w-7 h-7 rounded-lg flex items-center justify-center border border-emerald-100">
                               {hole.number}
                             </span>
@@ -758,7 +758,7 @@ export default function GolfCourseDetailPage() {
               This action is permanent and cannot be undone. All data related to this course will be deleted.
             </p>
             <div className="w-full text-left space-y-2 mt-4">
-              <label className="text-[12px] font-normal text-gray-500 uppercase">Type "DELETE" to confirm</label>
+              <label className="text-[12px] font-normal text-gray-500 capitalize">Type "DELETE" to confirm</label>
               <Input 
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}

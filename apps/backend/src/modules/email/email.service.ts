@@ -155,6 +155,11 @@ export class EmailService {
       GBP: 'en-GB',
       EUR: 'de-DE',
     };
+
+    if (amount > 11_000_000 && currency === 'NGN') {
+      return '₦11m and above';
+    }
+
     return new Intl.NumberFormat(map[currency] || 'en-NG', {
       style: 'currency',
       currency,

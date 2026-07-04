@@ -26,6 +26,7 @@ import {
   Cell,
 } from "recharts";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/input";
@@ -126,14 +127,6 @@ export default function OrganizerAdminDashboard() {
       </div>
     );
   }
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0
-    }).format(val);
-  };
 
   const paymentStatusData = [
     { name: "Paid", value: stats?.paidRegistrations || 0, color: "#15803D" },
@@ -243,14 +236,14 @@ export default function OrganizerAdminDashboard() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: "#9ca3af" }}
-                      tickFormatter={(value) => `₦${value / 1000000}M`}
+                      tickFormatter={(value) => formatCurrency(value)}
                     />
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       formatter={(value) => {
                         const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
                         const safe = Number.isFinite(n) ? n : 0;
-                        return [`₦${safe.toLocaleString()}`, "Revenue"];
+                        return [formatCurrency(safe), "Revenue"];
                       }}
                     />
                     <Bar dataKey="amount" fill="#15803D" radius={[4, 4, 0, 0]} barSize={20} />
@@ -284,9 +277,9 @@ export default function OrganizerAdminDashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[12px] font-normal text-gray-900">
-                      {t.entryFee === 0 || !t.entryFee ? "FREE" : `₦${t.entryFee.toLocaleString()}`}
+                      {t.entryFee === 0 || !t.entryFee ? "FREE" : formatCurrency(t.entryFee)}
                     </span>
-                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-emerald-50 text-openclub-800 border border-emerald-100 uppercase">
+                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-emerald-50 text-openclub-800 border border-emerald-100 capitalize">
                       Upcoming
                     </span>
                   </div>

@@ -30,7 +30,7 @@ import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 
 import { getSubscriptionsAdmin, Subscription, SubscriptionStats } from "@/lib/api/subscriptions";
-
+import { formatCurrency } from "@/lib/utils";
 
 
 export default function SubscriptionsPage() {
@@ -109,7 +109,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Monthly Revenue</div>
             </div>
-            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.monthlyRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
+            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats?.monthlyRevenue || 0)}</div>}
             <div className="text-zinc-500 text-sm font-normal">This Month</div>
           </div>
 
@@ -120,7 +120,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Annual Revenue</div>
             </div>
-            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">₦{(stats?.annualRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
+            {loading ? <Skeleton className="h-9 w-32 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats?.annualRevenue || 0)}</div>}
             <div className="text-zinc-500 text-sm font-normal">This Year</div>
           </div>
 
@@ -280,7 +280,7 @@ export default function SubscriptionsPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] capitalize tracking-wider">
                   <th className="px-6 py-4">Organizer Details</th>
                   <th className="px-6 py-4">Plan Information</th>
                   <th className="px-6 py-4">Billing Cycle</th>

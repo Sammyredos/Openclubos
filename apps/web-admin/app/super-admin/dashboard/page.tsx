@@ -33,6 +33,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatNumber, formatWithCommas, subscribeAdminEvents } from "@/lib/utils";
@@ -603,7 +604,7 @@ export default function SuperAdminDashboard() {
                           axisLine={false}
                           tickLine={false}
                           tick={{ fontSize: 12, fill: "#a1a1aa" }}
-                          tickFormatter={(value) => value >= 1000000 ? `₦${value / 1000000}M` : value >= 1000 ? `${value / 1000}k` : `${value}`}
+                          tickFormatter={(value) => formatCurrency(value)}
                         />
                         <Tooltip
                           cursor={{ stroke: '#15803D', strokeWidth: 1, strokeDasharray: '3 3' }}
@@ -611,7 +612,7 @@ export default function SuperAdminDashboard() {
                             if (active && payload && payload.length) {
                               return (
                                 <div className="bg-[#15803D] text-white text-xs font-medium px-2.5 py-1.5 rounded shadow-[0px_4px_8px_0px_rgba(0,0,0,0.10)] relative -mt-6">
-                                  {Number(payload[0].value).toLocaleString()}
+                                  {formatCurrency(Number(payload[0].value))}
                                   <div className="absolute w-2 h-2 bg-[#15803D] rotate-45 -bottom-1 left-1/2 -translate-x-1/2" />
                                 </div>
                               );
@@ -995,7 +996,7 @@ export default function SuperAdminDashboard() {
                   <div className="flex flex-col items-end">
                     <p className="text-[13px] font-normal text-gray-900">{`₦${formatWithCommas(club.yearlyFee)}/yr`}</p>
                     <span className={cn(
-                      "text-[10px] font-normal px-2 py-0.5 rounded-lg border uppercase inline-flex items-center gap-1.5 whitespace-nowrap",
+                      "text-[10px] font-normal px-2 py-0.5 rounded-lg border capitalize inline-flex items-center gap-1.5 whitespace-nowrap",
                       club.status === 'Active' ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
                     )}>
                       <span className={cn("w-1.5 h-1.5 rounded-full", club.status === 'Active' ? "bg-green-500" : "bg-red-500")} />

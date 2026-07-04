@@ -171,7 +171,7 @@ export function PricingSection() {
                   </button>
 
                   <div className="space-y-4">
-                    <p className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Includes:</p>
+                    <p className="text-sm font-semibold text-slate-900 capitalize tracking-wider">Includes:</p>
                     <ul className="space-y-3">
                       {activePlan.features.map((feature: string, idx: number) => (
                         <li key={idx} className="flex items-start gap-3 text-slate-600 text-sm">

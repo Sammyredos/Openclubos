@@ -833,7 +833,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       </div>
                       <div className="space-y-2">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-normal text-gray-400 uppercase">Par</label>
+                          <label className="text-[10px] font-normal text-gray-400 capitalize">Par</label>
                           <Input 
                             type="number" 
                             className="h-8 text-[12px] px-2" 
@@ -1130,7 +1130,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                 {past ? "✓" : i + 1}
               </div>
               <span className={cn(
-                "text-[9px] font-normal uppercase tracking-wider text-center leading-tight transition-colors",
+                "text-[9px] font-normal capitalize tracking-wider text-center leading-tight transition-colors",
                 active ? "text-gray-900" : "text-gray-400"
               )}>
                 {name}

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatThousandsInput } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PlansPage() {
@@ -171,7 +172,7 @@ export default function PlansPage() {
                       </td>
                       <td className="px-6 py-5">
                         <span className="text-[14px] font-medium text-slate-900 whitespace-nowrap">
-                          {plan.currency} {plan.amount.toLocaleString()}
+                          {formatCurrency(plan.amount)}
                         </span>
                       </td>
                       <td className="px-6 py-5">

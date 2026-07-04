@@ -99,7 +99,7 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <a href="/login" className="w-full">
-                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
                     Continue to Sign In
                   </button>
                 </a>
@@ -116,7 +116,7 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <a href="/forgot-password" className="w-full mb-6">
-                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
                     Request a New Link
                   </button>
                 </a>
@@ -185,7 +185,7 @@ function ResetPasswordPageInner() {
                   <button
                     type="submit"
                     disabled={pageState === "loading"}
-                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
+                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />

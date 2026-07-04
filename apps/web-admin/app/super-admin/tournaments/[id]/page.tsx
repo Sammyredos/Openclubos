@@ -1450,7 +1450,7 @@ function ViewTournamentPageInner() {
                 >
                   <div className="flex items-center gap-3.5">
                     <tab.icon className="w-[18px] h-[18px]" />
-                    <span className="text-[13px] font-normal leading-tight">{tab.label}</span>
+                    <span className="text-[13px] font-medium leading-tight">{tab.label}</span>
                   </div>
                   {isActive && <ChevronRight className="w-4 h-4 text-[#15803D]" />}
                 </button>
@@ -1487,18 +1487,18 @@ function ViewTournamentPageInner() {
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
                   <div>
-                    <h2 className="text-[14px] font-normal text-gray-900">Registered Players</h2>
-                    <p className="text-[12px] text-gray-500 mt-1">Manage participation, handicap indices, and add extra strokes.</p>
+                    <h2 className="text-[15px] font-medium text-gray-900">Registered Players</h2>
+                    <p className="text-[13px] text-gray-500 mt-0.5">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
                       onClick={() => setActiveTab("waitlist")}
                       variant="outline"
-                      className="h-10 border-gray-200 text-gray-700 hover:bg-background gap-2 rounded-xl px-4 text-[13px] font-normal"
+                      className="h-9 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 rounded-md px-4 text-[11px] font-medium capitalize tracking-wider transition-all shadow-sm"
                     >
-                      <Clock className="w-4 h-4 text-openclub-800" /> Waitlist Queue
+                      <Clock className="w-3.5 h-3.5 text-openclub-800" /> WAITLIST QUEUE
                       {pendingWaitlistTotal > 0 && (
-                        <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[11px] font-normal px-1.5 h-5 min-w-[20px] rounded-full">
+                        <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[10px] font-medium px-1.5 h-4 min-w-[16px] rounded-full ml-1">
                           {pendingWaitlistTotal}
                         </span>
                       )}
@@ -1506,9 +1506,9 @@ function ViewTournamentPageInner() {
                     <Button
                       disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
                       onClick={() => setActiveTab("register")}
-                      className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-xl px-4 text-[13px] font-normal"
+                      className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[11px] font-medium uppercase tracking-wider transition-all shadow-sm"
                     >
-                      <UserPlus className="w-4 h-4" /> Register a Player
+                      <UserPlus className="w-3.5 h-3.5" /> REGISTER A PLAYER
                     </Button>
                   </div>
                 </div>
@@ -1622,7 +1622,7 @@ function ViewTournamentPageInner() {
                                       />
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-[14px] font-normal text-gray-900 truncate">
+                                      <p className="text-[14px] font-medium text-gray-900 truncate">
                                         {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
                                       </p>
                                       <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
@@ -1690,7 +1690,7 @@ function ViewTournamentPageInner() {
                                 <td className="px-4 py-3 text-right">
                                   {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && (
                                     <div className="flex items-center justify-end gap-2">
-                                      {selectedTournament.entryFee !== null && !isPaid && (
+                                      {selectedTournament.entryFee !== null && !isPaid && new Date(selectedTournament.startDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) && (
                                         <Button
                                           variant="outline"
                                           onClick={() => handleMarkPaid(r.id)}
@@ -1756,7 +1756,7 @@ function ViewTournamentPageInner() {
             {activeTab === "register" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-[14px] font-normal text-gray-900 font-sans">Manual Player Registration</h2>
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Manual Player Registration</h2>
                   <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
                 </div>
 
@@ -1765,7 +1765,7 @@ function ViewTournamentPageInner() {
                     <UserPlus className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-[14px] font-normal text-gray-900 leading-tight">Quick Registration</h3>
+                    <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Quick Registration</h3>
                     <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
                       Register members directly into <span className="text-openclub-800 font-normal">{selectedTournament.name}</span>. Flights & Tee Times and pairing calculations will be recalculated dynamically.
                     </p>
@@ -1869,7 +1869,7 @@ function ViewTournamentPageInner() {
                                         />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-[14px] font-normal text-gray-900 truncate">
+                                        <p className="text-[14px] font-medium text-gray-900 truncate">
                                           {fullName(player.firstName ?? null, player.lastName ?? null)}
                                         </p>
                                         <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
@@ -1955,7 +1955,7 @@ function ViewTournamentPageInner() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
-                    <h4 className="text-[15px] font-normal text-gray-900 truncate">Waitlist Queue</h4>
+                    <h4 className="text-[15px] font-medium text-gray-900 truncate">Waitlist Queue</h4>
                   </div>
                   <div className="text-right">
                     <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(pendingWaitlistTotal)}</p>
@@ -2125,7 +2125,7 @@ function ViewTournamentPageInner() {
                                     </div>
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
-                                        <p className="text-[14px] font-normal text-gray-900 truncate">
+                                        <p className="text-[14px] font-medium text-gray-900 truncate">
                                           {fullName(item.user?.firstName ?? null, item.user?.lastName ?? null)}
                                         </p>
                                         {item.status === "REJECTED" && (
@@ -2371,7 +2371,7 @@ function ViewTournamentPageInner() {
                     {/* Groupings Dashboard Header */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
-                        <h3 className="text-[14px] font-normal text-gray-900 flex items-center gap-3">
+                        <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
                           Manage Flights & Tee Times
                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
@@ -2584,14 +2584,14 @@ function ViewTournamentPageInner() {
                                             ) : (
                                               <h4
                                                 onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
-                                                className="text-[14px] font-normal text-gray-900 truncate cursor-pointer hover:text-openclub-800"
+                                                className="text-[14px] font-medium text-gray-900 truncate cursor-pointer hover:text-openclub-800"
                                               >
                                                 {group.name}
                                               </h4>
                                             )}
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                               <Clock className="w-3 h-3 text-gray-400" />
-                                              <span className="text-[11px] font-normal text-gray-400 uppercase">{group.startTime || "TBD"}</span>
+                                              <span className="text-[11px] font-normal text-gray-400 capitalize">{group.startTime || "TBD"}</span>
                                             </div>
                                           </div>
                                         </div>
@@ -2946,7 +2946,7 @@ function ViewTournamentPageInner() {
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                   <div className="space-y-1">
-                    <h3 className="text-[14px] font-normal text-gray-900 flex items-center gap-2">
+                    <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-2">
                       Live Standings
                       <span className="text-[10px] font-normal bg-emerald-50 text-openclub-800 px-2 py-0.5 rounded-lg border border-emerald-100 uppercase">
                         Live
@@ -3163,7 +3163,7 @@ function ViewTournamentPageInner() {
                                         />
                                       </div>
                                       <div className="min-w-0">
-                                        <div className="text-[13px] font-normal text-gray-900 truncate">
+                                        <div className="text-[13px] font-medium text-gray-900 truncate">
                                           {entry.user.firstName} {entry.user.lastName}
                                         </div>
                                         <div className="text-[10px] text-gray-400 font-normal truncate">
@@ -3476,7 +3476,7 @@ function ViewTournamentPageInner() {
               <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
                   <div>
-                    <h2 className="text-[14px] font-normal text-gray-900">Penalize Player</h2>
+                    <h2 className="text-[15px] font-medium text-gray-900">Penalize Player</h2>
                     <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
                   </div>
                 </div>
@@ -3616,7 +3616,7 @@ function ViewTournamentPageInner() {
                                           </div>
                                           <div className="min-w-0">
                                             <NextLink href={`/super-admin/users/${r.user?.id}`} className="block">
-                                              <p className="text-[14px] font-normal text-gray-900 truncate hover:text-openclub-800 transition-colors">
+                                              <p className="text-[14px] font-medium text-gray-900 truncate hover:text-openclub-800 transition-colors">
                                                 {r.user?.firstName} {r.user?.lastName}
                                               </p>
                                             </NextLink>
@@ -4161,7 +4161,7 @@ function ViewTournamentPageInner() {
               <div className="bg-white border border-[#e1efe5] rounded-lg p-4 my-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-normal">Tee Time</p>
+                    <p className="text-[11px] text-gray-500 capitalize tracking-wider font-normal">Tee Time</p>
                     <p className="text-[16px] font-normal text-openclub-800">[Player Tee Time]</p>
                   </div>
                   <div>
@@ -4255,7 +4255,7 @@ function ViewTournamentPageInner() {
           </div>
           <h4 className="text-[14px] font-normal text-gray-900 mb-2">Day {selectedDay > 1 ? selectedDay - 1 : 1} is not locked</h4>
           <p className="text-gray-500 max-w-sm">
-            You must <span className="font-normal text-gray-700 uppercase">finalize</span> and <span className="font-normal text-gray-700 uppercase">irreversibly lock</span> groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
+            You must <span className="font-normal text-gray-700 capitalize">finalize</span> and <span className="font-normal text-gray-700 uppercase">irreversibly lock</span> groupings for Day {selectedDay > 1 ? selectedDay - 1 : 1} before generating Day {selectedDay} groupings.
           </p>
         </div>
       </Modal>
@@ -4325,7 +4325,7 @@ function ViewTournamentPageInner() {
           </div>
           <h4 className="text-[14px] font-normal text-gray-900 mb-2">Apply Tournament Cut?</h4>
           <p className="text-gray-500 max-w-sm">
-            Are you sure you want to apply the cut? This will <span className="font-normal text-gray-700 uppercase">permanently eliminate</span> players below the cut line from future groupings and <span className="font-normal text-gray-700 uppercase">cannot be easily undone</span>.
+            Are you sure you want to apply the cut? This will <span className="font-normal text-gray-700 capitalize">permanently eliminate</span> players below the cut line from future groupings and <span className="font-normal text-gray-700 uppercase">cannot be easily undone</span>.
           </p>
         </div>
       </Modal>
