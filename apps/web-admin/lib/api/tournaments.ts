@@ -230,7 +230,7 @@ function getStorageKey(tId: string, day: number = 1) {
 
 async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
   try {
-    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&status=APPROVED&take=100`, {
+    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&take=500`, {
       method: 'GET',
     });
     if (res.ok) {

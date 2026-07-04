@@ -1202,102 +1202,115 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
-      {/* Back Header */}
-      <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-xl p-5 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/organizer-admin/tournaments")}
-            className="w-10 h-10 border border-gray-200 hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-[14px] font-normal text-gray-900">{selectedTournament.name}</h1>
-              <span className={cn(
-                "px-2.5 py-0.5 rounded-lg text-[11px] font-normal uppercase tracking-wide border",
-                STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
-              )}>
-                {selectedTournament.status}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 text-[13px] text-gray-500 font-normal">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.clubName}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.dates}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <Trophy className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.type || "Stroke Play"}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md border border-gray-200 uppercase tracking-wider text-gray-500">HCP</span>
-                {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
-              </span>
+      {/* Premium Back Header */}
+      <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
+        
+        <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+          <div className="flex items-start md:items-center gap-5">
+            <button
+              onClick={() => router.push("/organizer-admin/tournaments")}
+              className="mt-1 md:mt-0 flex-shrink-0 w-11 h-11 bg-white border border-gray-200 shadow-sm hover:border-openclub-400 hover:shadow-md text-gray-500 hover:text-openclub-700 rounded-full flex items-center justify-center transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-300" />
+            </button>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-[20px] md:text-[24px] font-semibold text-gray-900 tracking-tight">{selectedTournament.name}</h1>
+                <span className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-widest border shadow-sm",
+                  STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
+                )}>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-pulse" />
+                    {selectedTournament.status}
+                  </span>
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-gray-600 font-normal">
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <MapPin className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.clubName}
+                </div>
+                
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.dates}
+                </div>
+
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <Trophy className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.type || "Stroke Play"}
+                </div>
+
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <span className="text-[9px] uppercase tracking-wider">HCP</span>
+                  </div>
+                  {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {selectedTournament.statusKey === "DRAFT" && (
-            <Button
-              onClick={async () => {
-                try {
-                  setMutating(true);
-                  await updateTournament(selectedTournament.id, { publishImmediately: true });
-                  toast.success("Tournament published successfully!");
-                  await reloadSingleTournament();
-                } catch (e: any) {
-                  toast.error(e.message || "Failed to publish tournament");
-                } finally {
-                  setMutating(false);
-                }
-              }}
-              disabled={mutating}
-              className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-normal text-[12px] flex items-center gap-2 rounded-xl px-6 shadow-lg shadow-blue-100"
-            >
-              <Send className="w-4 h-4" />
-              Publish Now
-            </Button>
-          )}
-
-          <Button
-            onClick={() => openEdit(selectedTournament)}
-            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-            variant="outline"
-            className="bg-white h-10 border-gray-200 text-gray-700 hover:bg-background font-normal text-[12px] flex items-center gap-2 rounded-xl shadow-sm"
-          >
-            <Edit2 className="w-4 h-4 text-gray-400" />
-            Edit Tournament
-          </Button>
-
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={(e) => {
-                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                setDropdownAnchorEl(e.currentTarget);
-              }}
-              className="bg-white h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-background flex items-center justify-center shadow-sm"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-            {activeDropdown === selectedTournament.id && (
-              <FloatingMenu
-                open={activeDropdown === selectedTournament.id}
-                anchorEl={dropdownAnchorEl}
-                onClose={closeDropdown}
-                placement="bottom-end"
-                className="w-52 bg-white rounded-xl shadow-lg border border-[#efefef] py-2"
+          <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
+            {selectedTournament.statusKey === "DRAFT" && (
+              <Button
+                onClick={async () => {
+                  try {
+                    setMutating(true);
+                    await updateTournament(selectedTournament.id, { publishImmediately: true });
+                    toast.success("Tournament published successfully!");
+                    await reloadSingleTournament();
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to publish tournament");
+                  } finally {
+                    setMutating(false);
+                  }
+                }}
+                disabled={mutating}
+                className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-6 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02]"
               >
-                <button
+                <Send className="w-4 h-4" />
+                Publish Now
+              </Button>
+            )}
+
+            <Button
+              onClick={() => openEdit(selectedTournament)}
+              disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+              variant="outline"
+              className="bg-white h-11 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            >
+              <Edit2 className="w-4 h-4 text-gray-400" />
+              Edit Tournament
+            </Button>
+
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={(e) => {
+                  setActiveDropdown(activeDropdown ? null : selectedTournament.id);
+                  setDropdownAnchorEl(e.currentTarget);
+                }}
+                className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+              {activeDropdown === selectedTournament.id && (
+                <FloatingMenu
+                  open={activeDropdown === selectedTournament.id}
+                  anchorEl={dropdownAnchorEl}
+                  onClose={closeDropdown}
+                  placement="bottom-end"
+                  className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
+                >
+                  <button
                   className={cn(
                     "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
                     selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
@@ -1322,6 +1335,7 @@ function ViewTournamentPageInner() {
               </FloatingMenu>
             )}
           </div>
+        </div>
         </div>
       </div>
 
@@ -1930,12 +1944,12 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                         <div className="flex gap-3">
-                          <Mail className="w-5 h-5 text-openclub-800 flex-shrink-0" />
+                          <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
                           <div>
-                            <h4 className="text-[14px] font-normal text-emerald-900">Send Tee Times via Email</h4>
-                            <p className="text-[12px] text-emerald-700 mt-0.5">
+                            <h4 className="text-[16px] font-normal text-gray-900">Send Tee Times via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-1">
                               Flights & Tee Times have been generated. Publish them via email to notify players.
                             </p>
                           </div>
@@ -1947,12 +1961,12 @@ function ViewTournamentPageInner() {
                           }}
                           disabled={groupingsGenerating || groupingsLoading}
                           className={cn(
-                            "bg-openclub-800 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative",
-                            justGrouped && "animate-pulse ring-4 ring-openclub-700/30"
+                            "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
+                            justGrouped && "animate-pulse ring-4 ring-gray-200"
                           )}
                         >
                           <Mail className="w-4 h-4" />
-                          Publish via Email
+                          Publish Via Email
                           {publishClickCount > 0 && (
                             <span className="ml-1 bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px]">
                               {publishClickCount}

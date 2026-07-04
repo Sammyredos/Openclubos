@@ -46,7 +46,6 @@ const AMENITIES = [
   { name: "Changing Room", icon: Shirt },
   { name: "Caddies Available", icon: Users },
   { name: "Golf Cart", icon: Car },
-  { name: "Other", icon: Plus },
 ];
 
 const DEFAULT_FORM = {
@@ -70,7 +69,6 @@ const DEFAULT_FORM = {
   website: "",
   bookingUrl: "",
   amenities: [] as string[],
-  otherAmenity: "",
   coverImage: "",
   galleryImages: [] as string[],
   status: "ACTIVE" as "ACTIVE" | "INACTIVE",
@@ -108,6 +106,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
   const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [customAmenityInput, setCustomAmenityInput] = useState("");
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,19 +196,6 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         }
       }
 
-      const standardAmenityNames = AMENITIES.map(a => a.name).filter(n => n !== "Other");
-      const loadedAmenities = c.amenities || [];
-      const standardAmenities = loadedAmenities.filter(a => standardAmenityNames.includes(a));
-      const customAmenities = loadedAmenities.filter(a => !standardAmenityNames.includes(a));
-      
-      let otherAmenity = "";
-      if (customAmenities.length > 0) {
-        if (!standardAmenities.includes("Other")) {
-          standardAmenities.push("Other");
-        }
-        otherAmenity = customAmenities[0] === "Other" ? "" : customAmenities[0];
-      }
-
       setFormData({
         name: c.name || "",
         alsoKnownAs: c.alsoKnownAs || "",
@@ -230,8 +216,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         email: c.email || "",
         website: c.website || "",
         bookingUrl: c.bookingUrl || "",
-        amenities: standardAmenities,
-        otherAmenity: otherAmenity,
+        amenities: c.amenities || [],
         coverImage: c.coverImage || "",
         galleryImages: c.galleryImages || [],
         status: c.status || "ACTIVE",
@@ -281,9 +266,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       if (!formData.longitude) return "Longitude is required";
     }
     if (s === 3) {
-      if (formData.amenities.includes("Other") && !formData.otherAmenity.trim()) {
-        return "Please specify the other amenity";
-      }
+      // No validation needed for amenities
     }
     if (s === 4) {
       const colors = formData.teeBoxes.map(t => t.color);
@@ -354,7 +337,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
         yearEstablished: formData.yearEstablished ? parseInt(formData.yearEstablished) : null,
         courseRating: formData.courseRating ? parseFloat(formData.courseRating) : null,
         slopeRating: formData.slopeRating ? parseInt(formData.slopeRating) : null,
-        amenities: formData.amenities.filter(a => a !== "Other").concat(formData.amenities.includes("Other") && formData.otherAmenity.trim() ? [formData.otherAmenity.trim()] : []),
+        amenities: formData.amenities,
       };
 
       if (courseId) {
@@ -703,18 +686,54 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                     </div>
                   ))}
                 </div>
-                {formData.amenities.includes("Other") && (
-                  <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Field label="Specify Other Amenity" required>
-                      <Input 
-                        value={formData.otherAmenity} 
-                        onChange={(e) => set("otherAmenity", e.target.value)} 
-                        placeholder="e.g. Swimming Pool, Tennis Court" 
-                        className={req(formData.otherAmenity.trim())}
-                      />
-                    </Field>
+
+                <div className="mt-8 border-t border-[#e1efe5] pt-6">
+                  <p className="text-[13px] font-medium text-gray-800 mb-1">Additional Amenities</p>
+                  <p className="text-[12px] text-gray-500 mb-4">Add any other amenities not listed above (e.g. Swimming Pool, Tennis Court)</p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Input 
+                      placeholder="Type custom amenity and press Enter..." 
+                      value={customAmenityInput}
+                      onChange={(e) => setCustomAmenityInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const trimmed = customAmenityInput.trim();
+                          if (trimmed && !formData.amenities.includes(trimmed)) {
+                            setFormData(prev => ({ ...prev, amenities: [...prev.amenities, trimmed] }));
+                            setCustomAmenityInput("");
+                          }
+                        }
+                      }}
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={() => {
+                        const trimmed = customAmenityInput.trim();
+                        if (trimmed && !formData.amenities.includes(trimmed)) {
+                          setFormData(prev => ({ ...prev, amenities: [...prev.amenities, trimmed] }));
+                          setCustomAmenityInput("");
+                        }
+                      }} 
+                      className="bg-gray-900 hover:bg-black text-white px-5 h-11 rounded-xl shadow-sm"
+                    >
+                      Add
+                    </Button>
                   </div>
-                )}
+                  
+                  {formData.amenities.filter(a => !AMENITIES.some(am => am.name === a)).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.amenities.filter(a => !AMENITIES.some(am => am.name === a)).map(a => (
+                        <div key={a} className="flex items-center gap-2 bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-[12px] font-medium shadow-sm transition-all hover:bg-gray-200">
+                          {a}
+                          <button type="button" onClick={() => toggleAmenity(a)} className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
         );

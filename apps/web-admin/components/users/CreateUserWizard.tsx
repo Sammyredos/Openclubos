@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { 
+import {
   Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, ChevronRight, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye, ArrowLeft
 } from "lucide-react";
 import { createMember, updateMember, getMember } from "@/lib/api/members";
@@ -28,76 +28,76 @@ interface WizardProps {
 const STEPS = ["Basic Information", "Role & Permissions", "Organization", "Review & Confirm"];
 
 const AVAILABLE_ROLES = [
-  { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-openclub-800", bg: "bg-emerald-50" },
-  { id: "CLUB_ADMIN", label: "Organizer Admin", desc: "Manage tournaments, registrations and event settings.", icon: Building2, color: "text-blue-600",    bg: "bg-blue-50" },
-  { id: "MARKER",     label: "Marker",         desc: "Enter scores, manage results and scorecards.",           icon: Trophy,    color: "text-amber-600",   bg: "bg-amber-50" },
-  { id: "VIEWER",     label: "Viewer",         desc: "Read-only access to tournaments and reports.",           icon: Eye,       color: "text-indigo-600",  bg: "bg-indigo-50" },
-  { id: "SUPER_ADMIN",label: "Super Admin",    desc: "Unrestricted platform access and all admin rights.",    icon: Shield,    color: "text-rose-600",    bg: "bg-rose-50" },
+  { id: "PLAYER", label: "Player", desc: "Register for tournaments, view leaderboards.", icon: User, color: "text-openclub-800", bg: "bg-emerald-50" },
+  { id: "CLUB_ADMIN", label: "Organizer Admin", desc: "Manage tournaments, registrations and event settings.", icon: Building2, color: "text-blue-600", bg: "bg-blue-50" },
+  { id: "MARKER", label: "Marker", desc: "Enter scores, manage results and scorecards.", icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "VIEWER", label: "Viewer", desc: "Read-only access to tournaments and reports.", icon: Eye, color: "text-indigo-600", bg: "bg-indigo-50" },
+  { id: "SUPER_ADMIN", label: "Super Admin", desc: "Unrestricted platform access and all admin rights.", icon: Shield, color: "text-rose-600", bg: "bg-rose-50" },
 ];
 
 // Permission matrix per role: [view, create, edit, delete, export]
 const ROLE_PERMISSIONS: Record<string, Record<string, boolean[]>> = {
   PLAYER: {
-    "User Management":       [false,false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, true, false,false,false],
-    "Scoring & Boards":      [true, false,false,false,false],
-    "Payments & Payouts":    [false,false,false,false,false],
-    "Reports & Analytics":   [false,false,false,false,false],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [false, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, true, false, false, false],
+    "Scoring & Boards": [true, false, false, false, false],
+    "Payments & Payouts": [false, false, false, false, false],
+    "Reports & Analytics": [false, false, false, false, false],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   MARKER: {
-    "User Management":       [false,false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, false,false,false,false],
-    "Scoring & Boards":      [true, true, true, false,true ],
-    "Payments & Payouts":    [false,false,false,false,false],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [false, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, false, false, false, false],
+    "Scoring & Boards": [true, true, true, false, true],
+    "Payments & Payouts": [false, false, false, false, false],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   VIEWER: {
-    "User Management":       [true, false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, false,false,false,false],
-    "Scoring & Boards":      [true, false,false,false,false],
-    "Payments & Payouts":    [true, false,false,false,false],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [true, false,false,false,false],
+    "User Management": [true, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, false, false, false, false],
+    "Scoring & Boards": [true, false, false, false, false],
+    "Payments & Payouts": [true, false, false, false, false],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [true, false, false, false, false],
   },
   CLUB_ADMIN: {
-    "User Management":       [true, true, true, false,false],
-    "Tournament Management": [true, true, true, true, true ],
-    "Registration Mgmt":     [true, true, true, true, true ],
-    "Scoring & Boards":      [true, true, true, false,true ],
-    "Payments & Payouts":    [true, true, true, false,true ],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, true, true, true, false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [true, true, true, false, false],
+    "Tournament Management": [true, true, true, true, true],
+    "Registration Mgmt": [true, true, true, true, true],
+    "Scoring & Boards": [true, true, true, false, true],
+    "Payments & Payouts": [true, true, true, false, true],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, true, true, true, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   SUPER_ADMIN: {
-    "User Management":       [true, true, true, true, true ],
-    "Tournament Management": [true, true, true, true, true ],
-    "Registration Mgmt":     [true, true, true, true, true ],
-    "Scoring & Boards":      [true, true, true, true, true ],
-    "Payments & Payouts":    [true, true, true, true, true ],
-    "Reports & Analytics":   [true, true, true, true, true ],
-    "Golf Courses":          [true, true, true, true, true ],
-    "Platform Settings":     [true, true, true, true, true ],
+    "User Management": [true, true, true, true, true],
+    "Tournament Management": [true, true, true, true, true],
+    "Registration Mgmt": [true, true, true, true, true],
+    "Scoring & Boards": [true, true, true, true, true],
+    "Payments & Payouts": [true, true, true, true, true],
+    "Reports & Analytics": [true, true, true, true, true],
+    "Golf Courses": [true, true, true, true, true],
+    "Platform Settings": [true, true, true, true, true],
   },
 };
 
 const PERMISSIONS_LIST = [
-  { id: "User Management",    label: "User Management",    desc: "Manage users, roles and access control.",       icon: User },
-  { id: "Tournament Management", label: "Tournament Mgmt", desc: "Create and manage tournaments and events.",      icon: Trophy },
-  { id: "Registration Mgmt",  label: "Registration Mgmt", desc: "Manage registrations and participants.",         icon: Calendar },
-  { id: "Scoring & Boards",   label: "Scoring & Boards",  desc: "Enter scores and manage leaderboards.",         icon: Target },
-  { id: "Payments & Payouts", label: "Payments & Payouts",desc: "Manage payments, payouts and refunds.",          icon: Building2 },
-  { id: "Reports & Analytics",label: "Reports & Analytics",desc: "View and export platform reports.",             icon: AlertCircle },
-  { id: "Golf Courses",       label: "Golf Courses",       desc: "Manage golf courses and tee boxes.",            icon: MapPin },
-  { id: "Platform Settings",  label: "Platform Settings",  desc: "Configure platform settings and preferences.", icon: Settings },
+  { id: "User Management", label: "User Management", desc: "Manage users, roles and access control.", icon: User },
+  { id: "Tournament Management", label: "Tournament Mgmt", desc: "Create and manage tournaments and events.", icon: Trophy },
+  { id: "Registration Mgmt", label: "Registration Mgmt", desc: "Manage registrations and participants.", icon: Calendar },
+  { id: "Scoring & Boards", label: "Scoring & Boards", desc: "Enter scores and manage leaderboards.", icon: Target },
+  { id: "Payments & Payouts", label: "Payments & Payouts", desc: "Manage payments, payouts and refunds.", icon: Building2 },
+  { id: "Reports & Analytics", label: "Reports & Analytics", desc: "View and export platform reports.", icon: AlertCircle },
+  { id: "Golf Courses", label: "Golf Courses", desc: "Manage golf courses and tee boxes.", icon: MapPin },
+  { id: "Platform Settings", label: "Platform Settings", desc: "Configure platform settings and preferences.", icon: Settings },
 ];
 
 const PERMISSION_ACTIONS = ["View", "Create", "Edit", "Delete", "Export"];
@@ -326,7 +326,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     }
     return State.getStatesOfCountry(formData.country).map(s => ({ value: s.isoCode, label: s.name }));
   }, [formData.country]);
-  
+
   const cityOptions = useMemo(() => {
     if (!formData.country || !formData.state) return [];
     if (formData.country === "NG") {
@@ -342,7 +342,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     }
     return State.getStatesOfCountry(orgProfile.country).map(s => ({ value: s.isoCode, label: s.name }));
   }, [orgProfile.country]);
-  
+
   const orgCityOptions = useMemo(() => {
     if (!orgProfile.country || !orgProfile.state) return [];
     if (orgProfile.country === "NG") {
@@ -424,18 +424,18 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
       toast.error(err);
       return;
     }
-    
+
     let nextStep = step + 1;
     const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
-    
+
     if (step === 2 && !needsOrg) {
       nextStep = 4; // Jump to Review & Confirm
     }
 
     if (nextStep === 3) {
       const fullName = `${formData.firstName} ${formData.middleName} ${formData.surname}`.replace(/\s+/g, ' ').trim();
-      setOrgProfile(prev => ({ 
-        ...prev, 
+      setOrgProfile(prev => ({
+        ...prev,
         contactName: fullName,
         contactEmail: formData.email,
         phone: formData.phone,
@@ -454,7 +454,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
   const handleBack = () => {
     let prevStep = step - 1;
     const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
-    
+
     if (step === 4 && !needsOrg) {
       prevStep = 2;
     }
@@ -470,7 +470,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
     }
 
     const needsOrg = formData.roles.includes("CLUB_ADMIN") || formData.roles.includes("MARKER");
-    
+
     for (let s = 1; s < targetStep; s++) {
       if (s === 3 && !needsOrg) continue;
       const err = validateStep(s);
@@ -514,9 +514,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         lastName: `${formData.middleName.trim()} ${formData.surname.trim()}`.replace(/\s+/g, ' ').trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone ? `+${countryCode}${formData.phone.replace(/\D/g, "")}` : undefined,
-        role: formData.roles.includes("SUPER_ADMIN") ? "SUPER_ADMIN" : 
-              formData.roles.includes("CLUB_ADMIN") ? "CLUB_ADMIN" : 
-              formData.roles.includes("MARKER") ? "MARKER" : "PLAYER",
+        role: formData.roles.includes("SUPER_ADMIN") ? "SUPER_ADMIN" :
+          formData.roles.includes("CLUB_ADMIN") ? "CLUB_ADMIN" :
+            formData.roles.includes("MARKER") ? "MARKER" : "PLAYER",
         status: formData.status,
         profilePhoto: formData.profileImage && !formData.profileImage.includes("ui-avatars.com") ? formData.profileImage : null,
         handicap: formData.roles.includes("PLAYER") ? parseFloat(formData.handicap) : undefined,
@@ -540,7 +540,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         await createMember(payload);
         toast.success("User created successfully", { id: toastId });
       }
-      
+
       if (isPageMode) {
         setIsRedirecting(true);
         setTimeout(() => {
@@ -598,203 +598,203 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
             </div>
 
             <div className="p-5 space-y-5">
-                <Field label="Profile Photo" required>
-                  <div className="relative">
-                    {formData.profileImage ? (
-                      <div className="relative rounded-full overflow-hidden border border-[#e1efe5] bg-background h-32 w-32 mx-auto">
-                        <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                        <button onClick={() => setFormData({...formData, profileImage: ""})}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "!border-red-500" : "border-[#e1efe5]")}>
-                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                          <Upload className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[11px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Image</p>
-                          <p className="text-[9px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
-                        </div>
-                      </div>
-                    )}
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                      onChange={handleImageChange} />
-                  </div>
-                </Field>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="First Name" required>
-                    <Input 
-                      placeholder="Enter first name"
-                      value={formData.firstName} 
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                      className={cn(showValidation && !formData.firstName && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Middle Name" required>
-                    <Input 
-                      placeholder="Enter middle name"
-                      value={formData.middleName} 
-                      onChange={(e) => setFormData({...formData, middleName: e.target.value})} 
-                      className={cn(showValidation && !formData.middleName && "!border-red-500")}
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Surname" required>
-                    <Input 
-                      placeholder="Enter surname"
-                      value={formData.surname} 
-                      onChange={(e) => setFormData({...formData, surname: e.target.value})} 
-                      className={cn(showValidation && !formData.surname && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Date of Birth" required>
-                    <DatePicker 
-                      value={formData.dob} 
-                      onValueChange={(v) => setFormData({...formData, dob: v})} 
-                      buttonClassName={cn(showValidation && !formData.dob && "!border-red-500")}
-                      maxDate={maxDobDate}
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1 leading-snug">
-                      Minimum age: 13. Accounts under 18 require parental/guardian consent.
-                    </p>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Gender" required>
-                    <SearchableSelect 
-                      value={formData.gender}
-                      onValueChange={v => setFormData({...formData, gender: v})}
-                      options={[
-                        { value: "MALE", label: "Male" },
-                        { value: "FEMALE", label: "Female" },
-                        { value: "OTHER", label: "Other" },
-                      ]}
-                      triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
-                      placeholder="Select gender"
-                    />
-                  </Field>
-                  <Field label="Email Address" required>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input 
-                        placeholder="Enter email address"
-                        value={formData.email} 
-                        onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                        className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
-                      />
+              <Field label="Profile Photo" required>
+                <div className="relative">
+                  {formData.profileImage ? (
+                    <div className="relative rounded-full overflow-hidden border border-[#e1efe5] bg-background h-32 w-32 mx-auto">
+                      <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      <button onClick={() => setFormData({ ...formData, profileImage: "" })}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Country" required>
-                    <SearchableSelect 
-                      value={formData.country}
-                      onValueChange={v => setFormData({...formData, country: v, state: "", city: ""})}
-                      options={countryOptions}
-                      triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
-                      placeholder="Select country"
-                    />
-                  </Field>
-                  <Field label="State / Province" required>
-                    <SearchableSelect 
-                      value={formData.state}
-                      onValueChange={v => setFormData({...formData, state: v, city: ""})}
-                      options={stateOptions}
-                      disabled={!formData.country}
-                      triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
-                      placeholder="Select state / province"
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="LGA / City" required>
-                    {cityOptions.length > 0 ? (
-                      <SearchableSelect 
-                        value={formData.city}
-                        onValueChange={v => setFormData({...formData, city: v})}
-                        options={cityOptions}
-                        disabled={!formData.state}
-                        triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
-                        placeholder="Select LGA / City"
-                      />
-                    ) : (
-                      <Input 
-                        placeholder="Enter LGA / city"
-                        value={formData.city} 
-                        onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                        className={cn(showValidation && !formData.city && "!border-red-500")}
-                        disabled={!formData.state}
-                      />
-                    )}
-                  </Field>
-                  <Field label="Phone Number" required>
-                    <div className="flex gap-2">
-                      <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px]">
-                        +{countryCode}
+                  ) : (
+                    <div onClick={() => fileInputRef.current?.click()}
+                      className={cn("h-32 w-32 mx-auto border-2 border-dashed rounded-full flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !formData.profileImage ? "!border-red-500" : "border-[#e1efe5]")}>
+                      <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                        <Upload className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
                       </div>
-                      <div className="relative flex-1">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          placeholder="Enter phone number"
-                          value={formData.phone} 
-                          onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, "")})} 
-                          className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
-                        />
+                      <div className="text-center">
+                        <p className="text-[11px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Image</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
                       </div>
                     </div>
-                  </Field>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={handleImageChange} />
                 </div>
+              </Field>
 
-                <Field label="Address" required>
-                  <textarea 
-                    value={formData.address} 
-                    onChange={(e) => setFormData({...formData, address: e.target.value})} 
-                    placeholder="Enter full address"
-                    className={cn("flex h-24 w-full rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="First Name" required>
+                  <Input
+                    placeholder="Enter first name"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className={cn(showValidation && !formData.firstName && "!border-red-500")}
                   />
                 </Field>
-
-                <div className="grid grid-cols-2 gap-4 items-start">
-                  {formData.roles.includes("PLAYER") ? (
-                    <Field label="Playing Handicap" required>
-                      <div className="relative">
-                        <Input 
-                          type="number"
-                          step="0.1"
-                          placeholder="e.g. 15.4"
-                          value={formData.handicap} 
-                          onChange={(e) => setFormData({...formData, handicap: e.target.value})} 
-                          className={cn("pr-16 font-normal text-openclub-800", showValidation && !formData.handicap && "!border-red-500")}
-                        />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-openclub-700 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "FEMALE" ? 36 : 28}</span>
-                      </div>
-                    </Field>
-                  ) : <div />}
-                  
-                  <Field label="Account Status" required>
-                    <SearchableSelect 
-                      value={formData.status}
-                      onValueChange={v => setFormData({...formData, status: v as any})}
-                      options={[
-                        { value: "ACTIVE", label: "Active" },
-                        { value: "SUSPENDED", label: "Suspended" },
-                      ]}
-                      triggerClassName=""
-                    />
-                  </Field>
-                </div>
-
+                <Field label="Middle Name" required>
+                  <Input
+                    placeholder="Enter middle name"
+                    value={formData.middleName}
+                    onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                    className={cn(showValidation && !formData.middleName && "!border-red-500")}
+                  />
+                </Field>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Surname" required>
+                  <Input
+                    placeholder="Enter surname"
+                    value={formData.surname}
+                    onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
+                    className={cn(showValidation && !formData.surname && "!border-red-500")}
+                  />
+                </Field>
+                <Field label="Date of Birth" required>
+                  <DatePicker
+                    value={formData.dob}
+                    onValueChange={(v) => setFormData({ ...formData, dob: v })}
+                    buttonClassName={cn(showValidation && !formData.dob && "!border-red-500")}
+                    maxDate={maxDobDate}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                    Minimum age: 13. Accounts under 18 require parental/guardian consent.
+                  </p>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Gender" required>
+                  <SearchableSelect
+                    value={formData.gender}
+                    onValueChange={v => setFormData({ ...formData, gender: v })}
+                    options={[
+                      { value: "MALE", label: "Male" },
+                      { value: "FEMALE", label: "Female" },
+                      { value: "OTHER", label: "Other" },
+                    ]}
+                    triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
+                    placeholder="Select gender"
+                  />
+                </Field>
+                <Field label="Email Address" required>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Enter email address"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
+                    />
+                  </div>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Country" required>
+                  <SearchableSelect
+                    value={formData.country}
+                    onValueChange={v => setFormData({ ...formData, country: v, state: "", city: "" })}
+                    options={countryOptions}
+                    triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
+                    placeholder="Select country"
+                  />
+                </Field>
+                <Field label="State / Province" required>
+                  <SearchableSelect
+                    value={formData.state}
+                    onValueChange={v => setFormData({ ...formData, state: v, city: "" })}
+                    options={stateOptions}
+                    disabled={!formData.country}
+                    triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
+                    placeholder="Select state / province"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="LGA / City" required>
+                  {cityOptions.length > 0 ? (
+                    <SearchableSelect
+                      value={formData.city}
+                      onValueChange={v => setFormData({ ...formData, city: v })}
+                      options={cityOptions}
+                      disabled={!formData.state}
+                      triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
+                      placeholder="Select LGA / City"
+                    />
+                  ) : (
+                    <Input
+                      placeholder="Enter LGA / city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className={cn(showValidation && !formData.city && "!border-red-500")}
+                      disabled={!formData.state}
+                    />
+                  )}
+                </Field>
+                <Field label="Phone Number" required>
+                  <div className="flex gap-2">
+                    <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px]">
+                      +{countryCode}
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Enter phone number"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, "") })}
+                        className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
+                      />
+                    </div>
+                  </div>
+                </Field>
+              </div>
+
+              <Field label="Address" required>
+                <textarea
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter full address"
+                  className={cn("flex h-24 w-full rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
+                />
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4 items-start">
+                {formData.roles.includes("PLAYER") ? (
+                  <Field label="Playing Handicap" required>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 15.4"
+                        value={formData.handicap}
+                        onChange={(e) => setFormData({ ...formData, handicap: e.target.value })}
+                        className={cn("pr-16 font-normal text-openclub-800", showValidation && !formData.handicap && "!border-red-500")}
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-openclub-700 bg-emerald-50 px-1.5 py-0.5 rounded">MAX {formData.gender === "FEMALE" ? 36 : 28}</span>
+                    </div>
+                  </Field>
+                ) : <div />}
+
+                <Field label="Account Status" required>
+                  <SearchableSelect
+                    value={formData.status}
+                    onValueChange={v => setFormData({ ...formData, status: v as any })}
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "SUSPENDED", label: "Suspended" },
+                    ]}
+                    triggerClassName=""
+                  />
+                </Field>
+              </div>
+
             </div>
+          </div>
         );
       case 2:
         return (
@@ -810,128 +810,128 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               </div>
             </div>
 
-            <div className="flex flex-1" style={{minHeight: 0}}>
+            <div className="flex flex-1" style={{ minHeight: 0 }}>
 
-                {/* Left — Roles */}
-                <div className="w-[240px] border-r border-[#e1efe5] bg-background/30 shrink-0 p-3 flex flex-col gap-2">
-                  {AVAILABLE_ROLES.map(role => {
-                    const active = formData.roles.includes(role.id);
-                    return (
-                      <div
-                        key={role.id}
-                        onClick={() => {
-                          const newRoles = [role.id];
-                          setFormData({
-                            ...formData, 
-                            roles: newRoles, 
-                            permissions: mergeRolePermissions(newRoles),
-                            handicap: role.id === "PLAYER" ? "20" : ""
-                          });
-                        }}
-                        className={cn(
-                          "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
-                          active ? "bg-white border-openclub-700 shadow-[0_0_0_1px_#15803D]" : "bg-white border-[#e1efe5] hover:border-gray-300"
-                        )}
-                      >
-                        <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-openclub-700 bg-white" : "border-gray-300")}>
-                          {active && <div className="w-1.5 h-1.5 rounded-full bg-openclub-700 animate-in zoom-in-50 duration-200" />}
-                        </div>
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", role.bg)}>
-                          <role.icon className={cn("w-3.5 h-3.5", role.color)} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className={cn("text-[12px] font-normal leading-tight", active ? "text-emerald-700" : "text-gray-800")}>{role.label}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{role.desc}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Info note */}
-                  <div className="mt-1 p-2.5 rounded-xl bg-blue-50 border border-blue-100 flex gap-2 items-start">
-                    <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-blue-600 leading-snug">Select a single role. Permissions will auto-apply and can be customised below.</p>
-                  </div>
-                </div>
-
-                {/* Right — Permissions Table */}
-                <div className="flex-1 min-w-0">
-                  {/* Column headers */}
-                  <div className="grid border-b border-[#e1efe5] bg-background/60" style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}>
-                    <div className="px-4 py-2 text-[11px] font-normal text-gray-500 uppercase tracking-wide">Module</div>
-                    {PERMISSION_ACTIONS.map(a => (
-                      <div key={a} className="py-2 text-center text-[10px] font-normal text-gray-500 uppercase tracking-wide">{a}</div>
-                    ))}
-                  </div>
-
-                  {/* Rows */}
-                  {PERMISSIONS_LIST.map((perm, rowIdx) => (
+              {/* Left — Roles */}
+              <div className="w-[240px] border-r border-[#e1efe5] bg-background/30 shrink-0 p-3 flex flex-col gap-2">
+                {AVAILABLE_ROLES.map(role => {
+                  const active = formData.roles.includes(role.id);
+                  return (
                     <div
-                      key={perm.id}
+                      key={role.id}
+                      onClick={() => {
+                        const newRoles = [role.id];
+                        setFormData({
+                          ...formData,
+                          roles: newRoles,
+                          permissions: mergeRolePermissions(newRoles),
+                          handicap: role.id === "PLAYER" ? "20" : ""
+                        });
+                      }}
                       className={cn(
-                        "grid items-center transition-colors hover:bg-emerald-50/20",
-                        rowIdx < PERMISSIONS_LIST.length - 1 && "border-b border-gray-50"
+                        "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
+                        active ? "bg-white border-openclub-700 shadow-[0_0_0_1px_#15803D]" : "bg-white border-[#e1efe5] hover:border-gray-300"
                       )}
-                      style={{gridTemplateColumns: "1fr repeat(5, 52px)"}}
                     >
-                      {/* Module label */}
-                      <div className="flex items-center gap-2.5 px-4 py-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-openclub-800 flex items-center justify-center shrink-0">
-                          <perm.icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-normal text-gray-800 leading-tight">{perm.label}</p>
-                          <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{perm.desc}</p>
-                        </div>
+                      <div className={cn("w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200", active ? "border-openclub-700 bg-white" : "border-gray-300")}>
+                        {active && <div className="w-1.5 h-1.5 rounded-full bg-openclub-700 animate-in zoom-in-50 duration-200" />}
                       </div>
-
-                      {/* Checkboxes */}
-                      {PERMISSION_ACTIONS.map(action => {
-                        const key = action.toLowerCase();
-                        const checked = formData.permissions[perm.id]?.[key] || false;
-                        return (
-                          <div key={action} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const current = formData.permissions[perm.id] || {};
-                                setFormData({
-                                  ...formData,
-                                  permissions: {...formData.permissions, [perm.id]: {...current, [key]: !checked}}
-                                });
-                              }}
-                              className={cn(
-                                "w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
-                                checked
-                                  ? "bg-openclub-700 border-openclub-700"
-                                  : "bg-white border-gray-300 hover:border-emerald-400"
-                              )}
-                            >
-                              {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                            </button>
-                          </div>
-                        );
-                      })}
+                      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", role.bg)}>
+                        <role.icon className={cn("w-3.5 h-3.5", role.color)} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className={cn("text-[12px] font-normal leading-tight", active ? "text-emerald-700" : "text-gray-800")}>{role.label}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{role.desc}</p>
+                      </div>
                     </div>
-                  ))}
+                  );
+                })}
 
-                  {/* Role summary badge row */}
-                  {formData.roles.length > 0 && (
-                    <div className="px-4 py-2 border-t border-[#e1efe5] bg-background/40 flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
-                      {formData.roles.map(r => {
-                        const rMeta = AVAILABLE_ROLES.find(x => x.id === r);
-                        return (
-                          <span key={r} className={cn("px-2 py-0.5 rounded-full text-[10px] font-normal border", rMeta?.bg, rMeta?.color, "border-current border-opacity-30")}>
-                            {rMeta?.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
+                {/* Info note */}
+                <div className="mt-1 p-2.5 rounded-xl bg-blue-50 border border-blue-100 flex gap-2 items-start">
+                  <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-600 leading-snug">Select a single role. Permissions will auto-apply and can be customised below.</p>
                 </div>
               </div>
+
+              {/* Right — Permissions Table */}
+              <div className="flex-1 min-w-0">
+                {/* Column headers */}
+                <div className="grid border-b border-[#e1efe5] bg-background/60" style={{ gridTemplateColumns: "1fr repeat(5, 52px)" }}>
+                  <div className="px-4 py-2 text-[11px] font-normal text-gray-500 uppercase tracking-wide">Module</div>
+                  {PERMISSION_ACTIONS.map(a => (
+                    <div key={a} className="py-2 text-center text-[10px] font-normal text-gray-500 uppercase tracking-wide">{a}</div>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                {PERMISSIONS_LIST.map((perm, rowIdx) => (
+                  <div
+                    key={perm.id}
+                    className={cn(
+                      "grid items-center transition-colors hover:bg-emerald-50/20",
+                      rowIdx < PERMISSIONS_LIST.length - 1 && "border-b border-gray-50"
+                    )}
+                    style={{ gridTemplateColumns: "1fr repeat(5, 52px)" }}
+                  >
+                    {/* Module label */}
+                    <div className="flex items-center gap-2.5 px-4 py-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 text-openclub-800 flex items-center justify-center shrink-0">
+                        <perm.icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-normal text-gray-800 leading-tight">{perm.label}</p>
+                        <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{perm.desc}</p>
+                      </div>
+                    </div>
+
+                    {/* Checkboxes */}
+                    {PERMISSION_ACTIONS.map(action => {
+                      const key = action.toLowerCase();
+                      const checked = formData.permissions[perm.id]?.[key] || false;
+                      return (
+                        <div key={action} className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = formData.permissions[perm.id] || {};
+                              setFormData({
+                                ...formData,
+                                permissions: { ...formData.permissions, [perm.id]: { ...current, [key]: !checked } }
+                              });
+                            }}
+                            className={cn(
+                              "w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
+                              checked
+                                ? "bg-openclub-700 border-openclub-700"
+                                : "bg-white border-gray-300 hover:border-emerald-400"
+                            )}
+                          >
+                            {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+
+                {/* Role summary badge row */}
+                {formData.roles.length > 0 && (
+                  <div className="px-4 py-2 border-t border-[#e1efe5] bg-background/40 flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wide mr-1">Active roles:</span>
+                    {formData.roles.map(r => {
+                      const rMeta = AVAILABLE_ROLES.find(x => x.id === r);
+                      return (
+                        <span key={r} className={cn("px-2 py-0.5 rounded-full text-[10px] font-normal border", rMeta?.bg, rMeta?.color, "border-current border-opacity-30")}>
+                          {rMeta?.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
         );
       case 3: {
         const fullNameStr = `${formData.firstName} ${formData.middleName} ${formData.surname}`.replace(/\s+/g, ' ').trim();
@@ -939,248 +939,248 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Premium Replica of Organizer Profile from screenshot */}
             <div className="p-5 space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#e1efe5] pb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-[14px] font-medium text-gray-900">Organizer Profile</h4>
-                      <span className="px-2 py-0.5 text-[10px] font-normal bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Details about the organizer or organization.</p>
-                  </div>
-                </div>
-
-                {/* Name & Type */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Organization Name" required>
-                    <Input 
-                      value={orgProfile.name} 
-                      onChange={(e) => setOrgProfile({...orgProfile, name: e.target.value})}
-                      placeholder="e.g. Lakowe Golf Club"
-                      className={cn("", showValidation && !orgProfile.name.trim() && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Organization Type" required>
-                    <SearchableSelect 
-                      value={orgProfile.type}
-                      onValueChange={(v) => setOrgProfile({...orgProfile, type: v})}
-                      options={[
-                        { value: "Golf Club", label: "Golf Club" },
-                        { value: "Tournament Organizer", label: "Tournament Organizer" },
-                        { value: "Sports Association", label: "Sports Association" },
-                        { value: "Other", label: "Other" }
-                      ]}
-                      triggerClassName={cn("", showValidation && !orgProfile.type.trim() && "!border-red-500")}
-                    />
-                  </Field>
-                </div>
-
-                {orgProfile.type === "Other" && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Field label="Specify Organization Type" required>
-                      <Input 
-                        value={orgProfile.customType} 
-                        onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
-                        placeholder="Enter organization type"
-                        className={cn("", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
-                      />
-                    </Field>
-                  </div>
-                )}
-
-                {/* Logo & Website */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Organization Logo" required>
-                    <div className="relative h-[100px]">
-                      {orgProfile.logo ? (
-                        <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-[100px] w-[100px] mx-auto">
-                          <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => setOrgProfile({...orgProfile, logo: ""})}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div onClick={() => orgLogoInputRef.current?.click()}
-                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e1efe5]")}>
-                          <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                            <Upload className="w-4 h-4 text-gray-400 group-hover:text-openclub-700" />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Logo</p>
-                            <p className="text-[8px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
-                          </div>
-                        </div>
-                      )}
-                      <input ref={orgLogoInputRef} type="file" accept="image/*" className="hidden"
-                        onChange={handleOrgLogoChange} />
-                    </div>
-                  </Field>
-                  <Field label="Website" optional>
-                    <div className="relative flex flex-col gap-1">
-                      <Input 
-                        value={orgProfile.website} 
-                        onChange={(e) => setOrgProfile({...orgProfile, website: e.target.value})}
-                        placeholder="e.g. https://lakowegolfclub.com"
-                        className=""
-                      />
-                      <p className="text-[9px] text-gray-400">Optional website or social link</p>
-                    </div>
-                  </Field>
-                </div>
-
-                {/* Country & State / Province */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Country" required>
-                    <SearchableSelect 
-                      value={orgProfile.country}
-                      onValueChange={v => setOrgProfile({...orgProfile, country: v, state: "", city: ""})}
-                      options={countryOptions}
-                      triggerClassName={cn(showValidation && !orgProfile.country && "!border-red-500")}
-                      placeholder="Select country"
-                    />
-                  </Field>
-                  <Field label="State / Province" required>
-                    <SearchableSelect 
-                      value={orgProfile.state}
-                      onValueChange={v => setOrgProfile({...orgProfile, state: v, city: ""})}
-                      options={orgStateOptions}
-                      disabled={!orgProfile.country}
-                      triggerClassName={cn(showValidation && !orgProfile.state && "!border-red-500")}
-                      placeholder="Select state / province"
-                    />
-                  </Field>
-                </div>
-
-                {/* LGA / City */}
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#e1efe5] pb-3">
                 <div>
-                  <Field label="LGA / City" required>
-                    {orgCityOptions.length > 0 ? (
-                      <SearchableSelect 
-                        value={orgProfile.city}
-                        onValueChange={v => setOrgProfile({...orgProfile, city: v})}
-                        options={orgCityOptions}
-                        disabled={!orgProfile.state}
-                        triggerClassName={cn(showValidation && !orgProfile.city && "!border-red-500")}
-                        placeholder="Select LGA / City"
-                      />
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-[14px] font-medium text-gray-900">Organizer Profile</h4>
+                    <span className="px-2 py-0.5 text-[10px] font-normal bg-[#8b5cf6]/10 text-[#8b5cf6] rounded-full uppercase tracking-wider">Selected</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Details about the organizer or organization.</p>
+                </div>
+              </div>
+
+              {/* Name & Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Organization Name" required>
+                  <Input
+                    value={orgProfile.name}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, name: e.target.value })}
+                    placeholder="e.g. Lakowe Golf Club"
+                    className={cn("", showValidation && !orgProfile.name.trim() && "!border-red-500")}
+                  />
+                </Field>
+                <Field label="Organization Type" required>
+                  <SearchableSelect
+                    value={orgProfile.type}
+                    onValueChange={(v) => setOrgProfile({ ...orgProfile, type: v })}
+                    options={[
+                      { value: "Golf Club", label: "Golf Club" },
+                      { value: "Tournament Organizer", label: "Tournament Organizer" },
+                      { value: "Sports Association", label: "Sports Association" },
+                      { value: "Other", label: "Other" }
+                    ]}
+                    triggerClassName={cn("", showValidation && !orgProfile.type.trim() && "!border-red-500")}
+                  />
+                </Field>
+              </div>
+
+              {orgProfile.type === "Other" && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Field label="Specify Organization Type" required>
+                    <Input
+                      value={orgProfile.customType}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, customType: e.target.value })}
+                      placeholder="Enter organization type"
+                      className={cn("", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {/* Logo & Website */}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Organization Logo" required>
+                  <div className="relative h-[100px]">
+                    {orgProfile.logo ? (
+                      <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-[100px] w-[100px] mx-auto">
+                        <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setOrgProfile({ ...orgProfile, logo: "" })}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     ) : (
-                      <Input 
-                        placeholder="Enter LGA / city"
-                        value={orgProfile.city} 
-                        onChange={(e) => setOrgProfile({...orgProfile, city: e.target.value})} 
-                        className={cn(showValidation && !orgProfile.city && "!border-red-500")}
-                        disabled={!orgProfile.state}
-                      />
+                      <div onClick={() => orgLogoInputRef.current?.click()}
+                        className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e1efe5]")}>
+                        <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                          <Upload className="w-4 h-4 text-gray-400 group-hover:text-openclub-700" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Logo</p>
+                          <p className="text-[8px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
+                        </div>
+                      </div>
                     )}
+                    <input ref={orgLogoInputRef} type="file" accept="image/*" className="hidden"
+                      onChange={handleOrgLogoChange} />
+                  </div>
+                </Field>
+                <Field label="Website" optional>
+                  <div className="relative flex flex-col gap-1">
+                    <Input
+                      value={orgProfile.website}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, website: e.target.value })}
+                      placeholder="e.g. https://lakowegolfclub.com"
+                      className=""
+                    />
+                    <p className="text-[9px] text-gray-400">Optional website or social link</p>
+                  </div>
+                </Field>
+              </div>
+
+              {/* Country & State / Province */}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Country" required>
+                  <SearchableSelect
+                    value={orgProfile.country}
+                    onValueChange={v => setOrgProfile({ ...orgProfile, country: v, state: "", city: "" })}
+                    options={countryOptions}
+                    triggerClassName={cn(showValidation && !orgProfile.country && "!border-red-500")}
+                    placeholder="Select country"
+                  />
+                </Field>
+                <Field label="State / Province" required>
+                  <SearchableSelect
+                    value={orgProfile.state}
+                    onValueChange={v => setOrgProfile({ ...orgProfile, state: v, city: "" })}
+                    options={orgStateOptions}
+                    disabled={!orgProfile.country}
+                    triggerClassName={cn(showValidation && !orgProfile.state && "!border-red-500")}
+                    placeholder="Select state / province"
+                  />
+                </Field>
+              </div>
+
+              {/* LGA / City */}
+              <div>
+                <Field label="LGA / City" required>
+                  {orgCityOptions.length > 0 ? (
+                    <SearchableSelect
+                      value={orgProfile.city}
+                      onValueChange={v => setOrgProfile({ ...orgProfile, city: v })}
+                      options={orgCityOptions}
+                      disabled={!orgProfile.state}
+                      triggerClassName={cn(showValidation && !orgProfile.city && "!border-red-500")}
+                      placeholder="Select LGA / City"
+                    />
+                  ) : (
+                    <Input
+                      placeholder="Enter LGA / city"
+                      value={orgProfile.city}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, city: e.target.value })}
+                      className={cn(showValidation && !orgProfile.city && "!border-red-500")}
+                      disabled={!orgProfile.state}
+                    />
+                  )}
+                </Field>
+              </div>
+
+              {/* Organization Address (Relocated under Country, State, LGA!) */}
+              <Field label="Organization Address" required>
+                <div className="relative">
+                  <textarea
+                    value={orgProfile.address}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, address: e.target.value.slice(0, 200) })}
+                    placeholder="KM 42, Lekki-Epe Expressway, Lakowe, Ibeju-Lekki, Lagos State, Nigeria."
+                    className={cn("w-full h-[70px] rounded-xl border shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "!border-red-500" : "border-[#d1e0d5]")}
+                  />
+                  <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
+                    {orgProfile.address.length}/200
+                  </span>
+                </div>
+              </Field>
+
+              {/* Contact Person Details */}
+              <div className="border-t border-[#e1efe5] pt-4 mt-2">
+                <span className="text-[11px] font-normal text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
+
+                {/* Contact Person Name & Email */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Contact Person Name" required>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        value={fullNameStr}
+                        disabled
+                        className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
+                      />
+                    </div>
+                  </Field>
+                  <Field label="Contact Person Email" required>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        value={formData.email}
+                        disabled
+                        className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
+                      />
+                    </div>
                   </Field>
                 </div>
 
-                {/* Organization Address (Relocated under Country, State, LGA!) */}
-                <Field label="Organization Address" required>
-                  <div className="relative">
-                    <textarea 
-                      value={orgProfile.address} 
-                      onChange={(e) => setOrgProfile({...orgProfile, address: e.target.value.slice(0, 200)})}
-                      placeholder="KM 42, Lekki-Epe Expressway, Lakowe, Ibeju-Lekki, Lagos State, Nigeria."
-                      className={cn("w-full h-[70px] rounded-xl border shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700", showValidation && !orgProfile.address.trim() ? "!border-red-500" : "border-[#d1e0d5]")}
-                    />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
-                      {orgProfile.address.length}/200
-                    </span>
-                  </div>
-                </Field>
-
-                {/* Contact Person Details */}
-                <div className="border-t border-[#e1efe5] pt-4 mt-2">
-                  <span className="text-[11px] font-normal text-gray-400 uppercase tracking-wider block mb-3">Contact Person Details</span>
-                  
-                  {/* Contact Person Name & Email */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Contact Person Name" required>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={fullNameStr} 
+                {/* Contact Person Phone Number */}
+                <div className="mt-4">
+                  <Field label="Contact Person Phone Number" required>
+                    <div className="flex gap-2">
+                      <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px] select-none">
+                        +{countryCode}
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          value={formData.phone}
                           disabled
                           className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
                         />
                       </div>
-                    </Field>
-                    <Field label="Contact Person Email" required>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={formData.email} 
-                          disabled
-                          className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
-                        />
-                      </div>
-                    </Field>
-                  </div>
-
-                  {/* Contact Person Phone Number */}
-                  <div className="mt-4">
-                    <Field label="Contact Person Phone Number" required>
-                      <div className="flex gap-2">
-                        <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px] select-none">
-                          +{countryCode}
-                        </div>
-                        <div className="relative flex-1">
-                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input 
-                            value={formData.phone} 
-                            disabled
-                            className="pl-10 bg-background border-[#e1efe5] text-gray-500 font-normal cursor-not-allowed select-none"
-                          />
-                        </div>
-                      </div>
-                    </Field>
-                  </div>
+                    </div>
+                  </Field>
                 </div>
+              </div>
 
-                {/* About the Organization */}
-                <Field label="About the Organization" optional>
-                  <div className="relative">
-                    <textarea 
-                      value={orgProfile.about} 
-                      onChange={(e) => setOrgProfile({...orgProfile, about: e.target.value.slice(0, 500)})}
-                      placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
-                      className="w-full h-20 rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700"
+              {/* About the Organization */}
+              <Field label="About the Organization" optional>
+                <div className="relative">
+                  <textarea
+                    value={orgProfile.about}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, about: e.target.value.slice(0, 500) })}
+                    placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
+                    className="w-full h-20 rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700"
+                  />
+                  <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
+                    {orgProfile.about.length}/500
+                  </span>
+                </div>
+              </Field>
+
+              {/* Social Media Links */}
+              <div>
+                <span className="text-[13px] font-medium text-gray-700 block mb-1.5">Social Media (Optional)</span>
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                    <span className="text-gray-400 text-[11px] font-normal w-4 text-center">f</span>
+                    <input
+                      value={orgProfile.facebook}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, facebook: e.target.value })}
+                      placeholder="facebook.com/handle"
+                      className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
                     />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
-                      {orgProfile.about.length}/500
-                    </span>
                   </div>
-                </Field>
-
-                {/* Social Media Links */}
-                <div>
-                  <span className="text-[13px] font-medium text-gray-700 block mb-1.5">Social Media (Optional)</span>
-                  <div className="flex gap-3 items-center">
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
-                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">f</span>
-                      <input 
-                        value={orgProfile.facebook} 
-                        onChange={(e) => setOrgProfile({...orgProfile, facebook: e.target.value})}
-                        placeholder="facebook.com/handle" 
-                        className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
-                      />
-                    </div>
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
-                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">in</span>
-                      <input 
-                        value={orgProfile.instagram} 
-                        onChange={(e) => setOrgProfile({...orgProfile, instagram: e.target.value})}
-                        placeholder="instagram.com/handle" 
-                        className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
-                      />
-                    </div>
-                    <Button type="button" variant="outline" className="rounded-xl border-[#e1efe5] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-background font-normal">
-                      + Add more
-                    </Button>
+                  <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                    <span className="text-gray-400 text-[11px] font-normal w-4 text-center">in</span>
+                    <input
+                      value={orgProfile.instagram}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, instagram: e.target.value })}
+                      placeholder="instagram.com/handle"
+                      className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
+                    />
                   </div>
+                  <Button type="button" variant="outline" className="rounded-xl border-[#e1efe5] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-background font-normal">
+                    + Add more
+                  </Button>
                 </div>
+              </div>
 
             </div>
           </div>
@@ -1190,7 +1190,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
         const birthDate = formData.dob ? new Date(formData.dob) : null;
         let isJunior = false;
         let ageText = "";
-        
+
         if (birthDate) {
           const today = new Date();
           let age = today.getFullYear() - birthDate.getFullYear();
@@ -1227,7 +1227,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-[11px] font-normal capitalize tracking-wider text-openclub-800 block">New User Account</span>
-                <h4 className="text-[16px] font-normal text-gray-900 flex items-center gap-2 mt-1 leading-tight">
+                <h4 className="text-[16px] font-medium text-gray-900 flex items-center gap-2 mt-1 leading-tight">
                   {formData.firstName} {formData.middleName} {formData.surname}
                 </h4>
                 <p className="text-[12px] text-gray-500 truncate leading-tight">{formData.email}</p>
@@ -1238,8 +1238,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                     <span key={r} className={cn(
                       "px-2 py-0.5 rounded-md text-[9px] font-normal uppercase tracking-wider border",
                       r === "SUPER_ADMIN" ? "bg-rose-50 text-rose-600 border-rose-100" :
-                      r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
-                      "bg-emerald-50 text-openclub-800 border-emerald-100"
+                        r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                          "bg-emerald-50 text-openclub-800 border-emerald-100"
                     )}>
                       {r.replace("_", " ")}
                     </span>
@@ -1259,7 +1259,7 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                   <User className="w-3.5 h-3.5 text-gray-400" />
                   <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Personal & Contact Info</h5>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3.5">
                   <div>
                     <span className="text-[10px] font-normal text-gray-400 uppercase block">Gender</span>
@@ -1402,8 +1402,8 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
                           active
                             ? "bg-[#15803D] text-white"
                             : past
-                            ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
-                            : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                              ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                              : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
                         )}
                       >
                         {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
@@ -1512,9 +1512,9 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
               <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[70px]">
                 <div className={cn(
                   "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
-                  active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : 
-                  past ? "bg-emerald-100 text-openclub-800" : 
-                  "bg-gray-100 text-gray-400"
+                  active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" :
+                    past ? "bg-emerald-100 text-openclub-800" :
+                      "bg-gray-100 text-gray-400"
                 )}>
                   {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
                 </div>

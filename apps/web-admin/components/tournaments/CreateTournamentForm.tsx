@@ -385,7 +385,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 currency: t.currency || "NGN",
                 paymentDeadline: t.paymentDeadline ? t.paymentDeadline.slice(0, 10) : "",
                 isRefundable: t.isRefundable ?? false,
-                autoGrouping: t.autoGrouping ?? false,
+                autoGrouping: t.autoGrouping ?? true,
                 teeStartTime: t.teeStartTime || "",
                 teeIntervalMinutes: t.teeIntervalMinutes || 10,
                 enableLiveScoring: t.enableLiveScoring ?? false,
@@ -574,8 +574,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
         isRefundable: f.requiresPayment ? f.isRefundable : false,
         autoGrouping: f.autoGrouping,
-        teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : null,
-        teeIntervalMinutes: f.autoGrouping ? Number(f.teeIntervalMinutes) : 10,
+        teeStartTime: f.teeStartTime || null,
+        teeIntervalMinutes: Number(f.teeIntervalMinutes) || 10,
         enableLiveScoring: f.enableLiveScoring,
         requireMarkerVerification: f.requireMarkerVerification,
         enableHoleScoring: f.enableHoleScoring,
@@ -653,6 +653,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onChange={(e) => set("name", e.target.value)}
                       placeholder="e.g. Sunshine Tour 2026"
                       className={cn("pl-11", req(formData.name))}
+                      disabled={originalStatus != null && originalStatus !== "DRAFT"}
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
@@ -672,6 +673,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       options={countryOptions}
                       placeholder="Select country..."
                       triggerClassName={req(formData.venue)}
+                      disabled={originalStatus != null && originalStatus !== "DRAFT"}
                     />
                   </Field>
                   <Field label="Golf Course" required>
@@ -684,7 +686,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`,
                       }))}
                       placeholder="Select course..."
-                      disabled={!formData.venue}
+                      disabled={(originalStatus != null && originalStatus !== "DRAFT") || !formData.venue}
                       triggerClassName={req(formData.courseId)}
                     />
                   </Field>
@@ -861,6 +863,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           set("registrationCloseAt", "");
                       }}
                       buttonClassName={req(formData.startDate)}
+                      disabled={originalStatus != null && originalStatus !== "DRAFT"}
                       disablePast
                       disableToday
                       rangeStart={formData.startDate}
@@ -874,7 +877,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         onValueChange={(v) => set("endDate", v)}
                         minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
                         buttonClassName={req(formData.endDate)}
-                        disabled={!formData.startDate}
+                        disabled={(originalStatus != null && originalStatus !== "DRAFT") || !formData.startDate}
                         rangeStart={formData.startDate}
                         rangeEnd={formData.endDate}
                       />
@@ -1271,11 +1274,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         onClick={() => set("enableCut", !formData.enableCut)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-openclub-800">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>
-                          </div>
                           <div>
-                            <h4 className="text-[14px] font-medium text-gray-900">Make Cut</h4>
+                            <h4 className="text-[14px] font-normal text-gray-900">Make Cut</h4>
                             <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
                           </div>
                         </div>
@@ -1642,9 +1642,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
             </div>
 
+            {(!originalStatus || originalStatus === "DRAFT") && (
             <div className="">
               <div
-                className={cn("px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between", (originalStatus && originalStatus !== "DRAFT") ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+                className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
                 onClick={() => {
                   if (originalStatus && originalStatus !== "DRAFT") return;
                   set("publishImmediately", !formData.publishImmediately);
@@ -1689,6 +1690,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 <div className="p-2" />
               )}
             </div>
+            )}
           </div>
         );
       default:

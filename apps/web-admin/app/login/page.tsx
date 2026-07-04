@@ -107,7 +107,7 @@ function LoginPageInner() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
           
           <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#cfff3d] mb-4 leading-none">
+            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#ffffff] mb-4 leading-none">
               THE LEADERBOARD,<br/>DIGITIZED.
             </h1>
             <p className="text-xl max-w-[400px]">
@@ -118,7 +118,7 @@ function LoginPageInner() {
 
         {/* RIGHT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#cfff3d] relative">
+          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#ffffff] relative">
             
             <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-2 tracking-tighter">Welcome Back</h2>
             <p className="text-[#6b7280] text-[1.125rem] mb-10">Log in to access your dashboard.</p>
@@ -126,7 +126,7 @@ function LoginPageInner() {
             {/* OAuth Button */}
             <button
               type="button"
-              className="w-full bg-white border-[3px] border-[#111111] py-3 px-6 flex items-center justify-center gap-3 font-bold capitalize text-[1rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] mb-8"
+              className="w-full bg-white border-[3px] border-[#111111] py-3 px-6 flex items-center justify-center gap-3 font-bold capitalize text-[1rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] mb-8"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -159,7 +159,7 @@ function LoginPageInner() {
                   id="email"
                   type="email"
                   placeholder="golfer@example.com"
-                  className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                  className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
@@ -175,13 +175,13 @@ function LoginPageInner() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                    className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
                     {...form.register("password")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#cfff3d]"
+                    className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -201,20 +201,20 @@ function LoginPageInner() {
                       onChange={() => setRememberMe(!rememberMe)}
                       className="peer sr-only"
                     />
-                    <div className="w-5 h-5 border-[3px] border-[#111111] bg-[#f4f6f3] peer-checked:bg-[#cfff3d] flex items-center justify-center transition-colors">
+                    <div className="w-5 h-5 border-[3px] border-[#111111] bg-[#f4f6f3] peer-checked:bg-[#ffffff] flex items-center justify-center transition-colors">
                       {rememberMe && <svg className="w-3 h-3 text-[#111111]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
                   </div>
                   <span className="ml-3 uppercase">Remember me</span>
                 </label>
-                <a href="/forgot-password" className="uppercase underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Forgot password?</a>
+                <a href="/forgot-password" className="uppercase underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Forgot password?</a>
               </div>
 
               {/* Sign In Button */}
               <button
                 type="submit"
                 disabled={isLoading || form.formState.isSubmitting}
-                className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
+                className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
               >
                 {isLoading ? (
                   <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
@@ -226,7 +226,7 @@ function LoginPageInner() {
 
             <div className="mt-8 text-center font-bold">
               <p className="text-[#111111]">
-                Don't have an account? <a href="/signup-organisation" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Create one</a>
+                Don't have an account? <a href="/signup-organisation" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Create one</a>
               </p>
             </div>
           </div>
@@ -240,13 +240,13 @@ function LoginPageInner() {
         title="Email Not Verified"
         footer={
           <>
-            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 border-[3px] border-[#111111] font-bold uppercase hover:bg-[#111111] hover:text-[#cfff3d]">
+            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 border-[3px] border-[#111111] font-bold uppercase hover:bg-[#111111] hover:text-[#ffffff]">
               Cancel
             </button>
             <button
               onClick={handleResendVerification}
               disabled={isResending}
-              className="px-6 py-2 bg-[#cfff3d] border-[3px] border-[#111111] font-bold capitalize shadow-[4px_4px_0_#111111] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]"
+              className="px-6 py-2 bg-[#ffffff] border-[3px] border-[#111111] font-bold capitalize shadow-[4px_4px_0_#15803D] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]"
             >
               {isResending ? <Icons.spinner className="w-5 h-5 animate-spin" /> : "Send New Link"}
             </button>
@@ -254,7 +254,7 @@ function LoginPageInner() {
         }
       >
         <div className="flex flex-col items-center text-center py-4 font-[family-name:var(--font-space-grotesk)]">
-          <div className="w-20 h-20 bg-[#cfff3d] border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-6">
+          <div className="w-20 h-20 bg-[#ffffff] border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-6">
             <AlertCircle className="h-10 w-10 text-[#111111]" />
           </div>
           <h4 className="text-xl font-bold uppercase mb-2">Check your email</h4>

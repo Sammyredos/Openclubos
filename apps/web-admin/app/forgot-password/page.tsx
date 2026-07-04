@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
           
           <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#cfff3d] mb-4 leading-none">
+            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#ffffff] mb-4 leading-none">
               LOST YOUR<br/>SCORECARD?
             </h1>
             <p className="text-xl max-w-[400px]">
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
 
         {/* RIGHT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#cfff3d] relative">
+          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#ffffff] relative">
             
             {pageState !== "sent" ? (
               <>
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
                       id="reset-email"
                       type="email"
                       placeholder="golfer@example.com"
-                      className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                      className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
                       disabled={pageState === "loading"}
                       {...form.register("email")}
                     />
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={pageState === "loading"}
-                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
+                    className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
@@ -99,14 +99,14 @@ export default function ForgotPasswordPage() {
 
                 <div className="mt-8 text-center font-bold">
                   <p className="text-[#111111]">
-                    Remembered your password? <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Sign in</a>
+                    Remembered your password? <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Sign in</a>
                   </p>
                 </div>
               </>
             ) : (
               <>
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-20 bg-[#cfff3d] border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                  <div className="w-20 h-20 bg-[#ffffff] border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-8">
                     <CheckCircle2 className="h-10 w-10 text-[#111111]" />
                   </div>
                   
@@ -117,13 +117,13 @@ export default function ForgotPasswordPage() {
 
                   <button
                     onClick={() => { setPageState("idle"); form.setValue("email", sentEmail) }}
-                    className="w-full bg-white border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] mb-6"
+                    className="w-full bg-white border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] mb-6"
                   >
                     Resend Email
                   </button>
 
                   <div className="text-center font-bold">
-                    <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                    <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Back to Sign In</a>
                   </div>
                 </div>
               </>

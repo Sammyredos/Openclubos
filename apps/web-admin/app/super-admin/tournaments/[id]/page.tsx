@@ -1307,125 +1307,139 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
-      {/* Back Header */}
-      <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-xl p-5 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/super-admin/tournaments")}
-            className="w-10 h-10 border border-gray-200 hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-[14px] font-normal text-gray-900">{selectedTournament.name}</h1>
-              <span className={cn(
-                "px-2.5 py-0.5 rounded-lg text-[11px] font-normal uppercase tracking-wide border",
-                STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
-              )}>
-                {selectedTournament.status}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 text-[13px] text-gray-500 font-normal">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.clubName}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.dates}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <Trophy className="w-3.5 h-3.5 opacity-70" />
-                {selectedTournament.type || "Stroke Play"}
-              </span>
-              <span className="w-px h-3.5 bg-gray-300"></span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md border border-gray-200 uppercase tracking-wider text-gray-500">HCP</span>
-                {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
-              </span>
+      {/* Premium Back Header */}
+      <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
+
+        <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+          <div className="flex items-start md:items-center gap-5">
+            <button
+              onClick={() => router.push("/super-admin/tournaments")}
+              className="mt-1 md:mt-0 flex-shrink-0 w-11 h-11 bg-white border border-gray-200 shadow-sm hover:border-openclub-400 hover:shadow-md text-gray-500 hover:text-openclub-700 rounded-full flex items-center justify-center transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-300" />
+            </button>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-[20px] md:text-[24px] font-semibold text-gray-900 tracking-tight">{selectedTournament.name}</h1>
+                <span className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-widest border shadow-sm",
+                  STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
+                )}>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-pulse" />
+                    {selectedTournament.status}
+                  </span>
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-gray-600 font-normal">
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <MapPin className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.clubName}
+                </div>
+
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.dates}
+                </div>
+
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <Trophy className="w-3.5 h-3.5" />
+                  </div>
+                  {selectedTournament.type || "Stroke Play"}
+                </div>
+
+                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
+                    <span className="text-[9px] uppercase tracking-wider">HCP</span>
+                  </div>
+                  {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {selectedTournament.statusKey === "DRAFT" && (
-            <Button
-              onClick={async () => {
-                try {
-                  setMutating(true);
-                  await updateTournament(selectedTournament.id, { publishImmediately: true });
-                  toast.success("Tournament published successfully!");
-                  await reloadSingleTournament();
-                } catch (e: any) {
-                  toast.error(e.message || "Failed to publish tournament");
-                } finally {
-                  setMutating(false);
-                }
-              }}
-              disabled={mutating}
-              className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-normal text-[12px] flex items-center gap-2 rounded-xl px-6 shadow-lg shadow-blue-100"
-            >
-              <Send className="w-4 h-4" />
-              Publish Now
-            </Button>
-          )}
-
-          <Button
-            onClick={() => openEdit(selectedTournament)}
-            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-            variant="outline"
-            className="bg-white h-10 border-gray-200 text-gray-700 hover:bg-background font-normal text-[12px] flex items-center gap-2 rounded-xl shadow-sm"
-          >
-            <Edit2 className="w-4 h-4 text-gray-400" />
-            Edit Tournament
-          </Button>
-
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={(e) => {
-                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                setDropdownAnchorEl(e.currentTarget);
-              }}
-              className="bg-white h-10 w-10 p-0 rounded-xl border border-gray-200 text-gray-700 hover:bg-background flex items-center justify-center shadow-sm"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-            {activeDropdown === selectedTournament.id && (
-              <FloatingMenu
-                open={activeDropdown === selectedTournament.id}
-                anchorEl={dropdownAnchorEl}
-                onClose={closeDropdown}
-                placement="bottom-end"
-                className="w-52 bg-white rounded-xl shadow-lg border border-[#efefef] py-2"
+          <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
+            {selectedTournament.statusKey === "DRAFT" && (
+              <Button
+                onClick={async () => {
+                  try {
+                    setMutating(true);
+                    await updateTournament(selectedTournament.id, { publishImmediately: true });
+                    toast.success("Tournament published successfully!");
+                    await reloadSingleTournament();
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to publish tournament");
+                  } finally {
+                    setMutating(false);
+                  }
+                }}
+                disabled={mutating}
+                className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-6 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02]"
               >
-                <button
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
-                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-700 hover:bg-background"
-                  )}
-                  onClick={() => {
-                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
-                      handleMenuAction(selectedTournament, "cancel");
-                    }
-                  }}
-                >
-                  <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
-                </button>
-                <div className="h-px bg-background my-1 mx-2" />
-                <button
-                  className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg"
-                  onClick={() => handleMenuAction(selectedTournament, "delete")}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
-                </button>
-              </FloatingMenu>
+                <Send className="w-4 h-4" />
+                Publish Now
+              </Button>
             )}
+
+            <Button
+              onClick={() => openEdit(selectedTournament)}
+              disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+              variant="outline"
+              className="bg-white h-11 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            >
+              <Edit2 className="w-4 h-4 text-gray-400" />
+              Edit Tournament
+            </Button>
+
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={(e) => {
+                  setActiveDropdown(activeDropdown ? null : selectedTournament.id);
+                  setDropdownAnchorEl(e.currentTarget);
+                }}
+                className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+              {activeDropdown === selectedTournament.id && (
+                <FloatingMenu
+                  open={activeDropdown === selectedTournament.id}
+                  anchorEl={dropdownAnchorEl}
+                  onClose={closeDropdown}
+                  placement="bottom-end"
+                  className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
+                >
+                  <button
+                    className={cn(
+                      "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
+                      selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-700 hover:bg-background"
+                    )}
+                    onClick={() => {
+                      if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
+                        handleMenuAction(selectedTournament, "cancel");
+                      }
+                    }}
+                  >
+                    <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
+                  </button>
+                  <div className="h-px bg-background my-1 mx-2" />
+                  <button
+                    className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg"
+                    onClick={() => handleMenuAction(selectedTournament, "delete")}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
+                  </button>
+                </FloatingMenu>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2338,12 +2352,12 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                         <div className="flex gap-3">
-                          <Mail className="w-5 h-5 text-openclub-800 flex-shrink-0" />
+                          <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
                           <div>
-                            <h4 className="text-[14px] font-normal text-emerald-900">Send Tee Times via Email</h4>
-                            <p className="text-[12px] text-emerald-700 mt-0.5">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+                            <h4 className="text-[16px] font-medium text-gray-900">Send Tee Times via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-1">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2353,12 +2367,12 @@ function ViewTournamentPageInner() {
                           }}
                           disabled={groupingsGenerating || groupingsLoading}
                           className={cn(
-                            "bg-openclub-800 hover:bg-emerald-700 text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative",
-                            justGrouped && "animate-pulse ring-4 ring-openclub-700/30"
+                            "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
+                            justGrouped && "animate-pulse ring-4 ring-gray-200"
                           )}
                         >
                           <Mail className="w-4 h-4" />
-                          Publish via Email
+                          Publish Via Email
                           {publishClickCount > 0 && (
                             <span className="ml-1 bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px]">
                               {publishClickCount}
@@ -3124,7 +3138,7 @@ function ViewTournamentPageInner() {
                                       <td colSpan={20} className="px-0 py-0 bg-background">
                                         <div className="flex items-center justify-center py-3 border-y-2 border-dashed border-red-300">
                                           <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm border border-red-200">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>
                                             <span className="text-[11px] font-normal text-red-600 uppercase tracking-widest">Cut Line</span>
                                           </div>
                                         </div>
@@ -3133,127 +3147,127 @@ function ViewTournamentPageInner() {
                                   )}
                                   <tr className="hover:bg-background/50 transition-colors group">
                                     <td className="px-6 py-4 text-center">
-                                    <div className="flex items-center justify-center">
-                                      {entry.status === "DISQUALIFIED" ? (
-                                        <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase tracking-tight">DQ</span>
-                                      ) : rank === 1 ? (
-                                        <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
-                                          <Trophy className="w-4 h-4 text-yellow-600" />
-                                        </div>
-                                      ) : rank === 2 ? (
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
-                                          <Award className="w-4 h-4 text-gray-400" />
-                                        </div>
-                                      ) : rank === 3 ? (
-                                        <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
-                                          <Award className="w-4 h-4 text-orange-600" />
-                                        </div>
-                                      ) : (
-                                        <span className="text-[13px] font-normal text-gray-400">{rank}</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
-                                        <img
-                                          src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
-                                          className="w-full h-full object-cover"
-                                          alt=""
-                                        />
+                                      <div className="flex items-center justify-center">
+                                        {entry.status === "DISQUALIFIED" ? (
+                                          <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase tracking-tight">DQ</span>
+                                        ) : rank === 1 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                            <Trophy className="w-4 h-4 text-yellow-600" />
+                                          </div>
+                                        ) : rank === 2 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-gray-400" />
+                                          </div>
+                                        ) : rank === 3 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-orange-600" />
+                                          </div>
+                                        ) : (
+                                          <span className="text-[13px] font-normal text-gray-400">{rank}</span>
+                                        )}
                                       </div>
-                                      <div className="min-w-0">
-                                        <div className="text-[13px] font-medium text-gray-900 truncate">
-                                          {entry.user.firstName} {entry.user.lastName}
-                                        </div>
-                                        <div className="text-[10px] text-gray-400 font-normal truncate">
-                                          {entry.user.email}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <span className="text-[11px] font-normal text-gray-500 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5] uppercase tracking-tight whitespace-nowrap">
-                                      {getGolfCategory(entry.user.handicap)}
-                                    </span>
-                                  </td>
-                                  {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
-                                    const day = i + 1;
-                                    const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
-                                    const missedCut = entry.madeCut === false;
-
-                                    if (isAfterCut && missedCut) {
-                                      return (
-                                        <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                          <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg uppercase tracking-tight" title="Missed Cut">MC</span>
-                                        </td>
-                                      );
-                                    }
-
-                                    return (
-                                      <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                        <span className="text-[13px] font-normal text-gray-700">{entry.rounds[day] || "-"}</span>
-                                      </td>
-                                    );
-                                  })}
-                                  <td className="px-6 py-4 text-center">
-                                    <div className="space-y-1.5">
-                                      <span className="text-[12px] font-normal text-gray-600">
-                                        {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
-                                      </span>
-                                      {entry.grossStrokes > 0 && (
-                                        <div className="w-20 mx-auto h-1 bg-gray-100 rounded-lg overflow-hidden">
-                                          <div
-                                            className="h-full bg-openclub-700 rounded-lg transition-all duration-500"
-                                            style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+                                          <img
+                                            src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
+                                            className="w-full h-full object-cover"
+                                            alt=""
                                           />
                                         </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <div className="flex flex-col items-center justify-center gap-1">
-                                      <span className="text-[13px] font-normal text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
-                                      {entry.extraStrokes > 0 && (
-                                        <span className="text-[9px] font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
-                                          +{entry.extraStrokes} Pen
+                                        <div className="min-w-0">
+                                          <div className="text-[13px] font-medium text-gray-900 truncate">
+                                            {entry.user.firstName} {entry.user.lastName}
+                                          </div>
+                                          <div className="text-[10px] text-gray-400 font-normal truncate">
+                                            {entry.user.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-normal text-gray-500 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5] uppercase tracking-tight whitespace-nowrap">
+                                        {getGolfCategory(entry.user.handicap)}
+                                      </span>
+                                    </td>
+                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
+                                      const day = i + 1;
+                                      const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
+                                      const missedCut = entry.madeCut === false;
+
+                                      if (isAfterCut && missedCut) {
+                                        return (
+                                          <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                            <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg uppercase tracking-tight" title="Missed Cut">MC</span>
+                                          </td>
+                                        );
+                                      }
+
+                                      return (
+                                        <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                          <span className="text-[13px] font-normal text-gray-700">{entry.rounds[day] || "-"}</span>
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="space-y-1.5">
+                                        <span className="text-[12px] font-normal text-gray-600">
+                                          {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
                                         </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <span className="text-[11px] font-normal text-gray-400 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5]">
-                                      {entry.user.handicap || 0}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <span className="text-[15px] font-normal text-gray-700">
-                                      {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <span className={cn(
-                                      "text-[15px] font-normal",
-                                      entry.toPar < 0 ? "text-red-600" : entry.toPar > 0 ? "text-gray-900" : "text-openclub-800"
-                                    )}>
-                                      {entry.grossStrokes > 0 ? (entry.toPar > 0 ? `+${entry.toPar}` : entry.toPar === 0 ? "E" : entry.toPar) : "-"}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                    {entry.status === "DISQUALIFIED" ? (
-                                      <span className="text-[10px] font-normal bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
-                                    ) : entry.madeCut === false ? (
-                                      <span className="text-[10px] font-normal bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
-                                    ) : entry.grossStrokes > 0 ? (
-                                      entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
-                                        <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                        {entry.grossStrokes > 0 && (
+                                          <div className="w-20 mx-auto h-1 bg-gray-100 rounded-lg overflow-hidden">
+                                            <div
+                                              className="h-full bg-openclub-700 rounded-lg transition-all duration-500"
+                                              style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="flex flex-col items-center justify-center gap-1">
+                                        <span className="text-[13px] font-normal text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                        {entry.extraStrokes > 0 && (
+                                          <span className="text-[9px] font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
+                                            +{entry.extraStrokes} Pen
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-normal text-gray-400 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5]">
+                                        {entry.user.handicap || 0}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[15px] font-normal text-gray-700">
+                                        {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className={cn(
+                                        "text-[15px] font-normal",
+                                        entry.toPar < 0 ? "text-red-600" : entry.toPar > 0 ? "text-gray-900" : "text-openclub-800"
+                                      )}>
+                                        {entry.grossStrokes > 0 ? (entry.toPar > 0 ? `+${entry.toPar}` : entry.toPar === 0 ? "E" : entry.toPar) : "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      {entry.status === "DISQUALIFIED" ? (
+                                        <span className="text-[10px] font-normal bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                      ) : entry.madeCut === false ? (
+                                        <span className="text-[10px] font-normal bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
+                                      ) : entry.grossStrokes > 0 ? (
+                                        entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
+                                          <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                        ) : (
+                                          <span className="text-[10px] font-normal bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                        )
                                       ) : (
-                                        <span className="text-[10px] font-normal bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
-                                      )
-                                    ) : (
-                                      <span className="text-[10px] font-normal bg-background text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
-                                    )}
-                                  </td>
+                                        <span className="text-[10px] font-normal bg-background text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                      )}
+                                    </td>
                                   </tr>
                                 </React.Fragment>
                               );

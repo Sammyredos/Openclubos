@@ -74,7 +74,7 @@ function ResetPasswordPageInner() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
           
           <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#cfff3d] mb-4 leading-none">
+            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#ffffff] mb-4 leading-none">
               BACK IN<br/>THE GAME.
             </h1>
             <p className="text-xl max-w-[400px]">
@@ -85,11 +85,11 @@ function ResetPasswordPageInner() {
 
         {/* RIGHT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#cfff3d] relative">
+          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#ffffff] relative">
             
             {pageState === "success" ? (
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-[#cfff3d] border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                <div className="w-20 h-20 bg-[#ffffff] border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-8">
                   <CheckCircle2 className="h-10 w-10 text-[#111111]" />
                 </div>
                 
@@ -99,14 +99,14 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <a href="/login" className="w-full">
-                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                  <button className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]">
                     Continue to Sign In
                   </button>
                 </a>
               </div>
             ) : pageState === "error" ? (
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-red-100 border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] flex items-center justify-center mb-8">
+                <div className="w-20 h-20 bg-red-100 border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-8">
                   <Icons.logo className="h-10 w-10 text-[#111111]" />
                 </div>
                 
@@ -116,13 +116,13 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <a href="/forgot-password" className="w-full mb-6">
-                  <button className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111]">
+                  <button className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]">
                     Request a New Link
                   </button>
                 </a>
                 
                 <div className="text-center font-bold">
-                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Back to Sign In</a>
                 </div>
               </div>
             ) : (
@@ -139,14 +139,14 @@ function ResetPasswordPageInner() {
                         id="newPassword"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
                         disabled={pageState === "loading"}
                         {...form.register("newPassword")}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#cfff3d]"
+                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -164,14 +164,14 @@ function ResetPasswordPageInner() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#cfff3d]"
+                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
                         disabled={pageState === "loading"}
                         {...form.register("confirmPassword")}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#cfff3d]"
+                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -185,7 +185,7 @@ function ResetPasswordPageInner() {
                   <button
                     type="submit"
                     disabled={pageState === "loading"}
-                    className="w-full bg-[#cfff3d] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#111111] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#111111] disabled:opacity-50 mt-4"
+                    className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
@@ -196,7 +196,7 @@ function ResetPasswordPageInner() {
                 </form>
 
                 <div className="mt-8 text-center font-bold">
-                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#cfff3d] transition-colors">Back to Sign In</a>
+                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Back to Sign In</a>
                 </div>
               </>
             )}

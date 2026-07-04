@@ -181,7 +181,12 @@ export class TournamentsService {
         _count: {
           select: {
             registrations: {
-              where: { status: 'APPROVED' },
+              where: { 
+                OR: [
+                  { status: 'APPROVED' },
+                  { paymentStatus: 'PAID' }
+                ]
+              },
             },
           },
         },
@@ -255,7 +260,12 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' },
+                where: { 
+                  OR: [
+                    { status: 'APPROVED' },
+                    { paymentStatus: 'PAID' }
+                  ]
+                },
               },
             },
           },
