@@ -228,7 +228,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       setShowValidation(false);
       setIsMultiDay(false);
       setFormData(prev => ({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || "") : "" }));
-      
+
       if (user?.role === "SUPER_ADMIN") {
         getOrganizers({ take: 100 })
           .then((d: any) => {
@@ -543,52 +543,52 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               </div>
             )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Tournament Banner" required>
-                  <div className="relative">
-                    {formData.bannerPreview ? (
-                      <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-40">
-                        <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                        <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
-                          Compressed to ≤50KB
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Tournament Banner" required>
+                <div className="relative">
+                  {formData.bannerPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-40">
+                      <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
+                      <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
+                        Compressed to ≤50KB
+                      </div>
+                    </div>
+                  ) : (
+                    <div onClick={() => fileInputRef.current?.click()}
+                      className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-[#e1efe5]")}>
+                      {compressing ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-openclub-700 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-[12px] text-gray-400">Compressing image...</span>
                         </div>
-                      </div>
-                    ) : (
-                      <div onClick={() => fileInputRef.current?.click()}
-                        className={cn("h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", req(formData.bannerUrl) || "border-[#e1efe5]")}>
-                        {compressing ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="w-8 h-8 border-2 border-openclub-700 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-[12px] text-gray-400">Compressing image...</span>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                            <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
                           </div>
-                        ) : (
-                          <>
-                            <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                              <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[13px] font-normal text-gray-600 group-hover:text-openclub-800">Click to upload banner</p>
-                              <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }} />
-                  </div>
-                </Field>
+                          <div className="text-center">
+                            <p className="text-[13px] font-normal text-gray-600 group-hover:text-openclub-800">Click to upload banner</p>
+                            <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }} />
+                </div>
+              </Field>
 
-                <Field label="Description" required>
-                  <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
-                    placeholder="Brief description of the tournament..."
-                    className={cn("flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none", req(formData.description))} />
-                </Field>
-              </div>
+              <Field label="Description" required>
+                <textarea value={formData.description} onChange={(e) => set("description", e.target.value)}
+                  placeholder="Brief description of the tournament..."
+                  className={cn("flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none", req(formData.description))} />
+              </Field>
+            </div>
           </div>
         </div>
       );
@@ -606,121 +606,121 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           <div className="p-5 space-y-6">
 
-              {/* Radio toggle — One Day vs Multi-Day */}
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium text-gray-600">Tournament Duration</Label>
-                <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => { setIsMultiDay(false); set("endDate", ""); }}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
-                      !isMultiDay
-                        ? "bg-[#15803D] text-white"
-                        : "bg-white text-gray-500 hover:bg-background",
-                    )}
-                  >
-                    <span className={cn(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                      !isMultiDay ? "border-white bg-white" : "border-gray-300",
-                    )}>
-                      {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
-                    </span>
-                    One Day
-                  </button>
-                  <div className="w-px bg-gray-200" />
-                  <button
-                    type="button"
-                    onClick={() => setIsMultiDay(true)}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
-                      isMultiDay
-                        ? "bg-[#15803D] text-white"
-                        : "bg-white text-gray-500 hover:bg-background",
-                    )}
-                  >
-                    <span className={cn(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                      isMultiDay ? "border-white bg-white" : "border-gray-300",
-                    )}>
-                      {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
-                    </span>
-                    Multi-Day
-                  </button>
-                </div>
+            {/* Radio toggle — One Day vs Multi-Day */}
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium text-gray-600">Tournament Duration</Label>
+              <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { setIsMultiDay(false); set("endDate", ""); }}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
+                    !isMultiDay
+                      ? "bg-[#15803D] text-white"
+                      : "bg-white text-gray-500 hover:bg-background",
+                  )}
+                >
+                  <span className={cn(
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                    !isMultiDay ? "border-white bg-white" : "border-gray-300",
+                  )}>
+                    {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
+                  </span>
+                  One Day
+                </button>
+                <div className="w-px bg-gray-200" />
+                <button
+                  type="button"
+                  onClick={() => setIsMultiDay(true)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
+                    isMultiDay
+                      ? "bg-[#15803D] text-white"
+                      : "bg-white text-gray-500 hover:bg-background",
+                  )}
+                >
+                  <span className={cn(
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                    isMultiDay ? "border-white bg-white" : "border-gray-300",
+                  )}>
+                    {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
+                  </span>
+                  Multi-Day
+                </button>
               </div>
+            </div>
 
-              {/* Date fields — 1 or 2 columns based on duration type */}
-              <div className={cn("grid gap-4", isMultiDay ? "grid-cols-2" : "grid-cols-1")}>
-                <Field label={isMultiDay ? "Tournament Start Date" : "Tournament Date"} required>
+            {/* Date fields — 1 or 2 columns based on duration type */}
+            <div className={cn("grid gap-4", isMultiDay ? "grid-cols-2" : "grid-cols-1")}>
+              <Field label={isMultiDay ? "Tournament Start Date" : "Tournament Date"} required>
+                <DatePicker
+                  value={formData.startDate}
+                  onValueChange={(v) => {
+                    set("startDate", v);
+                    // Clear end date if it's no longer strictly after the new start
+                    if (formData.endDate && formData.endDate <= v) set("endDate", "");
+                    // Clear registration dates that fall on or after the new start date
+                    if (formData.registrationOpenAt && formData.registrationOpenAt >= v) set("registrationOpenAt", "");
+                    if (formData.registrationCloseAt && formData.registrationCloseAt >= v) set("registrationCloseAt", "");
+                  }}
+                  buttonClassName={req(formData.startDate)}
+                  disablePast
+                  disableToday
+                />
+              </Field>
+              {isMultiDay && (
+                <Field label="Tournament End Date" required>
                   <DatePicker
-                    value={formData.startDate}
-                    onValueChange={(v) => {
-                      set("startDate", v);
-                      // Clear end date if it's no longer strictly after the new start
-                      if (formData.endDate && formData.endDate <= v) set("endDate", "");
-                      // Clear registration dates that fall on or after the new start date
-                      if (formData.registrationOpenAt && formData.registrationOpenAt >= v) set("registrationOpenAt", "");
-                      if (formData.registrationCloseAt && formData.registrationCloseAt >= v) set("registrationCloseAt", "");
-                    }}
-                    buttonClassName={req(formData.startDate)}
-                    disablePast
-                    disableToday
+                    value={formData.endDate}
+                    onValueChange={(v) => set("endDate", v)}
+                    minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
+                    buttonClassName={req(formData.endDate)}
+                    disabled={!formData.startDate}
                   />
                 </Field>
-                {isMultiDay && (
-                  <Field label="Tournament End Date" required>
-                    <DatePicker
-                      value={formData.endDate}
-                      onValueChange={(v) => set("endDate", v)}
-                      minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
-                      buttonClassName={req(formData.endDate)}
-                      disabled={!formData.startDate}
-                    />
-                  </Field>
-                )}
+              )}
+            </div>
+
+            {/* Registration dates */}
+            <div className="space-y-1.5">
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Registration Opens" required>
+                  <DatePicker
+                    value={formData.registrationOpenAt}
+                    onValueChange={(v) => {
+                      set("registrationOpenAt", v);
+                      // Clear close date if it's now before the new open date + 1 day
+                      const minCloseDate = v ? shiftDate(v, 1) : "";
+                      if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
+                        set("registrationCloseAt", "");
+                      }
+                    }}
+                    disablePast
+                    maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                    buttonClassName={req(formData.registrationOpenAt)}
+                    disabled={!formData.startDate}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    The date players can start signing up.
+                  </p>
+                </Field>
+                <Field label="Registration Closes" required>
+                  <DatePicker
+                    value={formData.registrationCloseAt}
+                    onValueChange={(v) => set("registrationCloseAt", v)}
+                    minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
+                    maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                    buttonClassName={req(formData.registrationCloseAt)}
+                    disabled={!formData.registrationOpenAt}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Deadline for players to register — must be before the tournament starts.
+                  </p>
+                </Field>
               </div>
-
-              {/* Registration dates */}
-              <div className="space-y-1.5">
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Registration Opens" required>
-                    <DatePicker
-                      value={formData.registrationOpenAt}
-                      onValueChange={(v) => {
-                        set("registrationOpenAt", v);
-                        // Clear close date if it's now before the new open date + 1 day
-                        const minCloseDate = v ? shiftDate(v, 1) : "";
-                        if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
-                          set("registrationCloseAt", "");
-                        }
-                      }}
-                      disablePast
-                      maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                      buttonClassName={req(formData.registrationOpenAt)}
-                      disabled={!formData.startDate}
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">
-                      The date players can start signing up.
-                    </p>
-                  </Field>
-                  <Field label="Registration Closes" required>
-                    <DatePicker
-                      value={formData.registrationCloseAt}
-                      onValueChange={(v) => set("registrationCloseAt", v)}
-                      minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
-                      maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                      buttonClassName={req(formData.registrationCloseAt)}
-                      disabled={!formData.registrationOpenAt}
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">
-                      Deadline for players to register — must be before the tournament starts.
-                    </p>
-                  </Field>
-                </div>
+            </div>
           </div>
-        </div>
         </div>
       );
       case 3: return (
@@ -737,196 +737,196 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           <div className="p-5 space-y-6">
 
-              {/* ── Tournament Format ── */}
+            {/* ── Tournament Format ── */}
+            <div className="space-y-2">
+              <p className="text-[13px] font-normal text-gray-600">Tournament Format <span className="text-red-500">*</span></p>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  {
+                    value: "STROKE_PLAY",
+                    label: "Stroke Play",
+                    icon: "🏌️",
+                    desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
+                  },
+                  {
+                    value: "STABLEFORD",
+                    label: "Stableford",
+                    icon: "⭐",
+                    desc: "Players earn points based on their score relative to par on each hole (e.g. 2pts for par, 3pts for birdie). Highest total points wins. Encourages risk-taking.",
+                  },
+                  {
+                    value: "MATCH_PLAY",
+                    label: "Match Play",
+                    icon: "⚔️",
+                    desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match. Score on previous holes doesn't carry forward.",
+                  },
+                  {
+                    value: "SCRAMBLE",
+                    label: "Scramble",
+                    icon: "🤝",
+                    desc: "All team members tee off, the best shot is selected, and everyone plays their next shot from that spot. Continues until holed. Great for team events and charity days.",
+                  },
+                  {
+                    value: "BEST_BALL",
+                    label: "Best Ball",
+                    icon: "🥇",
+                    desc: "Each player plays their own ball throughout. The team's score for each hole is the lowest (best) individual score recorded. Also called Four-Ball in match play.",
+                  },
+                ].map(({ value, label, icon, desc }) => {
+                  const active = formData.format === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => set("format", value)}
+                      className={cn(
+                        "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                        active
+                          ? "border-openclub-700 bg-emerald-50/60"
+                          : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                        active ? "border-openclub-700 bg-openclub-700" : "border-gray-300"
+                      )}>
+                        {active && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] leading-none">{icon}</span>
+                          <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
+                        </div>
+                        <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* ── Scoring Type ── */}
               <div className="space-y-2">
-                <p className="text-[13px] font-normal text-gray-600">Tournament Format <span className="text-red-500">*</span></p>
-                <div className="grid grid-cols-1 gap-2">
+                <p className="text-[13px] font-normal text-gray-600">Scoring Type <span className="text-red-500">*</span></p>
+                <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                   {[
-                    {
-                      value: "STROKE_PLAY",
-                      label: "Stroke Play",
-                      icon: "🏌️",
-                      desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
-                    },
-                    {
-                      value: "STABLEFORD",
-                      label: "Stableford",
-                      icon: "⭐",
-                      desc: "Players earn points based on their score relative to par on each hole (e.g. 2pts for par, 3pts for birdie). Highest total points wins. Encourages risk-taking.",
-                    },
-                    {
-                      value: "MATCH_PLAY",
-                      label: "Match Play",
-                      icon: "⚔️",
-                      desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match. Score on previous holes doesn't carry forward.",
-                    },
-                    {
-                      value: "SCRAMBLE",
-                      label: "Scramble",
-                      icon: "🤝",
-                      desc: "All team members tee off, the best shot is selected, and everyone plays their next shot from that spot. Continues until holed. Great for team events and charity days.",
-                    },
-                    {
-                      value: "BEST_BALL",
-                      label: "Best Ball",
-                      icon: "🥇",
-                      desc: "Each player plays their own ball throughout. The team's score for each hole is the lowest (best) individual score recorded. Also called Four-Ball in match play.",
-                    },
-                  ].map(({ value, label, icon, desc }) => {
-                    const active = formData.format === value;
+                    { value: "GROSS", label: "Gross", desc: "Actual strokes" },
+                    { value: "NET", label: "Net", desc: "After handicap" },
+                  ].map(({ value, label, desc }) => {
+                    const active = formData.scoringType === value;
                     return (
                       <button
                         key={value}
                         type="button"
-                        onClick={() => set("format", value)}
+                        onClick={() => set("scoringType", value)}
                         className={cn(
-                          "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
-                          active
-                            ? "border-openclub-700 bg-emerald-50/60"
-                            : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50"
+                          "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-normal transition-all",
+                          active ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
                         )}
                       >
-                        <div className={cn(
-                          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
-                          active ? "border-openclub-700 bg-openclub-700" : "border-gray-300"
-                        )}>
-                          {active && <div className="w-2 h-2 rounded-full bg-white" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[13px] leading-none">{icon}</span>
-                            <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
-                          </div>
-                          <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
-                        </div>
+                        {label}
+                        <span className={cn("text-[10px] font-normal", active ? "text-emerald-100" : "text-gray-400")}>{desc}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* ── Scoring Type ── */}
-                <div className="space-y-2">
-                  <p className="text-[13px] font-normal text-gray-600">Scoring Type <span className="text-red-500">*</span></p>
-                  <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
-                    {[
-                      { value: "GROSS", label: "Gross", desc: "Actual strokes" },
-                      { value: "NET", label: "Net", desc: "After handicap" },
-                    ].map(({ value, label, desc }) => {
-                      const active = formData.scoringType === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => set("scoringType", value)}
-                          className={cn(
-                            "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-normal transition-all",
-                            active ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
-                          )}
-                        >
-                          {label}
-                          <span className={cn("text-[10px] font-normal", active ? "text-emerald-100" : "text-gray-400")}>{desc}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ── Number of Holes ── */}
-                <div>
-                  <Field label="Holes Per Round (Daily)" required>
-                    <Input type="number" value={formData.holes} min={1} max={18} onChange={(e) => set("holes", Number(e.target.value))} />
-                  </Field>
-                  <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">
-                    For multi-day events, this is the number of holes played <span className="font-normal text-gray-600">per day</span>.
-                  </p>
-                </div>
+              {/* ── Number of Holes ── */}
+              <div>
+                <Field label="Holes Per Round (Daily)" required>
+                  <Input type="number" value={formData.holes} min={1} max={18} onChange={(e) => set("holes", Number(e.target.value))} />
+                </Field>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">
+                  For multi-day events, this is the number of holes played <span className="font-normal text-gray-600">per day</span>.
+                </p>
               </div>
+            </div>
 
-              {/* ── Divisions ── */}
-              <div className="space-y-2">
-                <p className="text-[13px] font-normal text-gray-600">Divisions <span className="text-red-500">*</span></p>
-                <p className="text-[11px] text-gray-400">Select common divisions or type a custom one and press Enter.</p>
-                {/* Preset chip buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {["Men", "Ladies", "Juniors", "Seniors", "Professionals", "Amateurs", "Mixed"].map((preset) => {
-                    const selected = formData.divisions.includes(preset);
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          if (selected) {
-                            set("divisions", formData.divisions.filter((d) => d !== preset));
-                          } else {
-                            set("divisions", [...formData.divisions, preset]);
-                          }
-                        }}
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-[12px] font-normal border-2 transition-all",
-                          selected
-                            ? "bg-openclub-700 text-white border-openclub-700 shadow-sm shadow-emerald-200"
-                            : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300 hover:text-openclub-800"
-                        )}
-                      >
-                        {selected ? "✓ " : ""}{preset}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Custom division input */}
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    placeholder="Add custom division..."
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const val = (e.target as HTMLInputElement).value.trim();
-                        if (val && !formData.divisions.includes(val)) {
-                          set("divisions", [...formData.divisions, val]);
+            {/* ── Divisions ── */}
+            <div className="space-y-2">
+              <p className="text-[13px] font-normal text-gray-600">Divisions <span className="text-red-500">*</span></p>
+              <p className="text-[11px] text-gray-400">Select common divisions or type a custom one and press Enter.</p>
+              {/* Preset chip buttons */}
+              <div className="flex flex-wrap gap-2">
+                {["Men", "Ladies", "Juniors", "Seniors", "Professionals", "Amateurs", "Mixed"].map((preset) => {
+                  const selected = formData.divisions.includes(preset);
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        if (selected) {
+                          set("divisions", formData.divisions.filter((d) => d !== preset));
+                        } else {
+                          set("divisions", [...formData.divisions, preset]);
                         }
-                        (e.target as HTMLInputElement).value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-normal rounded-xl transition-colors whitespace-nowrap"
-                    onClick={(e) => {
-                      const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                      const val = input.value.trim();
+                      }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-[12px] font-normal border-2 transition-all",
+                        selected
+                          ? "bg-openclub-700 text-white border-openclub-700 shadow-sm shadow-emerald-200"
+                          : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300 hover:text-openclub-800"
+                      )}
+                    >
+                      {selected ? "✓ " : ""}{preset}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Custom division input */}
+              <div className="flex gap-2 mt-1">
+                <Input
+                  placeholder="Add custom division..."
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
                       if (val && !formData.divisions.includes(val)) {
                         set("divisions", [...formData.divisions, val]);
-                        input.value = "";
                       }
-                    }}
-                  >
-                    Add
-                  </button>
-                </div>
-                {/* Selected divisions as removable chips */}
-                {formData.divisions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {formData.divisions.map((d) => (
-                      <span
-                        key={d}
-                        className="flex items-center gap-1.5 text-[12px] font-normal bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
-                      >
-                        {d}
-                        <button
-                          type="button"
-                          onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
-                          className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-normal rounded-xl transition-colors whitespace-nowrap"
+                  onClick={(e) => {
+                    const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                    const val = input.value.trim();
+                    if (val && !formData.divisions.includes(val)) {
+                      set("divisions", [...formData.divisions, val]);
+                      input.value = "";
+                    }
+                  }}
+                >
+                  Add
+                </button>
               </div>
+              {/* Selected divisions as removable chips */}
+              {formData.divisions.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {formData.divisions.map((d) => (
+                    <span
+                      key={d}
+                      className="flex items-center gap-1.5 text-[12px] font-normal bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
+                    >
+                      {d}
+                      <button
+                        type="button"
+                        onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
+                        className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -1027,40 +1027,40 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           <div className="p-5 space-y-6">
-              <Toggle label="Requires Payment?" checked={formData.requiresPayment} onChange={(v) => set("requiresPayment", v)} />
-              {formData.requiresPayment && (
-                <div className="space-y-4 pl-4 border-l-2 border-emerald-200 animate-in slide-in-from-top-2 fade-in duration-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Entry Fee" required>
-                      <Input
-                        type="text"
-                        value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
-                        onChange={(e) => {
-                          const rawValue = e.target.value.replace(/\D/g, "");
-                          set("entryFee", rawValue);
-                        }}
-                        placeholder="5,000"
-                        className={req(formData.entryFee)}
-                      />
-                    </Field>
-                    <Field label="Currency" required>
-                      <Input value={formData.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} placeholder="NGN" />
-                    </Field>
-                  </div>
-                  <Toggle label="Refundable Entry Fee?" checked={formData.isRefundable} onChange={(v) => set("isRefundable", v)} />
-                  <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5" />
-                    Players must complete payment during registration to secure their spot.
-                  </p>
+            <Toggle label="Requires Payment?" checked={formData.requiresPayment} onChange={(v) => set("requiresPayment", v)} />
+            {formData.requiresPayment && (
+              <div className="space-y-4 pl-4 border-l-2 border-emerald-200 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Entry Fee" required>
+                    <Input
+                      type="text"
+                      value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, "");
+                        set("entryFee", rawValue);
+                      }}
+                      placeholder="5,000"
+                      className={req(formData.entryFee)}
+                    />
+                  </Field>
+                  <Field label="Currency" required>
+                    <Input value={formData.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} placeholder="NGN" />
+                  </Field>
                 </div>
-              )}
-              {!formData.requiresPayment && (
-                <div className="py-8 text-center bg-background rounded-xl border border-[#e1efe5] animate-in fade-in">
-                  <p className="text-[13px] font-normal text-gray-500">This tournament will be free to enter.</p>
-                </div>
-              )}
-            </div>
+                <Toggle label="Refundable Entry Fee?" checked={formData.isRefundable} onChange={(v) => set("isRefundable", v)} />
+                <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Players must complete payment during registration to secure their spot.
+                </p>
+              </div>
+            )}
+            {!formData.requiresPayment && (
+              <div className="py-8 text-center bg-background rounded-xl border border-[#e1efe5] animate-in fade-in">
+                <p className="text-[13px] font-normal text-gray-500">This tournament will be free to enter.</p>
+              </div>
+            )}
           </div>
+        </div>
       );
       case 6: return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -1083,24 +1083,24 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Tee Off Start Time" required>
-                  <TimePicker
-                    value={formData.teeStartTime}
-                    onValueChange={(v) => set("teeStartTime", v)}
-                    placeholder="--:--  "
-                  />
-                </Field>
-                <Field label="Tee Interval (min)" required>
-                  <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
-                </Field>
-              </div>
-              <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5" />
-                Players will be assigned sequential tee times based on these settings.
-              </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Tee Off Start Time" required>
+                <TimePicker
+                  value={formData.teeStartTime}
+                  onValueChange={(v) => set("teeStartTime", v)}
+                  placeholder="--:--  "
+                />
+              </Field>
+              <Field label="Tee Interval (min)" required>
+                <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
+              </Field>
             </div>
+            <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5" />
+              Players will be assigned sequential tee times based on these settings.
+            </p>
           </div>
+        </div>
       );
       case 7: return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -1115,20 +1115,20 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           <div className="p-5 space-y-4">
-              <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
-              <div className="pl-12">
-                <p className="text-[12px] text-gray-500 -mt-2 mb-2">Players can input scores directly via the app during the round.</p>
-              </div>
+            <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
+            <div className="pl-12">
+              <p className="text-[12px] text-gray-500 -mt-2 mb-2">Players can input scores directly via the app during the round.</p>
+            </div>
 
-              <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
-              <div className="pl-12">
-                <p className="text-[12px] text-gray-500 -mt-2 mb-2">Another player in the group must verify and sign the scorecard.</p>
-              </div>
+            <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
+            <div className="pl-12">
+              <p className="text-[12px] text-gray-500 -mt-2 mb-2">Another player in the group must verify and sign the scorecard.</p>
+            </div>
 
-              <Toggle label="Enable Hole-by-Hole Scoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
-              <div className="pl-12">
-                <p className="text-[12px] text-gray-500 -mt-2">Record scores for every single hole rather than just the final total.</p>
-              </div>
+            <Toggle label="Enable Hole-by-Hole Scoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
+            <div className="pl-12">
+              <p className="text-[12px] text-gray-500 -mt-2">Record scores for every single hole rather than just the final total.</p>
+            </div>
           </div>
         </div>
       );

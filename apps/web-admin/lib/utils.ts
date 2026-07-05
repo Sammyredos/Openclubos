@@ -133,18 +133,16 @@ export function formatNumber(value: string | number): string {
     return `${formatted}${suffix}`;
   }
 
-  // To preserve original behavior where "₦" might have been stripped from `value` 
-  // but we still want to output it if `isNaira` is true. We'll handle it nicely.
   const prefix = isNaira ? "₦" : "";
 
   if (absValue >= 1_000_000_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000_000_000, "B")}`;
+    return `${sign}${prefix}${formatKMB(absValue, 1_000_000_000, "b")}`;
   }
   if (absValue >= 1_000_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000_000, "M")}`;
+    return `${sign}${prefix}${formatKMB(absValue, 1_000_000, "m")}`;
   }
   if (absValue >= 10_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000, "K")}`;
+    return `${sign}${prefix}${formatKMB(absValue, 1_000, "k")}`;
   }
 
   const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US");
@@ -205,16 +203,6 @@ export function subscribeAdminEvents(handler: (event: AdminEvent) => void) {
   };
 }
 
-export function getGolfCategory(handicap: number | null | undefined): string {
-  if (handicap === null || handicap === undefined) return "Open";
-  if (handicap >= 0 && handicap <= 5) return "Category 1";
-  if (handicap >= 6 && handicap <= 12) return "Category 2";
-  if (handicap >= 13 && handicap <= 20) return "Category 3";
-  if (handicap >= 21 && handicap <= 28) return "Category 4";
-  if (handicap >= 29) return "Category 5/6";
-  return "Open";
-}
-
 export function getAvatarUrl(user?: {
   profilePhoto?: string | null;
   gender?: string | null;
@@ -232,6 +220,16 @@ export function getAvatarUrl(user?: {
   const seed = encodeURIComponent(name);
 
   return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=10b981`;
+}
+
+export function getGolfCategory(handicap: number | null | undefined): string {
+  if (handicap === null || handicap === undefined) return "Open";
+  if (handicap >= 0 && handicap <= 5) return "Category 1";
+  if (handicap >= 6 && handicap <= 12) return "Category 2";
+  if (handicap >= 13 && handicap <= 20) return "Category 3";
+  if (handicap >= 21 && handicap <= 28) return "Category 4";
+  if (handicap >= 29) return "Category 5/6";
+  return "Open";
 }
 
 export function formatCurrency(amount: number): string {

@@ -942,10 +942,10 @@ export default function OrganizerDetailsPage() {
                   </div>
                   <p className="mt-4 text-[13px] text-gray-400 font-normal">Active Tournaments</p>
                   <p className="text-[16px] font-normal text-gray-900 leading-none mt-1">
-                    {organizerStatsLoading ? "…" : String(organizerStats?.activeTournaments ?? 0)}
+                    {organizerStatsLoading ? "…" : formatNumber(organizerStats?.activeTournaments ?? 0)}
                   </p>
                   <p className="text-[11px] text-gray-400 font-normal mt-4">
-                    {organizerStatsLoading ? "…" : String(organizerStats?.ongoingTournaments ?? 0)} ongoing
+                    {organizerStatsLoading ? "…" : formatNumber(organizerStats?.ongoingTournaments ?? 0)} ongoing
                   </p>
                 </CardContent>
               </Card>

@@ -30,7 +30,7 @@ import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 
 import { getSubscriptionsAdmin, Subscription, SubscriptionStats } from "@/lib/api/subscriptions";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 
 
 export default function SubscriptionsPage() {
@@ -98,7 +98,7 @@ export default function SubscriptionsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Subscriptions</div>
             </div>
-            {loading ? <Skeleton className="h-9 w-16 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">{stats?.activeSubscriptions || 0}</div>}
+            {loading ? <Skeleton className="h-9 w-16 rounded-md" /> : <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats?.activeSubscriptions || 0)}</div>}
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
@@ -134,7 +134,7 @@ export default function SubscriptionsPage() {
                 <div className="text-red-500 text-[11px] font-medium">Action Required</div>
               </div>
             </div>
-            {loading ? <Skeleton className="h-9 w-12 rounded-md" /> : <div className="text-red-500 text-3xl font-bold">{stats?.pastDue || 0}</div>}
+            {loading ? <Skeleton className="h-9 w-12 rounded-md" /> : <div className="text-red-500 text-3xl font-bold">{formatNumber(stats?.pastDue || 0)}</div>}
             <div className="text-zinc-500 text-sm font-normal">Overdue Accounts</div>
           </div>
 

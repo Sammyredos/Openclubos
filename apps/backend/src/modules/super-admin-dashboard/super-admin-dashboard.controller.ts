@@ -1,4 +1,5 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
@@ -12,6 +13,8 @@ export class SuperAdminDashboardController {
   constructor(private readonly dashboard: SuperAdminDashboardService) {}
 
   @Get('stats')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000) // 5 seconds cache
   stats() {
     return this.dashboard.stats();
   }

@@ -39,7 +39,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { broadcastAdminEvent, cn, formatCurrency } from "@/lib/utils";
+import { broadcastAdminEvent, cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
@@ -610,7 +610,7 @@ export default function SuperAdminUsersPage() {
               <div className="flex justify-start items-center gap-3.5">
                 <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Users</div>
               </div>
-              <div className="text-[#15803D] text-3xl font-bold">{stats.totalUsers}</div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalUsers)}</div>
               <div className="text-zinc-500 text-sm font-normal">All Time</div>
             </div>
 
@@ -626,7 +626,7 @@ export default function SuperAdminUsersPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-[#15803D] text-3xl font-bold">{stats.activeUsers}</div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.activeUsers)}</div>
               <div className="text-zinc-500 text-sm font-normal">Active & Operational</div>
             </div>
 
@@ -637,7 +637,7 @@ export default function SuperAdminUsersPage() {
               <div className="flex justify-start items-center gap-3.5">
                 <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">New This Month</div>
               </div>
-              <div className="text-[#15803D] text-3xl font-bold">{stats.newThisMonth}</div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.newThisMonth)}</div>
               <div className="text-zinc-500 text-sm font-normal">Recent Signups</div>
             </div>
 
@@ -653,7 +653,7 @@ export default function SuperAdminUsersPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-[#15803D] text-3xl font-bold">{stats.superAdmins}</div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.superAdmins)}</div>
               <div className="text-zinc-500 text-sm font-normal">Platform Managers</div>
             </div>
 

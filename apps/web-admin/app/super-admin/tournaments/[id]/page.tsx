@@ -1807,7 +1807,7 @@ function ViewTournamentPageInner() {
                           )}>
                             {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
                           </div>
-                          <span className="text-[13px] font-normal">Unpaid</span>
+                          <span className="text-[13px] font-medium">Unpaid</span>
                         </div>
                         <p className="text-[10px] opacity-70 leading-tight mt-1">Player will not be confirmed for grouping until payment is recorded.</p>
                       </button>
@@ -1828,7 +1828,7 @@ function ViewTournamentPageInner() {
                           )}>
                             {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
                           </div>
-                          <span className="text-[13px] font-normal">Paid (Cash / Direct)</span>
+                          <span className="text-[13px] font-medium">Paid (Cash / Direct)</span>
                         </div>
                         <p className="text-[10px] opacity-70 leading-tight mt-1">Player will be marked as PAID and automatically APPROVED.</p>
                       </button>

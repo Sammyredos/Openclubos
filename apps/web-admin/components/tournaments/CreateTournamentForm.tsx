@@ -357,11 +357,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 location: loadedLocation,
                 startDate: t.startDate ? t.startDate.slice(0, 10) : "",
                 endDate: t.endDate ? t.endDate.slice(0, 10) : "",
-                registrationOpenAt: t.registrationOpenAt 
-                  ? t.registrationOpenAt.slice(0, 10) 
+                registrationOpenAt: t.registrationOpenAt
+                  ? t.registrationOpenAt.slice(0, 10)
                   : (t.startDate ? shiftDate(t.startDate.slice(0, 10), -14) : ""),
-                registrationCloseAt: t.registrationCloseAt 
-                  ? t.registrationCloseAt.slice(0, 10) 
+                registrationCloseAt: t.registrationCloseAt
+                  ? t.registrationCloseAt.slice(0, 10)
                   : (t.startDate ? shiftDate(t.startDate.slice(0, 10), -1) : ""),
                 format: t.format || "STROKE_PLAY",
                 scoringType: t.scoringType || "GROSS",
@@ -1275,7 +1275,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       >
                         <div className="flex items-center gap-3">
                           <div>
-                            <h4 className="text-[14px] font-normal text-gray-900">Make Cut</h4>
+                            <h4 className="text-[14px] font-medium text-gray-900">Make Cut</h4>
                             <p className="text-[12px] text-gray-500">Automatically eliminate players after a specific round</p>
                           </div>
                         </div>
@@ -1643,53 +1643,53 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             </div>
 
             {(!originalStatus || originalStatus === "DRAFT") && (
-            <div className="">
-              <div
-                className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
-                onClick={() => {
-                  if (originalStatus && originalStatus !== "DRAFT") return;
-                  set("publishImmediately", !formData.publishImmediately);
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                    <Send className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
-                    <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
-                  </div>
-                </div>
+              <div className="">
                 <div
-                  className={cn(
-                    "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                    formData.publishImmediately ? "bg-openclub-700" : "bg-gray-200"
-                  )}
+                  className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+                  onClick={() => {
+                    if (originalStatus && originalStatus !== "DRAFT") return;
+                    set("publishImmediately", !formData.publishImmediately);
+                  }}
                 >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                      <Send className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
+                      <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
+                    </div>
+                  </div>
                   <div
                     className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
-                      formData.publishImmediately ? "left-6" : "left-1"
+                      "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
+                      formData.publishImmediately ? "bg-openclub-700" : "bg-gray-200"
                     )}
-                  />
-                </div>
-              </div>
-
-              {!formData.publishImmediately && (
-                <div className="p-5">
-                  <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
-                    <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
-                      This tournament will be saved as an unpublished <strong>DRAFT</strong>.
-                      <br />
-                      Players cannot see or register for it until you manually publish it.
-                    </p>
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
+                        formData.publishImmediately ? "left-6" : "left-1"
+                      )}
+                    />
                   </div>
                 </div>
-              )}
-              {formData.publishImmediately && (
-                <div className="p-2" />
-              )}
-            </div>
+
+                {!formData.publishImmediately && (
+                  <div className="p-5">
+                    <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
+                      <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
+                        This tournament will be saved as an unpublished <strong>DRAFT</strong>.
+                        <br />
+                        Players cannot see or register for it until you manually publish it.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {formData.publishImmediately && (
+                  <div className="p-2" />
+                )}
+              </div>
             )}
           </div>
         );
@@ -1744,8 +1744,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         active
                           ? "bg-[#15803D] text-white"
                           : past
-                          ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
-                          : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                            ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                            : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
                       )}
                     >
                       {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}

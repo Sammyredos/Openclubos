@@ -38,10 +38,8 @@ export function LiveTickerStrip() {
 
           if (data.activeTournamentNames && Array.isArray(data.activeTournamentNames) && data.activeTournamentNames.length > 0) {
             const names = data.activeTournamentNames;
-            if (data.activeTournaments > 2 && names.length >= 2) {
-              setLiveNames(`${names[0]} · ${names[1]} · +${data.activeTournaments - 2} live`);
-            } else if (names.length >= 2) {
-              setLiveNames(`${names[0]} · ${names[1]}`);
+            if (data.activeTournaments > 1) {
+              setLiveNames(`${names[0]} · +${data.activeTournaments - 1} live`);
             } else {
               setLiveNames(names[0]);
             }
@@ -73,28 +71,28 @@ export function LiveTickerStrip() {
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-3">
           <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-          <span className="text-white font-semibold tracking-wide uppercase text-xs">Live now</span>
+          <span className="text-white font-normal tracking-wide uppercase text-xs">Live now</span>
         </div>
 
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2 text-emerald-200/80">
-            <span className="text-white font-bold text-[  15px]">{ongoing}</span>
+            <span className="text-white font-normal text-[15px]">{ongoing}</span>
             <span>Tournaments Ongoing</span>
           </div>
 
           <div className="flex items-center gap-2 text-emerald-200/80">
-            <span className="text-white font-bold text-[15px]">{scores.toLocaleString()}</span>
+            <span className="text-white font-normal text-[15px]">{scores.toLocaleString()}</span>
             <span>Scores Last Hour</span>
           </div>
 
           <div className="flex items-center gap-2 text-emerald-200/80">
-            <span className="text-white font-bold text-[15px]">{spectators.toLocaleString()}</span>
+            <span className="text-white font-normal text-[15px]">{spectators.toLocaleString()}</span>
             <span>Spectators Watching</span>
           </div>
         </div>
       </div>
 
-      <div className="text-emerald-200/80 font-medium max-w-lg truncate" title={liveNames}>
+      <div className="text-emerald-200/80 font-normal max-w-lg truncate" title={liveNames}>
         {liveNames}
       </div>
     </div>

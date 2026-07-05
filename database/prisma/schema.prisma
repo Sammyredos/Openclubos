@@ -51,6 +51,9 @@ model User {
   @@index([firstName, lastName])
   @@index([email])
   @@index([email, deletedAt])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([updatedAt])
 }
 
 enum MemberStatus {
@@ -109,6 +112,9 @@ model Club {
   tournaments  Tournament[]
   courses      Course[]
   subscriptions Subscription[]
+
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 enum CourseStatus {
@@ -275,6 +281,8 @@ model Tournament {
   @@index([endDate, status])
   @@index([clubId, createdAt])
   @@index([clubId, status])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 enum TournamentStatus {
@@ -326,6 +334,7 @@ model Registration {
   @@index([tournamentId, status])
   @@index([userId, status])
   @@index([tournamentId, paymentStatus])
+  @@index([registeredAt])
 }
 
 enum RegistrationStatus {
@@ -377,6 +386,7 @@ model Score {
   @@index([groupId])
   @@index([holeId])
   @@index([groupId, userId])
+  @@index([recordedAt])
 }
 
 enum ScoreStatus {

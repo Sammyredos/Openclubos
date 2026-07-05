@@ -86,6 +86,14 @@ type DashboardStats = {
   menCount?: number;
   womenCount?: number;
   subscriptionRevenue?: number;
+  systemHealth?: {
+    api?: string;
+    database?: string;
+    redis?: string;
+    workers?: string;
+    latency?: string;
+    uptime?: string;
+  };
 };
 
 type ActivityRecord = { title: string; subtitle: string; time: string };
@@ -153,6 +161,7 @@ export default function SuperAdminDashboard() {
   const [topClubsRange, setTopClubsRange] = useState("This Month");
   const [topSubsRange, setTopSubsRange] = useState("All Time");
   const [ageDemographicsFilter, setAgeDemographicsFilter] = useState<"All" | "Men" | "Women">("All");
+  const [realTimeLatency, setRealTimeLatency] = useState<string>('--');
 
   const getHeaders = useCallback(() => {
     const token = getAuthToken();
@@ -397,6 +406,24 @@ export default function SuperAdminDashboard() {
     return () => window.clearTimeout(id);
   }, [clubsList, computeTopSubs, isMounted, loading, topSubsRange]);
 
+  useEffect(() => {
+    if (!isMounted) return;
+    let interval: number;
+    const ping = async () => {
+      const start = performance.now();
+      try {
+        await fetch(`${API_BASE}/health/ping`, { method: "GET" });
+        const end = performance.now();
+        setRealTimeLatency(`${Math.round(end - start)}ms`);
+      } catch (e) {
+        setRealTimeLatency("error");
+      }
+    };
+    ping();
+    interval = window.setInterval(ping, 5000);
+    return () => window.clearInterval(interval);
+  }, [isMounted]);
+
   if (!isMounted) return null;
 
   if (loading || !stats) {
@@ -525,16 +552,10 @@ export default function SuperAdminDashboard() {
 
           <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
 
-          {/* Stat 5: Active Organizers */}
+          {/* Stat 5: Platform Revenue */}
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-3.5">
-              <div className="text-zinc-700 text-base font-medium">Active Organizers</div>
-              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-openclub-700">
-                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
-                </svg>
-                <div className="text-openclub-700 text-xs font-medium">{stats?.activeClubsPercent || "0%"}</div>
-              </div>
+              <div className="text-zinc-700 text-base font-medium">Platform Revenue</div>
             </div>
             <div className="text-openclub-700 text-3xl font-semibold">
               {stats?.subscriptionRevenue != null ? `₦${formatNumber(stats.subscriptionRevenue)}` : "₦0"}
@@ -767,12 +788,12 @@ export default function SuperAdminDashboard() {
               const menPercent = totalGender === 0 ? 0 : Math.round((menCount / totalGender) * 100);
               const womenPercent = totalGender === 0 ? 0 : Math.round((womenCount / totalGender) * 100);
 
-              const pieData = totalGender === 0 
+              const pieData = totalGender === 0
                 ? [{ name: "No Data", value: 100, color: "#e1efe5" }]
                 : [
-                    { name: "Men", value: menPercent, color: "#15803D" },
-                    { name: "Women", value: womenPercent, color: "#86EFAC" },
-                  ];
+                  { name: "Men", value: menPercent, color: "#15803D" },
+                  { name: "Women", value: womenPercent, color: "#86EFAC" },
+                ];
 
               return (
                 <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-1 xl:h-[430px] font-sans">
@@ -890,39 +911,68 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          {/* Top Locations Card */}
+          {/* App System Health Card */}
           <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full font-sans mt-6 flex-1 min-h-[300px]">
             <div className="flex items-center gap-2 mb-6 shrink-0">
-              <div className="text-zinc-700 text-xl font-medium">Top locations</div>
+              <div className="text-zinc-700 text-xl font-medium">System Health</div>
               <div className="relative group flex items-center justify-center">
-                <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-bold flex items-center justify-center cursor-help">?</div>
-                <div className="absolute top-full right-0 translate-x-1/4 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
-                  The regions with the highest density of organizers on the platform.
+                <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-normal flex items-center justify-center cursor-help">?</div>
+                <div className="absolute top-full right-0 translate-x-1/4 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-normal rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                  Real-time status of the OpenClubOS infrastructure and services.
                   <div className="absolute bottom-full right-4 border-4 border-transparent border-b-[#0a2316]"></div>
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
-              {locationsLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full rounded-md" />)}
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.api === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
+                  <div className="text-sm text-slate-800 font-normal">Core API Server</div>
                 </div>
-              ) : topLocations.length > 0 ? (
-                topLocations.map((loc, i) => (
-                  <div key={i} className="flex justify-between items-center w-full">
-                    <div className="text-sm text-slate-800 font-medium">{loc.state}</div>
-                    <div className="text-[13px] font-medium text-[#15803D] bg-[#f5faf6] px-2.5 py-0.5 rounded-md border border-[#e1efe5]">{loc.count} organizers</div>
-                  </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center bg-[#f5faf6] rounded-xl border border-dashed border-[#e1efe5] mt-2">
-                  <div className="w-10 h-10 bg-white border border-[#e1efe5] rounded-full flex items-center justify-center mb-3">
-                    <MapPin className="w-5 h-5 text-[#15803D]" />
-                  </div>
-                  <p className="text-[13px] font-medium text-[#15803D]">No locations yet</p>
-                  <p className="text-[12px] text-gray-500 mt-0.5 max-w-[180px]">When organizers sign up with their location, they'll appear here.</p>
+                <div className={`text-[13px] font-normal ${stats?.systemHealth?.api === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.api || 'Unknown'}</div>
+              </div>
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.database === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
+                  <div className="text-sm text-slate-800 font-normal">PostgreSQL Database</div>
                 </div>
-              )}
+                <div className={`text-[13px] font-normal ${stats?.systemHealth?.database === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.database || 'Unknown'}</div>
+              </div>
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.redis === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
+                  <div className="text-sm text-slate-800 font-normal">Redis Cache</div>
+                </div>
+                <div className={`text-[13px] font-normal ${stats?.systemHealth?.redis === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.redis || 'Unknown'}</div>
+              </div>
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.workers === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
+                  <div className="text-sm text-slate-800 font-normal">Background Workers</div>
+                </div>
+                <div className={`text-[13px] font-normal ${stats?.systemHealth?.workers === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.workers || 'Unknown'}</div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-[#e1efe5] flex justify-between items-center">
+                <div className="text-xs text-gray-500 font-normal">Average Latency</div>
+                <div className="text-xs font-normal text-slate-800">
+                  {realTimeLatency !== '--' && realTimeLatency !== 'error' ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]"></span>
+                      </span>
+                      {realTimeLatency}
+                    </span>
+                  ) : (
+                    stats?.systemHealth?.latency || '--'
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-gray-500 font-normal">Uptime (30d)</div>
+                <div className="text-xs font-normal text-slate-800">{stats?.systemHealth?.uptime || '--'}</div>
+              </div>
             </div>
           </div>
         </div>
