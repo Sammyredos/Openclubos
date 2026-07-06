@@ -62,6 +62,7 @@ export class MembersController {
     @Query('status') status?: MemberStatus,
     @Query('clubId') clubId?: string,
     @Query('role') role?: UserRole,
+    @Query('handicap') handicap?: string,
   ) {
     return this.membersService.findAllUsers({
       skip,
@@ -70,6 +71,7 @@ export class MembersController {
       status,
       clubId,
       role,
+      handicap,
     });
   }
 

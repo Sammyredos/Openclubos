@@ -2322,12 +2322,8 @@ function ViewTournamentPageInner() {
                 ) : (
                   <>
                     {/* Day Selection Linear Flow */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5]">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-emerald-50 text-emerald-800 shadow-sm border border-emerald-200 px-6 py-2.5 text-[13px] font-normal rounded-xl flex items-center gap-2 uppercase tracking-widest">
-                          <Calendar className="w-4 h-4 text-openclub-800" />
-                          DAY {selectedDay}
-                        </div>
+                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
+                      <div className="flex items-center gap-3 z-10 w-1/3">
                         {selectedDay > 1 && (
                           <button
                             onClick={() => setSelectedDay(selectedDay - 1)}
@@ -2338,7 +2334,18 @@ function ViewTournamentPageInner() {
                           </button>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+
+                      <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
+                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-xl px-5 py-2 shadow-sm">
+                          <div className="bg-emerald-200/60 p-1.5 rounded-lg">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+                          </div>
+                          <span className="text-emerald-800 text-[13px] font-normal tracking-wide capitalize">Flights & Tee Times for</span>
+                          <span className="text-emerald-950 text-[13px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 z-10 w-1/3">
                         {selectedDay < getTournamentDays() && (
                           <button
                             onClick={() => setSelectedDay(selectedDay + 1)}

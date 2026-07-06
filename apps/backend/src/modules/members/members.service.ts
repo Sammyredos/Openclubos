@@ -241,8 +241,9 @@ export class MembersService {
     status?: MemberStatus;
     clubId?: string;
     role?: UserRole;
+    handicap?: string;
   }) {
-    const { skip, take, search, status, clubId, role } = query;
+    const { skip, take, search, status, clubId, role, handicap } = query;
     const where: any = { deletedAt: null };
 
     if (search) {
@@ -264,6 +265,17 @@ export class MembersService {
     if (status) where.status = status;
     if (clubId) where.clubId = clubId;
     if (role) where.role = role;
+    if (handicap) {
+      if (handicap === '0 - 9.9') {
+        where.handicap = { gte: 0, lte: 9.9 };
+      } else if (handicap === '10 - 19.9') {
+        where.handicap = { gte: 10, lte: 19.9 };
+      } else if (handicap === '20 - 29.9') {
+        where.handicap = { gte: 20, lte: 29.9 };
+      } else if (handicap === '30+') {
+        where.handicap = { gte: 30 };
+      }
+    }
 
     const now = new Date();
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);

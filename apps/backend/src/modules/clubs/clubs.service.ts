@@ -182,7 +182,7 @@ export class ClubsService {
         take,
         skip,
         include: {
-          _count: { select: { tournaments: true, courses: true } },
+          _count: { select: { tournaments: true } },
           users: {
             where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
             select: { id: true, email: true, firstName: true, lastName: true },
@@ -202,7 +202,7 @@ export class ClubsService {
     const club = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
       include: {
-        _count: { select: { tournaments: true, courses: true } },
+        _count: { select: { tournaments: true } },
         users: {
           where: { role: UserRole.CLUB_ADMIN, deletedAt: null },
           select: { id: true, email: true, firstName: true, lastName: true },
@@ -397,28 +397,9 @@ export class ClubsService {
         : [];
       const groupIds = groups.map((g) => g.id);
 
-      const courses = await tx.course.findMany({
-        where: { clubId: id },
-        select: { id: true },
-      });
-      const courseIds = courses.map((c) => c.id);
-
-      const holes = courseIds.length
-        ? await tx.hole.findMany({
-            where: { courseId: { in: courseIds } },
-            select: { id: true },
-          })
-        : [];
-      const holeIds = holes.map((h) => h.id);
-
-      if (groupIds.length || holeIds.length) {
+      if (groupIds.length) {
         await tx.score.deleteMany({
-          where: {
-            OR: [
-              ...(groupIds.length ? [{ groupId: { in: groupIds } }] : []),
-              ...(holeIds.length ? [{ holeId: { in: holeIds } }] : []),
-            ],
-          },
+          where: { groupId: { in: groupIds } },
         });
       }
 
@@ -432,13 +413,6 @@ export class ClubsService {
         await tx.tournament.deleteMany({
           where: { id: { in: tournamentIds } },
         });
-      }
-
-      if (holeIds.length) {
-        await tx.hole.deleteMany({ where: { id: { in: holeIds } } });
-      }
-      if (courseIds.length) {
-        await tx.course.deleteMany({ where: { id: { in: courseIds } } });
       }
 
       await tx.user.updateMany({

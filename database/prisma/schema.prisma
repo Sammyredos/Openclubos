@@ -110,7 +110,6 @@ model Club {
   // Relations
   users        User[]
   tournaments  Tournament[]
-  courses      Course[]
   subscriptions Subscription[]
 
   @@index([createdAt])
@@ -158,8 +157,6 @@ model Course {
   updatedAt DateTime @updatedAt
 
   // Relations
-  club        Club?        @relation(fields: [clubId], references: [id])
-  clubId      String?
   holes       Hole[]
   teeBoxes    TeeBox[]
   tournaments Tournament[]

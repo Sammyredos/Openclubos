@@ -199,7 +199,7 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
       const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
       if (Number(f.cutAfterRound) >= days) {
-        return `Cut Players after What Day must be at least one day before the tournament ends (Max: Day ${days - 1}).`;
+        return `Tournament ${f.name || ''} is scheduled for ${days} days so players make Cut must be set to at least one day before tournament ends`;
       }
     }
   }
@@ -404,30 +404,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             orgId = new URLSearchParams(window.location.search).get("organizerId") || "";
           }
           setFormData({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || "") : orgId });
-
-          if (user?.role === "CLUB_ADMIN" && user?.clubId) {
-            const firstCourse = arr.find((c: any) => c.clubId === user.clubId);
-            if (firstCourse) {
-              setFormData(prev => ({
-                ...prev,
-                clubId: user.clubId || "",
-                courseId: firstCourse.id,
-                venue: firstCourse.country || prev.venue,
-                location: firstCourse.state || prev.location
-              }));
-            }
-          } else if (orgId) {
-            const firstCourse = arr.find((c: any) => c.clubId === orgId);
-            if (firstCourse) {
-              setFormData(prev => ({
-                ...prev,
-                clubId: orgId,
-                courseId: firstCourse.id,
-                venue: firstCourse.country || prev.venue,
-                location: firstCourse.state || prev.location
-              }));
-            }
-          }
         }
       })
       .catch(() => { });
@@ -437,15 +413,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
   const handleClubChange = (id: string) => {
     set("clubId", id);
-    const firstCourse = courses.find(c => c.clubId === id);
-    if (firstCourse) {
-      setFormData(prev => ({
-        ...prev,
-        courseId: firstCourse.id,
-        venue: firstCourse.country || prev.venue,
-        location: firstCourse.state || prev.location
-      }));
-    }
   };
 
   const handleCourseChange = (id: string) => {
@@ -1213,9 +1180,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-openclub-800">
-                          <Shield className="w-4 h-4" />
-                        </div>
+
                         <div>
                           <h4 className="text-[14px] font-medium text-gray-900">Handicap Restrictions</h4>
                           <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
@@ -1356,7 +1321,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                               <Info className="w-3.5 h-3.5" />
                               {formData.cutFormat === "PERCENTAGE"
                                 ? "The specified percentage of the total active players will advance to the next day."
-                                : "Players below this exact rank will miss the cut and be excluded from future groupings."}
+                                : "Players below this exact rank will miss the cut and be excluded from future Tee-Offs."}
                             </p>
                           )}
                         </div>

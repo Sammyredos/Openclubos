@@ -105,7 +105,7 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
   })();
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-normal uppercase whitespace-nowrap", meta.className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-medium uppercase whitespace-nowrap", meta.className)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
       {meta.label}
     </span>
@@ -235,6 +235,7 @@ export default function SuperAdminUsersPage() {
         search: searchQuery || undefined,
         role: roleFilter !== "All Roles" ? roleFilter : undefined,
         status: statusFilter !== "All Status" ? statusFilter : undefined,
+        handicap: handicapFilter !== "All Handicaps" ? handicapFilter : undefined,
       });
       setAllUsers(Array.isArray(data.items) ? data.items : []);
       if (data.total !== undefined && !data.stats) {
@@ -260,7 +261,7 @@ export default function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, roleFilter, statusFilter, currentPage]);
+  }, [searchQuery, roleFilter, statusFilter, handicapFilter, currentPage]);
 
   useEffect(() => {
     if (!isViewModalOpen) return;

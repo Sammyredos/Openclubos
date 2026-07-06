@@ -113,14 +113,6 @@ export class ClubGuard implements CanActivate {
             'You do not have access to this tournament',
           );
         }
-      } else if (controllerName === 'CoursesController') {
-        const course = await this.prisma.course.findUnique({
-          where: { id },
-          select: { clubId: true },
-        });
-        if (course && course.clubId !== userClubId) {
-          throw new ForbiddenException('You do not have access to this course');
-        }
       } else if (controllerName === 'RegistrationsController') {
         const registration = await this.prisma.registration.findUnique({
           where: { id },

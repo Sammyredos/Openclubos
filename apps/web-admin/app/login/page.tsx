@@ -126,7 +126,7 @@ function LoginPageInner() {
             {/* OAuth Button */}
             <button
               type="button"
-              className="w-full bg-white border-[3px] border-[#111111] py-3 px-6 flex items-center justify-center gap-3 font-bold capitalize text-[1rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] mb-8"
+              className="w-full bg-white border-[3px] border-[#111111] py-3 px-6 flex items-center justify-center gap-3 font-medium capitalize text-[1rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] mb-8"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -214,7 +214,7 @@ function LoginPageInner() {
               <button
                 type="submit"
                 disabled={isLoading || form.formState.isSubmitting}
-                className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
+                className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-medium capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
               >
                 {isLoading ? (
                   <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
@@ -240,13 +240,13 @@ function LoginPageInner() {
         title="Email Not Verified"
         footer={
           <>
-            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 border-[3px] border-[#111111] font-bold uppercase hover:bg-[#111111] hover:text-[#ffffff]">
+            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 border-[3px] border-[#111111] font-medium capitalize hover:bg-[#111111] hover:text-[#ffffff]">
               Cancel
             </button>
             <button
               onClick={handleResendVerification}
               disabled={isResending}
-              className="px-6 py-2 bg-[#ffffff] border-[3px] border-[#111111] font-bold capitalize shadow-[4px_4px_0_#15803D] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]"
+              className="px-6 py-2 bg-[#ffffff] border-[3px] border-[#111111] font-medium capitalize shadow-[4px_4px_0_#15803D] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]"
             >
               {isResending ? <Icons.spinner className="w-5 h-5 animate-spin" /> : "Send New Link"}
             </button>

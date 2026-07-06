@@ -25,7 +25,7 @@ interface WizardProps {
   isPageMode?: boolean;
 }
 
-const STEPS = ["Contact Person Information", "Organization", "Review & Confirm"];
+const STEPS = ["Contact Person Details", "Organization Profile", "Organization Contact & Location", "Review & Confirm"];
 
 const AVAILABLE_ROLES = [
   { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-openclub-800", bg: "bg-emerald-50" },
@@ -384,7 +384,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
 
   const maxDobDate = useMemo(() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 13);
+    d.setFullYear(d.getFullYear() - 18);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, []);
 
@@ -393,9 +393,6 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       if (!formData.firstName.trim()) return "First name is required";
       if (!editingUser && !formData.middleName.trim()) return "Middle name is required";
       if (!formData.surname.trim()) return "Surname is required";
-      if (!formData.email.trim()) return "Email is required";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return "Invalid email address";
-      if (!formData.phone.trim()) return "Phone number is required";
       if (!editingUser) {
         if (!formData.dob) {
           return "Date of birth is required";
@@ -407,14 +404,11 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
             age--;
           }
-          if (age < 13) {
-            return "Minimum age for registration is 13 years.";
+          if (age < 18) {
+            return "Organizers must be at least 18 years old.";
           }
         }
         if (!formData.gender) return "Gender is required";
-        if (!formData.state) return "State/Province is required";
-        if (!formData.city.trim()) return "City is required";
-        if (!formData.address.trim()) return "Address is required";
         if (!formData.profileImage) return "Profile image is required";
       }
       if (!formData.status) return "Account status is required";
@@ -429,6 +423,16 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       if (!orgProfile.type.trim()) return "Organization Type is required";
       if (orgProfile.type === "Other" && !orgProfile.customType?.trim()) return "Custom organization type is required";
       if (!orgProfile.logo.trim()) return "Organization Logo is required";
+    }
+    if (s === 3) {
+      if (!formData.email.trim()) return "Email is required";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return "Invalid email address";
+      if (!formData.phone.trim()) return "Phone number is required";
+      if (!editingUser) {
+        if (!formData.state) return "State/Province is required";
+        if (!formData.city.trim()) return "City is required";
+        if (!formData.address.trim()) return "Address is required";
+      }
     }
     return null;
   };
@@ -576,12 +580,12 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       case 1:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3 rounded-t-2xl">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-[14px] font-medium text-gray-900">Basic Details</h4>
+                <h4 className="text-[14px] font-medium text-gray-900">Contact Person Details</h4>
                 <p className="text-[12px] text-gray-500">Essential information about the primary contact for this organization.</p>
               </div>
             </div>
@@ -650,7 +654,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       maxDate={maxDobDate}
                     />
                     <p className="text-[10px] text-gray-500 mt-1 leading-snug">
-                      Minimum age: 13. Accounts under 18 require parental/guardian consent.
+                      Minimum age: 18 years old.
                     </p>
                   </Field>
                 </div>
@@ -669,92 +673,6 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       placeholder="Select gender"
                     />
                   </Field>
-                  <Field label="Email Address" required>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input 
-                        placeholder="Enter email address"
-                        value={formData.email} 
-                        onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                        className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
-                      />
-                    </div>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Country" required>
-                    <SearchableSelect 
-                      value={formData.country}
-                      onValueChange={v => setFormData({...formData, country: v, state: "", city: ""})}
-                      options={countryOptions}
-                      triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
-                      placeholder="Select country"
-                    />
-                  </Field>
-                  <Field label="State / Province" required>
-                    <SearchableSelect 
-                      value={formData.state}
-                      onValueChange={v => setFormData({...formData, state: v, city: ""})}
-                      options={stateOptions}
-                      disabled={!formData.country}
-                      triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
-                      placeholder="Select state / province"
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="LGA / City" required>
-                    {cityOptions.length > 0 ? (
-                      <SearchableSelect 
-                        value={formData.city}
-                        onValueChange={v => setFormData({...formData, city: v})}
-                        options={cityOptions}
-                        disabled={!formData.state}
-                        triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
-                        placeholder="Select LGA / City"
-                      />
-                    ) : (
-                      <Input 
-                        placeholder="Enter LGA / city"
-                        value={formData.city} 
-                        onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                        className={cn(showValidation && !formData.city && "!border-red-500")}
-                        disabled={!formData.state}
-                      />
-                    )}
-                  </Field>
-                  <Field label="Phone Number" required>
-                    <div className="flex gap-2">
-                      <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px]">
-                        +{countryCode}
-                      </div>
-                      <div className="relative flex-1">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          placeholder="Enter phone number"
-                          value={formData.phone} 
-                          onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, "")})} 
-                          className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
-                        />
-                      </div>
-                    </div>
-                  </Field>
-                </div>
-
-                <Field label="Address" required>
-                  <textarea 
-                    value={formData.address} 
-                    onChange={(e) => setFormData({...formData, address: e.target.value})} 
-                    placeholder="Enter full address"
-                    className={cn("flex h-24 w-full rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 disabled:cursor-not-allowed disabled:opacity-50 resize-none", showValidation && !formData.address.trim() && "!border-red-500")}
-                  />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-4 items-start">
-                  <div />
-                  
                   <Field label="Account Status" required>
                     <SearchableSelect 
                       value={formData.status}
@@ -774,7 +692,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       case 2: {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3 rounded-t-2xl">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                 <Building2 className="w-4 h-4" />
               </div>
@@ -924,7 +842,106 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
             </div>
         );
       }
-      case 3: {
+      case 3:
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3 rounded-t-2xl">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-medium text-gray-900">Organization Contact & Location</h4>
+                <p className="text-[12px] text-gray-500">How to reach and locate the organization.</p>
+              </div>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Email Address" required>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      placeholder="Enter email address"
+                      value={formData.email} 
+                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                      className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
+                    />
+                  </div>
+                </Field>
+                <Field label="Phone Number" required>
+                  <div className="flex gap-2">
+                    <div className="h-10 px-3 bg-background border border-[#e1efe5] rounded-lg flex items-center justify-center text-[13px] font-normal text-gray-500 shrink-0 min-w-[60px]">
+                      +{countryCode}
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input 
+                        placeholder="Enter phone number"
+                        value={formData.phone} 
+                        onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, "")})} 
+                        className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
+                      />
+                    </div>
+                  </div>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Country" required>
+                  <SearchableSelect 
+                    value={formData.country}
+                    onValueChange={v => setFormData({...formData, country: v, state: "", city: ""})}
+                    options={countryOptions}
+                    triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
+                    placeholder="Select country"
+                  />
+                </Field>
+                <Field label="State / Province" required>
+                  <SearchableSelect 
+                    value={formData.state}
+                    onValueChange={v => setFormData({...formData, state: v, city: ""})}
+                    options={stateOptions}
+                    disabled={!formData.country}
+                    triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
+                    placeholder="Select state / province"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="LGA / City" required>
+                  {cityOptions.length > 0 ? (
+                    <SearchableSelect 
+                      value={formData.city}
+                      onValueChange={v => setFormData({...formData, city: v})}
+                      options={cityOptions}
+                      disabled={!formData.state}
+                      triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
+                      placeholder="Select LGA / City"
+                    />
+                  ) : (
+                    <Input 
+                      placeholder="Enter LGA / city"
+                      value={formData.city} 
+                      onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                      className={cn(showValidation && !formData.city && "!border-red-500")}
+                      disabled={!formData.state}
+                    />
+                  )}
+                </Field>
+                <Field label="Address" required>
+                  <Input 
+                    value={formData.address} 
+                    onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                    placeholder="Enter full address"
+                    className={cn(showValidation && !formData.address.trim() && "!border-red-500")}
+                  />
+                </Field>
+              </div>
+            </div>
+          </div>
+        );
+      case 4: {
         const birthDate = formData.dob ? new Date(formData.dob) : null;
         let isJunior = false;
         let ageText = "";
@@ -953,7 +970,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
 
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3 rounded-t-2xl">
               <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
@@ -964,8 +981,8 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
             </div>
             
             <div className="p-5 space-y-6">
-              <div className="rounded-2xl border border-emerald-100 bg-white p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+              <div className="rounded-2xl border border-emerald-100 bg-[#f4fdf8] p-5 flex items-center gap-5">
+                <div className="w-16 h-16 rounded-full border border-[#e1efe5] shadow-sm overflow-hidden flex items-center justify-center shrink-0 bg-white">
                   {formData.profileImage ? (
                     <img src={formData.profileImage} className="w-full h-full object-cover" />
                   ) : (
@@ -973,17 +990,17 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[11px] font-normal capitalize tracking-wider text-openclub-800 block">New User Account</span>
-                  <h4 className="text-[16px] font-normal text-gray-900 flex items-center gap-2 mt-1 leading-tight">
+                  <span className="text-[11px] font-normal uppercase tracking-wider text-openclub-700 block mb-1">New User Account</span>
+                  <h4 className="text-[18px] font-normal text-gray-900 flex items-center gap-2 leading-none">
                     {formData.firstName} {formData.middleName} {formData.surname}
                   </h4>
-                  <p className="text-[12px] text-gray-500 truncate leading-tight">{formData.email}</p>
+                  <p className="text-[13px] text-gray-500 truncate leading-tight mt-1.5">{formData.email}</p>
                 </div>
-                <div className="flex flex-col gap-1 items-end shrink-0">
-                  <div className="flex gap-1 flex-wrap justify-end">
+                <div className="flex flex-col gap-2 items-end shrink-0">
+                  <div className="flex gap-1.5 flex-wrap justify-end">
                     {formData.roles.map(r => (
                       <span key={r} className={cn(
-                        "px-2 py-0.5 rounded-md text-[9px] font-normal uppercase tracking-wider border",
+                        "px-2.5 py-1 rounded-md text-[10px] font-normal uppercase tracking-wider border",
                         r === "SUPER_ADMIN" ? "bg-rose-50 text-rose-600 border-rose-100" :
                         r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
                         "bg-emerald-50 text-openclub-800 border-emerald-100"
@@ -992,77 +1009,77 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-normal text-gray-500">
                     <span className={cn("w-2 h-2 rounded-full", formData.status === "ACTIVE" ? "bg-openclub-700" : "bg-amber-500")} />
                     <span>{formData.status} Status</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 {/* Left Column — Personal details */}
-                <div className="rounded-2xl border border-[#e1efe5] bg-white p-4 space-y-3.5 shadow-sm">
-                  <div className="flex items-center gap-2 border-b border-[#e1efe5] pb-2">
-                    <User className="w-3.5 h-3.5 text-gray-400" />
-                    <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Personal & Contact Info</h5>
+                <div className="rounded-2xl border border-[#e1efe5] bg-white p-5 space-y-5 shadow-sm">
+                  <div className="flex items-center gap-2.5 border-b border-[#e1efe5] pb-3">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 border border-[#e1efe5] flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-gray-500" />
+                    </div>
+                    <h5 className="text-[12px] font-normal text-gray-800 uppercase tracking-widest">Contact Person Details</h5>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <span className="text-[10px] font-normal text-gray-400 uppercase block">Gender</span>
-                      <span className="text-[13px] text-gray-700 font-normal">{formData.gender === "MALE" ? "Male" : formData.gender === "FEMALE" ? "Female" : formData.gender === "OTHER" ? "Other" : formData.gender}</span>
+                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Gender</span>
+                      <span className="text-[14px] text-gray-800 font-normal">{formData.gender === "MALE" ? "Male" : formData.gender === "FEMALE" ? "Female" : formData.gender === "OTHER" ? "Other" : formData.gender}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-normal text-gray-400 uppercase block">Date of Birth</span>
-                      <span className="text-[13px] text-gray-700 font-normal">{formData.dob ? `${formData.dob} ${ageText}` : "—"}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3.5">
-                    <div>
-                      <span className="text-[10px] font-normal text-gray-400 uppercase block">Phone Number</span>
-                      <span className="text-[13px] text-gray-700 font-normal">{formData.phone ? `+${countryCode} ${formData.phone}` : "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-normal text-gray-400 uppercase block">Email Address</span>
-                      <span className="text-[13px] text-gray-700 font-normal truncate block">{formData.email}</span>
+                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</span>
+                      <span className="text-[14px] text-gray-800 font-normal">{formData.dob ? `${formData.dob} ${ageText}` : "—"}</span>
                     </div>
                   </div>
 
-                  <div>
-                    <span className="text-[10px] font-normal text-gray-400 uppercase block">Address Details</span>
-                    <span className="text-[13px] text-gray-700 font-normal block leading-tight mt-0.5">{formData.address}</span>
-                    <span className="text-[12px] text-gray-400 block mt-1.5 leading-snug">{cityLabel}, {stateLabel}, {countryLabel}</span>
+                  <div className="pt-4 border-t border-[#e1efe5]">
+                    <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-3">Organization Contact</span>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Email Address</span>
+                        <span className="text-[14px] text-gray-800 font-normal truncate block">{formData.email}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Phone Number</span>
+                        <span className="text-[14px] text-gray-800 font-normal">{formData.phone ? `+${countryCode} ${formData.phone}` : "—"}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Address</span>
+                      <span className="text-[14px] text-gray-800 font-normal block leading-tight">{formData.address || "—"}</span>
+                      <span className="text-[12px] text-gray-500 font-normal block mt-1">{cityLabel ? `${cityLabel}, ` : ""}{stateLabel ? `${stateLabel}, ` : ""}{countryLabel}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right Column — Role, Organization and Permissions */}
-                <div className="rounded-2xl border border-[#e1efe5] bg-white p-4 space-y-3.5 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 border-b border-[#e1efe5] pb-2 mb-3">
-                      <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-                      <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Organization Details</h5>
+                {/* Right Column — Organization Details */}
+                <div className="rounded-2xl border border-[#e1efe5] bg-white p-5 space-y-5 shadow-sm flex flex-col">
+                  <div className="flex items-center gap-2.5 border-b border-[#e1efe5] pb-3">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 border border-[#e1efe5] flex items-center justify-center">
+                      <Building2 className="w-3.5 h-3.5 text-gray-500" />
                     </div>
+                    <h5 className="text-[12px] font-normal text-gray-800 uppercase tracking-widest">Organization Details</h5>
+                  </div>
 
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-3.5">
-                        <div>
-                          <span className="text-[10px] font-normal text-gray-400 uppercase block">Name</span>
-                          <span className="text-[13px] text-gray-700 font-normal truncate block mt-0.5">{orgProfile.name || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-normal text-gray-400 uppercase block">Type</span>
-                          <span className="text-[12px] text-openclub-800 font-normal bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block mt-1">{orgProfile.type || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-normal text-gray-400 uppercase block">Subscription</span>
-                          <span className="text-[12px] text-purple-600 font-normal bg-purple-50 px-2 py-0.5 rounded border border-purple-100 inline-block mt-1">{orgProfile.plan}</span>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Name</span>
+                        <span className="text-[14px] text-gray-800 font-normal truncate block">{orgProfile.name || "—"}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Address (Inherited)</span>
-                        <span className="text-[12px] text-gray-600 font-normal block leading-tight mt-1">{formData.address || "—"}</span>
+                        <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Type</span>
+                        <span className="text-[13px] text-emerald-700 font-normal bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 inline-block mt-0.5">{orgProfile.type || "—"}</span>
                       </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Subscription</span>
+                      <span className="text-[13px] text-purple-700 font-normal bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 inline-block mt-0.5">{orgProfile.plan}</span>
                     </div>
                   </div>
                 </div>
@@ -1141,7 +1158,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           </div>
 
           {/* Right Column - Step Content & Footer */}
-          <div className="lg:col-span-4 bg-white border-none rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden">
+          <div className="lg:col-span-4 bg-white border-none rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col">
             <div className="min-h-[400px] flex-1">
               {fetching ? (
                 <div className="space-y-6 p-6 animate-pulse">
@@ -1159,7 +1176,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
             </div>
 
             {/* Form Actions Footer */}
-            <div className="border-t border-[#e1efe5] bg-white p-5 flex items-center justify-between">
+            <div className="border-t border-[#e1efe5] bg-white p-5 flex items-center justify-between rounded-b-2xl">
               <Button
                 variant="outline"
                 onClick={handleBack}

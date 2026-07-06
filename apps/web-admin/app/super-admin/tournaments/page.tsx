@@ -13,6 +13,7 @@ import {
   Download,
   Filter,
   Eye,
+  Settings,
   Edit2,
   MoreHorizontal,
   ArrowUpRight,
@@ -1297,29 +1298,11 @@ export default function TournamentsPage() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => openView(t)}
-                                className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
-                                title="View Tournament"
+                                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors border border-emerald-600 shadow-sm"
+                                title="Manage Tournament"
                               >
-                                <Eye className="w-3 h-3" />
-                                <span className="text-[11px] font-medium leading-none">View</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (t.statusKey !== "CANCELLED" && t.statusKey !== "COMPLETED") {
-                                    openEdit(t);
-                                  }
-                                }}
-                                className={cn(
-                                  "h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md transition-colors border",
-                                  t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"
-                                    ? "text-gray-300 cursor-not-allowed bg-gray-50 border-gray-100"
-                                    : "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100"
-                                )}
-                                title="Edit Tournament"
-                                disabled={t.statusKey === "CANCELLED" || t.statusKey === "COMPLETED"}
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                <span className="text-[11px] font-medium leading-none">Edit</span>
+                                <Settings className="w-3.5 h-3.5" />
+                                <span className="text-[12px] font-medium leading-none">Manage tournament</span>
                               </button>
                               <div className="relative">
                                 <button
@@ -1336,7 +1319,7 @@ export default function TournamentsPage() {
                                       setDropdownTournament(t);
                                     }
                                   }}
-                                  className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
+                                  className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                                   title="More Actions"
                                 >
                                   <MoreHorizontal className="w-4 h-4" />
@@ -1379,6 +1362,19 @@ export default function TournamentsPage() {
       <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (
           <>
+            <button
+              onClick={() => handleMoreAction("edit", dropdownTournament)}
+              className={cn(
+                "w-full text-left px-4 py-2 text-[12px] font-normal flex items-center gap-3",
+                dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:bg-background"
+              )}
+              disabled={dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"}
+            >
+              <Edit2 className={cn("w-4 h-4", dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED" ? "text-gray-300" : "text-blue-500")} />
+              Edit Tournament
+            </button>
             <button
               onClick={() => handleMoreAction("export", dropdownTournament)}
               className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"

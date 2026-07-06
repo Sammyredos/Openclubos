@@ -10,24 +10,20 @@ import { PrismaService } from '../../common/prisma.service';
 export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
-  // Lightweight list used by tournament wizard dropdowns — filtered by club
-  async findAll(query: { clubId?: string; skip?: number; take?: number }) {
+  // Lightweight list used by tournament wizard dropdowns
+  async findAll(query: { skip?: number; take?: number }) {
     const MAX_PAGE_SIZE = 100;
     const take = Math.min(query.take ?? 100, MAX_PAGE_SIZE);
     const skip = query.skip ?? 0;
 
     const courses = await this.prisma.course.findMany({
-      where: query.clubId
-        ? { clubId: query.clubId, status: CourseStatus.ACTIVE }
-        : { status: CourseStatus.ACTIVE },
+      where: { status: CourseStatus.ACTIVE },
       take,
       skip,
       select: {
         id: true,
         name: true,
         holesCount: true,
-        clubId: true,
-        club: { select: { id: true, name: true } },
         address: true,
         city: true,
         state: true,
@@ -54,7 +50,6 @@ export class CoursesService {
     country?: string;
     status?: string;
     type?: string;
-    clubId?: string;
   }) {
     const skip = query.skip ?? 0;
     const take = query.take ?? 10;
@@ -69,7 +64,6 @@ export class CoursesService {
         where.AND = tokens.map((token) => ({
           OR: [
             { name: { contains: token, mode: 'insensitive' } },
-            { club: { name: { contains: token, mode: 'insensitive' } } },
           ],
         }));
       }
@@ -77,7 +71,6 @@ export class CoursesService {
     if (query.country) where.country = query.country;
     if (query.status) where.status = query.status as CourseStatus;
     if (query.type) where.type = query.type;
-    if (query.clubId) where.clubId = query.clubId;
 
     const [courses, total] = await Promise.all([
       this.prisma.course.findMany({
@@ -85,7 +78,6 @@ export class CoursesService {
         skip,
         take,
         include: {
-          club: { select: { id: true, name: true } },
           _count: { select: { tournaments: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -134,7 +126,6 @@ export class CoursesService {
     const course = await this.prisma.course.findUnique({
       where: { id },
       include: {
-        club: { select: { id: true, name: true } },
         teeBoxes: true,
         holes: true,
         _count: { select: { tournaments: true } },
@@ -193,8 +184,6 @@ export class CoursesService {
     if (dto.galleryImages !== undefined) data.galleryImages = dto.galleryImages;
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.isFeatured !== undefined) data.isFeatured = dto.isFeatured;
-    if (dto.clubId !== undefined)
-      data.clubId = dto.clubId === '' ? null : dto.clubId;
     return data;
   }
 
@@ -262,7 +251,6 @@ export class CoursesService {
     const course = await this.prisma.course.create({
       data,
       include: {
-        club: { select: { id: true, name: true } },
         teeBoxes: true,
         holes: true,
       },
@@ -344,7 +332,7 @@ export class CoursesService {
       where: { id },
       data,
       include: {
-        club: { select: { id: true, name: true } },
+
         teeBoxes: true,
         holes: true,
       },

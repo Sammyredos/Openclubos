@@ -60,7 +60,7 @@ export class SuperAdminDashboardService {
   async stats() {
     const startExecution = performance.now();
 
-    let resultData = await this.cacheService.get<any>('super-admin:stats');
+    let resultData = null;
 
     if (!resultData) {
       const now = new Date();
@@ -252,7 +252,7 @@ export class SuperAdminDashboardService {
         pendingAmount: Math.round(pendingAmount),
       };
 
-      await this.cacheService.set('super-admin:stats', resultData, 300);
+
     }
 
     return {

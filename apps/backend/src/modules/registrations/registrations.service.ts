@@ -39,7 +39,7 @@ export class RegistrationsService {
       }),
       this.prisma.user.findUnique({ where: { id: userId } }),
       this.prisma.registration.count({
-        where: { tournamentId, status: RegistrationStatus.APPROVED },
+        where: { tournamentId, status: { in: [RegistrationStatus.APPROVED, RegistrationStatus.PENDING] } },
       }),
     ]);
 
@@ -150,10 +150,10 @@ export class RegistrationsService {
     if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
       if (isAdmin) {
         // Admin manual registration: Auto-increment maxPlayers if at capacity and approving
-        if (status === RegistrationStatus.APPROVED) {
+        if (status === RegistrationStatus.APPROVED || status === RegistrationStatus.PENDING) {
           await this.prisma.tournament.update({
             where: { id: tournamentId },
-            data: { maxPlayers: { increment: 1 } },
+            data: { maxPlayers: Math.max(tournament.maxPlayers, approvedCount + 1) },
           });
         }
       } else {
@@ -367,10 +367,12 @@ export class RegistrationsService {
 
       if (!registration) throw new NotFoundException('Registration not found');
 
-      // If moving to APPROVED status, check capacity
+      // If moving to a slot-consuming status from a non-consuming status
+      const takesSlot = (s: RegistrationStatus) => s === RegistrationStatus.APPROVED || s === RegistrationStatus.PENDING;
+      
       if (
-        status === RegistrationStatus.APPROVED &&
-        registration.status !== RegistrationStatus.APPROVED
+        takesSlot(status) &&
+        !takesSlot(registration.status)
       ) {
         const [tournament, approvedCount] = await Promise.all([
           this.prisma.tournament.findUnique({
@@ -379,7 +381,7 @@ export class RegistrationsService {
           this.prisma.registration.count({
             where: {
               tournamentId: registration.tournamentId,
-              status: RegistrationStatus.APPROVED,
+              status: { in: [RegistrationStatus.APPROVED, RegistrationStatus.PENDING] },
             },
           }),
         ]);
@@ -395,10 +397,10 @@ export class RegistrationsService {
           tournament.maxPlayers &&
           approvedCount >= tournament.maxPlayers
         ) {
-          // Auto-increment maxPlayers if at capacity
+          // Auto-increment maxPlayers if at capacity to fit the new total
           await this.prisma.tournament.update({
             where: { id: tournament.id },
-            data: { maxPlayers: { increment: 1 } },
+            data: { maxPlayers: Math.max(tournament.maxPlayers, approvedCount + 1) },
           });
         }
       }

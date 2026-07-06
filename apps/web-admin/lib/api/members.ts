@@ -91,6 +91,7 @@ export async function getAdminUsers(params: {
   status?: string;
   clubId?: string;
   role?: string;
+  handicap?: string;
 }): Promise<AdminUsersResponse> {
   const token = getAuthToken();
   const searchParams = new URLSearchParams();
@@ -100,6 +101,7 @@ export async function getAdminUsers(params: {
   if (params.status) searchParams.append('status', params.status);
   if (params.clubId) searchParams.append('clubId', params.clubId);
   if (params.role) searchParams.append('role', params.role);
+  if (params.handicap) searchParams.append('handicap', params.handicap);
 
   const res = await fetch(`${API_BASE}/members/all?${searchParams.toString()}`, {
     headers: {

@@ -181,12 +181,7 @@ export class TournamentsService {
         _count: {
           select: {
             registrations: {
-              where: { 
-                OR: [
-                  { status: 'APPROVED' },
-                  { paymentStatus: 'PAID' }
-                ]
-              },
+              where: { status: { in: ['APPROVED', 'PENDING'] } },
             },
           },
         },
@@ -209,12 +204,7 @@ export class TournamentsService {
     const takeParam = query.take ?? '';
     const cacheKey = `tournaments:list:${clubId}:${status}:${search}:${skip}:${takeParam}`;
 
-    const cached = await this.cacheService.get<{ items: any[]; total: number }>(
-      cacheKey,
-    );
-    if (cached) {
-      return cached;
-    }
+
 
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
@@ -260,12 +250,7 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { 
-                  OR: [
-                    { status: 'APPROVED' },
-                    { paymentStatus: 'PAID' }
-                  ]
-                },
+                where: { status: { in: ['APPROVED', 'PENDING'] } },
               },
             },
           },
@@ -276,7 +261,7 @@ export class TournamentsService {
     ]);
 
     const result = { items, total };
-    await this.cacheService.set(cacheKey, result, 300);
+
     return result;
   }
 
@@ -347,7 +332,7 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' },
+                where: { status: { in: ['APPROVED', 'PENDING'] } },
               },
             },
           },
@@ -463,8 +448,13 @@ export class TournamentsService {
     }
 
     // Dynamic Status Recalculation based on dates
-    const intendedStatus =
+    let intendedStatus =
       dto.status !== undefined ? dto.status : existing.status;
+
+    if (dto.publishImmediately && intendedStatus === 'DRAFT') {
+      intendedStatus = 'REGISTRATION_OPEN';
+    }
+
     if (!['DRAFT', 'CANCELLED'].includes(intendedStatus)) {
       const targetStartDate = data.startDate || existing.startDate;
       const targetEndDate =
@@ -578,7 +568,7 @@ export class TournamentsService {
           _count: {
             select: {
               registrations: {
-                where: { status: 'APPROVED' },
+                where: { status: { in: ['APPROVED', 'PENDING'] } },
               },
             },
           },

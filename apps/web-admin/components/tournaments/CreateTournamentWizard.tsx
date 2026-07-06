@@ -323,16 +323,6 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
   const handleClubChange = (id: string) => {
     set("clubId", id);
-    // Find first course of this club to prefill
-    const firstCourse = courses.find(c => c.clubId === id);
-    if (firstCourse) {
-      setFormData(prev => ({
-        ...prev,
-        courseId: firstCourse.id,
-        venue: firstCourse.country || prev.venue,
-        location: firstCourse.state || prev.location
-      }));
-    }
   };
 
   const handleCourseChange = (id: string) => {
@@ -981,9 +971,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
             <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
               onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-                  <Shield className="w-4 h-4" />
-                </div>
+
                 <div>
                   <h4 className="text-[14px] font-medium text-gray-900">Handicap Restrictions</h4>
                   <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>

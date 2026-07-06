@@ -83,7 +83,7 @@ type ApiOrganizer = {
   facebook?: string | null;
   instagram?: string | null;
   country?: string | null;
-  _count?: { tournaments: number; courses: number };
+  _count?: { tournaments: number };
   users?: Array<{ id: string; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null; phone?: string | null }>;
 };
 
@@ -102,8 +102,8 @@ type OrganizerRow = {
   facebook: string;
   instagram: string;
   country: string;
+  state: string;
   tournamentsCount: number;
-  coursesCount: number;
 };
 
 type ApiTournament = {
@@ -199,9 +199,9 @@ function toOrganizerRow(o: ApiOrganizer): OrganizerRow {
     website: o.website || "—",
     facebook: o.facebook || "",
     instagram: o.instagram || "",
-    country: o.country || "NG",
+    country: o.country || "—",
+    state: o.state || "—",
     tournamentsCount: o._count?.tournaments ?? 0,
-    coursesCount: o._count?.courses ?? 0,
   };
 }
 
@@ -225,7 +225,8 @@ export default function OrganizersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [planFilter, setPlanFilter] = useState("All Plans");
-  const [locationFilter, setLocationFilter] = useState("All Locations");
+  const [countryFilter, setCountryFilter] = useState("All Countries");
+  const [stateFilter, setStateFilter] = useState("All States");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -345,12 +346,19 @@ export default function OrganizersPage() {
     };
   }, []);
 
-  const filteredOrganizers = organizersData; // The backend now handles search filtering
+  const filteredOrganizers = organizersData.filter((o) => {
+    if (statusFilter !== "All Status" && o.status !== statusFilter) return false;
+    if (planFilter !== "All Plans" && o.plan !== planFilter) return false;
+    if (countryFilter !== "All Countries" && o.country !== countryFilter) return false;
+    if (stateFilter !== "All States" && o.state !== stateFilter) return false;
+    return true;
+  }); // Local filtering for status, plan, country and state
 
   const totalPages = Math.max(1, Math.ceil(totalOrganizers / itemsPerPage));
   const paginatedOrganizers = filteredOrganizers;
 
-  const uniqueLocations = Array.from(new Set(organizersData.map((o) => o.location))).filter((v) => v !== "—");
+  const uniqueCountries = Array.from(new Set(organizersData.map((o) => o.country))).filter((v) => v && v !== "—");
+  const uniqueStates = Array.from(new Set(organizersData.filter(o => countryFilter === "All Countries" || o.country === countryFilter).map((o) => o.state))).filter((v) => v && v !== "—");
 
   const activeOrganizers = organizersData.filter((o) => o.status === "Active").length;
   const suspendedOrganizers = organizersData.filter((o) => o.status === "Suspended").length;
@@ -786,15 +794,27 @@ export default function OrganizersPage() {
               placeholder="All Plans"
             />
             <SearchableSelect
-              value={locationFilter}
+              value={countryFilter}
               onValueChange={(v) => {
-                setLocationFilter(v);
+                setCountryFilter(v);
+                setStateFilter("All States");
                 setCurrentPage(1);
               }}
-              options={["All Locations", ...uniqueLocations].map((v) => ({ value: v, label: v }))}
-              className="min-w-[180px]"
+              options={["All Countries", ...uniqueCountries].map((v) => ({ value: v, label: v }))}
+              className="min-w-[160px]"
               triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Locations"
+              placeholder="All Countries"
+            />
+            <SearchableSelect
+              value={stateFilter}
+              onValueChange={(v) => {
+                setStateFilter(v);
+                setCurrentPage(1);
+              }}
+              options={["All States", ...uniqueStates].map((v) => ({ value: v, label: v }))}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              placeholder="All States"
             />
 
           </div>

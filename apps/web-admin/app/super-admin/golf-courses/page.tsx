@@ -513,9 +513,8 @@ export default function SuperAdminGolfCoursesPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col min-w-0 gap-0.5">
+                          <div className="flex flex-col min-w-0 gap-0.5 justify-center">
                             <span className="text-slate-900 text-[14px] font-medium truncate" title={course.name}>{course.name}</span>
-                            <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5">{(course.club?.name || "Independent")}</span>
                           </div>
                         </div>
                       </td>

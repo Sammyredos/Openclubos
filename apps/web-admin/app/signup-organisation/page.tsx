@@ -241,7 +241,7 @@ export default function SignupOrganisationPage() {
 
   const inputClasses = "w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-3 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
   const labelClasses = "block font-bold uppercase tracking-tight mb-2 text-[#111111]"
-  const btnClasses = "w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold uppercase text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
+  const btnClasses = "w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-medium capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
   const errorClasses = "text-[14px] text-red-600 font-bold mt-2"
 
   return (
