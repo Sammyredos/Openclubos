@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { 
+import {
   Upload, Shield, Check, X, Trophy, Calendar, ChevronDown, ChevronRight, Phone, MapPin, Mail, User, ShieldCheck, AlertCircle, Building2, CheckCircle2, Settings, Target, Info, Eye, ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
@@ -25,79 +25,79 @@ interface WizardProps {
   isPageMode?: boolean;
 }
 
-const STEPS = ["Contact Person Details", "Organization Profile", "Organization Contact & Location", "Review & Confirm"];
+const STEPS = ["Contact Person Details", "Organization Profile", "Organization Contact", "Review & Confirm"];
 
 const AVAILABLE_ROLES = [
-  { id: "PLAYER",     label: "Player",        desc: "Register for tournaments, view leaderboards.",          icon: User,      color: "text-openclub-800", bg: "bg-emerald-50" },
-  { id: "CLUB_ADMIN", label: "Organizer Admin", desc: "Manage tournaments, registrations and event settings.", icon: Building2, color: "text-blue-600",    bg: "bg-blue-50" },
-  { id: "MARKER",     label: "Marker",         desc: "Enter scores, manage results and scorecards.",           icon: Trophy,    color: "text-amber-600",   bg: "bg-amber-50" },
-  { id: "VIEWER",     label: "Viewer",         desc: "Read-only access to tournaments and reports.",           icon: Eye,       color: "text-indigo-600",  bg: "bg-indigo-50" },
-  { id: "SUPER_ADMIN",label: "Super Admin",    desc: "Unrestricted platform access and all admin rights.",    icon: Shield,    color: "text-rose-600",    bg: "bg-rose-50" },
+  { id: "PLAYER", label: "Player", desc: "Register for tournaments, view leaderboards.", icon: User, color: "text-openclub-800", bg: "bg-emerald-50" },
+  { id: "CLUB_ADMIN", label: "Organizer Admin", desc: "Manage tournaments, registrations and event settings.", icon: Building2, color: "text-blue-600", bg: "bg-blue-50" },
+  { id: "MARKER", label: "Marker", desc: "Enter scores, manage results and scorecards.", icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "VIEWER", label: "Viewer", desc: "Read-only access to tournaments and reports.", icon: Eye, color: "text-indigo-600", bg: "bg-indigo-50" },
+  { id: "SUPER_ADMIN", label: "Super Admin", desc: "Unrestricted platform access and all admin rights.", icon: Shield, color: "text-rose-600", bg: "bg-rose-50" },
 ];
 
 // Permission matrix per role: [view, create, edit, delete, export]
 const ROLE_PERMISSIONS: Record<string, Record<string, boolean[]>> = {
   PLAYER: {
-    "User Management":       [false,false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, true, false,false,false],
-    "Scoring & Boards":      [true, false,false,false,false],
-    "Payments & Payouts":    [false,false,false,false,false],
-    "Reports & Analytics":   [false,false,false,false,false],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [false, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, true, false, false, false],
+    "Scoring & Boards": [true, false, false, false, false],
+    "Payments & Payouts": [false, false, false, false, false],
+    "Reports & Analytics": [false, false, false, false, false],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   MARKER: {
-    "User Management":       [false,false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, false,false,false,false],
-    "Scoring & Boards":      [true, true, true, false,true ],
-    "Payments & Payouts":    [false,false,false,false,false],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [false, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, false, false, false, false],
+    "Scoring & Boards": [true, true, true, false, true],
+    "Payments & Payouts": [false, false, false, false, false],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   VIEWER: {
-    "User Management":       [true, false,false,false,false],
-    "Tournament Management": [true, false,false,false,false],
-    "Registration Mgmt":     [true, false,false,false,false],
-    "Scoring & Boards":      [true, false,false,false,false],
-    "Payments & Payouts":    [true, false,false,false,false],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, false,false,false,false],
-    "Platform Settings":     [true, false,false,false,false],
+    "User Management": [true, false, false, false, false],
+    "Tournament Management": [true, false, false, false, false],
+    "Registration Mgmt": [true, false, false, false, false],
+    "Scoring & Boards": [true, false, false, false, false],
+    "Payments & Payouts": [true, false, false, false, false],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, false, false, false, false],
+    "Platform Settings": [true, false, false, false, false],
   },
   CLUB_ADMIN: {
-    "User Management":       [true, true, true, false,false],
-    "Tournament Management": [true, true, true, true, true ],
-    "Registration Mgmt":     [true, true, true, true, true ],
-    "Scoring & Boards":      [true, true, true, false,true ],
-    "Payments & Payouts":    [true, true, true, false,true ],
-    "Reports & Analytics":   [true, false,false,false,true ],
-    "Golf Courses":          [true, true, true, true, false],
-    "Platform Settings":     [false,false,false,false,false],
+    "User Management": [true, true, true, false, false],
+    "Tournament Management": [true, true, true, true, true],
+    "Registration Mgmt": [true, true, true, true, true],
+    "Scoring & Boards": [true, true, true, false, true],
+    "Payments & Payouts": [true, true, true, false, true],
+    "Reports & Analytics": [true, false, false, false, true],
+    "Golf Courses": [true, true, true, true, false],
+    "Platform Settings": [false, false, false, false, false],
   },
   SUPER_ADMIN: {
-    "User Management":       [true, true, true, true, true ],
-    "Tournament Management": [true, true, true, true, true ],
-    "Registration Mgmt":     [true, true, true, true, true ],
-    "Scoring & Boards":      [true, true, true, true, true ],
-    "Payments & Payouts":    [true, true, true, true, true ],
-    "Reports & Analytics":   [true, true, true, true, true ],
-    "Golf Courses":          [true, true, true, true, true ],
-    "Platform Settings":     [true, true, true, true, true ],
+    "User Management": [true, true, true, true, true],
+    "Tournament Management": [true, true, true, true, true],
+    "Registration Mgmt": [true, true, true, true, true],
+    "Scoring & Boards": [true, true, true, true, true],
+    "Payments & Payouts": [true, true, true, true, true],
+    "Reports & Analytics": [true, true, true, true, true],
+    "Golf Courses": [true, true, true, true, true],
+    "Platform Settings": [true, true, true, true, true],
   },
 };
 
 const PERMISSIONS_LIST = [
-  { id: "User Management",    label: "User Management",    desc: "Manage users, roles and access control.",       icon: User },
-  { id: "Tournament Management", label: "Tournament Mgmt", desc: "Create and manage tournaments and events.",      icon: Trophy },
-  { id: "Registration Mgmt",  label: "Registration Mgmt", desc: "Manage registrations and participants.",         icon: Calendar },
-  { id: "Scoring & Boards",   label: "Scoring & Boards",  desc: "Enter scores and manage leaderboards.",         icon: Target },
-  { id: "Payments & Payouts", label: "Payments & Payouts",desc: "Manage payments, payouts and refunds.",          icon: Building2 },
-  { id: "Reports & Analytics",label: "Reports & Analytics",desc: "View and export platform reports.",             icon: AlertCircle },
-  { id: "Golf Courses",       label: "Golf Courses",       desc: "Manage golf courses and tee boxes.",            icon: MapPin },
-  { id: "Platform Settings",  label: "Platform Settings",  desc: "Configure platform settings and preferences.", icon: Settings },
+  { id: "User Management", label: "User Management", desc: "Manage users, roles and access control.", icon: User },
+  { id: "Tournament Management", label: "Tournament Mgmt", desc: "Create and manage tournaments and events.", icon: Trophy },
+  { id: "Registration Mgmt", label: "Registration Mgmt", desc: "Manage registrations and participants.", icon: Calendar },
+  { id: "Scoring & Boards", label: "Scoring & Boards", desc: "Enter scores and manage leaderboards.", icon: Target },
+  { id: "Payments & Payouts", label: "Payments & Payouts", desc: "Manage payments, payouts and refunds.", icon: Building2 },
+  { id: "Reports & Analytics", label: "Reports & Analytics", desc: "View and export platform reports.", icon: AlertCircle },
+  { id: "Golf Courses", label: "Golf Courses", desc: "Manage golf courses and tee boxes.", icon: MapPin },
+  { id: "Platform Settings", label: "Platform Settings", desc: "Configure platform settings and preferences.", icon: Settings },
 ];
 
 const PERMISSION_ACTIONS = ["View", "Create", "Edit", "Delete", "Export"];
@@ -352,7 +352,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
     }
     return State.getStatesOfCountry(formData.country).map(s => ({ value: s.isoCode, label: s.name }));
   }, [formData.country]);
-  
+
   const cityOptions = useMemo(() => {
     if (!formData.country || !formData.state) return [];
     if (formData.country === "NG") {
@@ -368,7 +368,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
     }
     return State.getStatesOfCountry(orgProfile.country).map(s => ({ value: s.isoCode, label: s.name }));
   }, [orgProfile.country]);
-  
+
   const orgCityOptions = useMemo(() => {
     if (!orgProfile.country || !orgProfile.state) return [];
     if (orgProfile.country === "NG") {
@@ -444,7 +444,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       toast.error(err);
       return;
     }
-    
+
     let nextStep = step + 1;
 
     if (nextStep <= STEPS.length) {
@@ -466,7 +466,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
       setShowValidation(false);
       return;
     }
-    
+
     for (let s = 1; s < targetStep; s++) {
       const err = validateStep(s);
       if (err) {
@@ -497,7 +497,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         isJunior = age < 18;
       }
 
-      
+
       const payload: any = {
         firstName: formData.firstName.trim(),
         lastName: `${formData.middleName.trim()} ${formData.surname.trim()}`.replace(/\s+/g, ' ').trim(),
@@ -533,7 +533,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         await createMember(payload);
         toast.success("Organizer created successfully", { id: toastId });
       }
-      
+
       if (isPageMode) {
         setIsRedirecting(true);
         setTimeout(() => {
@@ -596,7 +596,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   {formData.profileImage ? (
                     <div className="relative rounded-full overflow-hidden border border-[#e1efe5] bg-background h-32 w-32 mx-auto">
                       <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                      <button onClick={() => setFormData({...formData, profileImage: ""})}
+                      <button onClick={() => setFormData({ ...formData, profileImage: "" })}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
                         <X className="w-4 h-4" />
                       </button>
@@ -615,80 +615,80 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                   )}
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
                     onChange={handleImageChange} />
-                  </div>
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="First Name" required>
+                  <Input
+                    placeholder="Enter first name"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className={cn(showValidation && !formData.firstName && "!border-red-500")}
+                  />
                 </Field>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="First Name" required>
-                    <Input 
-                      placeholder="Enter first name"
-                      value={formData.firstName} 
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                      className={cn(showValidation && !formData.firstName && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Middle Name" required>
-                    <Input 
-                      placeholder="Enter middle name"
-                      value={formData.middleName} 
-                      onChange={(e) => setFormData({...formData, middleName: e.target.value})} 
-                      className={cn(showValidation && !formData.middleName && "!border-red-500")}
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Surname" required>
-                    <Input 
-                      placeholder="Enter surname"
-                      value={formData.surname} 
-                      onChange={(e) => setFormData({...formData, surname: e.target.value})} 
-                      className={cn(showValidation && !formData.surname && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Date of Birth" required>
-                    <DatePicker 
-                      value={formData.dob} 
-                      onValueChange={(v) => setFormData({...formData, dob: v})} 
-                      buttonClassName={cn(showValidation && !formData.dob && "!border-red-500")}
-                      maxDate={maxDobDate}
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1 leading-snug">
-                      Minimum age: 18 years old.
-                    </p>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Gender" required>
-                    <SearchableSelect 
-                      value={formData.gender}
-                      onValueChange={v => setFormData({...formData, gender: v})}
-                      options={[
-                        { value: "MALE", label: "Male" },
-                        { value: "FEMALE", label: "Female" },
-                        { value: "OTHER", label: "Other" },
-                      ]}
-                      triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
-                      placeholder="Select gender"
-                    />
-                  </Field>
-                  <Field label="Account Status" required>
-                    <SearchableSelect 
-                      value={formData.status}
-                      onValueChange={v => setFormData({...formData, status: v as any})}
-                      options={[
-                        { value: "ACTIVE", label: "Active" },
-                        { value: "SUSPENDED", label: "Suspended" },
-                      ]}
-                      triggerClassName=""
-                    />
-                  </Field>
-                </div>
-
+                <Field label="Middle Name" required>
+                  <Input
+                    placeholder="Enter middle name"
+                    value={formData.middleName}
+                    onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                    className={cn(showValidation && !formData.middleName && "!border-red-500")}
+                  />
+                </Field>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Surname" required>
+                  <Input
+                    placeholder="Enter surname"
+                    value={formData.surname}
+                    onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
+                    className={cn(showValidation && !formData.surname && "!border-red-500")}
+                  />
+                </Field>
+                <Field label="Date of Birth" required>
+                  <DatePicker
+                    value={formData.dob}
+                    onValueChange={(v) => setFormData({ ...formData, dob: v })}
+                    buttonClassName={cn(showValidation && !formData.dob && "!border-red-500")}
+                    maxDate={maxDobDate}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                    Minimum age: 18 years old.
+                  </p>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Gender" required>
+                  <SearchableSelect
+                    value={formData.gender}
+                    onValueChange={v => setFormData({ ...formData, gender: v })}
+                    options={[
+                      { value: "MALE", label: "Male" },
+                      { value: "FEMALE", label: "Female" },
+                      { value: "OTHER", label: "Other" },
+                    ]}
+                    triggerClassName={cn(showValidation && !formData.gender && "!border-red-500")}
+                    placeholder="Select gender"
+                  />
+                </Field>
+                <Field label="Account Status" required>
+                  <SearchableSelect
+                    value={formData.status}
+                    onValueChange={v => setFormData({ ...formData, status: v as any })}
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "SUSPENDED", label: "Suspended" },
+                    ]}
+                    triggerClassName=""
+                  />
+                </Field>
+              </div>
+
             </div>
-          );
+          </div>
+        );
       case 2: {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -705,141 +705,141 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
 
             <div className="p-5 space-y-4">
 
-                {/* Name, Type & Plan */}
-                <div className="grid grid-cols-3 gap-4">
-                  <Field label="Organization Name" required>
-                    <Input 
-                      value={orgProfile.name} 
-                      onChange={(e) => setOrgProfile({...orgProfile, name: e.target.value})}
-                      placeholder="e.g. Lakowe Golf Club"
-                      className={cn("", showValidation && !orgProfile.name.trim() && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Organization Type" required>
-                    <SearchableSelect 
-                      value={orgProfile.type}
-                      onValueChange={(v) => setOrgProfile({...orgProfile, type: v})}
-                      options={[
-                        { value: "Golf Club", label: "Golf Club" },
-                        { value: "Tournament Organizer", label: "Tournament Organizer" },
-                        { value: "Sports Association", label: "Sports Association" },
-                        { value: "Other", label: "Other" }
-                      ]}
-                      triggerClassName={cn("", showValidation && !orgProfile.type.trim() && "!border-red-500")}
-                    />
-                  </Field>
-                  <Field label="Subscription Plan" required>
-                    <SearchableSelect 
-                      value={orgProfile.plan}
-                      onValueChange={(v) => setOrgProfile({...orgProfile, plan: v})}
-                      options={[
-                        { value: "PRO", label: "Pro Plan" },
-                        { value: "BASIC", label: "Basic Plan" }
-                      ]}
-                      triggerClassName=""
+              {/* Name, Type & Plan */}
+              <div className="grid grid-cols-3 gap-4">
+                <Field label="Organization Name" required>
+                  <Input
+                    value={orgProfile.name}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, name: e.target.value })}
+                    placeholder="e.g. Lakowe Golf Club"
+                    className={cn("", showValidation && !orgProfile.name.trim() && "!border-red-500")}
+                  />
+                </Field>
+                <Field label="Organization Type" required>
+                  <SearchableSelect
+                    value={orgProfile.type}
+                    onValueChange={(v) => setOrgProfile({ ...orgProfile, type: v })}
+                    options={[
+                      { value: "Golf Club", label: "Golf Club" },
+                      { value: "Tournament Organizer", label: "Tournament Organizer" },
+                      { value: "Sports Association", label: "Sports Association" },
+                      { value: "Other", label: "Other" }
+                    ]}
+                    triggerClassName={cn("", showValidation && !orgProfile.type.trim() && "!border-red-500")}
+                  />
+                </Field>
+                <Field label="Subscription Plan" required>
+                  <SearchableSelect
+                    value={orgProfile.plan}
+                    onValueChange={(v) => setOrgProfile({ ...orgProfile, plan: v })}
+                    options={[
+                      { value: "PRO", label: "Pro Plan" },
+                      { value: "BASIC", label: "Basic Plan" }
+                    ]}
+                    triggerClassName=""
+                  />
+                </Field>
+              </div>
+
+              {orgProfile.type === "Other" && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Field label="Specify Organization Type" required>
+                    <Input
+                      value={orgProfile.customType}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, customType: e.target.value })}
+                      placeholder="Enter organization type"
+                      className={cn("", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
                     />
                   </Field>
                 </div>
+              )}
 
-                {orgProfile.type === "Other" && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Field label="Specify Organization Type" required>
-                      <Input 
-                        value={orgProfile.customType} 
-                        onChange={(e) => setOrgProfile({...orgProfile, customType: e.target.value})}
-                        placeholder="Enter organization type"
-                        className={cn("", showValidation && !orgProfile.customType.trim() && "!border-red-500")}
-                      />
-                    </Field>
-                  </div>
-                )}
-
-                {/* Logo & Website */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Organization Logo" required>
-                    <div className="relative h-[100px]">
-                      {orgProfile.logo ? (
-                        <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-[100px] w-[100px] mx-auto">
-                          <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => setOrgProfile({...orgProfile, logo: ""})}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+              {/* Logo & Website */}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Organization Logo" required>
+                  <div className="relative h-[100px]">
+                    {orgProfile.logo ? (
+                      <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-[100px] w-[100px] mx-auto">
+                        <img src={orgProfile.logo} alt="Logo" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setOrgProfile({ ...orgProfile, logo: "" })}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div onClick={() => orgLogoInputRef.current?.click()}
+                        className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e1efe5]")}>
+                        <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                          <Upload className="w-4 h-4 text-gray-400 group-hover:text-openclub-700" />
                         </div>
-                      ) : (
-                        <div onClick={() => orgLogoInputRef.current?.click()}
-                          className={cn("h-[100px] w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group", showValidation && !orgProfile.logo ? "!border-red-500" : "border-[#e1efe5]")}>
-                          <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                            <Upload className="w-4 h-4 text-gray-400 group-hover:text-openclub-700" />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Logo</p>
-                            <p className="text-[8px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
-                          </div>
+                        <div className="text-center">
+                          <p className="text-[10px] font-normal text-gray-600 group-hover:text-openclub-800">Upload Logo</p>
+                          <p className="text-[8px] text-gray-400 mt-0.5">JPG, PNG or WebP</p>
                         </div>
-                      )}
-                      <input ref={orgLogoInputRef} type="file" accept="image/*" className="hidden"
-                        onChange={handleOrgLogoChange} />
-                    </div>
-                  </Field>
-                  <Field label="Website" optional>
-                    <div className="relative flex flex-col gap-1">
-                      <Input 
-                        value={orgProfile.website} 
-                        onChange={(e) => setOrgProfile({...orgProfile, website: e.target.value})}
-                        placeholder="e.g. https://lakowegolfclub.com"
-                        className=""
-                      />
-                      <p className="text-[9px] text-gray-400">Optional website or social link</p>
-                    </div>
-                  </Field>
-                </div>
-
-                {/* About the Organization */}
-                <Field label="About the Organization" optional>
-                  <div className="relative">
-                    <textarea 
-                      value={orgProfile.about} 
-                      onChange={(e) => setOrgProfile({...orgProfile, about: e.target.value.slice(0, 500)})}
-                      placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
-                      className="w-full h-20 rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700"
-                    />
-                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
-                      {orgProfile.about.length}/500
-                    </span>
+                      </div>
+                    )}
+                    <input ref={orgLogoInputRef} type="file" accept="image/*" className="hidden"
+                      onChange={handleOrgLogoChange} />
                   </div>
                 </Field>
-
-                {/* Social Media Links */}
-                <div>
-                  <span className="text-[13px] font-medium text-gray-700 block mb-1.5">Social Media (Optional)</span>
-                  <div className="flex gap-3 items-center">
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
-                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">f</span>
-                      <input 
-                        value={orgProfile.facebook} 
-                        onChange={(e) => setOrgProfile({...orgProfile, facebook: e.target.value})}
-                        placeholder="facebook.com/handle" 
-                        className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
-                      />
-                    </div>
-                    <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
-                      <span className="text-gray-400 text-[11px] font-normal w-4 text-center">in</span>
-                      <input 
-                        value={orgProfile.instagram} 
-                        onChange={(e) => setOrgProfile({...orgProfile, instagram: e.target.value})}
-                        placeholder="instagram.com/handle" 
-                        className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
-                      />
-                    </div>
-                    <Button type="button" variant="outline" className="rounded-xl border-[#e1efe5] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-background font-normal">
-                      + Add more
-                    </Button>
+                <Field label="Website" optional>
+                  <div className="relative flex flex-col gap-1">
+                    <Input
+                      value={orgProfile.website}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, website: e.target.value })}
+                      placeholder="e.g. https://lakowegolfclub.com"
+                      className=""
+                    />
+                    <p className="text-[9px] text-gray-400">Optional website or social link</p>
                   </div>
-                </div>
-
+                </Field>
               </div>
+
+              {/* About the Organization */}
+              <Field label="About the Organization" optional>
+                <div className="relative">
+                  <textarea
+                    value={orgProfile.about}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, about: e.target.value.slice(0, 500) })}
+                    placeholder="Lakowe Golf Club is a premier golf destination offering world-class facilities..."
+                    className="w-full h-20 rounded-xl border border-[#d1e0d5] shadow-sm bg-[#f5faf6] px-3 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-openclub-700 resize-none pr-12 text-gray-700"
+                  />
+                  <span className="absolute bottom-2 right-2 text-[9px] text-gray-400 font-normal">
+                    {orgProfile.about.length}/500
+                  </span>
+                </div>
+              </Field>
+
+              {/* Social Media Links */}
+              <div>
+                <span className="text-[13px] font-medium text-gray-700 block mb-1.5">Social Media (Optional)</span>
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                    <span className="text-gray-400 text-[11px] font-normal w-4 text-center">f</span>
+                    <input
+                      value={orgProfile.facebook}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, facebook: e.target.value })}
+                      placeholder="facebook.com/handle"
+                      className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
+                    />
+                  </div>
+                  <div className="flex-1 flex gap-2.5 items-center border border-[#e1efe5] rounded-xl px-3 py-2 bg-background/30">
+                    <span className="text-gray-400 text-[11px] font-normal w-4 text-center">in</span>
+                    <input
+                      value={orgProfile.instagram}
+                      onChange={(e) => setOrgProfile({ ...orgProfile, instagram: e.target.value })}
+                      placeholder="instagram.com/handle"
+                      className="bg-transparent border-none text-[13px] focus:ring-0 w-full focus:outline-none text-gray-700 p-0"
+                    />
+                  </div>
+                  <Button type="button" variant="outline" className="rounded-xl border-[#e1efe5] text-gray-600 text-[11px] py-2 h-9 px-4 shrink-0 hover:bg-background font-normal">
+                    + Add more
+                  </Button>
+                </div>
+              </div>
+
             </div>
+          </div>
         );
       }
       case 3:
@@ -854,16 +854,16 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                 <p className="text-[12px] text-gray-500">How to reach and locate the organization.</p>
               </div>
             </div>
-            
+
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Email Address" required>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
+                    <Input
                       placeholder="Enter email address"
-                      value={formData.email} 
-                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className={cn("pl-10", showValidation && !formData.email && "!border-red-500")}
                     />
                   </div>
@@ -875,10 +875,10 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                     </div>
                     <div className="relative flex-1">
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         placeholder="Enter phone number"
-                        value={formData.phone} 
-                        onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, "")})} 
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, "") })}
                         className={cn("pl-10", showValidation && !formData.phone && "!border-red-500")}
                       />
                     </div>
@@ -888,18 +888,18 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Country" required>
-                  <SearchableSelect 
+                  <SearchableSelect
                     value={formData.country}
-                    onValueChange={v => setFormData({...formData, country: v, state: "", city: ""})}
+                    onValueChange={v => setFormData({ ...formData, country: v, state: "", city: "" })}
                     options={countryOptions}
                     triggerClassName={cn(showValidation && !formData.country && "!border-red-500")}
                     placeholder="Select country"
                   />
                 </Field>
                 <Field label="State / Province" required>
-                  <SearchableSelect 
+                  <SearchableSelect
                     value={formData.state}
-                    onValueChange={v => setFormData({...formData, state: v, city: ""})}
+                    onValueChange={v => setFormData({ ...formData, state: v, city: "" })}
                     options={stateOptions}
                     disabled={!formData.country}
                     triggerClassName={cn(showValidation && !formData.state && "!border-red-500")}
@@ -911,28 +911,28 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
               <div className="grid grid-cols-2 gap-4">
                 <Field label="LGA / City" required>
                   {cityOptions.length > 0 ? (
-                    <SearchableSelect 
+                    <SearchableSelect
                       value={formData.city}
-                      onValueChange={v => setFormData({...formData, city: v})}
+                      onValueChange={v => setFormData({ ...formData, city: v })}
                       options={cityOptions}
                       disabled={!formData.state}
                       triggerClassName={cn(showValidation && !formData.city && "!border-red-500")}
                       placeholder="Select LGA / City"
                     />
                   ) : (
-                    <Input 
+                    <Input
                       placeholder="Enter LGA / city"
-                      value={formData.city} 
-                      onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className={cn(showValidation && !formData.city && "!border-red-500")}
                       disabled={!formData.state}
                     />
                   )}
                 </Field>
                 <Field label="Address" required>
-                  <Input 
-                    value={formData.address} 
-                    onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="Enter full address"
                     className={cn(showValidation && !formData.address.trim() && "!border-red-500")}
                   />
@@ -979,7 +979,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                 <p className="text-[12px] text-gray-500">Please review the details before creating the organizer account.</p>
               </div>
             </div>
-            
+
             <div className="p-5 space-y-6">
               <div className="rounded-2xl border border-emerald-100 bg-[#f4fdf8] p-5 flex items-center gap-5">
                 <div className="w-16 h-16 rounded-full border border-[#e1efe5] shadow-sm overflow-hidden flex items-center justify-center shrink-0 bg-white">
@@ -1002,8 +1002,8 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                       <span key={r} className={cn(
                         "px-2.5 py-1 rounded-md text-[10px] font-normal uppercase tracking-wider border",
                         r === "SUPER_ADMIN" ? "bg-rose-50 text-rose-600 border-rose-100" :
-                        r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
-                        "bg-emerald-50 text-openclub-800 border-emerald-100"
+                          r === "CLUB_ADMIN" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                            "bg-emerald-50 text-openclub-800 border-emerald-100"
                       )}>
                         {r.replace("_", " ")}
                       </span>
@@ -1025,7 +1025,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                     </div>
                     <h5 className="text-[12px] font-normal text-gray-800 uppercase tracking-widest">Contact Person Details</h5>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <span className="text-[10px] font-normal text-gray-400 uppercase tracking-wider block mb-1">Gender</span>
@@ -1115,9 +1115,9 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
         </div>
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Column - Steps Navigation */}
-          <div className="lg:col-span-1">
+          <div className="w-full lg:w-[280px] shrink-0">
             <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
               {STEPS.map((name, i) => {
                 const active = step === i + 1;
@@ -1142,13 +1142,13 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
                           active
                             ? "bg-[#15803D] text-white"
                             : past
-                            ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
-                            : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                              ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                              : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
                         )}
                       >
                         {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                       </div>
-                      <span className="text-[13px] font-medium leading-tight">{name}</span>
+                      <span className="text-[13px] font-normal leading-tight">{name}</span>
                     </div>
                     {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                   </button>
@@ -1158,7 +1158,7 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
           </div>
 
           {/* Right Column - Step Content & Footer */}
-          <div className="lg:col-span-4 bg-white border-none rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col">
+          <div className="flex-1 min-w-0 bg-white border-none rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col">
             <div className="min-h-[400px] flex-1">
               {fetching ? (
                 <div className="space-y-6 p-6 animate-pulse">
@@ -1252,9 +1252,9 @@ export function CreateOrganiserWizard({ isOpen, onClose, onSuccess, editingUser:
               <div key={i} className="flex flex-col items-center flex-1 gap-1 min-w-[70px]">
                 <div className={cn(
                   "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-all duration-300",
-                  active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" : 
-                  past ? "bg-emerald-100 text-openclub-800" : 
-                  "bg-gray-100 text-gray-400"
+                  active ? "bg-[#15803D] text-white shadow-sm ring-4 ring-emerald-50" :
+                    past ? "bg-emerald-100 text-openclub-800" :
+                      "bg-gray-100 text-gray-400"
                 )}>
                   {past ? <Check className="w-4 h-4 stroke-[3px]" /> : i + 1}
                 </div>

@@ -354,7 +354,7 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "LEADERBOARD_REVERSE_NET" | "LEADERBOARD_DIRECT_GROSS" | "LEADERBOARD_DIRECT_NET" = "RANDOM") => {
+  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "LEADERBOARD_REVERSE_NET" | "LEADERBOARD_DIRECT_GROSS" | "LEADERBOARD_DIRECT_NET" | "MANUAL_EMPTY" = "RANDOM") => {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     try {
@@ -2013,6 +2013,16 @@ function ViewTournamentPageInner() {
                           <Info className="w-4 h-4 text-openclub-800" />
                           Grouping Rules
                         </button>
+                        
+                        <Button
+                          onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
+                          disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                          className="bg-white border border-[#e1efe5] text-gray-700 hover:bg-slate-50 hover:text-gray-900 rounded-xl h-11 px-5 text-[13px] font-medium gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          Manual Grouping
+                        </Button>
+
                         <div className="relative inline-block">
                           <Button
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
@@ -2183,12 +2193,12 @@ function ViewTournamentPageInner() {
                                     <div
                                       key={group.id}
                                       className={cn(
-                                        "group bg-white rounded-xl border transition-all duration-300 overflow-hidden flex flex-col shadow-sm",
+                                        "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-sm",
                                         isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-md"
                                       )}
                                     >
                                       {/* Group Header */}
-                                      <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
+                                      <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between rounded-t-xl">
                                         <div className="flex items-center gap-3 min-w-0">
                                           <div className={cn(
                                             "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border",
@@ -2234,7 +2244,7 @@ function ViewTournamentPageInner() {
                                       </div>
 
                                       {/* Group Players (Tabular) */}
-                                      <div className="flex-1 overflow-x-auto">
+                                      <div className="flex-1 overflow-visible">
                                         <table className="w-full text-left">
                                           <tbody className="divide-y divide-[#efefef]">
                                             {group.registrations.map((player: GroupingPlayer) => (
@@ -2300,12 +2310,29 @@ function ViewTournamentPageInner() {
                                               </tr>
                                             ))}
                                             {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                              <tr key={`empty-${i}`} className="opacity-40">
+                                              <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity">
                                                 <td className="pl-3 py-2 w-[36px] align-middle">
-                                                  <div className="w-7 h-7 rounded-full bg-background border border-dashed border-gray-300" />
+                                                  <div className="w-7 h-7 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
+                                                    <Plus className="w-3 h-3 text-gray-400" />
+                                                  </div>
                                                 </td>
                                                 <td className="py-2 px-2 align-middle" colSpan={3}>
-                                                  <div className="text-[11px] font-normal text-gray-400 italic">Available Space</div>
+                                                  <SearchableSelect
+                                                    value=""
+                                                    onValueChange={(playerId) => {
+                                                      if (playerId) {
+                                                        handleMovePlayer(playerId, group.id);
+                                                      }
+                                                    }}
+                                                    disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                    placeholder="Available Space (click to assign)"
+                                                    options={groupingsData.unassigned.map((p: any) => ({
+                                                      value: p.id,
+                                                      label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
+                                                    }))}
+                                                    triggerClassName="bg-transparent border-none shadow-none h-8 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
+                                                    className="w-full"
+                                                  />
                                                 </td>
                                               </tr>
                                             ))}

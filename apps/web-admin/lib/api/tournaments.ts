@@ -321,7 +321,7 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
 export async function generateGroupings(
   tournamentId: string,
   day: number = 1,
-  rule: 'RANDOM' | 'LEADERBOARD_REVERSE_GROSS' | 'LEADERBOARD_REVERSE_NET' | 'LEADERBOARD_DIRECT_GROSS' | 'LEADERBOARD_DIRECT_NET' | 'CATEGORY_RANDOM' = 'RANDOM'
+  rule: 'RANDOM' | 'LEADERBOARD_REVERSE_GROSS' | 'LEADERBOARD_REVERSE_NET' | 'LEADERBOARD_DIRECT_GROSS' | 'LEADERBOARD_DIRECT_NET' | 'CATEGORY_RANDOM' | 'MANUAL_EMPTY' = 'RANDOM'
 ): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings/generate?day=${day}`, {
     method: 'POST',
@@ -475,8 +475,13 @@ export async function generateGroupings(
   }
 
   const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
+  
+  if (rule === 'MANUAL_EMPTY') {
+    unassigned.push(...sortedPlayers);
+  }
+
   for (let i = 0; i < totalGroups; i++) {
-    const groupPlayers = sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
+    const groupPlayers = rule === 'MANUAL_EMPTY' ? [] : sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
     
     const pad = (n: number) => n < 10 ? `0${n}` : String(n);
     const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;

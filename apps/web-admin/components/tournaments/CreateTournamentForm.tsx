@@ -1684,9 +1684,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column - Steps Navigation */}
-        <div className="lg:col-span-1">
+        <div className="w-full lg:w-[280px] shrink-0">
           <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
             {STEPS.map((name, i) => {
               const active = step === i + 1;
@@ -1715,7 +1715,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     >
                       {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : i + 1}
                     </div>
-                    <span className="text-[13px] font-medium leading-tight">{name}</span>
+                    <span className="text-[13px] font-normal leading-tight">{name}</span>
                   </div>
                   {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                 </button>
@@ -1725,7 +1725,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         </div>
 
         {/* Right Column - Active Step Content */}
-        <div className="lg:col-span-4 bg-white rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
+        <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
           <div className="min-h-[400px]">
             {loading ? (
               <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
