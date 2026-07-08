@@ -5,10 +5,12 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
-import { Eye, EyeOff, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react"
 import { resetPasswordRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { motion } from "framer-motion"
 
 const schema = z.object({
   newPassword: z.string().min(8, { message: "Password must be at least 8 characters long." }),
@@ -43,7 +45,6 @@ function ResetPasswordPageInner() {
     defaultValues: { newPassword: "", confirmPassword: "" },
   })
 
-  // If there's no token in the URL, we shouldn't allow submission
   React.useEffect(() => {
     if (!token) {
       setPageState("error")
@@ -65,145 +66,135 @@ function ResetPasswordPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-[#f4f6f3] font-[family-name:var(--font-space-grotesk)] text-[#111111]">
-      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
-        
-        {/* LEFT COLUMN - Image */}
-        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r-[4px] border-[#111111] p-16 items-end"
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop')" }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
-          
-          <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#ffffff] mb-4 leading-none">
-              BACK IN<br/>THE GAME.
-            </h1>
-            <p className="text-xl max-w-[400px]">
-              Set a strong new password to secure your tournament data and get back to managing your events.
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#fafafa] font-sans text-zinc-900 p-4 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
 
-        {/* RIGHT COLUMN - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#ffffff] relative">
-            
-            {pageState === "success" ? (
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-[#ffffff] border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-8">
-                  <CheckCircle2 className="h-10 w-10 text-[#111111]" />
-                </div>
-                
-                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-4 tracking-tighter">Password Reset!</h2>
-                <p className="text-[#6b7280] text-[1.125rem] mb-8 font-bold">
-                  Your password has been changed successfully.
-                </p>
-
-                <a href="/login" className="w-full">
-                  <button className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]">
-                    Continue to Sign In
-                  </button>
-                </a>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[440px] relative z-10"
+      >
+        <div className="bg-white rounded-3xl p-8 shadow-xl shadow-zinc-200/50 border border-zinc-100">
+          {pageState === "success" ? (
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 shadow-sm">
+                <CheckCircle2 className="h-8 w-8 text-emerald-600" />
               </div>
-            ) : pageState === "error" ? (
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-red-100 border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-8">
-                  <Icons.logo className="h-10 w-10 text-[#111111]" />
-                </div>
-                
-                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-4 tracking-tighter">Invalid Link</h2>
-                <p className="text-[#6b7280] text-[1.125rem] mb-8 font-bold">
-                  The password reset link is invalid or has expired.
-                </p>
+              
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Password Reset!</h2>
+              <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+                Your password has been changed successfully. You can now log in with your new password.
+              </p>
 
-                <a href="/forgot-password" className="w-full mb-6">
-                  <button className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]">
-                    Request a New Link
-                  </button>
-                </a>
-                
-                <div className="text-center font-bold">
-                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Back to Sign In</a>
-                </div>
+              <Link href="/login" className="w-full">
+                <button className="w-full bg-emerald-600 text-white font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center">
+                  Continue to Sign In
+                </button>
+              </Link>
+            </div>
+          ) : pageState === "error" ? (
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-6 shadow-sm">
+                <AlertCircle className="h-8 w-8 text-red-500" />
               </div>
-            ) : (
-              <>
-                <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-2 tracking-tighter">New Password</h2>
-                <p className="text-[#6b7280] text-[1.125rem] mb-10">Enter your new password below.</p>
+              
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Invalid Link</h2>
+              <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+                The password reset link is invalid or has expired.
+              </p>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* New Password field */}
-                  <div>
-                    <label htmlFor="newPassword" className="block font-bold uppercase tracking-tight mb-2">New Password</label>
-                    <div className="relative">
-                      <input
-                        id="newPassword"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
-                        disabled={pageState === "loading"}
-                        {...form.register("newPassword")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {form.formState.errors.newPassword && (
-                      <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.newPassword.message}</p>
-                    )}
-                  </div>
-
-                  {/* Confirm Password field */}
-                  <div>
-                    <label htmlFor="confirmPassword" className="block font-bold uppercase tracking-tight mb-2">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
-                        disabled={pageState === "loading"}
-                        {...form.register("confirmPassword")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {form.formState.errors.confirmPassword && (
-                      <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={pageState === "loading"}
-                    className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-bold capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
-                  >
-                    {pageState === "loading" ? (
-                      <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
-                    ) : (
-                      "Reset Password"
-                    )}
-                  </button>
-                </form>
-
-                <div className="mt-8 text-center font-bold">
-                  <a href="/login" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Back to Sign In</a>
+              <Link href="/forgot-password" className="w-full mb-4 block">
+                <button className="w-full bg-white border border-zinc-200 text-zinc-700 font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-zinc-50 active:scale-[0.98] transition-all flex items-center justify-center">
+                  Request a New Link
+                </button>
+              </Link>
+              
+              <Link href="/login" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+                Back to Sign In
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="mb-8 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 mb-6 shadow-sm">
+                  <Icons.logo className="w-6 h-6 text-emerald-600" />
                 </div>
-              </>
-            )}
+                <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">New Password</h1>
+                <p className="text-zinc-500 text-sm font-medium">Enter your new password below.</p>
+              </div>
 
-          </div>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                {/* New Password field */}
+                <div>
+                  <label htmlFor="newPassword" className="block text-sm font-semibold text-zinc-700 mb-2">New Password</label>
+                  <div className="relative">
+                    <input
+                      id="newPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      disabled={pageState === "loading"}
+                      {...form.register("newPassword")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {form.formState.errors.newPassword && (
+                    <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.newPassword.message}</p>
+                  )}
+                </div>
+
+                {/* Confirm Password field */}
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-zinc-700 mb-2">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      disabled={pageState === "loading"}
+                      {...form.register("confirmPassword")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {form.formState.errors.confirmPassword && (
+                    <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.confirmPassword.message}</p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={pageState === "loading"}
+                  className="w-full bg-emerald-600 text-white font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center mt-2"
+                >
+                  {pageState === "loading" ? (
+                    <Icons.spinner className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    "Reset Password"
+                  )}
+                </button>
+              </form>
+            </>
+          )}
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

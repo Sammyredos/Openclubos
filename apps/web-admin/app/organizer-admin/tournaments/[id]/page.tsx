@@ -2013,7 +2013,7 @@ function ViewTournamentPageInner() {
                           <Info className="w-4 h-4 text-openclub-800" />
                           Grouping Rules
                         </button>
-                        
+
                         <Button
                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
@@ -3601,31 +3601,31 @@ function ViewTournamentPageInner() {
       >
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
           <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
+            <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
               <Dices className="w-4 h-4 text-openclub-800" /> Random Grouping
             </h4>
             <p className="text-[13px] text-gray-600">Assigns players into groups completely at random. Good for social play.</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
+            <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
               <Scale className="w-4 h-4 text-blue-600" /> Category Balanced
             </h4>
             <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
+            <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players last (latest tee times).</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
+            <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
               <TrendingDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players first (earliest tee times).</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-red-600 mb-1">Reset All</h4>
+            <h4 className="font-medium text-red-600 mb-1">Reset All</h4>
             <p className="text-[13px] text-gray-600">Clears all current groupings for the selected day, moving all players back to the unassigned list so you can start over.</p>
           </div>
         </div>

@@ -19,66 +19,66 @@ const LinkedinIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function LandingFooter() {
   return (
-    <footer className="bg-black pt-20 pb-10 border-t border-white/10 text-white">
+    <footer className="bg-white pt-20 pb-10 border-t border-zinc-200 text-zinc-900">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
           <div className="col-span-2 lg:col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10">
-                <Icons.logo className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-200">
+                <Icons.logo className="w-5 h-5 text-emerald-600" />
               </div>
-              <span className="font-bold text-xl tracking-tight text-white">
-                OpenClub<span className="text-emerald-400">OS</span>
+              <span className="font-bold text-xl tracking-tight text-zinc-900">
+                OpenClub<span className="text-emerald-600">OS</span>
               </span>
             </div>
-            <p className="text-zinc-400 max-w-sm leading-relaxed text-sm">
+            <p className="text-zinc-500 max-w-sm leading-relaxed text-sm">
               Building the future of golf tournament management, one club at a time.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-6">Product</h4>
+            <h4 className="font-semibold text-zinc-900 mb-6">Product</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Features</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Solutions</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Pricing</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Mobile App</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Features</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Solutions</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Pricing</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Mobile App</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-6">Company</h4>
+            <h4 className="font-semibold text-zinc-900 mb-6">Company</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">About Us</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Careers</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Blog</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Contact</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">About Us</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Careers</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Blog</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Contact</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-6">Support</h4>
+            <h4 className="font-semibold text-zinc-900 mb-6">Support</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Documentation</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">API Status</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Security</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Documentation</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Help Center</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">API Status</Link></li>
+              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Security</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-zinc-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex gap-4">
-            <Link href="#" className="text-zinc-500 hover:text-white transition-colors">
+            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
               <TwitterIcon className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-zinc-500 hover:text-white transition-colors">
+            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
               <FacebookIcon className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-zinc-500 hover:text-white transition-colors">
+            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
               <InstagramIcon className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-zinc-500 hover:text-white transition-colors">
+            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
               <LinkedinIcon className="w-5 h-5" />
             </Link>
           </div>

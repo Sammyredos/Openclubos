@@ -98,35 +98,38 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-[#f4f6f3] font-[family-name:var(--font-space-grotesk)] text-[#111111]">
+    <div className="min-h-screen w-full flex bg-[#fafafa] font-sans text-zinc-900">
       <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
         
         {/* LEFT COLUMN - Image */}
-        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r-[4px] border-[#111111] p-16 items-end"
+        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
              style={{ backgroundImage: "url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop')" }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1319]/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
           
           <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold uppercase tracking-tight text-[#ffffff] mb-4 leading-none">
-              THE LEADERBOARD,<br/>DIGITIZED.
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
+              The Leaderboard,<br/>Digitized.
             </h1>
-            <p className="text-xl max-w-[400px]">
+            <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
               Sign in to manage your tournaments, track live scoring, and oversee your entire event operations.
             </p>
           </div>
         </div>
 
         {/* RIGHT COLUMN - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-[480px] bg-white border-[4px] border-[#111111] p-10 shadow-[16px_16px_0_#ffffff] relative">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+          {/* Subtle background glow */}
+          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
+          
+          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-xl shadow-zinc-200/50 border border-zinc-100 relative z-10">
             
-            <h2 className="text-[2.5rem] font-bold uppercase leading-[0.95] mb-2 tracking-tighter">Welcome Back</h2>
-            <p className="text-[#6b7280] text-[1.125rem] mb-10">Log in to access your dashboard.</p>
+            <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Welcome Back</h2>
+            <p className="text-zinc-500 mb-10">Log in to access your dashboard.</p>
 
             {/* OAuth Button */}
             <button
               type="button"
-              className="w-full bg-white border-[3px] border-[#111111] py-3 px-6 flex items-center justify-center gap-3 font-medium capitalize text-[1rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] mb-8"
+              className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-8"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -137,10 +140,10 @@ function LoginPageInner() {
               Continue with Google
             </button>
 
-            <div className="flex items-center text-[#6b7280] font-bold text-sm uppercase tracking-widest mb-8">
-              <div className="flex-1 border-b-[2px] border-[#111111]/10"></div>
-              <span className="px-4">Or continue with email</span>
-              <div className="flex-1 border-b-[2px] border-[#111111]/10"></div>
+            <div className="flex items-center text-zinc-400 font-semibold text-xs tracking-widest mb-8">
+              <div className="flex-1 border-b border-zinc-200"></div>
+              <span className="px-4 uppercase">Or continue with email</span>
+              <div className="flex-1 border-b border-zinc-200"></div>
             </div>
 
             <form
@@ -154,45 +157,45 @@ function LoginPageInner() {
             >
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block font-bold uppercase tracking-tight mb-2">Email Address</label>
+                <label htmlFor="email" className="block font-semibold text-sm text-zinc-700 mb-2">Email Address</label>
                 <input
                   id="email"
                   type="email"
                   placeholder="golfer@example.com"
-                  className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
-                  <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.email.message}</p>
+                  <p className="text-xs text-red-600 font-medium mt-2">{form.formState.errors.email.message}</p>
                 )}
               </div>
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block font-bold uppercase tracking-tight mb-2">Password</label>
+                <label htmlFor="password" className="block font-semibold text-sm text-zinc-700 mb-2">Password</label>
                 <div className="relative">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full bg-[#f4f6f3] border-[3px] border-[#111111] p-4 pr-12 text-[1rem] font-[family-name:var(--font-space-grotesk)] transition-all focus:outline-none focus:bg-white focus:shadow-[4px_4px_0_#ffffff]"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 pr-12 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                     {...form.register("password")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-4 flex items-center text-[#111111] hover:text-[#ffffff]"
+                    className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
                 {form.formState.errors.password && (
-                  <p className="text-[14px] text-red-600 font-bold mt-2">{form.formState.errors.password.message}</p>
+                  <p className="text-xs text-red-600 font-medium mt-2">{form.formState.errors.password.message}</p>
                 )}
               </div>
 
               {/* Options */}
-              <div className="flex items-center justify-between font-bold text-sm">
+              <div className="flex items-center justify-between font-semibold text-sm">
                 <label className="flex items-center cursor-pointer group">
                   <div className="relative flex items-center">
                     <input
@@ -201,32 +204,32 @@ function LoginPageInner() {
                       onChange={() => setRememberMe(!rememberMe)}
                       className="peer sr-only"
                     />
-                    <div className="w-5 h-5 border-[3px] border-[#111111] bg-[#f4f6f3] peer-checked:bg-[#ffffff] flex items-center justify-center transition-colors">
-                      {rememberMe && <svg className="w-3 h-3 text-[#111111]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    <div className="w-5 h-5 rounded border border-zinc-300 bg-zinc-50 peer-checked:bg-emerald-600 peer-checked:border-emerald-600 flex items-center justify-center transition-colors">
+                      {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
                   </div>
-                  <span className="ml-3 uppercase">Remember me</span>
+                  <span className="ml-3 text-zinc-600">Remember me</span>
                 </label>
-                <a href="/forgot-password" className="uppercase underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Forgot password?</a>
+                <a href="/forgot-password" className="text-emerald-600 hover:text-emerald-700 transition-colors">Forgot password?</a>
               </div>
 
               {/* Sign In Button */}
               <button
                 type="submit"
                 disabled={isLoading || form.formState.isSubmitting}
-                className="w-full bg-[#ffffff] border-[3px] border-[#111111] py-4 px-6 flex items-center justify-center font-medium capitalize text-[1.125rem] shadow-[4px_4px_0_#15803D] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D] disabled:opacity-50 mt-4"
+                className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 mt-4"
               >
                 {isLoading ? (
-                  <Icons.spinner className="w-5 h-5 animate-spin text-[#111111]" />
+                  <Icons.spinner className="w-5 h-5 animate-spin text-white" />
                 ) : (
                   "Sign In"
                 )}
               </button>
             </form>
 
-            <div className="mt-8 text-center font-bold">
-              <p className="text-[#111111]">
-                Don't have an account? <a href="/signup-organisation" className="underline decoration-2 hover:bg-[#111111] hover:text-[#ffffff] transition-colors">Create one</a>
+            <div className="mt-8 text-center font-medium text-sm">
+              <p className="text-zinc-500">
+                Don't have an account? <a href="/signup-organisation" className="text-emerald-600 hover:text-emerald-700 transition-colors">Create one</a>
               </p>
             </div>
           </div>
@@ -240,26 +243,26 @@ function LoginPageInner() {
         title="Email Not Verified"
         footer={
           <>
-            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 border-[3px] border-[#111111] font-medium capitalize hover:bg-[#111111] hover:text-[#ffffff]">
+            <button onClick={() => setUnverifiedEmail(null)} className="px-6 py-2 rounded-xl border border-zinc-200 font-semibold text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">
               Cancel
             </button>
             <button
               onClick={handleResendVerification}
               disabled={isResending}
-              className="px-6 py-2 bg-[#ffffff] border-[3px] border-[#111111] font-medium capitalize shadow-[4px_4px_0_#15803D] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0_#15803D]"
+              className="px-6 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm shadow-sm hover:bg-emerald-700 transition-all flex items-center justify-center"
             >
-              {isResending ? <Icons.spinner className="w-5 h-5 animate-spin" /> : "Send New Link"}
+              {isResending ? <Icons.spinner className="w-4 h-4 animate-spin" /> : "Send New Link"}
             </button>
           </>
         }
       >
-        <div className="flex flex-col items-center text-center py-4 font-[family-name:var(--font-space-grotesk)]">
-          <div className="w-20 h-20 bg-[#ffffff] border-[3px] border-[#111111] shadow-[4px_4px_0_#15803D] flex items-center justify-center mb-6">
-            <AlertCircle className="h-10 w-10 text-[#111111]" />
+        <div className="flex flex-col items-center text-center py-4 font-sans">
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6">
+            <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h4 className="text-xl font-bold uppercase mb-2">Check your email</h4>
-          <p className="text-[#6b7280]">
-            You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-bold text-[#111111]">{unverifiedEmail}</span>?
+          <h4 className="text-xl font-bold mb-2 text-zinc-900">Check your email</h4>
+          <p className="text-zinc-500">
+            You need to verify your email address before you can log in. Would you like us to send a new verification link to <span className="font-semibold text-zinc-900">{unverifiedEmail}</span>?
           </p>
         </div>
       </Modal>

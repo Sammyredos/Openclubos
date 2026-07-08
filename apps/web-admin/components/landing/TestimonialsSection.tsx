@@ -9,43 +9,38 @@ const testimonials = [
     author: "David Miller",
     title: "Manager, Pine Valley Golf Club",
     initials: "DM",
-    bg: "from-blue-900/40 to-black"
   },
   {
     quote: "The analytics tools helped us increase our tournament revenue by 40% in just one season. Highly recommended!",
     author: "Sarah Jenkins",
     title: "Tournament Director, Oak Hills",
     initials: "SJ",
-    bg: "from-purple-900/40 to-black"
   },
   {
     quote: "Setup was incredibly easy. Our players love the mobile interface and the professional look of our club profile.",
     author: "Robert Chen",
     title: "Head Pro, Summit Links",
     initials: "RC",
-    bg: "from-emerald-900/40 to-black"
   },
   {
     quote: "I can't imagine going back to paper scorecards. The digital transition was seamless with this platform.",
     author: "Jessica Alba",
     title: "Event Coordinator, Pebble Beach",
     initials: "JA",
-    bg: "from-orange-900/40 to-black"
   },
   {
     quote: "The best club management software we've used in the past 10 years. Simple, elegant, and incredibly powerful.",
     author: "Michael Chang",
     title: "President, City Golf Assoc.",
     initials: "MC",
-    bg: "from-rose-900/40 to-black"
+    role: "President, City Golf Assoc.",
+    avatar: null,
   }
 ];
 
 export function TestimonialsSection() {
   return (
-    <section className="py-32 bg-black text-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-900/20 to-black pointer-events-none" />
-      
+    <section className="py-32 bg-[#fafafa] overflow-hidden relative">
       <div className="container mx-auto px-4 relative z-10 mb-16">
         <div className="text-center">
           <motion.h2 
@@ -53,54 +48,59 @@ export function TestimonialsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold tracking-tight mb-6 text-white"
+            className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 mb-6"
           >
-            Trusted by the Best
+            Loved by Tournament Directors
           </motion.h2>
-          <motion.p
+          <motion.p 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             viewport={{ once: true }}
-            className="text-zinc-400 max-w-2xl mx-auto text-lg"
+            className="text-lg text-zinc-500 max-w-2xl mx-auto"
           >
-            Join hundreds of clubs worldwide who have upgraded their management stack.
+            Don't just take our word for it. Here's what golf professionals are saying about Openclub OS.
           </motion.p>
         </div>
       </div>
 
-      {/* Infinite Scrolling Marquee */}
-      <div className="relative flex overflow-x-hidden w-full group">
-        <div className="absolute top-0 bottom-0 left-0 w-32 z-10 bg-gradient-to-r from-black to-transparent" />
-        <div className="absolute top-0 bottom-0 right-0 w-32 z-10 bg-gradient-to-l from-black to-transparent" />
-        
-        <div className="py-12 animate-marquee whitespace-nowrap flex gap-8 px-4 group-hover:[animation-play-state:paused]">
-          {[...testimonials, ...testimonials].map((testimonial, idx) => (
+      {/* Marquee Container */}
+      <div className="relative flex flex-col gap-8 w-[200%] md:w-[150%] -left-[50%] md:-left-[25%] rotate-[-2deg]">
+        <div className="flex animate-marquee gap-8">
+          {[...testimonials, ...testimonials].map((t, i) => (
             <div 
-              key={idx} 
-              className={`inline-flex flex-col whitespace-normal min-w-[350px] md:min-w-[400px] bg-gradient-to-br ${testimonial.bg} rounded-3xl p-8 border border-white/10 backdrop-blur-sm`}
+              key={i}
+              className="w-[400px] flex-shrink-0 bg-white border border-zinc-200 rounded-3xl p-8 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="flex gap-1 mb-6">
+              <div className="flex gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-emerald-400 text-emerald-400" />
+                  <Star key={i} className="w-4 h-4 fill-emerald-500 text-emerald-500" />
                 ))}
               </div>
-              <p className="text-zinc-300 text-lg leading-relaxed mb-8 italic">
-                "{testimonial.quote}"
+              <p className="text-zinc-700 text-lg mb-6 leading-relaxed">
+                "{t.quote}"
               </p>
-              <div className="flex items-center gap-4 mt-auto">
-                <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white shadow-inner">
-                  {testimonial.initials}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-500 overflow-hidden relative border border-zinc-200">
+                  {t.avatar ? (
+                    <Image src={t.avatar} alt={t.author} fill className="object-cover" />
+                  ) : (
+                    t.author.charAt(0)
+                  )}
                 </div>
                 <div>
-                  <p className="font-semibold text-white">{testimonial.author}</p>
-                  <p className="text-sm text-zinc-500">{testimonial.title}</p>
+                  <div className="font-semibold text-zinc-900">{t.author}</div>
+                  <div className="text-sm text-zinc-500">{t.role}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Edge Gradients for Marquee (Light Mode) */}
+      <div className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-[#fafafa] to-transparent z-10" />
+      <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-[#fafafa] to-transparent z-10" />
     </section>
   );
 }
