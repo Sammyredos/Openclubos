@@ -351,7 +351,7 @@ export class EmailService {
       ${this.p('Dear Player,')}
       ${this.p(`We are pleased to inform you that your registration for <strong>${tournamentName}</strong> has been officially <strong style="color: #059669;">approved</strong>.`)}
       
-      ${this.infoBox('✅ <strong>Your spot is secured!</strong> We look forward to seeing you on the course. Please ensure you arrive with ample time for registration and warm-up procedures.', '#ecfdf5', '#a7f3d0', '#065f46')}
+      ${this.infoBox('✅ <strong>Payment & Registration Confirmed!</strong> Your payment has been seen and fully confirmed. Your spot is secured! We look forward to seeing you on the course. Please ensure you arrive with ample time for registration and warm-up procedures.', '#ecfdf5', '#a7f3d0', '#065f46')}
       
       ${this.h2('Important Next Steps')}
       ${this.list([

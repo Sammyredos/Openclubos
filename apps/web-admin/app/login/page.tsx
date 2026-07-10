@@ -98,17 +98,17 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-[#fafafa] font-sans text-zinc-900">
+    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
       <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
-        
+
         {/* LEFT COLUMN - Image */}
         <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop')" }}>
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
-          
+
           <div className="relative z-10 text-white">
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              The Leaderboard,<br/>Digitized.
+              The Leaderboard,<br />Digitized.
             </h1>
             <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
               Sign in to manage your tournaments, track live scoring, and oversee your entire event operations.
@@ -120,9 +120,9 @@ function LoginPageInner() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
-          
-          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-xl shadow-zinc-200/50 border border-zinc-100 relative z-10">
-            
+
+          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
+
             <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Welcome Back</h2>
             <p className="text-zinc-500 mb-10">Log in to access your dashboard.</p>
 

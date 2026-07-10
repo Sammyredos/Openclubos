@@ -66,7 +66,7 @@ function ResetPasswordPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#fafafa] font-sans text-zinc-900 p-4 relative overflow-hidden">
+    <div className="min-h-screen w-full flex items-center justify-center bg-background font-sans text-zinc-900 p-4 relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
@@ -78,7 +78,7 @@ function ResetPasswordPageInner() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[440px] relative z-10"
       >
-        <div className="bg-white rounded-3xl p-8 shadow-xl shadow-zinc-200/50 border border-zinc-100">
+        <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100">
           {pageState === "success" ? (
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 shadow-sm">

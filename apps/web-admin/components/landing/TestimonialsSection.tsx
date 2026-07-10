@@ -2,8 +2,18 @@
 
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import Image from "next/image";
 
-const testimonials = [
+interface Testimonial {
+  quote: string;
+  author: string;
+  title?: string;
+  initials: string;
+  role?: string;
+  avatar?: string | null;
+}
+
+const testimonials: Testimonial[] = [
   {
     quote: "OpenClubOS transformed how we run our monthly member tournaments. The live scoring is a game changer for engagement.",
     author: "David Miller",
@@ -90,7 +100,7 @@ export function TestimonialsSection() {
                 </div>
                 <div>
                   <div className="font-semibold text-zinc-900">{t.author}</div>
-                  <div className="text-sm text-zinc-500">{t.role}</div>
+                  <div className="text-sm text-zinc-500">{t.role || t.title}</div>
                 </div>
               </div>
             </div>

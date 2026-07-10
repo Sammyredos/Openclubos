@@ -1590,13 +1590,14 @@ function ViewTournamentPageInner() {
                                           onClick={() => handleMarkPaid(r.id)}
                                           disabled={markingPaidId === r.id}
                                           title="Mark as Paid"
-                                          className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center"
+                                          className="h-9 px-2.5 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5"
                                         >
                                           {markingPaidId === r.id ? (
                                             <Loader2 className="w-4 h-4 animate-spin text-openclub-800" />
                                           ) : (
                                             <Wallet className="w-4 h-4" />
                                           )}
+                                          <span className="text-[12px] font-normal">Mark Paid</span>
                                         </Button>
                                       )}
                                       <Button
@@ -2248,9 +2249,9 @@ function ViewTournamentPageInner() {
                                         <table className="w-full text-left">
                                           <tbody className="divide-y divide-[#efefef]">
                                             {group.registrations.map((player: GroupingPlayer) => (
-                                              <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player">
-                                                <td className="pl-3 py-2 w-[36px] align-middle">
-                                                  <div className="w-7 h-7 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+                                              <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player h-[52px]">
+                                                <td className="pl-4 py-2 w-[44px] align-middle">
+                                                  <div className="w-8 h-8 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
                                                     <img
                                                       src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
                                                       alt=""
@@ -2258,7 +2259,7 @@ function ViewTournamentPageInner() {
                                                     />
                                                   </div>
                                                 </td>
-                                                <td className="py-2 px-2 align-middle max-w-[120px]">
+                                                <td className="py-2 px-2 align-middle max-w-[130px]">
                                                   <NextLink href="#" className="block truncate">
                                                     <div className="text-[12px] text-gray-900 font-normal hover:text-openclub-800 transition-colors truncate">
                                                       {player.user?.firstName} {player.user?.lastName}
@@ -2310,13 +2311,13 @@ function ViewTournamentPageInner() {
                                               </tr>
                                             ))}
                                             {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                              <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity">
-                                                <td className="pl-3 py-2 w-[36px] align-middle">
-                                                  <div className="w-7 h-7 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
-                                                    <Plus className="w-3 h-3 text-gray-400" />
+                                              <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity h-[52px]">
+                                                <td className="pl-4 py-2 w-[44px] align-middle">
+                                                  <div className="w-8 h-8 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
+                                                    <Plus className="w-4 h-4 text-gray-400" />
                                                   </div>
                                                 </td>
-                                                <td className="py-2 px-2 align-middle" colSpan={3}>
+                                                <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
                                                   <SearchableSelect
                                                     value=""
                                                     onValueChange={(playerId) => {
@@ -2330,7 +2331,7 @@ function ViewTournamentPageInner() {
                                                       value: p.id,
                                                       label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
                                                     }))}
-                                                    triggerClassName="bg-transparent border-none shadow-none h-8 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
+                                                    triggerClassName="bg-transparent border-none shadow-none h-9 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
                                                     className="w-full"
                                                   />
                                                 </td>

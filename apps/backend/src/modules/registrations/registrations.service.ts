@@ -142,10 +142,22 @@ export class RegistrationsService {
 
     // 7. Check Capacity & Waitlist
 
+    const paymentStatusVal =
+      isAdmin && requestedPaymentStatus
+        ? (requestedPaymentStatus as PaymentStatus)
+        : paymentReference
+          ? PaymentStatus.PAID
+          : PaymentStatus.UNPAID;
+
     let status: RegistrationStatus =
       isAdmin && requestedStatus
         ? (requestedStatus as RegistrationStatus)
         : RegistrationStatus.PENDING;
+
+    // Auto-approve if paid
+    if (paymentStatusVal === PaymentStatus.PAID && status === RegistrationStatus.PENDING) {
+      status = RegistrationStatus.APPROVED;
+    }
 
     if (tournament.maxPlayers && approvedCount >= tournament.maxPlayers) {
       if (isAdmin) {
@@ -175,12 +187,7 @@ export class RegistrationsService {
         tournamentId,
         playerType: effectivePlayerType,
         status,
-        paymentStatus:
-          isAdmin && requestedPaymentStatus
-            ? (requestedPaymentStatus as PaymentStatus)
-            : paymentReference
-              ? PaymentStatus.PAID
-              : PaymentStatus.UNPAID,
+        paymentStatus: paymentStatusVal,
         paymentReference,
       },
     });
@@ -203,20 +210,6 @@ export class RegistrationsService {
           })
           .catch((err) => {
             console.error('Failed to queue waitlistNotification email:', err);
-          });
-      } else if (status === RegistrationStatus.PENDING) {
-        this.jobsService
-          .queueEmail('REGISTRATION_CONFIRMATION', user.email, {
-            tournamentName: tournament.name,
-            status: 'PENDING',
-            startDate: tournament.startDate,
-            organizerName: tournament.club?.name,
-          })
-          .catch((err) => {
-            console.error(
-              'Failed to queue registrationConfirmation email:',
-              err,
-            );
           });
       }
     }
@@ -516,15 +509,26 @@ export class RegistrationsService {
   }
 
   async confirmPayment(registrationId: string, paymentReference: string) {
+    const existingRegistration = await this.prisma.registration.findUnique({
+      where: { id: registrationId }
+    });
+
+    if (!existingRegistration) throw new NotFoundException('Registration not found');
+
+    const newStatus = existingRegistration.status === RegistrationStatus.PENDING 
+      ? RegistrationStatus.APPROVED 
+      : existingRegistration.status;
+
     const registration = await this.prisma.registration.update({
       where: { id: registrationId },
       data: {
         paymentStatus: PaymentStatus.PAID,
         paymentReference,
+        status: newStatus,
       },
       include: {
         user: { select: { email: true } },
-        tournament: { select: { name: true, entryFee: true, currency: true } },
+        tournament: { select: { name: true, entryFee: true, currency: true, club: { select: { name: true } } } },
       },
     });
 
@@ -539,6 +543,17 @@ export class RegistrationsService {
         .catch((err) => {
           console.error('Failed to queue paymentReceipt email:', err);
         });
+
+      if (existingRegistration.status === RegistrationStatus.PENDING && newStatus === RegistrationStatus.APPROVED) {
+        this.jobsService
+          .queueEmail('REGISTRATION_APPROVED', registration.user.email, {
+            tournamentName: registration.tournament.name,
+            organizerName: registration.tournament.club?.name,
+          })
+          .catch((err) => {
+            console.error('Failed to queue REGISTRATION_APPROVED email:', err);
+          });
+      }
     }
 
     return registration;

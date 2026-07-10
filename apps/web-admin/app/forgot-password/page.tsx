@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-[#fafafa] font-sans text-zinc-900">
+    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
       <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
         
         {/* LEFT COLUMN - Image */}
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
           
-          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-xl shadow-zinc-200/50 border border-zinc-100 relative z-10">
+          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
             
             {pageState !== "sent" ? (
               <>
