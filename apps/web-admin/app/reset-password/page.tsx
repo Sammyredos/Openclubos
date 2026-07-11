@@ -36,7 +36,7 @@ function ResetPasswordPageInner() {
   const [pageState, setPageState] = React.useState<PageState>("idle")
   const [showPassword, setShowPassword] = React.useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
-  
+
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
@@ -72,7 +72,7 @@ function ResetPasswordPageInner() {
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -84,7 +84,7 @@ function ResetPasswordPageInner() {
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 shadow-sm">
                 <CheckCircle2 className="h-8 w-8 text-emerald-600" />
               </div>
-              
+
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Password Reset!</h2>
               <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
                 Your password has been changed successfully. You can now log in with your new password.
@@ -101,7 +101,7 @@ function ResetPasswordPageInner() {
               <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-6 shadow-sm">
                 <AlertCircle className="h-8 w-8 text-red-500" />
               </div>
-              
+
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Invalid Link</h2>
               <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
                 The password reset link is invalid or has expired.
@@ -112,7 +112,7 @@ function ResetPasswordPageInner() {
                   Request a New Link
                 </button>
               </Link>
-              
+
               <Link href="/login" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
                 Back to Sign In
               </Link>
@@ -124,7 +124,7 @@ function ResetPasswordPageInner() {
                   <Icons.logo className="w-6 h-6 text-emerald-600" />
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">New Password</h1>
-                <p className="text-zinc-500 text-sm font-medium">Enter your new password below.</p>
+                <p className="text-zinc-500 text-sm font-nor">Enter your new password below.</p>
               </div>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
