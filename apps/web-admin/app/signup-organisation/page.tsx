@@ -406,32 +406,30 @@ export default function SignupOrganisationPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={labelClasses}>Country</label>
-                        <div className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                          <SearchableSelect
-                            value={orgCountry}
-                            onValueChange={(v) => {
-                              setValue("organizationCountry", v, { shouldValidate: true });
-                              setValue("organizationState", "", { shouldValidate: true });
-                              setValue("organizationCity", "", { shouldValidate: true });
-                            }}
-                            options={countryOptions}
-                          />
-                        </div>
+                        <SearchableSelect
+                          value={orgCountry}
+                          onValueChange={(v) => {
+                            setValue("organizationCountry", v, { shouldValidate: true });
+                            setValue("organizationState", "", { shouldValidate: true });
+                            setValue("organizationCity", "", { shouldValidate: true });
+                          }}
+                          options={countryOptions}
+                          triggerClassName={inputClasses}
+                        />
                         {errors.organizationCountry && <p className={errorClasses}>{errors.organizationCountry.message}</p>}
                       </div>
                       <div>
                         <label className={labelClasses}>State</label>
-                        <div className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                          <SearchableSelect
-                            value={orgState}
-                            onValueChange={(v) => {
-                              setValue("organizationState", v, { shouldValidate: true });
-                              setValue("organizationCity", "", { shouldValidate: true });
-                            }}
-                            options={stateOptions}
-                            disabled={!orgCountry}
-                          />
-                        </div>
+                        <SearchableSelect
+                          value={orgState}
+                          onValueChange={(v) => {
+                            setValue("organizationState", v, { shouldValidate: true });
+                            setValue("organizationCity", "", { shouldValidate: true });
+                          }}
+                          options={stateOptions}
+                          disabled={!orgCountry}
+                          triggerClassName={inputClasses}
+                        />
                         {errors.organizationState && <p className={errorClasses}>{errors.organizationState.message}</p>}
                       </div>
                     </div>
@@ -439,15 +437,14 @@ export default function SignupOrganisationPage() {
                     <div>
                       <label className={labelClasses}>{orgCountry === "NG" ? "LGA" : "City"}</label>
                       {orgCountry === "NG" ? (
-                        <div className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                          <SearchableSelect
-                            value={form.watch("organizationCity")}
-                            onValueChange={(v) => setValue("organizationCity", v, { shouldValidate: true })}
-                            options={lgaOptions}
-                            disabled={!orgState}
-                            placeholder="Select LGA"
-                          />
-                        </div>
+                        <SearchableSelect
+                          value={form.watch("organizationCity")}
+                          onValueChange={(v) => setValue("organizationCity", v, { shouldValidate: true })}
+                          options={lgaOptions}
+                          disabled={!orgState}
+                          placeholder="Select LGA"
+                          triggerClassName={inputClasses}
+                        />
                       ) : (
                         <input
                           placeholder="Enter city"

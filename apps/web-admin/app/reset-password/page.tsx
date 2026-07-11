@@ -124,7 +124,7 @@ function ResetPasswordPageInner() {
                   <Icons.logo className="w-6 h-6 text-emerald-600" />
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">New Password</h1>
-                <p className="text-zinc-500 text-sm font-nor">Enter your new password below.</p>
+                <p className="text-zinc-500 text-sm font-normal">Enter your new password below.</p>
               </div>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
