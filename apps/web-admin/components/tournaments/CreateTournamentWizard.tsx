@@ -79,6 +79,7 @@ const DEFAULT_FORM = {
   allowRegisteredPlayers: true, allowGuests: false, allowExternalPlayers: false,
   hasHandicapRestriction: false, minHandicap: "", maxHandicap: "",
   maxPlayers: "", maxPlayersPerGroup: 4, enableWaitlist: false,
+  enableCut: false, cutAfterRound: "", cutFormat: "" as "" | "NUMBER" | "PERCENTAGE", cutLine: "",
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
   autoGrouping: true, teeStartTime: "", teeIntervalMinutes: 10,
   enableLiveScoring: false, requireMarkerVerification: false, enableHoleScoring: true,
@@ -124,6 +125,23 @@ function validateStep(step: number, f: FormData, isMultiDay = false): string | n
       if (f.maxHandicap === "") return "Maximum handicap is required when restriction is enabled.";
       if (Number(f.minHandicap) > Number(f.maxHandicap))
         return "Minimum handicap cannot exceed maximum handicap.";
+    }
+    if (f.enableCut) {
+      if (!f.cutAfterRound || Number(f.cutAfterRound) <= 0) return "Cut Players after What Day is required and must be greater than 0.";
+      if (!f.cutFormat) return "Please select a cut method.";
+      if (!f.cutLine || Number(f.cutLine) <= 0) {
+        return f.cutFormat === "PERCENTAGE" ? "Percentage to advance is required and must be greater than 0." : "Number of players to advance is required and must be greater than 0.";
+      }
+      if (f.cutFormat === "PERCENTAGE" && Number(f.cutLine) > 100) return "Percentage cannot exceed 100.";
+
+      if (isMultiDay) {
+        const start = new Date(f.startDate);
+        const end = new Date(f.endDate);
+        const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (Number(f.cutAfterRound) >= days) {
+          return `Tournament ${f.name || ''} is scheduled for ${days} days so players make Cut must be set to at least one day before tournament ends`;
+        }
+      }
     }
   }
   if (step === 5) {
@@ -293,6 +311,10 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               maxPlayers: t.maxPlayers != null ? String(t.maxPlayers) : "",
               maxPlayersPerGroup: t.maxPlayersPerGroup || 4,
               enableWaitlist: t.enableWaitlist ?? false,
+              enableCut: t.enableCut ?? false,
+              cutAfterRound: t.cutAfterRound != null ? String(t.cutAfterRound) : "",
+              cutFormat: (t.cutLine && t.cutLine < 0) ? "PERCENTAGE" : "NUMBER",
+              cutLine: t.cutLine != null ? String(Math.abs(t.cutLine)) : "",
               requiresPayment: t.requiresPayment ?? false,
               entryFee: t.entryFee != null ? String(t.entryFee) : "",
               currency: t.currency || "NGN",
@@ -435,6 +457,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         maxPlayers: f.maxPlayers !== "" ? Number(f.maxPlayers) : null,
         maxPlayersPerGroup: Number(f.maxPlayersPerGroup),
         enableWaitlist: f.enableWaitlist,
+        enableCut: f.enableCut,
+        cutAfterRound: f.enableCut && f.cutAfterRound !== "" ? Number(f.cutAfterRound) : null,
+        cutLine: f.enableCut && f.cutLine !== "" ? (f.cutFormat === "PERCENTAGE" ? -Number(f.cutLine) : Number(f.cutLine)) : null,
         requiresPayment: f.requiresPayment,
         entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
         currency: f.requiresPayment ? f.currency : "NGN",
@@ -598,13 +623,13 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           <div className="p-5 space-y-6">
 
             {/* ── Tournament Duration ── */}
-            <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm p-5">
+            <div className="rounded-2xl border border-[#e1efe5] bg-background/50 shadow-sm p-5">
               <div className="space-y-4">
                 <div>
                   <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration</h4>
                   <p className="text-[12px] text-gray-500">Specify if this tournament spans across a single day or multiple days.</p>
                 </div>
-                <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
+                <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => { setIsMultiDay(false); set("endDate", ""); }}
@@ -962,7 +987,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <h4 className="text-[14px] font-medium text-gray-900">Gender Restriction</h4>
                 <p className="text-[12px] text-gray-500">Specify if this tournament is restricted to a specific gender.</p>
               </div>
-              <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
+              <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
                 {[
                   { value: "MIXED", label: "Mixed (Everyone)" },
                   { value: "MALE_ONLY", label: "Male Only" },
@@ -1017,6 +1042,96 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <Info className="w-3.5 h-3.5" />
                   Only players with a handicap within this range will be allowed to register.
                 </p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Cut Rules ── */}
+          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+              onClick={() => {
+                if (!isMultiDay) {
+                  toast.error("Make Cut is only available for multi-day tournaments. Please change tournament duration in Schedule step.");
+                  return;
+                }
+                set("enableCut", !formData.enableCut);
+              }}>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h4 className={cn("text-[14px] font-medium", !isMultiDay ? "text-gray-400" : "text-gray-900")}>Make Cut</h4>
+                  <p className={cn("text-[12px]", !isMultiDay ? "text-gray-400" : "text-gray-500")}>Automatically eliminate players after a specific round {!isMultiDay && "(Requires Multi-Day)"}</p>
+                </div>
+              </div>
+              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.enableCut && isMultiDay ? "bg-openclub-700" : "bg-gray-200", !isMultiDay && "opacity-50")}>
+                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.enableCut && isMultiDay ? "left-6" : "left-1")} />
+              </div>
+            </div>
+
+            {formData.enableCut && isMultiDay && (
+              <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Cut After What Day" required>
+                    <Input
+                      type="number"
+                      value={formData.cutAfterRound}
+                      onChange={(e) => set("cutAfterRound", e.target.value)}
+                      placeholder="e.g. 2"
+                      min="1"
+                      max={(() => {
+                        if (!formData.startDate) return undefined;
+                        const start = new Date(formData.startDate);
+                        const end = formData.endDate ? new Date(formData.endDate) : start;
+                        return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                      })()}
+                      className="bg-white"
+                    />
+                  </Field>
+                  <Field label="Cut Method" required>
+                    <SearchableSelect
+                      value={formData.cutFormat}
+                      onValueChange={(v) => {
+                        set("cutFormat", v);
+                        set("cutLine", ""); 
+                      }}
+                      options={[
+                        { value: "NUMBER", label: "Exact Number" },
+                        { value: "PERCENTAGE", label: "Percentage (%)" }
+                      ]}
+                      className="w-full"
+                      triggerClassName="h-10 bg-white"
+                    />
+                  </Field>
+                </div>
+                {formData.cutFormat && (
+                  <div className="mt-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <Field label={formData.cutFormat === "PERCENTAGE" ? "Percentage to Advance (%)" : "Number of Players to Advance"} required>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={formData.cutLine}
+                          onChange={(e) => set("cutLine", e.target.value)}
+                          placeholder={formData.cutFormat === "PERCENTAGE" ? "e.g. 20" : "e.g. 30"}
+                          min="1"
+                          max={formData.cutFormat === "PERCENTAGE" ? "100" : undefined}
+                          className={cn("bg-white", formData.cutFormat === "PERCENTAGE" ? "pr-8" : "")}
+                        />
+                        {formData.cutFormat === "PERCENTAGE" && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <span className="text-gray-500 sm:text-[12px] font-normal">%</span>
+                          </div>
+                        )}
+                      </div>
+                    </Field>
+                  </div>
+                )}
+                {formData.cutFormat && (
+                  <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5 animate-in fade-in">
+                    <Info className="w-3.5 h-3.5" />
+                    {formData.cutFormat === "PERCENTAGE"
+                      ? "The specified percentage of the total active players will advance to the next day."
+                      : "Players below this exact rank will miss the cut and be excluded from future Tee-Offs."}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1177,7 +1292,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                         {active && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
+                        <span className={cn("text-[14px] font-medium", active ? "text-emerald-700" : "text-gray-800")}>{label}</span>
                         <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{desc}</p>
                       </div>
                     </button>

@@ -177,7 +177,7 @@ async function main() {
     createdClubs += 1;
 
     const course = await prisma.course.create({
-      data: { name: `${clubName} Course`, clubId: club.id, holesCount: 18 },
+      data: { name: `${clubName} Course`, holesCount: 18 },
     });
     createdCourses += 1;
 

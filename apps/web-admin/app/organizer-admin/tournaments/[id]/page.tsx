@@ -44,6 +44,7 @@ import {
   TrendingDown,
   ArrowRight,
   MapPin,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -1199,18 +1200,18 @@ function ViewTournamentPageInner() {
         </div>
 
         {/* Main Layout Grid Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Column - Navigation */}
-          <div className="lg:col-span-1">
-            <div className="bg-white border border-[#e1efe5] rounded-xl p-4 shadow-sm space-y-1.5">
+          <div className="w-full lg:w-[280px] shrink-0">
+            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                <Skeleton key={i} className="h-12 w-full rounded-xl" />
               ))}
             </div>
           </div>
 
           {/* Right Column - Active Panel */}
-          <div className="lg:col-span-4">
+          <div className="flex-1 min-w-0 space-y-6">
             <Skeleton className="w-full h-[600px] rounded-xl border border-gray-200" />
           </div>
         </div>
@@ -1370,34 +1371,28 @@ function ViewTournamentPageInner() {
       </div>
 
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column - Navigation */}
-        <div className="lg:col-span-1">
-          <div className="bg-white border border-[#e1efe5] rounded-xl p-4 shadow-sm space-y-1.5 sticky top-6">
-            {TABS.map((tab, i) => {
+        <div className="w-full lg:w-[280px] shrink-0">
+          <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
+            {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "w-full text-left flex items-center gap-3.5 px-4 py-3 border transition-all duration-200",
+                    "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
                     isActive
-                      ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 font-normal tab-shadow shadow-emerald-50"
-                      : "bg-white border-transparent text-gray-500 hover:bg-background/50 hover:text-gray-900"
+                      ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                      : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all duration-300",
-                      isActive
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"
-                        : "bg-gray-100 text-gray-400 border border-gray-200"
-                    )}
-                  >
-                    <tab.icon className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3.5">
+                    <tab.icon className="w-[18px] h-[18px]" />
+                    <span className="text-[13px] font-normal leading-tight">{tab.label}</span>
                   </div>
-                  <span className="text-[13px] font-normal capitalize tracking-wider leading-tight">{tab.label}</span>
+                  {isActive && <ChevronRight className="w-4 h-4 text-[#15803D]" />}
                 </button>
               );
             })}
@@ -1405,7 +1400,7 @@ function ViewTournamentPageInner() {
         </div>
 
         {/* Right Column - Active Panel */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="flex-1 min-w-0 space-y-6">
           {/* Status Alert Banners */}
           {selectedTournament.statusKey === "CANCELLED" && (
             <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
