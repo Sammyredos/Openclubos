@@ -7,7 +7,7 @@ import { Country, State } from "country-state-city";
 import { getNigerianStates } from "@/lib/nigerian-states-lgas";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { createTournament, getTournament, getTournaments, updateTournament, UpdateTournamentPayload } from "@/lib/api/tournaments";
+import { createTournament, getTournament, getTournaments, updateTournament, checkTournamentName, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -143,6 +143,7 @@ const DEFAULT_FORM = {
   enableHoleScoring: true,
   publishImmediately: false,
   visibility: "PUBLIC" as const,
+  genderRestriction: "MIXED" as const,
 };
 
 type FormData = typeof DEFAULT_FORM;
@@ -393,6 +394,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 enableHoleScoring: t.enableHoleScoring ?? true,
                 publishImmediately: t.publishImmediately ?? false,
                 visibility: t.visibility || "PUBLIC",
+                genderRestriction: t.genderRestriction || "MIXED",
               });
               if (t.endDate) setIsMultiDay(true);
             })
@@ -403,11 +405,17 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
           if (typeof window !== "undefined") {
             orgId = new URLSearchParams(window.location.search).get("organizerId") || "";
           }
-          setFormData({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || "") : orgId });
+          setFormData({ ...DEFAULT_FORM, clubId: user?.role === "CLUB_ADMIN" ? (user.clubId || user.club?.id || "") : orgId });
         }
       })
       .catch(() => { });
   }, [tournamentId]);
+
+  useEffect(() => {
+    if (!tournamentId && user?.role === "CLUB_ADMIN" && (user.clubId || user.club?.id) && !formData.clubId) {
+      setFormData(prev => ({ ...prev, clubId: (user.clubId || user.club?.id)! }));
+    }
+  }, [user, tournamentId, formData.clubId]);
 
   const set = (field: string, value: any) => setFormData((p) => ({ ...p, [field]: value }));
 
@@ -459,14 +467,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     if (step === 1) {
       setNameCheckLoading(true);
       try {
-        const all = await getTournaments() as Array<{ id: string; name: string }>;
-        const trimmed = formData.name.trim().toLowerCase();
-        const duplicate = Array.isArray(all)
-          ? all.find((t) => t.name.trim().toLowerCase() === trimmed && t.id !== tournamentId)
-          : null;
-        if (duplicate) {
+        const res = await checkTournamentName(formData.name, formData.clubId, tournamentId || undefined);
+        if (!res.isUnique) {
           setShowValidation(true);
-          toast.error(`A tournament named "${duplicate.name}" already exists. Include the year to differentiate it.`);
+          toast.error("A tournament with this name already exists in this club. Include the year to differentiate it.");
           return;
         }
       } catch {
@@ -526,6 +530,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         allowRegisteredPlayers: f.allowRegisteredPlayers,
         allowGuests: f.allowGuests,
         allowExternalPlayers: f.allowExternalPlayers,
+        genderRestriction: f.genderRestriction,
         hasHandicapRestriction: f.hasHandicapRestriction,
         minHandicap: f.hasHandicapRestriction && f.minHandicap !== "" ? Number(f.minHandicap) : null,
         maxHandicap: f.hasHandicapRestriction && f.maxHandicap !== "" ? Number(f.maxHandicap) : null,
@@ -573,7 +578,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     }
   };
 
-  const handleStepClick = (targetStep: number) => {
+  const handleStepClick = async (targetStep: number) => {
     if (targetStep < step) {
       // Allow moving backward without validation
       setStep(targetStep);
@@ -589,6 +594,22 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         toast.error(`Please complete Step ${s} before proceeding.`);
         setStep(s);
         return;
+      }
+      
+      if (s === 1) {
+        setNameCheckLoading(true);
+        try {
+          const res = await checkTournamentName(formData.name, formData.clubId, tournamentId || undefined);
+          if (!res.isUnique) {
+            setShowValidation(true);
+            toast.error("A tournament with this name already exists in this club.");
+            setStep(1);
+            return;
+          }
+        } catch {
+        } finally {
+          setNameCheckLoading(false);
+        }
       }
     }
     setStep(targetStep);
@@ -771,49 +792,38 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
 
               <div className="p-5 space-y-6">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium text-gray-600">Tournament Duration</Label>
-                  <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMultiDay(false);
-                        set("endDate", "");
-                      }}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
-                        !isMultiDay ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
-                      )}
-                    >
-                      <span
+                {/* ── Tournament Duration ── */}
+                <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm p-5">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration</h4>
+                      <p className="text-[12px] text-gray-500">Specify if this tournament spans across a single day or multiple days.</p>
+                    </div>
+                    <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMultiDay(false);
+                          set("endDate", "");
+                        }}
                         className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                          !isMultiDay ? "border-white bg-white" : "border-gray-300"
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          !isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                         )}
                       >
-                        {!isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
-                      </span>
-                      One Day
-                    </button>
-                    <div className="w-px bg-gray-200" />
-                    <button
-                      type="button"
-                      onClick={() => setIsMultiDay(true)}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-normal transition-all",
-                        isMultiDay ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-background"
-                      )}
-                    >
-                      <span
+                        One Day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiDay(true)}
                         className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                          isMultiDay ? "border-white bg-white" : "border-gray-300"
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                         )}
                       >
-                        {isMultiDay && <span className="w-2 h-2 rounded-full bg-[#15803D]" />}
-                      </span>
-                      Multi-Day
-                    </button>
+                        Multi-Day
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1124,8 +1134,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-medium text-gray-900">Player Capacity</h4>
-                  <p className="text-[12px] text-gray-500">Set limits on how many people can join</p>
+                  <h4 className="text-[14px] font-medium text-gray-900">Eligibility & Capacity</h4>
+                  <p className="text-[12px] text-gray-500">Configure who can participate in this tournament and set capacity limits</p>
                 </div>
               </div>
 
@@ -1170,6 +1180,36 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           Allow players to join a queue if the tournament reaches max capacity.
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* ── Gender Restrictions ── */}
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Gender Restriction</h4>
+                      <p className="text-[12px] text-gray-500">Specify if this tournament is restricted to a specific gender.</p>
+                    </div>
+                    <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
+                      {[
+                        { value: "MIXED", label: "Mixed (Everyone)" },
+                        { value: "MALE_ONLY", label: "Male Only" },
+                        { value: "FEMALE_ONLY", label: "Female Only" },
+                      ].map(({ value, label }) => {
+                        const active = formData.genderRestriction === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => set("genderRestriction", value)}
+                            className={cn(
+                              "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                              active ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-background/50"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

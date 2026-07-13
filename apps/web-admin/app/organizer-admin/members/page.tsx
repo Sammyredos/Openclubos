@@ -131,7 +131,10 @@ function StatusPill({ status }: { status: AdminUser["status"] }) {
   );
 }
 
-export default function SuperAdminUsersPage() {
+import { useAuth } from '@/lib/auth/AuthContext';
+
+export default function OrganizerAdminMembersPage() {
+  const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -212,10 +215,10 @@ export default function SuperAdminUsersPage() {
     return allUsers; // The backend now handles filtering
   }, [allUsers]);
 
-  const total = stats?.totalUsers || 0;
+  const total = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
   const pageSafe = Math.min(currentPage, totalPages);
-  const paginatedUsers = allUsers;
+  const paginatedUsers = filteredUsers;
 
   async function reload() {
     const token = getAuthToken();
@@ -230,6 +233,7 @@ export default function SuperAdminUsersPage() {
     setError(null);
     try {
       const data = await getAdminUsers({
+        clubId: user?.clubId || user?.club?.id || undefined,
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
         search: searchQuery || undefined,
@@ -279,7 +283,7 @@ export default function SuperAdminUsersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "CLUB_ADMIN", "MARKER"].map((v) => ({
         value: v,
         label:
           v === "All Roles"
@@ -306,7 +310,7 @@ export default function SuperAdminUsersPage() {
     const map = stats?.roles ?? {};
     const rows = [
       { key: "CLUB_ADMIN", label: "Organiser Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
-      { key: "PLAYER", label: "Players", color: "bg-openclub-700", value: map.PLAYER ?? 0 },
+      
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
     const superAdmins = map.SUPER_ADMIN ?? 0;
@@ -364,7 +368,7 @@ export default function SuperAdminUsersPage() {
 
   const openEditModal = (u: AdminUser) => {
     closeDropdown();
-    router.push(`/super-admin/users/${u.id}/edit`);
+    router.push(`/organizer-admin/members/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -699,7 +703,7 @@ export default function SuperAdminUsersPage() {
               </button>
             </FloatingMenu>
             <Button
-              onClick={() => router.push("/super-admin/users/create")}
+              onClick={() => router.push("/organizer-admin/members/create")}
               className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <UserPlus className="w-4 h-4" /> Add User

@@ -103,7 +103,7 @@ function LoginPageInner() {
 
         {/* LEFT COLUMN - Image */}
         <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop')" }}>
+          style={{ backgroundImage: "url('/yellow-9-flag-realistic.png')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
 
           <div className="relative z-10 text-white">
@@ -162,7 +162,7 @@ function LoginPageInner() {
                   id="email"
                   type="email"
                   placeholder="golfer@example.com"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
@@ -178,7 +178,7 @@ function LoginPageInner() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 pr-12 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 pr-12 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                     {...form.register("password")}
                   />
                   <button
@@ -204,7 +204,7 @@ function LoginPageInner() {
                       onChange={() => setRememberMe(!rememberMe)}
                       className="peer sr-only"
                     />
-                    <div className="w-5 h-5 rounded border border-zinc-300 bg-zinc-50 peer-checked:bg-emerald-600 peer-checked:border-emerald-600 flex items-center justify-center transition-colors">
+                    <div className="w-5 h-5 rounded border border-[#e1efe5] bg-[#f5faf6] peer-checked:bg-emerald-600 peer-checked:border-emerald-600 flex items-center justify-center transition-colors">
                       {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
                   </div>

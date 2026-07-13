@@ -952,53 +952,19 @@ export default function TournamentsPage() {
       {loading ? (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <Skeleton className="h-[22px] w-28" />
+            {[1, 2, 3, 4, 5].map((i, idx) => (
+              <div key={i} className="flex items-center gap-12 flex-1">
+                <div className="flex flex-col justify-start items-start gap-3.5 w-full">
+                  <div className="flex justify-start items-center gap-3.5">
+                    <Skeleton className="h-[22px] w-32" />
+                    {i === 2 && <Skeleton className="h-6 w-24 rounded-lg" />}
+                  </div>
+                  <Skeleton className="h-9 w-16" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+                {idx < 4 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
               </div>
-              <Skeleton className="h-9 w-16" />
-              <Skeleton className="h-5 w-24" />
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <Skeleton className="h-[22px] w-28" />
-              </div>
-              <Skeleton className="h-9 w-16" />
-              <Skeleton className="h-5 w-24" />
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <Skeleton className="h-[22px] w-28" />
-              </div>
-              <Skeleton className="h-9 w-16" />
-              <Skeleton className="h-5 w-24" />
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <Skeleton className="h-[22px] w-28" />
-              </div>
-              <Skeleton className="h-9 w-16" />
-              <Skeleton className="h-5 w-24" />
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <Skeleton className="h-[22px] w-28" />
-              </div>
-              <Skeleton className="h-9 w-16" />
-              <Skeleton className="h-5 w-24" />
-            </div>
+            ))}
           </div>
         </div>
       ) : (

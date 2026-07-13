@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-now), ui-sans-serif, system-ui, sans-serif;
-  --font-space-grotesk: var(--font-now), sans-serif;
+  --font-sans: var(--font-zxgamut), ui-sans-serif, system-ui, sans-serif;
+  --font-space-grotesk: var(--font-zxgamut), sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

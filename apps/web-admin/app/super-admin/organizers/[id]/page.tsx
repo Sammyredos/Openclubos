@@ -134,7 +134,7 @@ function toOrganizerViewModel(o: ApiOrganizer): OrganizerViewModel {
   const adminAvatar = adminUser?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(adminEmail || o.id)}`;
   const status = o.status === "SUSPENDED" ? "Suspended" : o.status === "EXPIRED" ? "Expired" : "Active";
   const plan = o.plan === "PRO" ? "Pro" : o.plan === "BASIC" ? "Basic" : "—";
-  
+
   // Parse state and LGA from address if available
   let displayLocation = "—";
   if (o.address) {
@@ -480,7 +480,7 @@ export default function OrganizerDetailsPage() {
       .catch((e: unknown) =>
         toast.error(
           getErrorMessage(e) ||
-            (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
+          (statusAction === "activate" ? "Failed to activate organizer" : "Failed to suspend organizer"),
         ),
       )
       .finally(() => setMutating(false));
@@ -996,7 +996,7 @@ export default function OrganizerDetailsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
-                  <CardTitle className="text-[16px] font-normal">Revenue Overview</CardTitle>
+                  <CardTitle className="text-xl font-normal">Revenue Overview</CardTitle>
                   <SearchableSelect
                     value={revenueRange}
                     onValueChange={setRevenueRange}

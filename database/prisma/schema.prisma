@@ -77,6 +77,12 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum GenderRestriction {
+  MALE_ONLY
+  FEMALE_ONLY
+  MIXED
+}
+
 enum ClubStatus {
   ACTIVE
   SUSPENDED
@@ -219,6 +225,7 @@ model Tournament {
   minHandicap            Float?
   maxHandicap            Float?
   playerTypes            String[] @default(["MEMBER"])
+  genderRestriction      GenderRestriction @default(MIXED)
 
   // Cut Rules
   enableCut     Boolean @default(false)

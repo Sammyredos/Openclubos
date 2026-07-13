@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
 import {
-  Eye, EyeOff, Upload, X, ArrowRight, ArrowLeft
+  Eye, EyeOff, Upload, X, ArrowRight, ArrowLeft, ChevronDown
 } from "lucide-react"
 import { registerOrganizationRequest, validateOrganizationRequest, validateAdminRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
@@ -239,7 +239,7 @@ export default function SignupOrganisationPage() {
   const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminGender") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail && !errors.adminGender;
   const isStep5Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
 
-  const inputClasses = "w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+  const inputClasses = "w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
   const labelClasses = "block font-semibold text-sm text-zinc-700 mb-2"
   const btnClasses = "w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 mt-4"
   const errorClasses = "text-xs text-red-600 font-medium mt-2"
@@ -247,15 +247,15 @@ export default function SignupOrganisationPage() {
   return (
     <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900 overflow-x-hidden">
       <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
-        
+
         {/* LEFT COLUMN - Image */}
         <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end sticky top-0 h-screen"
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070&auto=format&fit=crop')" }}>
+          style={{ backgroundImage: "url('/yellow-9-flag-realistic.png')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
-          
+
           <div className="relative z-10 text-white">
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              Host Tournaments<br/>Like A Pro.
+              Host Tournaments<br />Like A Pro.
             </h1>
             <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
               Create your OpenClub organization to streamline tournament registrations, manage leaderboards, and elevate the player experience.
@@ -267,9 +267,9 @@ export default function SignupOrganisationPage() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative min-h-screen lg:min-h-0">
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
-          
+
           <div className="w-full max-w-[560px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
-            
+
             {isSuccess ? (
               <div className="text-center">
                 <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-8 mx-auto border border-emerald-100 shadow-sm">
@@ -277,7 +277,7 @@ export default function SignupOrganisationPage() {
                 </div>
                 <h2 className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Check Your Email</h2>
                 <p className="text-zinc-500 mb-8 font-medium">
-                  We've sent a verification link to <span className="text-zinc-900 font-semibold">{form.getValues("adminEmail")}</span>.<br/>Please verify your account.
+                  We've sent a verification link to <span className="text-zinc-900 font-semibold">{form.getValues("adminEmail")}</span>.<br />Please verify your account.
                 </p>
                 <button
                   onClick={() => router.push("/login")}
@@ -297,7 +297,7 @@ export default function SignupOrganisationPage() {
                       <ArrowLeft className="w-5 h-5 text-zinc-700" />
                     </button>
                   )}
-                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create Account</h2>
+                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create a New Account</h2>
                   <p className="text-zinc-500 font-medium tracking-tight">Step {step} of 5</p>
 
                   <div className="flex items-center gap-2 mt-6">
@@ -323,17 +323,22 @@ export default function SignupOrganisationPage() {
 
                     <div>
                       <label className={labelClasses}>Organization Type</label>
-                      <select
-                        className={`${inputClasses} appearance-none rounded-none`}
-                        disabled={isLoading}
-                        {...form.register("organizationType")}
-                      >
-                        <option value="" disabled>Select organization type</option>
-                        <option value="Golf Club">Golf Club</option>
-                        <option value="Tournament Organizer">Tournament Organizer</option>
-                        <option value="Golf Association">Golf Association</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          className={`${inputClasses} appearance-none pr-10`}
+                          disabled={isLoading}
+                          {...form.register("organizationType")}
+                        >
+                          <option value="" disabled>Select organization type</option>
+                          <option value="Golf Club">Golf Club</option>
+                          <option value="Tournament Organizer">Tournament Organizer</option>
+                          <option value="Golf Association">Golf Association</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400">
+                          <ChevronDown className="h-5 w-5" />
+                        </div>
+                      </div>
                       {errors.organizationType && <p className={errorClasses}>{errors.organizationType.message}</p>}
                     </div>
 
@@ -378,7 +383,7 @@ export default function SignupOrganisationPage() {
                         ) : (
                           <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-48 h-48 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 hover:border-zinc-400 transition-all flex flex-col items-center justify-center cursor-pointer group"
+                            className="w-48 h-48 rounded-2xl border border-dashed border-zinc-300 bg-[#f5faf6] hover:bg-[#e1efe5] hover:border-zinc-400 transition-all flex flex-col items-center justify-center cursor-pointer group"
                           >
                             <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                               <Upload className="w-5 h-5 text-zinc-600" />
@@ -459,7 +464,7 @@ export default function SignupOrganisationPage() {
                     <div>
                       <label className={labelClasses}>Full Address</label>
                       <textarea
-                        {...form.register("organizationAddress", { onChange: (e) => { if (e.target.value.length > 200) e.target.value = e.target.value.slice(0, 200); }})}
+                        {...form.register("organizationAddress", { onChange: (e) => { if (e.target.value.length > 200) e.target.value = e.target.value.slice(0, 200); } })}
                         maxLength={200}
                         placeholder="Enter full address"
                         className={`${inputClasses} h-24 resize-none`}
@@ -501,14 +506,13 @@ export default function SignupOrganisationPage() {
 
                     <div>
                       <label className={labelClasses}>Gender</label>
-                      <div className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                        <SearchableSelect
-                          value={form.watch("adminGender")}
-                          onValueChange={v => setValue("adminGender", v, { shouldValidate: true })}
-                          options={[{ value: "Male", label: "Male" }, { value: "Female", label: "Female" }, { value: "Other", label: "Other" }]}
-                          placeholder="Select gender"
-                        />
-                      </div>
+                      <SearchableSelect
+                        value={form.watch("adminGender")}
+                        onValueChange={v => setValue("adminGender", v, { shouldValidate: true })}
+                        options={[{ value: "Male", label: "Male" }, { value: "Female", label: "Female" }, { value: "Other", label: "Other" }]}
+                        placeholder="Select gender"
+                        triggerClassName={inputClasses}
+                      />
                       {errors.adminGender && <p className={errorClasses}>{errors.adminGender.message}</p>}
                     </div>
 
@@ -585,7 +589,7 @@ export default function SignupOrganisationPage() {
                     </button>
                   </div>
                 </form>
-                
+
                 {step === 1 && (
                   <>
                     <div className="flex items-center text-zinc-400 font-semibold text-xs tracking-widest my-8">

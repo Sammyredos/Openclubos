@@ -44,6 +44,7 @@ export type UpdateTournamentPayload = {
   allowRegisteredPlayers?: boolean;
   allowGuests?: boolean;
   allowExternalPlayers?: boolean;
+  genderRestriction?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED';
   hasHandicapRestriction?: boolean;
   minHandicap?: number | null;
   maxHandicap?: number | null;
@@ -145,6 +146,20 @@ export async function getTournament(id: string) {
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to fetch tournament');
+  }
+  return res.json();
+}
+
+export async function checkTournamentName(name: string, clubId?: string, excludeId?: string): Promise<{ isUnique: boolean }> {
+  const params = new URLSearchParams();
+  if (name) params.append('name', name);
+  if (clubId) params.append('clubId', clubId);
+  if (excludeId) params.append('excludeId', excludeId);
+  
+  const res = await authedFetch(`/tournaments/check-name?${params.toString()}`, { method: 'GET' });
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    return { isUnique: true }; // Assume unique if check fails to prevent blocking
   }
   return res.json();
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FloatingMenu } from "./floating-menu";
 
 type DatePickerProps = {
   value: string;
@@ -86,24 +87,7 @@ export function DatePicker({
       const parsedMax = parseYMD(maxDate);
       if (parsedMax) setViewMonth(parsedMax);
     }
-
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 380 && rect.top > 380) {
-        setOpenUpwards(true);
-      } else {
-        setOpenUpwards(false);
-      }
-    }
-
-    function onMouseDown(e: MouseEvent) {
-      if (!ref.current) return;
-      if (e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false);
-    }
-    window.addEventListener("mousedown", onMouseDown);
-    return () => window.removeEventListener("mousedown", onMouseDown);
-  }, [open]);
+  }, [open, selectedDate, maxDate]);
 
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
@@ -160,11 +144,14 @@ export function DatePicker({
         <CalendarDays className="h-4.5 w-4.5 text-gray-400" />
       </button>
 
-      {open && (
-        <div className={cn(
-          "absolute z-50 left-0 w-[280px] overflow-hidden rounded-2xl border border-[#e1efe5] bg-white shadow-xl",
-          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
-        )}>
+      <FloatingMenu
+        open={open}
+        anchorEl={ref.current}
+        onClose={() => setOpen(false)}
+        placement="bottom-end"
+        align="start"
+        className="w-[280px] overflow-hidden rounded-2xl border border-[#e1efe5] bg-white shadow-xl mt-2"
+      >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1efe5]">
             <button
               type="button"
@@ -269,8 +256,7 @@ export function DatePicker({
               </div>
             )}
           </div>
-        </div>
-      )}
+      </FloatingMenu>
     </div>
   );
 }

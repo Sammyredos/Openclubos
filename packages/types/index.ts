@@ -80,3 +80,11 @@ export const TournamentVisibility = {
   INVITE_ONLY: 'INVITE_ONLY',
 } as const;
 export type TournamentVisibility = (typeof TournamentVisibility)[keyof typeof TournamentVisibility];
+
+export const GenderRestriction = {
+  MALE_ONLY: 'MALE_ONLY',
+  FEMALE_ONLY: 'FEMALE_ONLY',
+  MIXED: 'MIXED',
+} as const;
+export type GenderRestriction = (typeof GenderRestriction)[keyof typeof GenderRestriction];
+

@@ -4,25 +4,30 @@ import "./globals.css";
 import Providers from "./providers";
 import localFont from 'next/font/local';
 
-const nowFont = localFont({
+const zxgamutFont = localFont({
   src: [
     {
-      path: './fonts/Now-Regular.otf',
+      path: './fonts/ZxGamut-Light.woff2',
+      weight: '300',
+      style: 'normal',
+    },
+    {
+      path: './fonts/ZxGamut-Regular.woff2',
       weight: '400',
       style: 'normal',
     },
     {
-      path: './fonts/Now-Medium.otf',
+      path: './fonts/ZxGamut-Medium.woff2',
       weight: '500',
       style: 'normal',
     },
     {
-      path: './fonts/Now-Bold.otf',
+      path: './fonts/ZxGamut-Bold.woff2',
       weight: '700',
       style: 'normal',
     },
   ],
-  variable: '--font-now',
+  variable: '--font-zxgamut',
 });
 
 export const metadata: Metadata = {
@@ -43,7 +48,7 @@ export default function RootLayout({
     >
       <head>
       </head>
-      <body className={`min-h-full flex flex-col font-sans ${nowFont.variable}`} suppressHydrationWarning>
+      <body className={`min-h-full flex flex-col font-sans ${zxgamutFont.variable}`} suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster 
           richColors 

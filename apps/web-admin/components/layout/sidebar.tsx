@@ -23,7 +23,9 @@ import {
   BellIcon as Bell,
   ChevronDownIcon as ChevronDown
 } from "@heroicons/react/24/solid";
+import { getClub } from "@/lib/api/clubs";
 import { Icons } from "@/components/ui/icons";
+import { Layers } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -85,9 +87,9 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
     items: [
       { name: "Overview", href: "/super-admin/dashboard", icon: Home },
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
-      { 
-        name: "Subscriptions", 
-        href: "/super-admin/subscriptions", 
+      {
+        name: "Subscriptions",
+        href: "/super-admin/subscriptions",
         icon: CreditCard,
         subItems: [
           { name: "Plans", href: "/super-admin/subscriptions/plans" },
@@ -152,6 +154,17 @@ export function Sidebar() {
   const pathname = usePathname();
   const { logout, user, isLoading } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [fetchedClub, setFetchedClub] = useState<{name: string, logo?: string} | null>(null);
+  const [isFetchingClub, setIsFetchingClub] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'CLUB_ADMIN' && user?.clubId) {
+      setIsFetchingClub(true);
+      getClub(user.clubId).then(data => {
+        setFetchedClub({ name: data.name, logo: data.logo });
+      }).catch(() => {}).finally(() => setIsFetchingClub(false));
+    }
+  }, [user?.role, user?.clubId]);
 
   useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
@@ -219,16 +232,30 @@ export function Sidebar() {
     <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
       <div className="p-8 flex flex-col gap-4">
         {user?.role === 'CLUB_ADMIN' ? (
-          <div className="flex items-center justify-between group cursor-pointer">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#15803D] p-2.5 rounded-full shadow-lg shadow-openclub-700/20">
-                <Icons.logo className="h-7 w-7 text-white" />
-              </div>
-              <span className="text-[16px] font-medium text-gray-900 tracking-tight truncate max-w-[160px]">
-                {user?.clubId ? "Oakwood Organizer" : "Select Organizer"}
-              </span>
-            </div>
-            <ChevronDown className="h-4.5 w-4.5 text-gray-400 group-hover:text-gray-900 transition-colors" />
+          <div className="flex flex-col items-center justify-center gap-3 group cursor-pointer w-full mt-2 mb-2">
+            {isFetchingClub && !fetchedClub ? (
+              <>
+                <Skeleton className="w-[60px] h-[60px] rounded-full shrink-0" />
+                <Skeleton className="h-[20px] w-28 shrink-0 mt-1" />
+              </>
+            ) : (
+              <>
+                {fetchedClub?.logo || user?.profilePhoto ? (
+                  <div className="w-[60px] h-[60px] rounded-full shadow-lg shadow-openclub-700/20 overflow-hidden flex-shrink-0 border-2 border-white">
+                    <img src={fetchedClub?.logo || user?.profilePhoto} alt="Club Logo" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="bg-[#15803D] p-3 rounded-full shadow-lg shadow-openclub-700/20">
+                    <Layers className="h-8 w-8 text-white" />
+                  </div>
+                )}
+                <div className="flex items-center justify-center w-full px-2">
+                  <span className="text-base font-medium text-gray-900 tracking-tight truncate text-center max-w-full">
+                    {fetchedClub?.name || user?.club?.name || "Organizer"}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-4">
@@ -309,10 +336,10 @@ export function Sidebar() {
       <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
         <div className="w-[178px] h-[55px] bg-[#15803D] rounded-lg overflow-hidden flex items-center justify-between px-[10px] relative group cursor-pointer" onClick={logout} title="Click to Logout">
           <div className="flex items-center gap-2.5">
-            <img 
-              className="w-7 h-7 rounded-full object-cover bg-white" 
-              src={getAvatarUrl(user || undefined)} 
-              alt={user?.name || "User Avatar"} 
+            <img
+              className="w-7 h-7 rounded-full object-cover bg-white"
+              src={getAvatarUrl(user || undefined)}
+              alt={user?.name || "User Avatar"}
             />
             <div className="flex flex-col justify-start items-start gap-px overflow-hidden w-[100px]">
               <div className="text-white text-xs font-medium truncate w-full">{user?.name || "Admin User"}</div>

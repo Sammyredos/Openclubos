@@ -31,6 +31,23 @@ export class TournamentsController {
     return this.tournamentsService.create(createTournamentDto);
   }
 
+  @Get('check-name')
+  async checkName(
+    @Request() req: any,
+    @Query('name') name: string,
+    @Query('clubId') clubId?: string,
+    @Query('excludeId') excludeId?: string,
+  ) {
+    if (!name) return { isUnique: false };
+    const role = req.user?.role as UserRole | undefined;
+    const effectiveClubId = role === UserRole.CLUB_ADMIN ? req.user?.clubId : clubId;
+    if (!effectiveClubId) {
+      return { isUnique: true };
+    }
+    const isUnique = await this.tournamentsService.checkName(name, effectiveClubId, excludeId);
+    return { isUnique };
+  }
+
   @Get()
   findAll(
     @Request() req: any,

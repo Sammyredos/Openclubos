@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
         
         {/* LEFT COLUMN - Image */}
         <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1591491640784-3232eb748d4b?q=80&w=2070&auto=format&fit=crop')" }}>
+             style={{ backgroundImage: "url('/sagamu-hole-15-island.png')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
           
           <div className="relative z-10 text-white">
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
                       id="reset-email"
                       type="email"
                       placeholder="golfer@example.com"
-                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("email")}
                     />

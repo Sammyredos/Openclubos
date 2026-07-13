@@ -3,6 +3,7 @@ import {
   TournamentFormat,
   ScoringType,
   TournamentVisibility,
+  GenderRestriction,
 } from '@openclubos/types';
 import {
   IsString,
@@ -102,6 +103,10 @@ export class CreateTournamentDto {
   @IsArray()
   @IsString({ each: true })
   playerTypes?: string[];
+
+  @IsOptional()
+  @IsEnum(GenderRestriction)
+  genderRestriction?: GenderRestriction;
 
   // Cut Rules
   @IsOptional()

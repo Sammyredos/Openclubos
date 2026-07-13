@@ -11,8 +11,20 @@ export function TopNav() {
   const isOrganizerAdmin = user?.role === 'CLUB_ADMIN';
 
   const pageTitle = (() => {
-    if (isOrganizerAdmin && pathname.startsWith("/organizer-admin")) {
+    if (pathname.startsWith("/organizer-admin")) {
       if (pathname === "/organizer-admin/dashboard") return "Dashboard";
+      if (pathname === "/organizer-admin/members") return "Users";
+      if (pathname.startsWith("/organizer-admin/members/")) return "User Details";
+      if (pathname === "/organizer-admin/tournaments") return "Tournaments";
+      if (pathname.startsWith("/organizer-admin/tournaments/")) return "Tournament Details";
+      if (pathname === "/organizer-admin/registrations") return "Registrations";
+      if (pathname === "/organizer-admin/scoring") return "Scoring";
+      if (pathname === "/organizer-admin/leaderboard") return "Leaderboard";
+      if (pathname === "/organizer-admin/payments") return "Payments";
+      if (pathname === "/organizer-admin/reports") return "Reports";
+      if (pathname === "/organizer-admin/handicaps") return "Handicaps";
+      if (pathname === "/organizer-admin/notifications") return "Notifications";
+      if (pathname === "/organizer-admin/settings") return "Settings";
       return "Dashboard";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Dashboard";
@@ -32,19 +44,41 @@ export function TopNav() {
     return "Dashboard";
   })();
 
-  const isMajorPage = pathname === "/super-admin/dashboard" 
-    || pathname === "/organizer-admin/dashboard" 
+  const isMajorPage = pathname === "/super-admin/dashboard"
+    || pathname === "/organizer-admin/dashboard"
     || pathname === "/"
     || pathname === "/super-admin/users"
     || pathname === "/super-admin/organizers"
     || pathname === "/super-admin/tournaments"
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
-    || pathname === "/super-admin/settings";
+    || pathname === "/super-admin/settings"
+    || pathname === "/organizer-admin/members"
+    || pathname === "/organizer-admin/tournaments"
+    || pathname === "/organizer-admin/registrations"
+    || pathname === "/organizer-admin/scoring"
+    || pathname === "/organizer-admin/leaderboard"
+    || pathname === "/organizer-admin/payments"
+    || pathname === "/organizer-admin/reports"
+    || pathname === "/organizer-admin/handicaps"
+    || pathname === "/organizer-admin/notifications"
+    || pathname === "/organizer-admin/settings";
 
   const pageDescription = (() => {
-    if (isOrganizerAdmin && pathname.startsWith("/organizer-admin")) {
-      if (pathname === "/organizer-admin/dashboard") return "Overview of your club's key metrics and recent activities.";
+    if (pathname.startsWith("/organizer-admin")) {
+      if (pathname === "/organizer-admin/dashboard") return "Overview of your Tournament's key metrics and recent activities.";
+      if (pathname === "/organizer-admin/members") return "Manage and view all registered users of your club.";
+      if (pathname.startsWith("/organizer-admin/members/")) return "Detailed view and settings for the selected user.";
+      if (pathname === "/organizer-admin/tournaments") return "Track and manage all golf tournaments for your club.";
+      if (pathname.startsWith("/organizer-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
+      if (pathname === "/organizer-admin/registrations") return "Manage player registrations for upcoming events.";
+      if (pathname === "/organizer-admin/scoring") return "Live scoring and scorecard management.";
+      if (pathname === "/organizer-admin/leaderboard") return "View tournament leaderboards and standings.";
+      if (pathname === "/organizer-admin/payments") return "Track tournament entry fees and other payments.";
+      if (pathname === "/organizer-admin/reports") return "Generate and view club and tournament reports.";
+      if (pathname === "/organizer-admin/handicaps") return "Manage and update player handicaps.";
+      if (pathname === "/organizer-admin/notifications") return "Send and manage notifications to members.";
+      if (pathname === "/organizer-admin/settings") return "Configure your club's preferences and settings.";
       return "";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview of platform key metrics and recent activities.";

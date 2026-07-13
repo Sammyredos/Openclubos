@@ -11,6 +11,7 @@ export function FloatingMenu({
   anchorEl,
   onClose,
   placement = "top-end",
+  align = "end",
   className,
   children,
 }: {
@@ -18,6 +19,7 @@ export function FloatingMenu({
   anchorEl: HTMLElement | null;
   onClose: () => void;
   placement?: Placement;
+  align?: "start" | "center" | "end";
   className?: string;
   children: React.ReactNode;
 }) {
@@ -40,7 +42,15 @@ export function FloatingMenu({
     const margin = 8;
     const gap = 8;
 
-    let left = rect.right - menuRect.width;
+    let left = 0;
+    if (align === "start") {
+      left = rect.left;
+    } else if (align === "center") {
+      left = rect.left + rect.width / 2 - menuRect.width / 2;
+    } else {
+      left = rect.right - menuRect.width;
+    }
+    
     left = Math.max(margin, Math.min(left, vw - margin - menuRect.width));
 
     const topPreferred = rect.top - menuRect.height - gap;
@@ -58,7 +68,7 @@ export function FloatingMenu({
     menuEl.style.left = `${left}px`;
     menuEl.style.top = `${top}px`;
     menuEl.style.visibility = "visible";
-  }, [anchorEl, onClose, open, placement]);
+  }, [anchorEl, onClose, open, placement, align]);
 
   useLayoutEffect(() => {
     if (!open) return;

@@ -1276,17 +1276,47 @@ function ViewTournamentPageInner() {
 
   if (loading) {
     return (
-      <div className="space-y-8 w-full max-w-full px-4 py-8 font-sans animate-pulse">
-        <div className="flex flex-col gap-6">
-          <Skeleton className="h-5 w-36 rounded-md" />
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <Skeleton className="h-20 w-20 rounded-xl" />
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-72 rounded-lg" />
-                <Skeleton className="h-4 w-80 rounded-md" />
+      <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
+        {/* Premium Header Skeleton */}
+        <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
+          <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="flex items-start md:items-center gap-5">
+              <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Skeleton className="h-8 w-64 rounded-md" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Skeleton className="h-8 w-32 rounded-lg" />
+                  <Skeleton className="h-8 w-32 rounded-lg" />
+                  <Skeleton className="h-8 w-32 rounded-lg" />
+                  <Skeleton className="h-8 w-32 rounded-lg" />
+                </div>
               </div>
             </div>
+            <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
+              <Skeleton className="h-11 w-32 rounded-[12px]" />
+              <Skeleton className="h-11 w-32 rounded-[12px]" />
+              <Skeleton className="h-11 w-11 rounded-[12px]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Layout Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left Column - Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-xl" />
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column - Active Panel */}
+          <div className="lg:col-span-4">
+            <Skeleton className="w-full h-[600px] rounded-xl border border-gray-200" />
           </div>
         </div>
       </div>

@@ -13,6 +13,11 @@ export interface AuthUser {
   gender?: string;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   clubId?: string;
+  club?: {
+    name: string;
+    logo?: string;
+    [key: string]: any;
+  };
 }
 
 export interface LoginResponse {

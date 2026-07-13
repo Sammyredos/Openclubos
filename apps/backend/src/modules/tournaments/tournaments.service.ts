@@ -72,6 +72,7 @@ export class TournamentsService {
       minHandicap: dto.minHandicap ?? null,
       maxHandicap: dto.maxHandicap ?? null,
       playerTypes: dto.playerTypes ?? ['MEMBER'],
+      genderRestriction: dto.genderRestriction ?? 'MIXED',
       // Cut Rules
       enableCut: dto.enableCut ?? false,
       cutAfterRound: dto.cutAfterRound ?? null,
@@ -139,6 +140,17 @@ export class TournamentsService {
     }
 
     return result;
+  }
+
+  async checkName(name: string, clubId: string, excludeId?: string): Promise<boolean> {
+    const existing = await this.prisma.tournament.findFirst({
+      where: {
+        clubId,
+        name: { equals: name, mode: 'insensitive' },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+    return !existing;
   }
 
   // Get all tournaments with optimized select to avoid over-fetching
@@ -393,6 +405,8 @@ export class TournamentsService {
     if (dto.minHandicap !== undefined) data.minHandicap = dto.minHandicap;
     if (dto.maxHandicap !== undefined) data.maxHandicap = dto.maxHandicap;
     if (dto.playerTypes !== undefined) data.playerTypes = dto.playerTypes;
+    if (dto.genderRestriction !== undefined)
+      data.genderRestriction = dto.genderRestriction;
 
     if (dto.maxPlayers !== undefined) data.maxPlayers = dto.maxPlayers;
     if (dto.maxPlayersPerGroup !== undefined)

@@ -8,8 +8,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export function LiveTickerStrip() {
   const [ongoing, setOngoing] = useState(0);
-  const [scores, setScores] = useState(1284);
-  const [spectators, setSpectators] = useState(3910);
+  const [scores, setScores] = useState(0);
+  const [spectators, setSpectators] = useState(0);
   const [liveNames, setLiveNames] = useState("No active tournaments");
   const pathname = usePathname();
 
