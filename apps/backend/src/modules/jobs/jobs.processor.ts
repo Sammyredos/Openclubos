@@ -245,6 +245,14 @@ export class JobsProcessor extends WorkerHost {
           data.organizerName,
         );
 
+      case 'MANAGER_INVITE':
+        return this.emailService.sendManagerInvite(
+          to,
+          data.firstName || 'Manager',
+          data.inviteUrl || '',
+          data.clubName || 'Your Club',
+        );
+
       default:
         throw new Error(`Unsupported email template: ${template}`);
     }

@@ -576,4 +576,39 @@ export class AuthService {
       },
     });
   }
+
+  async acceptInvite(token: string, newPassword: string) {
+    if (!token || !newPassword) {
+      throw new BadRequestException('Token and password are required');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { inviteToken: token, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired invitation token');
+    }
+
+    if (user.inviteTokenExpires && user.inviteTokenExpires < new Date()) {
+      throw new UnauthorizedException(
+        'This invitation has expired. Please ask your organizer to send a new invitation.',
+      );
+    }
+
+    // Hash the new password and activate the account
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        status: MemberStatus.ACTIVE,
+        inviteToken: null,
+        inviteTokenExpires: null,
+      },
+    });
+
+    // Auto-login: return JWT tokens
+    return this.login(updatedUser);
+  }
 }

@@ -4,7 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-// Force TS cache refresh
+import { randomBytes } from 'crypto';
 import { MemberStatus, UserRole, Gender } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma.service';
@@ -179,10 +179,18 @@ export class MembersService {
     search?: string;
     status?: MemberStatus;
     clubId?: string;
+    role?: string;
   }) {
-    const { skip, take, search, status, clubId } = query;
+    const { skip, take, search, status, clubId, role } = query;
 
-    const where: any = { role: UserRole.PLAYER };
+    const where: any = {};
+
+    // Filter by role: if specific role requested use it, otherwise exclude SUPER_ADMIN
+    if (role) {
+      where.role = role as UserRole;
+    } else {
+      where.role = { not: UserRole.SUPER_ADMIN };
+    }
 
     if (search) {
       const q = search.trim();
@@ -208,30 +216,60 @@ export class MembersService {
       where.clubId = clubId;
     }
 
-    const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where: { ...where, deletedAt: null },
-        skip: skip ? +skip : 0,
-        take: take ? +take : 10,
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          status: true,
-          handicap: true,
-          phone: true,
-          createdAt: true,
-          clubId: true,
-          club: { select: { id: true, name: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.user.count({ where: { ...where, deletedAt: null } }),
-    ]);
+    const baseWhere = { ...where, deletedAt: null };
 
-    return { items, total };
+    const [items, total, activeCount, suspendedCount, roleCounts] =
+      await Promise.all([
+        this.prisma.user.findMany({
+          where: baseWhere,
+          skip: skip ? +skip : 0,
+          take: take ? +take : 10,
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            status: true,
+            handicap: true,
+            phone: true,
+            createdAt: true,
+            clubId: true,
+            club: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.user.count({ where: baseWhere }),
+        this.prisma.user.count({
+          where: { ...baseWhere, status: MemberStatus.ACTIVE },
+        }),
+        this.prisma.user.count({
+          where: { ...baseWhere, status: MemberStatus.SUSPENDED },
+        }),
+        this.prisma.user.groupBy({
+          by: ['role'],
+          where: baseWhere,
+          _count: true,
+        }),
+      ]);
+
+    const roles: Record<string, number> = {};
+    for (const g of roleCounts) {
+      roles[g.role] = g._count;
+    }
+
+    return {
+      items,
+      total,
+      stats: {
+        totalUsers: total,
+        activeUsers: activeCount,
+        suspendedUsers: suspendedCount,
+        newThisMonth: 0,
+        superAdmins: 0,
+        roles,
+      },
+    };
   }
 
   async findAllUsers(query: {
@@ -633,5 +671,63 @@ export class MembersService {
     });
 
     return { id, deleted: true, deletedCount: ids.length };
+  }
+
+  async inviteManager(dto: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    scope: string;
+    clubId: string;
+    clubName: string;
+  }) {
+    const email = dto.email.trim().toLowerCase();
+
+    // Check if email already exists
+    const existing = await this.prisma.user.findFirst({
+      where: { email, deletedAt: null },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'A user with this email already exists. Please use a different email address.',
+      );
+    }
+
+    // Generate secure token
+    const inviteToken = randomBytes(32).toString('hex');
+    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
+    // Create a placeholder password (user will set their own on acceptance)
+    const placeholderPassword = await bcrypt.hash(
+      randomBytes(32).toString('hex'),
+      12,
+    );
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        firstName: dto.firstName.trim(),
+        lastName: dto.lastName.trim(),
+        password: placeholderPassword,
+        role: UserRole.CLUB_ADMIN,
+        status: MemberStatus.PENDING,
+        clubId: dto.clubId,
+        managerScope: dto.scope,
+        inviteToken,
+        inviteTokenExpires,
+        emailVerified: true, // Skip email verification for invited managers
+      },
+    });
+
+    // Queue the invitation email
+    const inviteUrl = `${process.env.FRONTEND_URL}/accept-invite?token=${inviteToken}`;
+    await this.jobsService.queueEmail('MANAGER_INVITE', email, {
+      firstName: dto.firstName,
+      inviteUrl,
+      clubName: dto.clubName,
+    });
+
+    const { password, ...result } = user;
+    return result;
   }
 }

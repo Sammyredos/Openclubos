@@ -511,10 +511,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     const toastId = toast.loading(tournamentId ? "Saving changes..." : "Creating tournament...");
     try {
       const f = formData;
-      const payload: UpdateTournamentPayload = {
+      const basePayload: any = {
         name: f.name,
-        clubId: f.clubId,
-        courseId: f.courseId,
         description: f.description || null,
         bannerUrl: f.bannerUrl || null,
         venue: f.venue || null,
@@ -561,10 +559,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       };
 
       if (tournamentId) {
-        await updateTournament(tournamentId, payload);
+        await updateTournament(tournamentId, basePayload);
         toast.success("Tournament updated successfully", { id: toastId });
       } else {
-        await createTournament(payload);
+        await createTournament({ ...basePayload, clubId: f.clubId, courseId: f.courseId });
         toast.success("Tournament created successfully", { id: toastId });
       }
       setIsRedirecting(true);

@@ -279,14 +279,11 @@ export default function SuperAdminUsersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "SUPER_ADMIN", "CLUB_ADMIN", "MANAGER", "PLAYER", "MARKER"].map((v) => ({
         value: v,
-        label:
-          v === "All Roles"
-            ? "All Roles"
-            : v === "CLUB_ADMIN"
-              ? "ORGANISER ADMIN"
-              : v.replaceAll("_", " "),
+        label: v === "All Roles" ? "All Roles" :
+          v === "CLUB_ADMIN" ? "Organiser Admin" :
+          v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
       })),
     [],
   );

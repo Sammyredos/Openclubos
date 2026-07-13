@@ -29,6 +29,11 @@ model User {
   city         String?
   address      String?
 
+  // Manager invitation
+  inviteToken        String?
+  inviteTokenExpires DateTime?
+  managerScope       String?
+
   // Password reset
   passwordResetToken   String?
   passwordResetExpires DateTime?
@@ -60,6 +65,7 @@ enum MemberStatus {
   ACTIVE
   EXPIRED
   SUSPENDED
+  PENDING
 }
 
 enum UserRole {
@@ -68,6 +74,7 @@ enum UserRole {
   STAFF
   PLAYER
   MARKER
+  MANAGER
 }
 
 enum Gender {

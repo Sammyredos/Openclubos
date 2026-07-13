@@ -10,12 +10,16 @@ import {
   UseGuards,
   Request,
   ForbiddenException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { MemberStatus, UserRole } from '@prisma/client';
+import { SkipClubGuard } from '../../common/guards/club.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { InviteManagerDto } from './dto/invite-manager.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { MembersService } from './members.service';
 
@@ -23,6 +27,24 @@ import { MembersService } from './members.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
+
+  @Post('invite')
+  @Roles(UserRole.CLUB_ADMIN)
+  @SkipClubGuard()
+  @HttpCode(HttpStatus.CREATED)
+  async inviteManager(@Request() req: any, @Body() dto: InviteManagerDto) {
+    const clubId = req.user?.clubId;
+    const clubName = req.user?.clubName || 'Your Club';
+    if (!clubId) {
+      throw new ForbiddenException('You must be associated with a club to invite managers.');
+    }
+    return this.membersService.inviteManager({
+      ...dto,
+      clubId,
+      clubName,
+    });
+  }
+
 
   @Post()
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
@@ -38,6 +60,7 @@ export class MembersController {
     @Query('search') search?: string,
     @Query('status') status?: MemberStatus,
     @Query('clubId') clubId?: string,
+    @Query('role') filterRole?: UserRole,
   ) {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
@@ -50,6 +73,7 @@ export class MembersController {
       search,
       status,
       clubId: effectiveClubId,
+      role: filterRole,
     });
   }
 

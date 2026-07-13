@@ -164,4 +164,17 @@ export class AuthController {
     await this.authService.resetPassword(body.token, body.newPassword);
     return { success: true, message: 'Password has been reset successfully.' };
   }
+
+  /**
+   * POST /api/auth/accept-invite
+   * Body: { token: string, password: string }
+   * Public endpoint — no auth guard required.
+   * Validates the invite token, sets the manager's password, activates the account,
+   * and returns JWT tokens for immediate login.
+   */
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  async acceptInvite(@Body() body: { token: string; password: string }) {
+    return this.authService.acceptInvite(body.token, body.password);
+  }
 }

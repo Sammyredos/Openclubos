@@ -31,8 +31,8 @@ export interface AdminUser {
   state?: string | null;
   city?: string | null;
   address?: string | null;
-  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
-  status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
+  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER' | 'MANAGER';
+  status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'PENDING';
   handicap?: number | null;
   clubId?: string | null;
   club?: { id: string; name: string; logo?: string | null; address?: string | null; state?: string | null; city?: string | null } | null;
@@ -62,7 +62,8 @@ export async function getMembers(params: {
   search?: string;
   status?: string;
   clubId?: string;
-}): Promise<MembersResponse> {
+  role?: string;
+}): Promise<MembersResponse & { stats?: AdminUsersStats }> {
   const token = getAuthToken();
   const searchParams = new URLSearchParams();
   if (params.skip) searchParams.append('skip', params.skip.toString());
@@ -70,6 +71,7 @@ export async function getMembers(params: {
   if (params.search) searchParams.append('search', params.search);
   if (params.status) searchParams.append('status', params.status);
   if (params.clubId) searchParams.append('clubId', params.clubId);
+  if (params.role) searchParams.append('role', params.role);
 
   const res = await fetch(`${API_BASE}/members?${searchParams.toString()}`, {
     headers: {
@@ -206,6 +208,30 @@ export async function forceLogoutUser(id: string): Promise<{ success: boolean }>
     await handleAuthFailure(res);
     const error = await res.json().catch(() => null);
     throw new Error(error?.message || 'Failed to force logout user');
+  }
+  return res.json();
+}
+
+export async function inviteManager(data: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  scope: string;
+}) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/members/invite`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to send invitation');
   }
   return res.json();
 }

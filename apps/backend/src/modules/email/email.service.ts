@@ -965,4 +965,37 @@ export class EmailService {
       `Cut missed email sent to ${to} for ${tournamentName}`,
     );
   }
+
+  // ────────────────────────────────────────────────────────────────
+  // Manager Invitation
+  // ────────────────────────────────────────────────────────────────
+
+  async sendManagerInvite(
+    to: string,
+    firstName: string,
+    inviteUrl: string,
+    clubName: string,
+  ): Promise<EmailResult> {
+    const html = this.wrap(
+      `You're Invited!`,
+      `
+      ${this.p(`Hi <strong>${firstName}</strong>,`)}
+      ${this.p(`You have been invited to join <strong>${clubName}</strong> as a Manager on OpenClubOS.`)}
+      
+      ${this.infoBox('As a manager, you will have access to the club\'s admin dashboard to help manage operations. Click the button below to set up your password and activate your account.')}
+      
+      ${this.button('Accept Invitation & Set Password', inviteUrl)}
+      
+      ${this.p('This invitation link will expire in <strong>48 hours</strong>. If you did not expect this invitation, you can safely ignore this email.')}
+      ${this.p(`Best regards,<br/><strong>${clubName} Team</strong>`)}
+    `,
+      '#065f46, #047857',
+    );
+    return this.send(
+      to,
+      `You're invited to manage ${clubName} on OpenClubOS`,
+      html,
+      `Manager invite email sent to ${to} for ${clubName}`,
+    );
+  }
 }

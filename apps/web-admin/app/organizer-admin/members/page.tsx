@@ -46,7 +46,7 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
-import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
+import { deleteMember, forceLogoutUser, getMembers, updateMember, inviteManager, type AdminUser } from "@/lib/api/members";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { exportToCsv, exportToPdf } from "@/lib/export";
 import dynamic from "next/dynamic";
@@ -112,13 +112,16 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
   );
 }
 
-function StatusPill({ status }: { status: AdminUser["status"] }) {
+function StatusPill({ status }: { status: AdminUser["status"] | "PENDING" }) {
   const meta = (() => {
-    switch (status) {
+    switch (status as any) {
       case "SUSPENDED":
         return { label: "Suspended", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
       case "EXPIRED":
         return { label: "Expired", className: "bg-red-50 text-red-700 border-red-100", dot: "bg-red-500" };
+      case "PENDING":
+      case "INVITED":
+        return { label: "Pending", className: "bg-orange-50 text-orange-700 border-orange-100", dot: "bg-orange-500" };
       default:
         return { label: "Active", className: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-openclub-700" };
     }
@@ -174,6 +177,13 @@ export default function OrganizerAdminMembersPage() {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
+  // Invite Manager State
+  const [isInviteManagerModalOpen, setIsInviteManagerModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteLastName, setInviteLastName] = useState("");
+  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -215,10 +225,10 @@ export default function OrganizerAdminMembersPage() {
     return allUsers; // The backend now handles filtering
   }, [allUsers]);
 
-  const total = filteredUsers.length;
+  const total = stats?.totalUsers || 0;
   const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
   const pageSafe = Math.min(currentPage, totalPages);
-  const paginatedUsers = filteredUsers;
+  const paginatedUsers = allUsers;
 
   async function reload() {
     const token = getAuthToken();
@@ -232,21 +242,16 @@ export default function OrganizerAdminMembersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getAdminUsers({
-        clubId: user?.clubId || user?.club?.id || undefined,
+      const data = await getMembers({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
         search: searchQuery || undefined,
-        role: roleFilter !== "All Roles" ? roleFilter : undefined,
-        status: statusFilter !== "All Status" ? statusFilter : undefined,
-        handicap: handicapFilter !== "All Handicaps" ? handicapFilter : undefined,
+        status: statusFilter !== 'All Status' ? statusFilter : undefined,
+        role: roleFilter !== 'All Roles' ? roleFilter : undefined,
       });
-      setAllUsers(Array.isArray(data.items) ? data.items : []);
-      if (data.total !== undefined && !data.stats) {
-        // Some endpoints return total directly
-        setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
-      }
-      setStats(data.stats ?? null);
+      setAllUsers(Array.isArray(data.items) ? (data.items as unknown as AdminUser[]) : []);
+      const fetchedStats = data.stats || { totalUsers: data.total, activeUsers: data.total, suspendedUsers: 0, newThisMonth: 0, superAdmins: 0, roles: {} };
+      setStats(fetchedStats as any);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to load users");
       setAllUsers([]);
@@ -283,14 +288,11 @@ export default function OrganizerAdminMembersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "CLUB_ADMIN", "MARKER"].map((v) => ({
+      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v) => ({
         value: v,
-        label:
-          v === "All Roles"
-            ? "All Roles"
-            : v === "CLUB_ADMIN"
-              ? "ORGANISER ADMIN"
-              : v.replaceAll("_", " "),
+        label: v === "All Roles" ? "All Roles" :
+          v === "CLUB_ADMIN" ? "Organiser Admin" :
+          v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
       })),
     [],
   );
@@ -310,7 +312,7 @@ export default function OrganizerAdminMembersPage() {
     const map = stats?.roles ?? {};
     const rows = [
       { key: "CLUB_ADMIN", label: "Organiser Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
-      
+      { key: "PLAYER", label: "Players", color: "bg-openclub-700", value: map.PLAYER ?? 0 },
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
     const superAdmins = map.SUPER_ADMIN ?? 0;
@@ -622,10 +624,10 @@ export default function OrganizerAdminMembersPage() {
 
             <div className="w-px h-16 bg-slate-200" />
 
-            {/* Stat 4: Super Admins */}
+            {/* Stat 4: Managers */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Super Admins</div>
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Managers</div>
                 <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
                   <div className="text-[#15803D] text-xs font-medium">
                     {stats.totalUsers ? `${Math.round((stats.superAdmins / stats.totalUsers) * 100)}% of total` : "0%"}
@@ -633,7 +635,7 @@ export default function OrganizerAdminMembersPage() {
                 </div>
               </div>
               <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.superAdmins)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Platform Managers</div>
+              <div className="text-zinc-500 text-sm font-normal">Club Managers</div>
             </div>
 
           </div>
@@ -703,10 +705,10 @@ export default function OrganizerAdminMembersPage() {
               </button>
             </FloatingMenu>
             <Button
-              onClick={() => router.push("/organizer-admin/members/create")}
+              onClick={() => setIsInviteManagerModalOpen(true)}
               className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
-              <UserPlus className="w-4 h-4" /> Add User
+              <UserPlus className="w-4 h-4" /> Invite Manager
             </Button>
           </div>
         </CardHeader>
@@ -768,8 +770,6 @@ export default function OrganizerAdminMembersPage() {
                 <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">User Profile</th>
                   <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4 text-center">Handicap</th>
-                  <th className="px-6 py-4">Contact & Location</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Actions</th>
@@ -790,15 +790,6 @@ export default function OrganizerAdminMembersPage() {
                       </td>
                       <td className="px-6 py-5">
                         <Skeleton className="h-5.5 w-16 rounded-full" />
-                      </td>
-                      <td className="px-6 py-5">
-                        <Skeleton className="h-4 w-8 rounded-md mx-auto" />
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          <Skeleton className="h-3.5 w-24 rounded-md" />
-                          <Skeleton className="h-3 w-16 rounded-md" />
-                        </div>
                       </td>
                       <td className="px-6 py-5">
                         <Skeleton className="h-5 w-16 rounded-lg" />
@@ -837,30 +828,6 @@ export default function OrganizerAdminMembersPage() {
                       </td>
                       <td className="px-6 py-5">
                         <RoleBadge role={u.role} />
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className="text-[14px] text-gray-900 font-normal">
-                          {u.role === "PLAYER"
-                            ? typeof u.handicap === "number"
-                              ? u.handicap.toFixed(1)
-                              : "—"
-                            : "—"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col min-w-0">
-                          {u.phone ? (
-                            <span className="text-[13px] text-gray-700 font-normal truncate">{u.phone}</span>
-                          ) : (
-                            <span className="text-[13px] text-gray-400 font-normal">—</span>
-                          )}
-                          {u.state ? (
-                            <span className="text-[11px] text-gray-600 font-normal truncate leading-tight flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                              <span>{u.state.toLowerCase()}</span>
-                            </span>
-                          ) : null}
-                        </div>
                       </td>
                       <td className="px-6 py-5">
                         <StatusPill status={u.status} />
@@ -942,13 +909,6 @@ export default function OrganizerAdminMembersPage() {
             <span className="text-[12px] font-normal text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between text-[13px] font-normal text-gray-700">
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
-                Super Admins
-              </span>
-              <span>{rolesOverview.superAdmins}</span>
-            </div>
             {rolesOverview.rows.map((r) => (
               <div key={r.key} className="flex items-center justify-between text-[13px] font-normal text-gray-700">
                 <span className="flex items-center gap-2">
@@ -1759,8 +1719,155 @@ export default function OrganizerAdminMembersPage() {
         })()}
       </Modal>
 
+      {/* Invite Manager Modal */}
+      <Modal 
+        isOpen={isInviteManagerModalOpen} 
+        onClose={() => setIsInviteManagerModalOpen(false)}
+        title="Invite Manager"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
+            <Button 
+                className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
+                disabled={!inviteEmail || !inviteFirstName || !inviteLastName || mutating}
+                onClick={async () => {
+                  setMutating(true);
+                  try {
+                    // Call the real invite API
+                    await inviteManager({
+                      email: inviteEmail,
+                      firstName: inviteFirstName,
+                      lastName: inviteLastName,
+                      scope: inviteScope,
+                    });
+                    toast.success("Invitation sent to " + inviteEmail);
+                    // Refresh the members list
+                    setCurrentPage(1);
+                    setIsInviteManagerModalOpen(false);
+                    setInviteEmail("");
+                    setInviteFirstName("");
+                    setInviteLastName("");
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to invite manager");
+                  } finally {
+                    setMutating(false);
+                  }
+                }}
+              >
+                {mutating ? "Sending Invite..." : "Send Invite"}
+              </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+            <Input
+              type="email"
+              placeholder="manager@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="mt-1 h-11 border-gray-200"
+            />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">First Name <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="John"
+                  value={inviteFirstName}
+                  onChange={(e) => setInviteFirstName(e.target.value)}
+                  className="mt-1 h-11 border-gray-200"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Last Name <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="Doe"
+                  value={inviteLastName}
+                  onChange={(e) => setInviteLastName(e.target.value)}
+                  className="mt-1 h-11 border-gray-200"
+                />
+              </div>
+            </div>
 
+            <div className="pt-2">
+              <Label className="text-sm font-semibold text-gray-700 mb-3 block">Access Scope</Label>
+              <div className="space-y-3">
+                {/* Full Access Card */}
+                <div 
+                  onClick={() => setInviteScope("FULL")}
+                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FULL" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FULL" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                      <Shield className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-semibold ${inviteScope === "FULL" ? "text-zinc-900" : "text-zinc-700"}`}>Full Access</h4>
+                      <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                        Complete control over all club operations including members, tournaments, financials, and settings.
+                      </p>
+                    </div>
+                  </div>
+                  {inviteScope === "FULL" && (
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Tournaments Card */}
+                <div 
+                  onClick={() => setInviteScope("TOURNAMENTS")}
+                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "TOURNAMENTS" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "TOURNAMENTS" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-semibold ${inviteScope === "TOURNAMENTS" ? "text-zinc-900" : "text-zinc-700"}`}>Tournaments Only</h4>
+                      <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                        Manage events, leaderboards, and scores. Cannot view financials or member details.
+                      </p>
+                    </div>
+                  </div>
+                  {inviteScope === "TOURNAMENTS" && (
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Finance Card */}
+                <div 
+                  onClick={() => setInviteScope("FINANCE")}
+                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FINANCE" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FINANCE" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-semibold ${inviteScope === "FINANCE" ? "text-zinc-900" : "text-zinc-700"}`}>Finance Only</h4>
+                      <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                        Manage payments, subscriptions, and financial reports. No access to events or member management.
+                      </p>
+                    </div>
+                  </div>
+                  {inviteScope === "FINANCE" && (
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            </div>
+      </Modal>
     </div>
   );
 }
-
