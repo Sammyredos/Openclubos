@@ -93,7 +93,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('TOKEN_REVOKED');
     }
     return {
-      userId: payload.sub,
+      id: payload.sub,
       email: payload.email,
       role: payload.role === UserRole.STAFF ? UserRole.PLAYER : payload.role,
       clubId: payload.clubId,
@@ -101,6 +101,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         user.firstName || user.lastName
           ? `${user.firstName} ${user.lastName}`.trim()
           : undefined,
+      managerScope: user.managerScope || undefined,
     };
   }
 }

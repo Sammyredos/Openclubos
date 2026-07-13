@@ -24,6 +24,7 @@ export function middleware(request: NextRequest) {
     pathname === '/forgot-password' ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/accept-invite') ||
     pathname === '/signup-organisation' ||
     pathname === '/' ||
     pathname.startsWith('/_next') ||

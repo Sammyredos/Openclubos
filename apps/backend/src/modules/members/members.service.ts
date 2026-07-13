@@ -694,6 +694,7 @@ export class MembersService {
   async inviteManager(dto: {
     email: string;
     firstName: string;
+    middleName: string;
     lastName: string;
     scope: string;
     clubId: string;
@@ -721,10 +722,14 @@ export class MembersService {
       12,
     );
 
+    const first = dto.firstName.trim();
+    const middle = dto.middleName?.trim() || '';
+    const finalFirstName = middle ? `${first} ${middle}` : first;
+
     const user = await this.prisma.user.create({
       data: {
         email,
-        firstName: dto.firstName.trim(),
+        firstName: finalFirstName,
         lastName: dto.lastName.trim(),
         password: placeholderPassword,
         role: UserRole.CLUB_ADMIN,

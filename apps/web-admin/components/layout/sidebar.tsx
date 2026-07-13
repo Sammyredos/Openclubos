@@ -239,7 +239,15 @@ export function Sidebar() {
     );
   }
 
-  const sidebarGroups = user.role === 'SUPER_ADMIN' ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
+  const sidebarGroups = user.role === 'SUPER_ADMIN' 
+    ? SUPER_ADMIN_GROUPS 
+    : CLUB_ADMIN_GROUPS.map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+          if (user.managerScope && item.name === 'Users') return false;
+          return true;
+        })
+      })).filter(group => group.items.length > 0);
 
   return (
     <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">

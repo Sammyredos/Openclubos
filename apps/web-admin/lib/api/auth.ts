@@ -13,6 +13,7 @@ export interface AuthUser {
   gender?: string;
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   clubId?: string;
+  managerScope?: string;
   club?: {
     name: string;
     logo?: string;

@@ -216,6 +216,7 @@ export async function forceLogoutUser(id: string): Promise<{ success: boolean }>
 export async function inviteManager(data: {
   email: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   scope: string;
 }) {

@@ -178,6 +178,8 @@ export default function OrganizerAdminMembersPage() {
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
+  const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false);
+  const [newManagerScope, setNewManagerScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -186,6 +188,7 @@ export default function OrganizerAdminMembersPage() {
   const [isInviteManagerModalOpen, setIsInviteManagerModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteMiddleName, setInviteMiddleName] = useState("");
   const [inviteLastName, setInviteLastName] = useState("");
   const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
 
@@ -225,6 +228,16 @@ export default function OrganizerAdminMembersPage() {
 
 
 
+
+  useEffect(() => {
+    if (user?.managerScope) {
+      router.replace('/organizer-admin/dashboard');
+    }
+  }, [user, router]);
+
+  if (user?.managerScope) {
+    return null;
+  }
 
   const filteredUsers = useMemo(() => {
     return allUsers; // The backend now handles filtering
@@ -359,6 +372,21 @@ export default function OrganizerAdminMembersPage() {
   };
 
   const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
+
+  const handleChangeRole = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { managerScope: newManagerScope });
+      toast.success("Manager role updated");
+      setIsChangeRoleModalOpen(false);
+      await reload();
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Failed to update role");
+    } finally {
+      setMutating(false);
+    }
+  };
 
   const openViewModal = async (u: AdminUser) => {
     setSelectedUser(u);
@@ -853,22 +881,6 @@ export default function OrganizerAdminMembersPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openViewModal(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
-                            title="View User"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">View</span>
-                          </button>
-                          <button
-                            onClick={() => openEditModal(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
-                            title="Edit User"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">Edit</span>
-                          </button>
                           <div className="relative">
                             <button
                               onClick={(e) => {
@@ -1007,68 +1019,24 @@ export default function OrganizerAdminMembersPage() {
               {dropdownUser.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
             </button>
             <div className="h-px bg-background my-1" />
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => openEditModal(dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit User
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("view-analytics", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <BarChart3 className="w-4 h-4 text-gray-400" />
-              View Analytics
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser) || mutating}
-              onClick={() => handleMoreAction("force-logout", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <LogOut className="w-4 h-4 text-gray-400" />
-              Force Logout
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("reset-password", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <KeyRound className="w-4 h-4 text-gray-400" />
-              Reset Password
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("audit-logs", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <Clock className="w-4 h-4 text-gray-400" />
-              Audit Logs
-            </button>
-            <button
-              onClick={() => handleMoreAction("export", dropdownUser)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-            >
-              <Download className="w-4 h-4 text-gray-400" />
-              Export User
-            </button>
+            {dropdownUser.managerScope ? (
+              <button
+                disabled={!canManageUser(dropdownUser)}
+                onClick={() => {
+                  setSelectedUser(dropdownUser);
+                  setNewManagerScope((dropdownUser.managerScope as any) || "FULL");
+                  setIsChangeRoleModalOpen(true);
+                  closeDropdown();
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                )}
+              >
+                <Shield className="w-4 h-4 text-gray-400" />
+                Change Role
+              </button>
+            ) : null}
             <div className="h-px bg-background my-1" />
             <button
               disabled={!canManageUser(dropdownUser)}
@@ -1263,6 +1231,41 @@ export default function OrganizerAdminMembersPage() {
       </Modal>
 
 
+
+      <Modal
+        isOpen={isChangeRoleModalOpen}
+        onClose={() => setIsChangeRoleModalOpen(false)}
+        title="Change Manager Role"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsChangeRoleModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              disabled={mutating}
+              className="bg-[#15803D] hover:bg-[#166534] text-white rounded-lg font-normal px-8"
+              onClick={handleChangeRole}
+            >
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label className="font-medium text-gray-700">Select Manager Role</Label>
+            <select
+              value={newManagerScope}
+              onChange={(e) => setNewManagerScope(e.target.value as any)}
+              className="w-full rounded-xl border border-[#e1efe5] bg-white h-12 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#15803D]"
+            >
+              <option value="FULL">Admin Manager (Full Access)</option>
+              <option value="TOURNAMENTS">Tournament Manager</option>
+              <option value="FINANCE">Finance Manager</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isResetPasswordModalOpen}
@@ -1751,7 +1754,7 @@ export default function OrganizerAdminMembersPage() {
             <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
             <Button
               className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
-              disabled={!inviteEmail || !inviteFirstName || !inviteLastName || mutating}
+              disabled={!inviteEmail || !inviteFirstName || !inviteMiddleName || !inviteLastName || mutating}
               onClick={async () => {
                 setMutating(true);
                 try {
@@ -1759,6 +1762,7 @@ export default function OrganizerAdminMembersPage() {
                   await inviteManager({
                     email: inviteEmail,
                     firstName: inviteFirstName,
+                    middleName: inviteMiddleName,
                     lastName: inviteLastName,
                     scope: inviteScope,
                   });
@@ -1768,6 +1772,7 @@ export default function OrganizerAdminMembersPage() {
                   setIsInviteManagerModalOpen(false);
                   setInviteEmail("");
                   setInviteFirstName("");
+                  setInviteMiddleName("");
                   setInviteLastName("");
                 } catch (e: any) {
                   toast.error(e.message || "Failed to invite manager");
@@ -1783,7 +1788,7 @@ export default function OrganizerAdminMembersPage() {
       >
         <div className="space-y-4">
           <div>
-            <Label className="text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+            <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
             <Input
               type="email"
               placeholder="manager@example.com"
@@ -1792,9 +1797,18 @@ export default function OrganizerAdminMembersPage() {
               className="mt-1 h-11 border-gray-200"
             />
           </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
+            <Input
+              placeholder="Doe"
+              value={inviteLastName}
+              onChange={(e) => setInviteLastName(e.target.value)}
+              className="mt-1 h-11 border-gray-200"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-semibold text-gray-700">First Name <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="John"
                 value={inviteFirstName}
@@ -1803,18 +1817,18 @@ export default function OrganizerAdminMembersPage() {
               />
             </div>
             <div>
-              <Label className="text-sm font-semibold text-gray-700">Last Name <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-medium text-gray-700">Middle Name <span className="text-red-500">*</span></Label>
               <Input
-                placeholder="Doe"
-                value={inviteLastName}
-                onChange={(e) => setInviteLastName(e.target.value)}
+                placeholder="Middle name"
+                value={inviteMiddleName}
+                onChange={(e) => setInviteMiddleName(e.target.value)}
                 className="mt-1 h-11 border-gray-200"
               />
             </div>
           </div>
 
           <div className="pt-2">
-            <Label className="text-sm font-semibold text-gray-700 mb-3 block">Access Scope</Label>
+            <Label className="text-sm font-medium text-gray-700 mb-3 block">Access Scope</Label>
             <div className="space-y-3">
               {/* Full Access Card */}
               <div

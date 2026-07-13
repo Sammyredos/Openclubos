@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateMemberDto } from './dto/create-member.dto';
-// import { InviteManagerDto } from './dto/invite-manager.dto';
+import { InviteManagerDto } from './dto/invite-manager.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { MembersService } from './members.service';
 
@@ -28,12 +28,11 @@ import { MembersService } from './members.service';
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
-  /*
   @Post('invite')
   @Roles(UserRole.CLUB_ADMIN)
   @SkipClubGuard()
   @HttpCode(HttpStatus.CREATED)
-  async inviteManager(@Request() req: any, @Body() dto: any) {
+  async inviteManager(@Request() req: any, @Body() dto: InviteManagerDto) {
     const clubId = req.user?.clubId;
     const clubName = req.user?.clubName || 'Your Club';
     if (!clubId) {
@@ -45,7 +44,6 @@ export class MembersController {
       clubName,
     });
   }
-  */
 
 
   @Post()

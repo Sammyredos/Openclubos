@@ -365,7 +365,7 @@ export default function SuperAdminUsersPage() {
 
   const openEditModal = (u: AdminUser) => {
     closeDropdown();
-    router.push(`/super-admin/users/${u.id}/edit`);
+    router.push(`/super-admin/users/players/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {

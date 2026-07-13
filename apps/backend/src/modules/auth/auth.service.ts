@@ -439,6 +439,7 @@ export class AuthService {
             : undefined,
         profilePhoto: user.profilePhoto || undefined,
         gender: user.gender || undefined,
+        managerScope: user.managerScope || undefined,
       },
     };
   }

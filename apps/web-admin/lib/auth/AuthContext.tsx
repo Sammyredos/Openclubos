@@ -87,7 +87,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
-        if (!res.ok) await handleAuthFailure(res);
+        if (!res.ok) {
+          await handleAuthFailure(res);
+        } else {
+          const freshUser = await res.json();
+          const storedStr = localStorage.getItem('oc_user');
+          const freshStr = JSON.stringify(freshUser);
+          if (storedStr !== freshStr) {
+            localStorage.setItem('oc_user', freshStr);
+            setUser(freshUser);
+          }
+        }
       } catch {
         // ignore transient network errors
       } finally {

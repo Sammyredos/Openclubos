@@ -20,4 +20,8 @@ export class UpdateMemberDto extends PartialType(CreateMemberDto) {
   @IsNumber()
   @Min(0)
   handicap?: number;
+
+  @IsOptional()
+  @IsString()
+  managerScope?: string;
 }
