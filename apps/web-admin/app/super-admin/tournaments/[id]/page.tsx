@@ -1276,7 +1276,7 @@ function ViewTournamentPageInner() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
+      <div className="w-full max-w-full font-sans space-y-6">
         {/* Premium Header Skeleton */}
         <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
           <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -1336,7 +1336,7 @@ function ViewTournamentPageInner() {
   }
 
   return (
-    <div className="w-full max-w-full px-4 py-8 font-sans space-y-6">
+    <div className="w-full max-w-full font-sans space-y-6">
       {/* Premium Back Header */}
       <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
 
@@ -4415,7 +4415,7 @@ function ViewTournamentPageInner() {
 export default function ViewTournamentPage() {
   return (
     <Suspense fallback={
-      <div className="space-y-8 w-full max-w-full px-4 py-8 font-sans">
+      <div className="space-y-8 w-full max-w-full font-sans">
         <div className="flex flex-col gap-6 animate-pulse">
           <div className="h-5 w-36 bg-gray-100 rounded-md" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

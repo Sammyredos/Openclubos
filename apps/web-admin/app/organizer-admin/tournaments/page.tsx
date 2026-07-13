@@ -2021,12 +2021,6 @@ export default function TournamentsPage() {
                                   <Check className="w-3 h-3" /> Registered
                                 </span>
                               )}
-                              <span className={cn(
-                                "px-1.5 py-0.5 rounded text-[9px] font-normal uppercase tracking-tight",
-                                u.role === "PLAYER" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
-                              )}>
-                                {u.role}
-                              </span>
                             </div>
                             <p className="text-[12px] text-gray-500 truncate">{u.email}</p>
                           </div>
