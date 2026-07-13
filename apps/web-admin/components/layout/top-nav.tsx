@@ -31,6 +31,8 @@ export function TopNav() {
     if (pathname === "/super-admin/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
     if (pathname === "/super-admin/users") return "Users";
+    if (pathname === "/super-admin/users/players") return "Players";
+    if (pathname === "/super-admin/users/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/users/")) return "User Details";
     if (pathname === "/super-admin/tournaments") return "Tournaments";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Tournament Details";
@@ -48,6 +50,8 @@ export function TopNav() {
     || pathname === "/organizer-admin/dashboard"
     || pathname === "/"
     || pathname === "/super-admin/users"
+    || pathname === "/super-admin/users/players"
+    || pathname === "/super-admin/users/organizers"
     || pathname === "/super-admin/organizers"
     || pathname === "/super-admin/tournaments"
     || pathname === "/super-admin/subscriptions"
@@ -85,6 +89,8 @@ export function TopNav() {
     if (pathname === "/super-admin/organizers") return "Manage and monitor all club organizers on the platform.";
     if (pathname.startsWith("/super-admin/organizers/")) return "Detailed view and settings for the selected organizer.";
     if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
+    if (pathname === "/super-admin/users/players") return "View and manage all registered players and markers on the platform.";
+    if (pathname === "/super-admin/users/organizers") return "View and manage all club management staff and administrators.";
     if (pathname.startsWith("/super-admin/users/")) return "Detailed view and settings for the selected user.";
     if (pathname === "/super-admin/tournaments") return "Track and manage all golf tournaments across clubs.";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";

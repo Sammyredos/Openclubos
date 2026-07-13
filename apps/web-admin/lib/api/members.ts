@@ -35,6 +35,7 @@ export interface AdminUser {
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'PENDING';
   handicap?: number | null;
   clubId?: string | null;
+  managerScope?: string | null;
   club?: { id: string; name: string; logo?: string | null; address?: string | null; state?: string | null; city?: string | null } | null;
   createdAt: string;
 }

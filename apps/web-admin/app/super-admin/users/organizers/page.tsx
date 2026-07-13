@@ -46,7 +46,7 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
-import { deleteMember, forceLogoutUser, getMembers, updateMember, inviteManager, type AdminUser } from "@/lib/api/members";
+import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
 import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
 import { exportToCsv, exportToPdf } from "@/lib/export";
 import dynamic from "next/dynamic";
@@ -117,16 +117,13 @@ function RoleBadge({ role, managerScope }: { role: AdminUser["role"]; managerSco
   );
 }
 
-function StatusPill({ status }: { status: AdminUser["status"] | "PENDING" }) {
+function StatusPill({ status }: { status: AdminUser["status"] }) {
   const meta = (() => {
-    switch (status as any) {
+    switch (status) {
       case "SUSPENDED":
         return { label: "Suspended", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
       case "EXPIRED":
         return { label: "Expired", className: "bg-red-50 text-red-700 border-red-100", dot: "bg-red-500" };
-      case "PENDING":
-      case "INVITED":
-        return { label: "Pending", className: "bg-orange-50 text-orange-700 border-orange-100", dot: "bg-orange-500" };
       default:
         return { label: "Active", className: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-openclub-700" };
     }
@@ -139,10 +136,7 @@ function StatusPill({ status }: { status: AdminUser["status"] | "PENDING" }) {
   );
 }
 
-import { useAuth } from '@/lib/auth/AuthContext';
-
-export default function OrganizerAdminMembersPage() {
-  const { user } = useAuth();
+export default function SuperAdminUsersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -181,13 +175,6 @@ export default function OrganizerAdminMembersPage() {
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
-
-  // Invite Manager State
-  const [isInviteManagerModalOpen, setIsInviteManagerModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteFirstName, setInviteFirstName] = useState("");
-  const [inviteLastName, setInviteLastName] = useState("");
-  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -247,16 +234,19 @@ export default function OrganizerAdminMembersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getMembers({
+      const data = await getAdminUsers({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
         search: searchQuery || undefined,
-        status: statusFilter !== 'All Status' ? statusFilter : undefined,
-        role: roleFilter !== 'All Roles' ? roleFilter : undefined,
+        role: roleFilter !== "All Roles" ? roleFilter : "CLUB_ADMIN",
+        status: statusFilter !== "All Status" ? statusFilter : undefined,
       });
-      setAllUsers(Array.isArray(data.items) ? (data.items as unknown as AdminUser[]) : []);
-      const fetchedStats = data.stats || { totalUsers: data.total, activeUsers: data.total, suspendedUsers: 0, newThisMonth: 0, superAdmins: 0, roles: {} };
-      setStats(fetchedStats as any);
+      setAllUsers(Array.isArray(data.items) ? data.items : []);
+      if (data.total !== undefined && !data.stats) {
+        // Some endpoints return total directly
+        setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
+      }
+      setStats(data.stats ?? null);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to load users");
       setAllUsers([]);
@@ -293,11 +283,9 @@ export default function OrganizerAdminMembersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "CLUB_ADMIN"].map((v) => ({
         value: v,
-        label: v === "All Roles" ? "All Roles" :
-          v === "CLUB_ADMIN" ? "Organiser Admin" :
-            v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+        label: v === "All Roles" ? "All Roles" : "Organiser Admin",
       })),
     [],
   );
@@ -321,13 +309,11 @@ export default function OrganizerAdminMembersPage() {
       { key: "TOURNAMENT_MGR", label: "Tournament Managers", color: "bg-teal-500", value: 0 },
       { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: 0 },
     ];
-    // Count scoped managers from allUsers
     for (const u of allUsers) {
       if (u.role === "CLUB_ADMIN" && (u as any).managerScope) {
         if ((u as any).managerScope === "FULL") rows[1].value++;
         if ((u as any).managerScope === "TOURNAMENTS") rows[2].value++;
         if ((u as any).managerScope === "FINANCE") rows[3].value++;
-        // Subtract scoped managers from the generic organiser count
         rows[0].value = Math.max(0, rows[0].value - 1);
       }
     }
@@ -386,7 +372,7 @@ export default function OrganizerAdminMembersPage() {
 
   const openEditModal = (u: AdminUser) => {
     closeDropdown();
-    router.push(`/organizer-admin/members/${u.id}/edit`);
+    router.push(`/super-admin/users/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -605,7 +591,7 @@ export default function OrganizerAdminMembersPage() {
             {/* Stat 1: Total Users */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Team</div>
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Organizers</div>
               </div>
               <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalUsers)}</div>
               <div className="text-zinc-500 text-sm font-normal">All Time</div>
@@ -616,7 +602,7 @@ export default function OrganizerAdminMembersPage() {
             {/* Stat 2: Active Users */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active</div>
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Organizers</div>
                 <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
                   <div className="text-[#15803D] text-xs font-medium">
                     {stats.totalUsers ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}% of total` : "0%"}
@@ -640,10 +626,10 @@ export default function OrganizerAdminMembersPage() {
 
             <div className="w-px h-16 bg-slate-200" />
 
-            {/* Stat 4: Managers */}
+            {/* Stat 4: Super Admins */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Managers</div>
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Super Admins</div>
                 <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
                   <div className="text-[#15803D] text-xs font-medium">
                     {stats.totalUsers ? `${Math.round((stats.superAdmins / stats.totalUsers) * 100)}% of total` : "0%"}
@@ -651,7 +637,7 @@ export default function OrganizerAdminMembersPage() {
                 </div>
               </div>
               <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.superAdmins)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Team Managers</div>
+              <div className="text-zinc-500 text-sm font-normal">Platform Managers</div>
             </div>
 
           </div>
@@ -660,7 +646,7 @@ export default function OrganizerAdminMembersPage() {
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">Team</CardTitle>
+          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Users</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
@@ -721,10 +707,10 @@ export default function OrganizerAdminMembersPage() {
               </button>
             </FloatingMenu>
             <Button
-              onClick={() => setIsInviteManagerModalOpen(true)}
+              onClick={() => router.push("/super-admin/users/create")}
               className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
-              <UserPlus className="w-4 h-4" /> Invite Manager
+              <UserPlus className="w-4 h-4" /> Add User
             </Button>
           </div>
         </CardHeader>
@@ -764,20 +750,6 @@ export default function OrganizerAdminMembersPage() {
               triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
-            <SearchableSelect
-              value={handicapFilter}
-              onValueChange={(v) => {
-                setHandicapFilter(v);
-                setCurrentPage(1);
-              }}
-              options={["All Handicaps", "0 - 9.9", "10 - 19.9", "20 - 29.9", "30+"].map((v) => ({
-                value: v,
-                label: v,
-              }))}
-              className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Handicaps"
-            />
           </div>
 
           <div className="overflow-x-auto relative">
@@ -786,6 +758,8 @@ export default function OrganizerAdminMembersPage() {
                 <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">User Profile</th>
                   <th className="px-6 py-4">Role</th>
+                  <th className="px-6 py-4">Contact & Location</th>
+                  <th className="px-6 py-4">Organizer</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Actions</th>
@@ -808,7 +782,16 @@ export default function OrganizerAdminMembersPage() {
                         <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
                       <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-3.5 w-24 rounded-md" />
+                          <Skeleton className="h-3 w-16 rounded-md" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
                         <Skeleton className="h-5 w-16 rounded-lg" />
+                      </td>
+                      <td className="px-6 py-5">
+                        <Skeleton className="h-5 w-24 rounded-lg" />
                       </td>
                       <td className="px-6 py-5">
                         <Skeleton className="h-3.5 w-20 rounded-md" />
@@ -844,6 +827,26 @@ export default function OrganizerAdminMembersPage() {
                       </td>
                       <td className="px-6 py-5">
                         <RoleBadge role={u.role} managerScope={(u as any).managerScope} />
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col min-w-0">
+                          {u.phone ? (
+                            <span className="text-[13px] text-gray-700 font-normal truncate">{u.phone}</span>
+                          ) : (
+                            <span className="text-[13px] text-gray-400 font-normal">—</span>
+                          )}
+                          {u.state ? (
+                            <span className="text-[11px] text-gray-600 font-normal truncate leading-tight flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                              <span>{u.state.toLowerCase()}</span>
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-[13px] text-gray-700 font-normal truncate max-w-[150px] inline-block">
+                          {u.club?.name || "—"}
+                        </span>
                       </td>
                       <td className="px-6 py-5">
                         <StatusPill status={u.status} />
@@ -921,10 +924,17 @@ export default function OrganizerAdminMembersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="border border-[#e1efe5] shadow-sm lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-normal">Team Overview</CardTitle>
+            <CardTitle className="text-[16px] font-normal">Roles Overview</CardTitle>
             <span className="text-[12px] font-normal text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center justify-between text-[13px] font-normal text-gray-700">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
+                Super Admins
+              </span>
+              <span>{rolesOverview.superAdmins}</span>
+            </div>
             {rolesOverview.rows.map((r) => (
               <div key={r.key} className="flex items-center justify-between text-[13px] font-normal text-gray-700">
                 <span className="flex items-center gap-2">
@@ -959,12 +969,7 @@ export default function OrganizerAdminMembersPage() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-normal text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
                       <p className="text-[12px] text-gray-400 font-normal truncate capitalize">
-                        {u.role === "CLUB_ADMIN"
-                          ? (u as any).managerScope === "FULL" ? "admin manager"
-                            : (u as any).managerScope === "TOURNAMENTS" ? "tournament manager"
-                            : (u as any).managerScope === "FINANCE" ? "finance manager"
-                            : "organiser admin"
-                          : u.role.replaceAll("_", " ")}
+                        {(u.role === "CLUB_ADMIN" ? "organiser admin" : u.role).replaceAll("_", " ")}
                       </p>
                     </div>
                   </div>
@@ -1572,7 +1577,20 @@ export default function OrganizerAdminMembersPage() {
                           </div>
                           <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
                             <span className="text-[13px] text-gray-500 font-normal">Organizer</span>
-                            <span className="text-[13px] text-gray-900 font-normal">{selectedUser?.club?.name || "None"}</span>
+                            {selectedUser?.club ? (
+                              <div className="flex items-center gap-2">
+                                {selectedUser.club.logo ? (
+                                  <img src={selectedUser.club.logo} alt={selectedUser.club.name} className="w-5 h-5 rounded-md object-cover bg-gray-50 border border-gray-100" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-[9px] font-bold">
+                                    {selectedUser.club.name.charAt(0)}
+                                  </div>
+                                )}
+                                <span className="text-[13px] text-gray-900 font-medium">{selectedUser.club.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-[13px] text-gray-900 font-normal">None</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1740,155 +1758,8 @@ export default function OrganizerAdminMembersPage() {
         })()}
       </Modal>
 
-      {/* Invite Manager Modal */}
-      <Modal
-        isOpen={isInviteManagerModalOpen}
-        onClose={() => setIsInviteManagerModalOpen(false)}
-        title="Invite Manager"
-        size="md"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
-              disabled={!inviteEmail || !inviteFirstName || !inviteLastName || mutating}
-              onClick={async () => {
-                setMutating(true);
-                try {
-                  // Call the real invite API
-                  await inviteManager({
-                    email: inviteEmail,
-                    firstName: inviteFirstName,
-                    lastName: inviteLastName,
-                    scope: inviteScope,
-                  });
-                  toast.success("Invitation sent to " + inviteEmail);
-                  // Refresh the team list
-                  setCurrentPage(1);
-                  setIsInviteManagerModalOpen(false);
-                  setInviteEmail("");
-                  setInviteFirstName("");
-                  setInviteLastName("");
-                } catch (e: any) {
-                  toast.error(e.message || "Failed to invite manager");
-                } finally {
-                  setMutating(false);
-                }
-              }}
-            >
-              {mutating ? "Sending Invite..." : "Send Invite"}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></Label>
-            <Input
-              type="email"
-              placeholder="manager@example.com"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              className="mt-1 h-11 border-gray-200"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-semibold text-gray-700">First Name <span className="text-red-500">*</span></Label>
-              <Input
-                placeholder="John"
-                value={inviteFirstName}
-                onChange={(e) => setInviteFirstName(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-semibold text-gray-700">Last Name <span className="text-red-500">*</span></Label>
-              <Input
-                placeholder="Doe"
-                value={inviteLastName}
-                onChange={(e) => setInviteLastName(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
-              />
-            </div>
-          </div>
 
-          <div className="pt-2">
-            <Label className="text-sm font-semibold text-gray-700 mb-3 block">Access Scope</Label>
-            <div className="space-y-3">
-              {/* Full Access Card */}
-              <div
-                onClick={() => setInviteScope("FULL")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FULL" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FULL" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "FULL" ? "text-zinc-900" : "text-zinc-700"}`}>Full Access</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Complete control over all operations including team, tournaments, financials, and settings.
-                    </p>
-                  </div>
-                </div>
-                {inviteScope === "FULL" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-                  </div>
-                )}
-              </div>
-
-              {/* Tournaments Card */}
-              <div
-                onClick={() => setInviteScope("TOURNAMENTS")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "TOURNAMENTS" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "TOURNAMENTS" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <Trophy className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "TOURNAMENTS" ? "text-zinc-900" : "text-zinc-700"}`}>Tournaments Only</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Manage events, leaderboards, and scores. Cannot view financials or team details.
-                    </p>
-                  </div>
-                </div>
-                {inviteScope === "TOURNAMENTS" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-                  </div>
-                )}
-              </div>
-
-              {/* Finance Card */}
-              <div
-                onClick={() => setInviteScope("FINANCE")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FINANCE" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FINANCE" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "FINANCE" ? "text-zinc-900" : "text-zinc-700"}`}>Finance Only</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Manage payments, subscriptions, and financial reports. No access to events or team management.
-                    </p>
-                  </div>
-                </div>
-                {inviteScope === "FINANCE" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </Modal>
     </div>
   );
 }
+

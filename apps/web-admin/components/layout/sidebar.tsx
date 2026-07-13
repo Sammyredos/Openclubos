@@ -58,8 +58,8 @@ function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { nam
       }}
       className="overflow-hidden transition-all duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
     >
-      <div ref={contentRef} className="flex flex-col mt-1 ml-[44px] gap-1 relative">
-        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-slate-200" />
+      <div ref={contentRef} className="flex flex-col mt-1 ml-[44px] gap-1 relative pb-1">
+        <div className="absolute left-[7px] top-0 bottom-1 w-px bg-slate-200" />
         {subItems.map((subItem) => {
           const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
           return (
@@ -67,7 +67,7 @@ function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { nam
               key={subItem.name}
               href={subItem.href}
               className={cn(
-                "flex items-center h-[34px] px-3 text-[13px] rounded-lg transition-colors duration-200 w-[148px] relative z-10",
+                "flex items-center h-[34px] px-3 ml-[22px] text-[13px] rounded-lg transition-colors duration-200 w-[140px] relative z-10",
                 isSubActive
                   ? "bg-[#e0fbea] text-[#15803D] font-medium"
                   : "text-zinc-600 hover:bg-background hover:text-zinc-900"
@@ -88,6 +88,16 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
       { name: "Overview", href: "/super-admin/dashboard", icon: Home },
       { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
       {
+        name: "Users",
+        href: "/super-admin/users",
+        icon: User,
+        subItems: [
+          { name: "Players", href: "/super-admin/users/players" },
+          { name: "Organizers", href: "/super-admin/users/organizers" }
+        ]
+      },
+      { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Flag },
+      {
         name: "Subscriptions",
         href: "/super-admin/subscriptions",
         icon: CreditCard,
@@ -97,8 +107,6 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
           { name: "Players", href: "/super-admin/subscriptions/players" }
         ]
       },
-      { name: "Users", href: "/super-admin/users", icon: User },
-      { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Flag },
     ],
   },
   {
@@ -180,7 +188,12 @@ export function Sidebar() {
   }, [pathname, user?.role]);
 
   const toggleGroup = (name: string) => {
-    setExpandedGroups(prev => ({ ...prev, [name]: !prev[name] }));
+    setExpandedGroups(prev => {
+      if (prev[name]) {
+        return {};
+      }
+      return { [name]: true };
+    });
   };
 
   if (isLoading || !user) {
@@ -284,7 +297,7 @@ export function Sidebar() {
                         <button
                           onClick={() => toggleGroup(item.name)}
                           className={cn(
-                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group w-full",
+                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group",
                             isActive && !item.subItems
                               ? "bg-[#e0fbea] text-[#15803D]"
                               : "text-zinc-700 hover:bg-background hover:text-zinc-900"

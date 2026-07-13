@@ -235,6 +235,7 @@ export class MembersService {
             phone: true,
             createdAt: true,
             clubId: true,
+            managerScope: true,
             club: { select: { id: true, name: true } },
           },
           orderBy: { createdAt: 'desc' },
@@ -302,7 +303,13 @@ export class MembersService {
 
     if (status) where.status = status;
     if (clubId) where.clubId = clubId;
-    if (role) where.role = role;
+    if (role) {
+      if (role.includes(',')) {
+        where.role = { in: role.split(',') };
+      } else {
+        where.role = role;
+      }
+    }
     if (handicap) {
       if (handicap === '0 - 9.9') {
         where.handicap = { gte: 0, lte: 9.9 };
@@ -318,6 +325,16 @@ export class MembersService {
     const now = new Date();
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const baseStatsWhere: any = { deletedAt: null };
+    if (clubId) baseStatsWhere.clubId = clubId;
+    if (role) {
+      if (role.includes(',')) {
+        baseStatsWhere.role = { in: role.split(',') };
+      } else {
+        baseStatsWhere.role = role;
+      }
+    }
 
     const [
       items,
@@ -350,6 +367,7 @@ export class MembersService {
           address: true,
           createdAt: true,
           clubId: true,
+          managerScope: true,
           club: {
             select: {
               id: true,
@@ -364,25 +382,25 @@ export class MembersService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.user.count({ where }),
-      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({ where: baseStatsWhere }),
       this.prisma.user.count({
-        where: { deletedAt: null, status: MemberStatus.ACTIVE },
+        where: { ...baseStatsWhere, status: MemberStatus.ACTIVE },
       }),
       this.prisma.user.count({
-        where: { deletedAt: null, status: MemberStatus.SUSPENDED },
+        where: { ...baseStatsWhere, status: MemberStatus.SUSPENDED },
       }),
       this.prisma.user.count({
         where: {
-          deletedAt: null,
+          ...baseStatsWhere,
           createdAt: { gte: startThisMonth, lt: startNextMonth },
         },
       }),
       this.prisma.user.count({
-        where: { deletedAt: null, role: UserRole.SUPER_ADMIN },
+        where: { deletedAt: null, role: UserRole.SUPER_ADMIN }, // Keep global for Super Admins stat card
       }),
       this.prisma.user.groupBy({
         by: ['role'],
-        where: { deletedAt: null },
+        where: { deletedAt: null }, // Keep global so all roles are returned
         _count: { role: true },
       }),
     ]);
