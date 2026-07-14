@@ -500,7 +500,7 @@ export default function SuperAdminDashboard() {
           {/* Stat 3: Total Players */}
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-3.5">
-              <div className="text-zinc-700 text-base font-medium">Total Players</div>
+              <div className="text-zinc-700 text-base font-medium">Total Users</div>
               {stats?.membersGrowth?.startsWith('-') ? (
                 <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">

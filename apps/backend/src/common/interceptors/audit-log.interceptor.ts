@@ -37,19 +37,32 @@ export class AuditLogInterceptor implements NestInterceptor {
     const user = request.user;
     const userId = user?.userId || user?.id; // Depends on your JWT payload mapping
 
+    const redact = (obj: any): any => {
+      if (!obj || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(redact);
+      const redacted = { ...obj };
+      const sensitiveKeys = ['password', 'token', 'refreshtoken', 'accesstoken', 'secret'];
+      for (const key of Object.keys(redacted)) {
+        if (sensitiveKeys.some((k) => key.toLowerCase().includes(k))) {
+          redacted[key] = '[REDACTED]';
+        } else if (typeof redacted[key] === 'object' && redacted[key] !== null) {
+          redacted[key] = redact(redacted[key]);
+        }
+      }
+      return redacted;
+    };
+
     // Capture the 'before' state from the incoming request body
-    // Note: For a true 'before' state of a database entity, you'd need custom logic per entity.
-    // For general audit logging, capturing the payload intent is standard.
     const beforeState = {
-      body: request.body,
-      query: request.query,
+      body: redact(request.body),
+      query: redact(request.query),
       params: request.params,
     };
 
     return next.handle().pipe(
       tap({
         next: (response) => {
-          this.logAction(auditMeta, userId, beforeState, response);
+          this.logAction(auditMeta, userId, beforeState, redact(response));
         },
         error: (error) => {
           this.logAction(auditMeta, userId, beforeState, {

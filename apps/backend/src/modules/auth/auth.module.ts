@@ -18,18 +18,27 @@ import { AuthService } from './auth.service';
         const currentKeyId =
           configService.get<string>('JWT_CURRENT_KEY_ID') || 'v1';
         const keysJson = configService.get<string>('JWT_KEYS');
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+
+        if (!keysJson && !jwtSecret) {
+          throw new Error('FATAL ERROR: JWT_SECRET or JWT_KEYS environment variable is not defined.');
+        }
+
         const keys = keysJson
           ? JSON.parse(keysJson)
           : {
-              v1: configService.get<string>('JWT_SECRET') || 'super-secret-key',
+              v1: jwtSecret,
             };
+        
+        const secret = keys[currentKeyId];
+        if (!secret) {
+          throw new Error(`FATAL ERROR: JWT secret not found for key ID: ${currentKeyId}`);
+        }
+
         return {
-          secret:
-            keys[currentKeyId] ||
-            configService.get<string>('JWT_SECRET') ||
-            'super-secret-key',
+          secret,
           signOptions: {
-            expiresIn: '15m',
+            expiresIn: '1d',
             header: { kid: currentKeyId, alg: 'HS256' },
           },
         };

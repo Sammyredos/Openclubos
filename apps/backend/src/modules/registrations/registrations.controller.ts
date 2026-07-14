@@ -19,7 +19,7 @@ import { RegisterTournamentDto } from './dto/register-tournament.dto';
 import { RegistrationsService } from './registrations.service';
 
 @Controller('registrations')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class RegistrationsController {
   constructor(private readonly registrationsService: RegistrationsService) {}
 
@@ -46,7 +46,6 @@ export class RegistrationsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   findAll(
     @Request() req: any,
@@ -168,7 +167,6 @@ export class RegistrationsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   async remove(@Request() req: any, @Param('id') id: string) {
     const registration = await this.registrationsService.findOne(id);

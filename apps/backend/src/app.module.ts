@@ -57,8 +57,10 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const redisUrl =
-          configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (!redisUrl) {
+          throw new Error('FATAL ERROR: REDIS_URL environment variable is not defined.');
+        }
         return {
           store: await redisStore({
             url: redisUrl,
@@ -89,13 +91,25 @@ if (process.env.SENTRY_DSN) {
         const currentKeyId =
           configService.get<string>('JWT_CURRENT_KEY_ID') || 'v1';
         const keysJson = configService.get<string>('JWT_KEYS');
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+
+        if (!keysJson && !jwtSecret) {
+          throw new Error('FATAL ERROR: JWT_SECRET or JWT_KEYS environment variable is not defined.');
+        }
+
         const keys = keysJson
           ? JSON.parse(keysJson)
-          : { v1: configService.get<string>('JWT_SECRET') };
+          : { v1: jwtSecret };
+
+        const secret = keys[currentKeyId];
+        if (!secret) {
+          throw new Error(`FATAL ERROR: JWT secret not found for key ID: ${currentKeyId}`);
+        }
+
         return {
-          secret: keys[currentKeyId] || configService.get<string>('JWT_SECRET'),
+          secret,
           signOptions: {
-            expiresIn: '15m',
+            expiresIn: '1d',
             header: { kid: currentKeyId, alg: 'HS256' },
           },
         };

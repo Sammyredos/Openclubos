@@ -23,10 +23,10 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const connectionString =
-      process.env.DATABASE_URL && process.env.DATABASE_URL !== 'undefined'
-        ? process.env.DATABASE_URL
-        : 'postgresql://postgres:OpenClub2024@localhost:5432/openclub?schema=public';
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL === 'undefined') {
+      throw new Error('FATAL ERROR: DATABASE_URL environment variable is not defined.');
+    }
+    const connectionString = process.env.DATABASE_URL;
     const pool = new pg.Pool({
       connectionString,
       max: 20,

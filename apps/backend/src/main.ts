@@ -14,8 +14,13 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // Load .env from root
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
+import type { NestExpressApplication } from '@nestjs/platform-express';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Trust proxy (required for rate limiting behind Nginx/ALB)
+  app.set('trust proxy', 1);
 
   // Global prefix
   app.setGlobalPrefix('api');
