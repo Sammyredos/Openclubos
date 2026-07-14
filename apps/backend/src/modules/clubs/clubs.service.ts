@@ -221,7 +221,7 @@ export class ClubsService {
         const val = map.get(periodKey) || 0;
         return {
           month: name,
-          [isRevenue ? 'revenue' : 'count']: Math.round(val),
+          [isRevenue ? 'amount' : 'count']: Math.round(val),
         };
       });
     };

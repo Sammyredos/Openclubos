@@ -935,7 +935,7 @@ export default function SuperAdminUsersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="border border-[#e1efe5] shadow-sm lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-normal">Roles Overview</CardTitle>
+            <CardTitle className="text-[16px] font-medium">Roles Overview</CardTitle>
             <span className="text-[12px] font-normal text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -959,7 +959,7 @@ export default function SuperAdminUsersPage() {
         </Card>
         <Card className="border border-[#e1efe5] shadow-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-normal">Recent User Registrations</CardTitle>
+            <CardTitle className="text-[16px] font-medium">Recent User Registrations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
@@ -980,7 +980,13 @@ export default function SuperAdminUsersPage() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-normal text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
                       <p className="text-[12px] text-gray-400 font-normal truncate capitalize">
-                        {(u.role === "CLUB_ADMIN" ? "organiser admin" : u.role).replaceAll("_", " ")}
+                        {(() => {
+                          const scope = (u as any).managerScope;
+                          if (scope === "FULL") return "admin manager";
+                          if (scope === "TOURNAMENTS") return "tournament manager";
+                          if (scope === "FINANCE") return "finance manager";
+                          return (u.role === "CLUB_ADMIN" ? "organiser admin" : u.role).replaceAll("_", " ");
+                        })()}
                       </p>
                     </div>
                   </div>

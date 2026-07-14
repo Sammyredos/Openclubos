@@ -312,7 +312,7 @@ export default function OrganizerAdminMembersPage() {
         value: v,
         label: v === "All Roles" ? "All Roles" :
           v === "CLUB_ADMIN" ? "Organiser Admin" :
-            v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+            v.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
       })),
     [],
   );
@@ -988,7 +988,7 @@ export default function OrganizerAdminMembersPage() {
         </Card>
         <Card className="border border-[#e1efe5] shadow-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-normal">Recent User Registrations</CardTitle>
+            <CardTitle className="text-[16px] font-medium">Recent User Registrations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
