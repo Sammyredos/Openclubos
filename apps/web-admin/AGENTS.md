@@ -503,6 +503,16 @@ A task is complete when:
 
 ---
 
+## Anti-Patterns: Fallbacks
+- Never use `|| 'fallback-string'` for secrets or credentials
+- Always use Prisma $transaction for multi-table mutations
+- Always check deletedAt: null in queries unless explicitly fetching deleted records
+- Prefer Prisma aggregations over $queryRaw for simple counts/sums
+- Extract shared logic into base classes, never copy-paste between services
+- Add // TODO: comments only for items outside current task scope
+
+---
+
 ## Mission
 
 Build the most trusted operating system for golf events, tournaments, leagues, and club communities.
