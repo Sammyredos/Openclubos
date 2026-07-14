@@ -13,8 +13,8 @@ export function TopNav() {
   const pageTitle = (() => {
     if (pathname.startsWith("/organizer-admin")) {
       if (pathname === "/organizer-admin/dashboard") return "Dashboard";
-      if (pathname === "/organizer-admin/members") return "Users";
-      if (pathname.startsWith("/organizer-admin/members/")) return "User Details";
+      if (pathname === "/organizer-admin/users") return "Users";
+      if (pathname.startsWith("/organizer-admin/users/")) return "User Details";
       if (pathname === "/organizer-admin/tournaments") return "Tournaments";
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Tournament Details";
       if (pathname === "/organizer-admin/registrations") return "Registrations";
@@ -57,7 +57,7 @@ export function TopNav() {
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
     || pathname === "/super-admin/settings"
-    || pathname === "/organizer-admin/members"
+    || pathname === "/organizer-admin/users"
     || pathname === "/organizer-admin/tournaments"
     || pathname === "/organizer-admin/registrations"
     || pathname === "/organizer-admin/scoring"
@@ -71,8 +71,8 @@ export function TopNav() {
   const pageDescription = (() => {
     if (pathname.startsWith("/organizer-admin")) {
       if (pathname === "/organizer-admin/dashboard") return "Overview of your Tournament's key metrics and recent activities.";
-      if (pathname === "/organizer-admin/members") return "Manage and view all registered users of your club.";
-      if (pathname.startsWith("/organizer-admin/members/")) return "Detailed view and settings for the selected user.";
+      if (pathname === "/organizer-admin/users") return "Manage and view all registered users of your club.";
+      if (pathname.startsWith("/organizer-admin/users/")) return "Detailed view and settings for the selected user.";
       if (pathname === "/organizer-admin/tournaments") return "Track and manage all golf tournaments for your club.";
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
       if (pathname === "/organizer-admin/registrations") return "Manage player registrations for upcoming events.";

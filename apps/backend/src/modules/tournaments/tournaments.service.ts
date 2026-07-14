@@ -185,7 +185,7 @@ export class TournamentsService {
         currency: true,
         maxPlayers: true,
         playerTypes: true,
-        club: { select: { id: true, name: true } },
+        club: { select: { id: true, name: true, logo: true } },
         course: { select: { id: true, name: true } },
         visibility: true,
         lockedGroupingsDays: true,

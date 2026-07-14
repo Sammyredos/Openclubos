@@ -120,7 +120,7 @@ export class MembersController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);
   }

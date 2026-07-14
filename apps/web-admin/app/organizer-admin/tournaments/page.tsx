@@ -94,7 +94,7 @@ type ApiTournament = {
   maxPlayers: number | null;
   registrationDeadline?: string | null;
   playerTypes: string[];
-  club: { id: string; name: string } | null;
+  club: { id: string; name: string; logo?: string | null } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
@@ -106,6 +106,7 @@ type TournamentRow = {
   id: string;
   name: string;
   clubName: string;
+  clubLogo: string | null;
   types: string[];
   dates: string;
   players: string;
@@ -337,12 +338,14 @@ export default function TournamentsPage() {
 
   const rows = tournaments.map((t) => {
     const clubName = t.club?.name || "—";
+    const clubLogo = t.club?.logo || null;
     const registrations = t._count?.registrations ?? 0;
     const types = Array.isArray(t.playerTypes) ? t.playerTypes : [];
     return {
       id: t.id,
       name: t.name,
       clubName,
+      clubLogo,
       types,
       dates: formatDateRange(t.startDate, t.endDate),
       players: formatPlayers(registrations, t.maxPlayers),
@@ -1182,9 +1185,12 @@ export default function TournamentsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-5">
-                            <div className="flex flex-col gap-1.5">
-                              <Skeleton className="h-4 w-28 rounded-md" />
-                              <Skeleton className="h-3 w-16 rounded-md" />
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                              <div className="flex flex-col gap-1.5">
+                                <Skeleton className="h-4 w-28 rounded-md" />
+                                <Skeleton className="h-3 w-16 rounded-md" />
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-5">
@@ -1223,11 +1229,20 @@ export default function TournamentsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-5">
-                            <div className="flex flex-col min-w-0 gap-1.5">
-                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
-                              <div className={cn("inline-flex items-center w-fit px-2 py-0.5 rounded border gap-1.5 text-[11px] font-medium uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400 border-gray-200")}>
-                                {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3 flex-shrink-0" })}
-                                <span>{t.visibility}</span>
+                            <div className="flex items-center gap-3">
+                              {t.clubLogo ? (
+                                <img src={t.clubLogo} alt={t.clubName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
+                                  {t.clubName.substring(0, 2)}
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0 gap-1.5">
+                                <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
+                                <div className={cn("inline-flex items-center w-fit px-2 py-0.5 rounded border gap-1.5 text-[11px] font-medium uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400 border-gray-200")}>
+                                  {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3 flex-shrink-0" })}
+                                  <span>{t.visibility}</span>
+                                </div>
                               </div>
                             </div>
                           </td>

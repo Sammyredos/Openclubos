@@ -97,13 +97,11 @@ export class RegistrationsService {
     }
 
     // 5.5 Validate Eligibility (Gender)
-    if (!isAdmin) {
-      if (tournament.genderRestriction === 'MALE_ONLY' && user.gender !== 'MALE') {
-        throw new BadRequestException('This tournament is restricted to male players only');
-      }
-      if (tournament.genderRestriction === 'FEMALE_ONLY' && user.gender !== 'FEMALE') {
-        throw new BadRequestException('This tournament is restricted to female players only');
-      }
+    if (tournament.genderRestriction === 'MALE_ONLY' && user.gender !== 'MALE') {
+      throw new BadRequestException('This tournament is restricted to male players only');
+    }
+    if (tournament.genderRestriction === 'FEMALE_ONLY' && user.gender !== 'FEMALE') {
+      throw new BadRequestException('This tournament is restricted to female players only');
     }
 
     // 6. Validate Eligibility (Handicap)

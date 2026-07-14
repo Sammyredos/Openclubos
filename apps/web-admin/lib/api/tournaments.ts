@@ -19,7 +19,7 @@ export interface Tournament {
   paymentDeadline?: string;
   clubId: string;
   courseId: string;
-  club?: { id: string; name: string } | null;
+  club?: { id: string; name: string; logo?: string | null } | null;
   course?: { id: string; name: string } | null;
   enableWaitlist?: boolean;
   _count?: { registrations: number };

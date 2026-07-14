@@ -175,6 +175,8 @@ export default function OrganizerAdminMembersPage() {
   const [suspendReason, setSuspendReason] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isMakeAdminModalOpen, setIsMakeAdminModalOpen] = useState(false);
+  const [isRemoveAdminModalOpen, setIsRemoveAdminModalOpen] = useState(false);
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
@@ -306,7 +308,7 @@ export default function OrganizerAdminMembersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v: any) => ({
         value: v,
         label: v === "All Roles" ? "All Roles" :
           v === "CLUB_ADMIN" ? "Organiser Admin" :
@@ -317,7 +319,7 @@ export default function OrganizerAdminMembersPage() {
 
   const statusSelectOptions = useMemo(
     () =>
-      ["All Status", "ACTIVE", "SUSPENDED", "EXPIRED"].map((v) => ({
+      ["All Status", "ACTIVE", "SUSPENDED", "EXPIRED"].map((v: any) => ({
         value: v,
         label: v === "All Status" ? "All Status" : v[0] + v.slice(1).toLowerCase(),
       })),
@@ -371,18 +373,54 @@ export default function OrganizerAdminMembersPage() {
     closeDropdown();
   };
 
-  const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
+  const canManageUser = (u: AdminUser) => {
+    if (u.role === "SUPER_ADMIN") return false;
+    if (u.role === "CLUB_ADMIN" && !(u as any).managerScope) {
+      return rolesOverview.rows[0].value > 1;
+    }
+    return true;
+  };
 
   const handleChangeRole = async () => {
-    if (!selectedUser?.id) return;
+    if (!selectedUser?.id || !newManagerScope) return;
     setMutating(true);
     try {
       await updateMember(selectedUser.id, { managerScope: newManagerScope });
-      toast.success("Manager role updated");
+      toast.success("Manager role updated successfully");
       setIsChangeRoleModalOpen(false);
-      await reload();
-    } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Failed to update role");
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to change manager role");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const handleMakeAdmin = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { role: "CLUB_ADMIN", managerScope: "" });
+      toast.success("User is now an Organizer Admin");
+      setIsMakeAdminModalOpen(false);
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to make user Organizer Admin");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const handleRemoveAdmin = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { role: "PLAYER" });
+      toast.success("Organizer Admin role removed");
+      setIsRemoveAdminModalOpen(false);
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove Organizer Admin role");
     } finally {
       setMutating(false);
     }
@@ -414,7 +452,7 @@ export default function OrganizerAdminMembersPage() {
 
   const openEditModal = (u: AdminUser) => {
     closeDropdown();
-    router.push(`/organizer-admin/members/${u.id}/edit`);
+    router.push(`/organizer-admin/users/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -692,7 +730,7 @@ export default function OrganizerAdminMembersPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
-              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              onClick={(e: any) => setExportAnchorEl(e.currentTarget)}
               className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <Download className="w-4 h-4" /> Export
@@ -764,7 +802,7 @@ export default function OrganizerAdminMembersPage() {
                 placeholder="Search users by name or email..."
                 className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
-                onChange={(e) => {
+                onChange={(e: any) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
@@ -772,7 +810,7 @@ export default function OrganizerAdminMembersPage() {
             </div>
             <SearchableSelect
               value={roleFilter}
-              onValueChange={(v) => {
+              onValueChange={(v: any) => {
                 setRoleFilter(v);
                 setCurrentPage(1);
               }}
@@ -783,7 +821,7 @@ export default function OrganizerAdminMembersPage() {
             />
             <SearchableSelect
               value={statusFilter}
-              onValueChange={(v) => {
+              onValueChange={(v: any) => {
                 setStatusFilter(v);
                 setCurrentPage(1);
               }}
@@ -794,11 +832,11 @@ export default function OrganizerAdminMembersPage() {
             />
             <SearchableSelect
               value={handicapFilter}
-              onValueChange={(v) => {
+              onValueChange={(v: any) => {
                 setHandicapFilter(v);
                 setCurrentPage(1);
               }}
-              options={["All Handicaps", "0 - 9.9", "10 - 19.9", "20 - 29.9", "30+"].map((v) => ({
+              options={["All Handicaps", "0 - 9.9", "10 - 19.9", "20 - 29.9", "30+"].map((v: any) => ({
                 value: v,
                 label: v,
               }))}
@@ -861,10 +899,10 @@ export default function OrganizerAdminMembersPage() {
                             className="size-10 rounded-full object-cover bg-gray-100 border border-[#efefef] flex-shrink-0"
                           />
                           <div className="inline-flex flex-col justify-start items-start pr-4 min-w-0">
-                            <div className="text-slate-900 text-sm font-medium truncate max-w-[180px] leading-tight">
+                            <div className="text-slate-900 text-sm font-medium leading-tight whitespace-normal break-words">
                               {fullName(u.firstName, u.lastName)}
                             </div>
-                            <div className="text-gray-600 text-xs font-normal mt-0.5 truncate max-w-[180px]">
+                            <div className="text-gray-600 text-xs font-normal mt-0.5 whitespace-normal break-words">
                               {u.email}
                             </div>
                           </div>
@@ -883,7 +921,7 @@ export default function OrganizerAdminMembersPage() {
                         <div className="flex items-center justify-center gap-2">
                           <div className="relative">
                             <button
-                              onClick={(e) => {
+                              onClick={(e: any) => {
                                 if (activeDropdown === u.id) {
                                   closeDropdown();
                                 } else {
@@ -974,8 +1012,8 @@ export default function OrganizerAdminMembersPage() {
                         {u.role === "CLUB_ADMIN"
                           ? (u as any).managerScope === "FULL" ? "admin manager"
                             : (u as any).managerScope === "TOURNAMENTS" ? "tournament manager"
-                            : (u as any).managerScope === "FINANCE" ? "finance manager"
-                            : "organiser admin"
+                              : (u as any).managerScope === "FINANCE" ? "finance manager"
+                                : "organiser admin"
                           : u.role.replaceAll("_", " ")}
                       </p>
                     </div>
@@ -1019,7 +1057,7 @@ export default function OrganizerAdminMembersPage() {
               {dropdownUser.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
             </button>
             <div className="h-px bg-background my-1" />
-            {dropdownUser.managerScope ? (
+            {dropdownUser.managerScope || dropdownUser.role === "CLUB_ADMIN" ? (
               <button
                 disabled={!canManageUser(dropdownUser)}
                 onClick={() => {
@@ -1034,7 +1072,41 @@ export default function OrganizerAdminMembersPage() {
                 )}
               >
                 <Shield className="w-4 h-4 text-gray-400" />
-                Change Role
+                {dropdownUser.role === "CLUB_ADMIN" && !dropdownUser.managerScope ? "Switch to Manager" : "Change Manager Role"}
+              </button>
+            ) : null}
+            {dropdownUser.role !== "SUPER_ADMIN" && (dropdownUser.role !== "CLUB_ADMIN" || dropdownUser.managerScope) ? (
+              <button
+                disabled={!canManageUser(dropdownUser)}
+                onClick={() => {
+                  setSelectedUser(dropdownUser);
+                  setIsMakeAdminModalOpen(true);
+                  closeDropdown();
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                )}
+              >
+                <Crown className="w-4 h-4 text-openclub-800" />
+                Make Organizer Admin
+              </button>
+            ) : null}
+            {dropdownUser.role === "CLUB_ADMIN" && !dropdownUser.managerScope ? (
+              <button
+                onClick={() => {
+                  if (rolesOverview.rows[0].value <= 1) {
+                    toast.error("Cannot remove the only Organizer Admin.");
+                    return;
+                  }
+                  setSelectedUser(dropdownUser);
+                  setIsRemoveAdminModalOpen(true);
+                  closeDropdown();
+                }}
+                className="w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3 text-gray-700"
+              >
+                <Ban className="w-4 h-4 text-red-500" />
+                Remove Organizer Admin
               </button>
             ) : null}
             <div className="h-px bg-background my-1" />
@@ -1150,7 +1222,7 @@ export default function OrganizerAdminMembersPage() {
               <Label className="font-medium text-gray-700">Reason (optional)</Label>
               <Input
                 value={suspendReason}
-                onChange={(e) => setSuspendReason(e.target.value)}
+                onChange={(e: any) => setSuspendReason(e.target.value)}
                 placeholder="Enter reason for suspension..."
                 className="rounded-xl h-12"
               />
@@ -1221,7 +1293,7 @@ export default function OrganizerAdminMembersPage() {
               </Label>
               <Input
                 value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                onChange={(e: any) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
                 className="rounded-xl border-[#e1efe5] focus:border-red-500"
               />
@@ -1233,9 +1305,69 @@ export default function OrganizerAdminMembersPage() {
 
 
       <Modal
+        isOpen={isMakeAdminModalOpen}
+        onClose={() => setIsMakeAdminModalOpen(false)}
+        title="Make Organizer Admin?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsMakeAdminModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal px-8"
+              onClick={handleMakeAdmin}
+              disabled={mutating}
+            >
+              Confirm
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-[#f5faf6] text-openclub-800">
+            <Crown className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Promote to Organizer Admin?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will give <span className="font-normal text-gray-800">{selectedUser?.email ?? "this user"}</span> full access to manage the organization, its users, and tournaments.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRemoveAdminModalOpen}
+        onClose={() => setIsRemoveAdminModalOpen(false)}
+        title="Remove Organizer Admin?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemoveAdminModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-normal px-8"
+              onClick={handleRemoveAdmin}
+              disabled={mutating}
+            >
+              Confirm
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <Ban className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Revoke Admin Privileges?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will remove Organizer Admin rights from <span className="font-normal text-gray-800">{selectedUser?.email ?? "this user"}</span>. They will still be a player.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={isChangeRoleModalOpen}
         onClose={() => setIsChangeRoleModalOpen(false)}
-        title="Change Manager Role"
+        title={selectedUser?.role === "CLUB_ADMIN" && !(selectedUser as any)?.managerScope ? "Switch to Manager" : "Change Manager Role"}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsChangeRoleModalOpen(false)} className="rounded-lg font-normal">
@@ -1256,8 +1388,8 @@ export default function OrganizerAdminMembersPage() {
             <Label className="font-medium text-gray-700">Select Manager Role</Label>
             <select
               value={newManagerScope}
-              onChange={(e) => setNewManagerScope(e.target.value as any)}
-              className="w-full rounded-xl border border-[#e1efe5] bg-white h-12 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#15803D]"
+              onChange={(e: any) => setNewManagerScope(e.target.value as any)}
+              className="w-full rounded-xl border border-[#e1efe5] bg-[#f5faf6] h-12 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#15803D]"
             >
               <option value="FULL">Admin Manager (Full Access)</option>
               <option value="TOURNAMENTS">Tournament Manager</option>
@@ -1589,7 +1721,7 @@ export default function OrganizerAdminMembersPage() {
                         placeholder="Search activity..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={activitySearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setActivitySearch(e.target.value);
                           setActivityPage(1);
                         }}
@@ -1631,7 +1763,7 @@ export default function OrganizerAdminMembersPage() {
                         placeholder="Search payments..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={paymentSearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setPaymentSearch(e.target.value);
                           setPaymentPage(1);
                         }}
@@ -1684,7 +1816,7 @@ export default function OrganizerAdminMembersPage() {
                         placeholder="Search tournaments..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={tournamentSearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setTournamentSearch(e.target.value);
                           setTournamentPage(1);
                         }}
@@ -1769,6 +1901,7 @@ export default function OrganizerAdminMembersPage() {
                   toast.success("Invitation sent to " + inviteEmail);
                   // Refresh the team list
                   setCurrentPage(1);
+                  await reload();
                   setIsInviteManagerModalOpen(false);
                   setInviteEmail("");
                   setInviteFirstName("");
@@ -1793,7 +1926,7 @@ export default function OrganizerAdminMembersPage() {
               type="email"
               placeholder="manager@example.com"
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={(e: any) => setInviteEmail(e.target.value)}
               className="mt-1 h-11 border-gray-200"
             />
           </div>
@@ -1802,7 +1935,7 @@ export default function OrganizerAdminMembersPage() {
             <Input
               placeholder="Doe"
               value={inviteLastName}
-              onChange={(e) => setInviteLastName(e.target.value)}
+              onChange={(e: any) => setInviteLastName(e.target.value)}
               className="mt-1 h-11 border-gray-200"
             />
           </div>
@@ -1812,7 +1945,7 @@ export default function OrganizerAdminMembersPage() {
               <Input
                 placeholder="John"
                 value={inviteFirstName}
-                onChange={(e) => setInviteFirstName(e.target.value)}
+                onChange={(e: any) => setInviteFirstName(e.target.value)}
                 className="mt-1 h-11 border-gray-200"
               />
             </div>
@@ -1821,7 +1954,7 @@ export default function OrganizerAdminMembersPage() {
               <Input
                 placeholder="Middle name"
                 value={inviteMiddleName}
-                onChange={(e) => setInviteMiddleName(e.target.value)}
+                onChange={(e: any) => setInviteMiddleName(e.target.value)}
                 className="mt-1 h-11 border-gray-200"
               />
             </div>

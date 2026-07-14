@@ -11,7 +11,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string, user: AuthUser) => void;
+  login: (token: string, user: AuthUser, rememberMe?: boolean) => void;
   logout: () => void;
 }
 
@@ -126,12 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  const login = (token: string, user: AuthUser) => {
+  const login = (token: string, user: AuthUser, rememberMe: boolean = false) => {
     // Store token in localStorage for cross-tab persistence
     localStorage.setItem('oc_token', token);
     localStorage.setItem('oc_user', JSON.stringify(user));
-    // Also set cookie so Next.js middleware can read it
-    document.cookie = `accessToken=${token}; path=/; max-age=86400; samesite=strict`;
+    
+    // Set cookie. If rememberMe is true, it lasts 30 days. Otherwise, it's a session cookie.
+    const maxAgeStr = rememberMe ? `max-age=${30 * 24 * 60 * 60}; ` : '';
+    document.cookie = `accessToken=${token}; path=/; ${maxAgeStr}samesite=strict`;
     setUser(user);
     setIsLoading(false);
     // Use replace to prevent the login page from staying in history

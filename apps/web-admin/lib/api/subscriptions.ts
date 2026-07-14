@@ -33,7 +33,7 @@ export interface SubscriptionsResponse {
 export const getSubscriptionsAdmin = async (audience?: string): Promise<SubscriptionsResponse> => {
   const token = getAuthToken();
   const url = new URL(`${API_URL}/subscriptions/admin`);
-  if (audience) url.searchParams.set('audience', audience);
+  if (audience) url.searchParams.set('type', audience);
   const res = await fetch(url.toString(), {
     headers: {
       "Content-Type": "application/json",

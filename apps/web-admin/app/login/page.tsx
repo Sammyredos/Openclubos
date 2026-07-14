@@ -70,7 +70,7 @@ function LoginPageInner() {
     setIsLoading(true)
     try {
       const response = await loginRequest(data);
-      login(response.accessToken, response.user);
+      login(response.accessToken, response.user, rememberMe);
       toast.success("Successfully logged in");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid email or password.";
@@ -208,9 +208,9 @@ function LoginPageInner() {
                       {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
                   </div>
-                  <span className="ml-3 text-zinc-600">Remember me</span>
+                  <span className="ml-3 text-zinc-600 font-medium">Remember me</span>
                 </label>
-                <a href="/forgot-password" className="text-emerald-600 hover:text-emerald-700 transition-colors">Forgot password?</a>
+                <a href="/forgot-password" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">Forgot password?</a>
               </div>
 
               {/* Sign In Button */}

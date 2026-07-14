@@ -58,6 +58,7 @@ export function middleware(request: NextRequest) {
   return verifyAccessToken(request, token)
     .then((payload) => {
       const userRole: string | undefined = payload?.role;
+      const managerScope: string | undefined = payload?.managerScope;
       if (!userRole) throw new Error('Missing role');
 
       const matched = PROTECTED_ROUTES.find((r) => pathname.startsWith(r.prefix));
@@ -69,6 +70,47 @@ export function middleware(request: NextRequest) {
         }
         return res;
       }
+
+      // Enforce specific route restrictions for scoped CLUB_ADMIN managers
+      if (userRole === 'CLUB_ADMIN' && managerScope && pathname.startsWith('/organizer-admin')) {
+        let allowed = false;
+
+        if (managerScope === 'TOURNAMENTS') {
+          const allowedRoutes = [
+            '/organizer-admin/dashboard',
+            '/organizer-admin/tournaments',
+            '/organizer-admin/registrations',
+            '/organizer-admin/scoring',
+            '/organizer-admin/leaderboard',
+            '/organizer-admin/reports',
+            '/organizer-admin/handicaps',
+            '/organizer-admin/notifications',
+            '/organizer-admin/settings'
+          ];
+          allowed = allowedRoutes.some(r => pathname === r || pathname.startsWith(`${r}/`));
+        } else if (managerScope === 'FINANCE') {
+          const allowedRoutes = [
+            '/organizer-admin/dashboard',
+            '/organizer-admin/registrations',
+            '/organizer-admin/payments',
+            '/organizer-admin/reports',
+            '/organizer-admin/notifications'
+          ];
+          allowed = allowedRoutes.some(r => pathname === r || pathname.startsWith(`${r}/`));
+        } else {
+          // Fallback for ANY scope that isn't empty: deny access to /users
+          if (pathname.startsWith('/organizer-admin/users')) {
+            allowed = false;
+          } else {
+            allowed = true;
+          }
+        }
+
+        if (!allowed) {
+          return NextResponse.redirect(new URL('/organizer-admin/dashboard', request.url));
+        }
+      }
+
       return NextResponse.next();
     })
     .catch(() => {
@@ -93,7 +135,7 @@ function getFallback(role: string): string {
 async function verifyAccessToken(
   request: NextRequest,
   token: string,
-): Promise<{ role?: string } | null> {
+): Promise<{ role?: string; managerScope?: string } | null> {
   const backendBase =
     process.env.API_PROXY_TARGET?.replace(/\/+$/, '') ||
     (typeof process.env.NEXT_PUBLIC_API_URL === 'string' &&
@@ -111,7 +153,13 @@ async function verifyAccessToken(
   const json: unknown = await res.json().catch(() => null);
   if (json && typeof json === 'object' && 'role' in json) {
     const role = (json as { role?: unknown }).role;
-    if (typeof role === 'string') return { role };
+    const managerScope = (json as { managerScope?: unknown }).managerScope;
+    if (typeof role === 'string') {
+      return { 
+        role, 
+        managerScope: typeof managerScope === 'string' ? managerScope : undefined 
+      };
+    }
   }
   return null;
 }

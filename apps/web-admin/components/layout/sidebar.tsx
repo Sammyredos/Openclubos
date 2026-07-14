@@ -132,7 +132,7 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Dashboard", href: "/organizer-admin/dashboard", icon: Home },
-      { name: "Users", href: "/organizer-admin/members", icon: User },
+      { name: "Users", href: "/organizer-admin/users", icon: User },
     ],
   },
   {
@@ -244,6 +244,15 @@ export function Sidebar() {
     : CLUB_ADMIN_GROUPS.map(group => ({
         ...group,
         items: group.items.filter(item => {
+          if (user.managerScope === 'TOURNAMENTS') {
+            const allowed = ["Dashboard", "Tournaments", "Registrations", "Scoring", "Leaderboard", "Reports", "Handicaps", "Notifications", "Settings"];
+            return allowed.includes(item.name);
+          }
+          if (user.managerScope === 'FINANCE') {
+            const allowed = ["Dashboard", "Registrations", "Payments", "Reports", "Notifications"];
+            return allowed.includes(item.name);
+          }
+          // Default for FULL manager scope or regular Organizer Admin
           if (user.managerScope && item.name === 'Users') return false;
           return true;
         })
