@@ -19,6 +19,11 @@ export class SuperAdminDashboardController {
     return this.dashboard.stats();
   }
 
+  @Get('chart-data')
+  chartData(@Query('range') range: string) {
+    return this.dashboard.chartData(range || 'This Year');
+  }
+
   @Get('revenue-trend')
   revenueTrend(@Query('year') year?: string) {
     const y = year ? Number(year) : new Date().getFullYear();

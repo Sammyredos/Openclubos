@@ -4247,7 +4247,7 @@ function ViewTournamentPageInner() {
                 Your tee time and grouping for Day {selectedDay} has been assigned. Please see the details below:
               </p>
 
-              <div className="bg-white border border-[#e1efe5] rounded-lg p-4 my-4">
+              <div className="bg-[#f4fdf8] border border-[#e1efe5] rounded-lg p-4 my-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[11px] text-gray-500 capitalize tracking-wider font-normal">Tee Time</p>

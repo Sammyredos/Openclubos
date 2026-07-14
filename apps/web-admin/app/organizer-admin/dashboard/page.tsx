@@ -34,41 +34,11 @@ import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { getClubStats } from "@/lib/api/clubs";
+import { getClubStats, getClubChartData } from "@/lib/api/clubs";
 import { getTournaments } from "@/lib/api/tournaments";
 import { toast } from "sonner";
 
-// Mock data for trends (since backend doesn't provide them yet)
-const registrationData = [
-  { month: "Jan", count: 0 },
-  { month: "Feb", count: 0 },
-  { month: "Mar", count: 0 },
-  { month: "Apr", count: 0 },
-  { month: "May", count: 0 },
-  { month: "Jun", count: 0 },
-  { month: "Jul", count: 0 },
-  { month: "Aug", count: 0 },
-  { month: "Sep", count: 0 },
-  { month: "Oct", count: 0 },
-  { month: "Nov", count: 0 },
-  { month: "Dec", count: 0 },
-];
-
-const revenueData = [
-  { month: "Jan", amount: 0 },
-  { month: "Feb", amount: 0 },
-  { month: "Mar", amount: 0 },
-  { month: "Apr", amount: 0 },
-  { month: "May", amount: 0 },
-  { month: "Jun", amount: 0 },
-  { month: "Jul", amount: 0 },
-  { month: "Aug", amount: 0 },
-  { month: "Sep", amount: 0 },
-  { month: "Oct", amount: 0 },
-  { month: "Nov", amount: 0 },
-  { month: "Dec", amount: 0 },
-];
-
+// Mock data removed in favor of live data
 interface ActivityItemProps {
   title: string;
   subtitle: string;
@@ -111,8 +81,26 @@ export default function OrganizerAdminDashboard() {
     }
   }, [user?.clubId]);
 
-  const [registrationsRange, setRegistrationsRange] = useState("This Year");
-  const [revenueRange, setRevenueRange] = useState("This Year");
+  const [registrationsRange, setRegistrationsRange] = useState("This Month");
+  const [revenueRange, setRevenueRange] = useState("This Month");
+  const [registrationData, setRegistrationData] = useState<any[]>([]);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.clubId) {
+      getClubChartData(user.clubId, registrationsRange)
+        .then((res: any) => setRegistrationData(res.registrationData || []))
+        .catch(console.error);
+    }
+  }, [user?.clubId, registrationsRange]);
+
+  useEffect(() => {
+    if (user?.clubId) {
+      getClubChartData(user.clubId, revenueRange)
+        .then((res: any) => setRevenueData(res.revenueData || []))
+        .catch(console.error);
+    }
+  }, [user?.clubId, revenueRange]);
 
   if (loading) {
     return (
@@ -264,7 +252,7 @@ export default function OrganizerAdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
-              {["This Year", "Last Year"].map(range => (
+              {["This Month", "This Year", "Last Year"].map(range => (
                 <button
                   key={range}
                   onClick={() => setRegistrationsRange(range)}
@@ -337,7 +325,7 @@ export default function OrganizerAdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
-              {["This Year", "Last Year"].map(range => (
+              {["This Month", "This Year", "Last Year"].map(range => (
                 <button
                   key={range}
                   onClick={() => setRevenueRange(range)}
@@ -393,9 +381,6 @@ export default function OrganizerAdminDashboard() {
         <Card className="border-0 rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full h-full">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-6 pt-6">
             <CardTitle className="text-zinc-700 text-xl font-medium">Upcoming Tournaments</CardTitle>
-            <Button variant="link" className="text-[#15803D] p-0 h-auto font-medium no-underline hover:no-underline transition-all duration-200">
-              View All Upcoming <ArrowUpRight className="w-4 h-4" />
-            </Button>
           </CardHeader>
           <CardContent className="space-y-6 px-6 pb-6">
             {upcomingTournaments.length > 0 ? (

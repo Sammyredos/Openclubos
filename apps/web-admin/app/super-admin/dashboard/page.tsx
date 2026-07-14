@@ -283,10 +283,11 @@ export default function SuperAdminDashboard() {
     if (!headers) return;
     setRevenueLoading(true);
     try {
-      const now = new Date();
-      const revenueYear = range === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
-      const res = await fetch(`${API_BASE}/super-admin/dashboard/revenue-trend?year=${revenueYear}`, { headers });
-      if (res.ok) setRevenueData((await res.json()) as RevenuePoint[]);
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/chart-data?range=${encodeURIComponent(range)}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setRevenueData(data.revenueData);
+      }
     } finally {
       setRevenueLoading(false);
     }
@@ -984,9 +985,7 @@ export default function SuperAdminDashboard() {
         <Card className="border border-[#e1efe5] shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
             <CardTitle className="text-[16px] font-normal">Recent Activity</CardTitle>
-            <Button variant="link" className="text-[#15803D] p-0 h-auto font-normal text-[14px] flex items-center gap-2 no-underline hover:no-underline">
-              View All Upcoming <ArrowUpRight className="w-4 h-4" />
-            </Button>
+
           </CardHeader>
           <CardContent className="space-y-7 p-6 pt-4">
             {loading || activityLoading ? (

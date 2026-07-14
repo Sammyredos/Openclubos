@@ -141,6 +141,97 @@ export class ClubsService {
     };
   }
 
+  async chartData(id: string, range: string) {
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
+    if (!club) throw new NotFoundException('Club not found');
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+    let grouping: 'DAY' | 'MONTH';
+
+    if (range === 'This Month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      grouping = 'DAY';
+    } else if (range === 'Last Year') {
+      startDate = new Date(now.getFullYear() - 1, 0, 1);
+      endDate = new Date(now.getFullYear(), 0, 1);
+      grouping = 'MONTH';
+    } else { // This Year
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear() + 1, 0, 1);
+      grouping = 'MONTH';
+    }
+
+    const registrationsRows = grouping === 'DAY' ? await this.prisma.$queryRaw<
+      Array<{ period: number; count: number | bigint }>
+    >`
+      SELECT EXTRACT(DAY FROM r."registeredAt") AS period, COUNT(r.id) AS count
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      GROUP BY EXTRACT(DAY FROM r."registeredAt") ORDER BY period ASC
+    ` : await this.prisma.$queryRaw<
+      Array<{ period: number; count: number | bigint }>
+    >`
+      SELECT EXTRACT(MONTH FROM r."registeredAt") AS period, COUNT(r.id) AS count
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      GROUP BY EXTRACT(MONTH FROM r."registeredAt") ORDER BY period ASC
+    `;
+
+    const revenueRows = grouping === 'DAY' ? await this.prisma.$queryRaw<
+      Array<{ period: number; amount: number | null }>
+    >`
+      SELECT EXTRACT(DAY FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      GROUP BY EXTRACT(DAY FROM r."registeredAt") ORDER BY period ASC
+    ` : await this.prisma.$queryRaw<
+      Array<{ period: number; amount: number | null }>
+    >`
+      SELECT EXTRACT(MONTH FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
+      FROM "Registration" r
+      JOIN "Tournament" t ON t."id" = r."tournamentId"
+      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      GROUP BY EXTRACT(MONTH FROM r."registeredAt") ORDER BY period ASC
+    `;
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let allPeriods: string[] = [];
+    if (grouping === 'MONTH') {
+      allPeriods = monthNames;
+    } else {
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      allPeriods = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`);
+    }
+
+    const formatData = (rows: any[], isRevenue = false) => {
+      const map = new Map();
+      rows.forEach(r => map.set(Number(r.period), Number(r.amount || r.count || 0)));
+      
+      return allPeriods.map((name, index) => {
+        const periodKey = index + 1;
+        const val = map.get(periodKey) || 0;
+        return {
+          month: name,
+          [isRevenue ? 'revenue' : 'count']: Math.round(val),
+        };
+      });
+    };
+
+    return {
+      registrationData: formatData(registrationsRows, false),
+      revenueData: formatData(revenueRows, true),
+    };
+  }
+
   async findAll(query: { search?: string; skip?: number; take?: number }) {
     const search = query.search?.trim();
     const where: any = { deletedAt: null };

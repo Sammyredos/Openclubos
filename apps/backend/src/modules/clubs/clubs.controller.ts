@@ -41,6 +41,12 @@ export class ClubsController {
     return this.clubsService.stats(id);
   }
 
+  @Get(':id/chart-data')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
+  chartData(@Param('id') id: string, @Query('range') range: string) {
+    return this.clubsService.chartData(id, range || 'This Year');
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   findOne(@Param('id') id: string) {
