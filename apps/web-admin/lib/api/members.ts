@@ -2,7 +2,7 @@ import { getAuthToken, handleAuthFailure } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export interface Member {
+interface Member {
   id: string;
   email: string;
   firstName: string;

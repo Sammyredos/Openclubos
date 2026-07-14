@@ -5,7 +5,7 @@ import { PrismaService } from '../../common/prisma.service';
 import { EmailService } from '../email/email.service';
 import { TournamentsService } from '../tournaments/tournaments.service';
 
-export interface SendEmailJobPayload {
+interface SendEmailJobPayload {
   template: string;
   to: string;
   data: Record<string, any>;

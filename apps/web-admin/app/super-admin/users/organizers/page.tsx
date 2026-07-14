@@ -98,9 +98,9 @@ function RoleBadge({ role, managerScope }: { role: AdminUser["role"]; managerSco
       case "CLUB_ADMIN": {
         // Scope-based titles for invited managers
         if (managerScope === "FULL") return { label: "admin manager", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
-        if (managerScope === "TOURNAMENTS") return { label: "tournament manager", className: "bg-teal-50 text-teal-700 border-teal-100", dot: "bg-teal-500" };
-        if (managerScope === "FINANCE") return { label: "finance manager", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
-        return { label: "organiser admin", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
+        if (managerScope === "TOURNAMENT" || managerScope === "TOURNAMENTS") return { label: "tournament manager", className: "bg-teal-50 text-teal-700 border-teal-100", dot: "bg-teal-500" };
+        if (managerScope === "FINANCE") return { label: "finance admin", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
+        return { label: "organizer admin", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
       }
       case "MARKER":
         return { label: "marker", className: "bg-indigo-50 text-indigo-700 border-indigo-100", dot: "bg-indigo-500" };

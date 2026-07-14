@@ -87,29 +87,8 @@ export function formatThousandsInput(raw: string): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
-export function parseThousandsInput(raw: string): number | undefined {
-  const digits = raw.replace(/[^\d]/g, "");
-  if (!digits) return undefined;
-  const n = Number(digits);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 export function formatWithCommas(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
-}
-
-function pad2(n: number) {
-  return n < 10 ? `0${n}` : String(n);
-}
-
-export function toLocalYMD(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-export function getTomorrowYMD(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return toLocalYMD(d);
 }
 
 export function formatNumber(value: string | number): string {

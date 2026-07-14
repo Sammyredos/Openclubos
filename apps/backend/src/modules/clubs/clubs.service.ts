@@ -82,7 +82,7 @@ export class ClubsService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
     `;
@@ -92,7 +92,7 @@ export class ClubsService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
         AND r."registeredAt" >= ${startThisMonth}
@@ -104,7 +104,7 @@ export class ClubsService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
         AND r."registeredAt" >= ${startLastMonth}
@@ -116,7 +116,7 @@ export class ClubsService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'UNPAID'
+      WHERE r."paymentStatus" = 'UNPAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
     `;
@@ -191,7 +191,7 @@ export class ClubsService {
       SELECT EXTRACT(DAY FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus" AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
       GROUP BY EXTRACT(DAY FROM r."registeredAt") ORDER BY period ASC
     ` : await this.prisma.$queryRaw<
       Array<{ period: number; amount: number | null }>
@@ -199,7 +199,7 @@ export class ClubsService {
       SELECT EXTRACT(MONTH FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus" AND t."deletedAt" IS NULL AND t."clubId" = ${id} AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
       GROUP BY EXTRACT(MONTH FROM r."registeredAt") ORDER BY period ASC
     `;
 

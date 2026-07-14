@@ -27,7 +27,7 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
-export function clearAuthSession() {
+function clearAuthSession() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage?.removeItem('oc_token');
@@ -41,6 +41,7 @@ export function clearAuthSession() {
     // ignore
   }
 }
+
 
 export async function handleAuthFailure(res: Response) {
   if (typeof window === 'undefined') return;

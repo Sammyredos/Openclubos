@@ -735,7 +735,7 @@ export class SuperAdminDashboardService {
       SELECT EXTRACT(DAY FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus" AND t."deletedAt" IS NULL AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
       GROUP BY EXTRACT(DAY FROM r."registeredAt") ORDER BY period ASC
     ` : await this.prisma.$queryRaw<
       Array<{ period: number; amount: number | null }>
@@ -743,7 +743,7 @@ export class SuperAdminDashboardService {
       SELECT EXTRACT(MONTH FROM r."registeredAt") AS period, SUM(t."entryFee") AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID' AND t."deletedAt" IS NULL AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus" AND t."deletedAt" IS NULL AND r."registeredAt" >= ${startDate} AND r."registeredAt" < ${endDate}
       GROUP BY EXTRACT(MONTH FROM r."registeredAt") ORDER BY period ASC
     `;
 

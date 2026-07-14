@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
+import { PrismaService } from '../../common/prisma.service';
 
 export interface EmailResult {
   messageId: string;
@@ -10,7 +11,23 @@ export interface EmailResult {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(private readonly mailer: MailerService) {}
+  constructor(private readonly mailer: MailerService, private readonly prisma: PrismaService) {}
+
+  
+  private async getRecipientName(email: string, defaultName: string): Promise<string> {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (user && user.firstName && user.lastName) {
+        return `${user.firstName} ${user.lastName}`;
+      }
+      if (user && user.firstName) {
+        return user.firstName;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return defaultName;
+  }
 
   // ────────────────────────────────────────────────────────────────
   // Shared layout helpers
@@ -21,6 +38,7 @@ export class EmailService {
     body: string,
     gradient = '#065f46, #047857',
   ): string {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return `
       <!DOCTYPE html>
       <html>
@@ -28,8 +46,28 @@ export class EmailService {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
+        <style>
+          @font-face {
+            font-family: 'ZxGamut';
+            src: url('${frontendUrl}/fonts/zxgamut/ZxGamut-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'ZxGamut';
+            src: url('${frontendUrl}/fonts/zxgamut/ZxGamut-Medium.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'ZxGamut';
+            src: url('${frontendUrl}/fonts/zxgamut/ZxGamut-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+          }
+        </style>
       </head>
-      <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: 'ZxGamut', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 20px;">
           <tr>
             <td align="center">
@@ -199,10 +237,11 @@ export class EmailService {
     firstName: string,
     verifyUrl?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
     const html = this.wrap(
       'Welcome to OpenClubOS',
       `
-      ${this.p(`Dear <strong>${firstName}</strong>,`)}
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
       ${this.p('Welcome to OpenClubOS! We are thrilled to have you join our premier platform for golf tournament management and player engagement.')}
       ${this.p('Your account has been successfully created and is now active. OpenClubOS is designed to elevate your golfing experience by providing a central hub for all your tournament needs.')}
       ${this.h2('What you can do next:')}
@@ -234,10 +273,11 @@ export class EmailService {
     firstName: string,
     verifyUrl: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
     const html = this.wrap(
       'Verify Your Email',
       `
-      ${this.p(`Dear <strong>${firstName}</strong>,`)}
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
       ${this.p('Thank you for registering with OpenClubOS. To complete your account setup and ensure the security of your profile, we require you to verify your email address.')}
       ${this.button('Verify Email Address', verifyUrl)}
       ${this.p('If the button above does not work, please copy and paste the following URL securely into your web browser:')}
@@ -251,6 +291,43 @@ export class EmailService {
       'Action Required: Verify your OpenClubOS email',
       html,
       `Email verification sent to ${to}`,
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // 2b. Club Admin Welcome
+  // ────────────────────────────────────────────────────────────────
+
+  async sendClubAdminWelcome(
+    to: string,
+    firstName: string,
+    clubName: string,
+    verifyUrl?: string,
+  ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
+    const html = this.wrap(
+      'Welcome to OpenClubOS',
+      `
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
+      ${this.p(`Welcome to OpenClubOS! We are thrilled to have your organization, <strong>${clubName}</strong>, join our premier platform for golf tournament management.`)}
+      ${this.p('Your administrative account has been successfully created and is now active.')}
+      ${this.h2('What you can do next:')}
+      ${this.list([
+        '<strong>Create Tournaments:</strong> Easily configure and launch new golf events.',
+        '<strong>Manage Players:</strong> Invite members and oversee tournament registrations.',
+        '<strong>Live Scoring:</strong> Monitor and manage live leaderboards during your events.',
+      ])}
+      ${verifyUrl ? this.p('To ensure the security of your account and to receive important updates, please verify your email address by clicking the button below.') : ''}
+      ${verifyUrl ? this.button('Verify Email Address', verifyUrl) : ''}
+      ${this.p('If you have any questions or require assistance navigating the platform, our support team is always ready to help.')}
+      ${this.p('Best regards,<br/><strong>The OpenClubOS Team</strong>')}
+    `,
+    );
+    return this.send(
+      to,
+      'Welcome to OpenClubOS (Club Admin)',
+      html,
+      `Club Admin welcome email sent to ${to}`,
     );
   }
 
@@ -303,10 +380,11 @@ export class EmailService {
     };
     const statusColor = colorMap[status.toLowerCase()] || '#4b5563';
 
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Registration Update',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This email is to formally notify you that there has been an update to your registration status for <strong>${tournamentName}</strong>.`)}
       
       ${this.statusBadge(statusLabel, statusColor)}
@@ -345,10 +423,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Registration Approved',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`We are pleased to inform you that your registration for <strong>${tournamentName}</strong> has been officially <strong style="color: #059669;">approved</strong>.`)}
       
       ${this.infoBox('✅ <strong>Payment & Registration Confirmed!</strong> Your payment has been seen and fully confirmed. Your spot is secured! We look forward to seeing you on the course. Please ensure you arrive with ample time for registration and warm-up procedures.', '#ecfdf5', '#a7f3d0', '#065f46')}
@@ -381,10 +460,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Registration Update',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`Thank you for your interest in participating in <strong>${tournamentName}</strong>. After careful review, we regret to inform you that we are unable to approve your registration at this time.`)}
       
       ${this.p('This decision may be due to tournament capacity constraints, eligibility requirements, or missing documentation.')}
@@ -413,10 +493,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Waitlist Notification',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`Thank you for registering for <strong>${tournamentName}</strong>. At this time, the tournament has reached its maximum capacity.`)}
       ${this.p('Consequently, you have been placed on the <strong>Official Waitlist</strong>.')}
       
@@ -454,10 +535,11 @@ export class EmailService {
     reference: string,
   ): Promise<EmailResult> {
     const formatted = this.formatCurrency(amount, currency);
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Official Payment Receipt',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p('This email serves as your official receipt. Your payment for tournament entry has been successfully processed and confirmed.')}
       
       ${this.infoBox('✅ <strong>Transaction Successful</strong><br/>Your financial obligation for this event is complete.', '#ecfdf5', '#a7f3d0', '#065f46')}
@@ -506,10 +588,11 @@ export class EmailService {
     ];
     if (venue) tableData.push({ label: 'Venue/Location', value: venue });
 
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tournament Reminder',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This is a formal reminder that your upcoming event, <strong>${tournamentName}</strong>, is fast approaching.`)}
       
       ${this.dataTable(tableData)}
@@ -543,10 +626,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tournament Underway',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`Please be advised that <strong>${tournamentName}</strong> has officially commenced.`)}
       
       ${this.infoBox('⛳ <strong>Play is now active.</strong> Please ensure you are aware of your tee time and grouping. Late arrivals may be subject to penalty or disqualification according to the rules of golf.', '#eff6ff', '#bfdbfe', '#1e40af')}
@@ -575,10 +659,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tournament Concluded',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`<strong>${tournamentName}</strong> has officially concluded. We would like to extend our gratitude to all participants for making this a successful and competitive event.`)}
       
       ${this.infoBox('🏆 <strong>Final Results Available</strong><br/>The scores have been verified and the official leaderboard is now finalized.', '#f5f3ff', '#ddd6fe', '#5b21b6')}
@@ -612,10 +697,11 @@ export class EmailService {
     tournamentName: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tournament Disqualification',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This is a formal notification regarding your participation in <strong>${tournamentName}</strong>.`)}
       
       ${this.infoBox('🚫 <strong>Disqualification Notice</strong><br/>You have been officially disqualified from this tournament by the organizing committee.', '#fef2f2', '#fecaca', '#991b1b')}
@@ -645,10 +731,11 @@ export class EmailService {
     strokes: number,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Official Stroke Penalty',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This is a formal notification regarding your score in <strong>${tournamentName}</strong>.`)}
       
       ${this.infoBox(`⚠️ <strong>Stroke Penalty Applied</strong><br/>A penalty of <strong>${strokes} stroke${strokes > 1 ? 's' : ''}</strong> has been added to your official score.`, '#fffbeb', '#fde68a', '#92400e')}
@@ -678,10 +765,11 @@ export class EmailService {
     email: string,
     password: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Administrator');
     const html = this.wrap(
       'Administrative Access Granted',
       `
-      ${this.p('Dear Administrator,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`An administrative profile has been provisioned for you to manage the organization: <strong>${clubName}</strong> on the OpenClubOS platform.`)}
       
       ${this.p('You now have authorized access to manage tournaments, oversee player registrations, and configure organizational settings.')}
@@ -714,10 +802,11 @@ export class EmailService {
     to: string,
     clubName: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Member');
     const html = this.wrap(
       'Account Access Suspended',
       `
-      ${this.p('Dear Member,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This is a formal notification that your access to <strong>${clubName}</strong> via the OpenClubOS platform has been suspended.`)}
       
       ${this.infoBox('🚫 <strong>Account Suspended</strong><br/>You will no longer be able to log in, register for events, or view club-specific data.', '#fef2f2', '#fecaca', '#991b1b')}
@@ -743,10 +832,11 @@ export class EmailService {
     to: string,
     clubName: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Member');
     const html = this.wrap(
       'Account Reactivated',
       `
-      ${this.p('Dear Member,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`We are pleased to inform you that your account access to <strong>${clubName}</strong> has been fully restored.`)}
       
       ${this.infoBox('✅ <strong>Access Granted</strong><br/>Your suspension has been lifted. You may now log in to the platform and resume normal activities.', '#ecfdf5', '#a7f3d0', '#065f46')}
@@ -772,10 +862,11 @@ export class EmailService {
     firstName: string,
     tempPassword: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
     const html = this.wrap(
       'Your OpenClubOS Account',
       `
-      ${this.p(`Dear <strong>${firstName}</strong>,`)}
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
       ${this.p('An official player account has been provisioned for you on the OpenClubOS platform by a tournament administrator.')}
       
       ${this.p('This account will serve as your central hub for managing event registrations, tracking your scores, and maintaining your official handicap.')}
@@ -794,9 +885,36 @@ export class EmailService {
     );
     return this.send(
       to,
-      'Action Required: Your OpenClubOS Account Details',
+      'Your OpenClubOS Player Account',
       html,
       `Member created email sent to ${to}`,
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // 15b. Marker Welcome
+  // ────────────────────────────────────────────────────────────────
+
+  async sendMarkerWelcome(
+    to: string,
+    firstName: string,
+    clubName: string,
+    verifyUrl?: string,
+  ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
+    const html = this.wrap(
+      'Welcome to OpenClubOS as a Marker',
+      `
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
+      ${this.p('You have been added as a Marker for a tournament on OpenClubOS.')}
+      ${verifyUrl ? this.button('Set up your account', verifyUrl) : ''}
+    `,
+    );
+    return this.send(
+      to,
+      'Welcome as a Marker',
+      html,
+      `Marker welcome email sent to ${to}`,
     );
   }
 
@@ -805,10 +923,11 @@ export class EmailService {
   // ────────────────────────────────────────────────────────────────
 
   async sendSecurityAlert(to: string, action: string): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'User');
     const html = this.wrap(
       'Important Security Alert',
       `
-      ${this.p('Dear User,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p('Our automated security systems have detected a critical event regarding your OpenClubOS account.')}
       
       ${this.h2('Detected Activity')}
@@ -838,10 +957,11 @@ export class EmailService {
     updateDetails?: string,
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tournament Update',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`This is a formal notification that there has been an update to the details or schedule of <strong>${tournamentName}</strong>.`)}
       
       ${updateDetails ? this.infoBox('<strong>Update Details:</strong><br/>' + updateDetails, '#f3f4f6', '#e5e7eb', '#1f2937') : ''}
@@ -872,10 +992,11 @@ export class EmailService {
     groupMembers?: string[],
     organizerName?: string,
   ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, 'Player');
     const html = this.wrap(
       'Tee Time Published',
       `
-      ${this.p('Dear Player,')}
+      ${this.p(`Dear ${recipientName},`)}
       ${this.p(`Your official tee time and grouping for <strong>${roundName}</strong> of the <strong>${tournamentName}</strong> have been published.`)}
       
       ${this.h2('Grouping Details')}

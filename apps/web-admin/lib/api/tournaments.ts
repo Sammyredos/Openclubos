@@ -125,21 +125,6 @@ export async function getTournaments(query?: QueryRecord) {
   return res.json();
 }
 
-export async function getTournamentsPaged(query?: QueryRecord): Promise<{ items: Tournament[]; total: number }> {
-  const searchParams = toSearchParams(query);
-  const qs = searchParams.toString();
-  const res = await authedFetch(`/tournaments/paged${qs ? `?${qs}` : ''}`, {
-    method: 'GET',
-  });
-
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to fetch tournaments');
-  }
-  return res.json();
-}
-
 export async function getTournament(id: string) {
   const res = await authedFetch(`/tournaments/${id}`, { method: 'GET' });
   if (!res.ok) {

@@ -20,6 +20,25 @@ type PageState = "idle" | "loading" | "sent"
 export default function ForgotPasswordPage() {
   const [pageState, setPageState] = React.useState<PageState>("idle")
   const [sentEmail, setSentEmail] = React.useState("")
+  const [countdown, setCountdown] = React.useState(0)
+
+  React.useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [countdown])
+
+  const handleResend = async () => {
+    if (countdown > 0) return
+    try {
+      await forgotPasswordRequest(sentEmail)
+      setCountdown(60)
+      toast.success("Password reset email sent again.")
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.")
+    }
+  }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -119,10 +138,11 @@ export default function ForgotPasswordPage() {
                   </p>
 
                   <button
-                    onClick={() => { setPageState("idle"); form.setValue("email", sentEmail) }}
-                    className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6"
+                    onClick={handleResend}
+                    disabled={countdown > 0}
+                    className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Resend Email
+                    {countdown > 0 ? `Resend Email in ${countdown}s` : "Resend Email"}
                   </button>
 
                   <div className="text-center font-medium text-sm">

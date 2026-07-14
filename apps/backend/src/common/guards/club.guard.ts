@@ -11,7 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 
-export const SKIP_CLUB_GUARD_KEY = 'skipClubGuard';
+const SKIP_CLUB_GUARD_KEY = 'skipClubGuard';
 export const SkipClubGuard = () => SetMetadata(SKIP_CLUB_GUARD_KEY, true);
 
 @Injectable()

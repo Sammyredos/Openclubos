@@ -65,20 +65,6 @@ export async function registerForTournament(data: {
   return res.json();
 }
 
-export async function getMyRegistrations(): Promise<Registration[]> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/my`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
-    },
-  });
-
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    throw new Error('Failed to fetch registrations');
-  }
-  return res.json();
-}
 
 export async function getRegistrations(params?: {
   clubId?: string;

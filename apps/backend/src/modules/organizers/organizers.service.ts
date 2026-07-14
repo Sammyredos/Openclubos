@@ -78,7 +78,7 @@ export class OrganizersService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
     `;
@@ -88,7 +88,7 @@ export class OrganizersService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
         AND r."registeredAt" >= ${startThisMonth}
@@ -100,7 +100,7 @@ export class OrganizersService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'PAID'
+      WHERE r."paymentStatus" = 'PAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
         AND r."registeredAt" >= ${startLastMonth}
@@ -112,7 +112,7 @@ export class OrganizersService {
       SELECT COALESCE(SUM(t."entryFee"), 0) AS amount
       FROM "Registration" r
       JOIN "Tournament" t ON t."id" = r."tournamentId"
-      WHERE r."paymentStatus" = 'UNPAID'
+      WHERE r."paymentStatus" = 'UNPAID'::"PaymentStatus"
         AND t."deletedAt" IS NULL
         AND t."clubId" = ${id}
     `;

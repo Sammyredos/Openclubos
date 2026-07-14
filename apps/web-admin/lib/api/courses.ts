@@ -11,7 +11,7 @@ export interface TeeBox {
   slope?: number;
 }
 
-export interface HoleDetail {
+interface HoleDetail {
   id?: string;
   number: number;
   par: number;
