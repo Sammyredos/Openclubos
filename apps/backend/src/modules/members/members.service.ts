@@ -694,7 +694,7 @@ export class MembersService {
   async inviteManager(dto: {
     email: string;
     firstName: string;
-    middleName: string;
+    middleName?: string;
     lastName: string;
     scope: string;
     clubId: string;
