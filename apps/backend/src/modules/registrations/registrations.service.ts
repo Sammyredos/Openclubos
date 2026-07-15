@@ -250,6 +250,9 @@ export class RegistrationsService {
       }
     }
 
+    const inviteToken = require('crypto').randomBytes(32).toString('hex');
+    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
     if (!user) {
       // Create shadow account
       const randomPassword = require('crypto').randomBytes(16).toString('hex');
@@ -260,6 +263,8 @@ export class RegistrationsService {
           password: hashedPassword,
           role: 'PLAYER',
           status: 'PENDING',
+          inviteToken,
+          inviteTokenExpires,
         },
       });
     }
@@ -282,7 +287,9 @@ export class RegistrationsService {
       },
     });
 
-    const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tournaments/${tournamentId}`;
+    const inviteUrl = isNewUser
+      ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/accept-invite?token=${inviteToken}&from=/tournaments/${tournamentId}/register`
+      : `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tournaments/${tournamentId}/register`;
 
     await this.jobsService.queueEmail('TOURNAMENT_PLAYER_INVITE', email, {
       tournamentName: tournament.name,

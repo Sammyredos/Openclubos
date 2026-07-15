@@ -232,7 +232,7 @@ export default function TournamentsPage() {
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardTournamentId, setWizardTournamentId] = useState<string | null>(null);
-    const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
@@ -572,10 +572,10 @@ export default function TournamentsPage() {
   useEffect(() => {
     if (registrationsMode !== "server") return;
     if (!selectedTournament?.id) return;
-    
+
     let cancelled = false;
     const skip = (registrationsPage - 1) * registrationsPerPage;
-    
+
     setRegistrationsLoading(true);
     getRegistrations({
       tournamentId: selectedTournament.id,
@@ -921,7 +921,7 @@ export default function TournamentsPage() {
       ) : (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            
+
             {/* Stat 1: Total Tournaments */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
@@ -987,299 +987,299 @@ export default function TournamentsPage() {
         {/* Main Content - Table Area */}
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-              <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Tournaments</CardTitle>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Tournaments</CardTitle>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+              >
+                <Download className="w-4 h-4" /> Export
+              </Button>
+              <FloatingMenu
+                open={exportAnchorEl != null}
+                anchorEl={exportAnchorEl}
+                onClose={() => setExportAnchorEl(null)}
+                placement="bottom-end"
+                className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+              >
+                <button
+                  onClick={() => {
+                    setExportAnchorEl(null);
+                    exportToCsv(
+                      filteredTournaments,
+                      [
+                        { header: "Name", key: "name" },
+                        { header: "Organizer", key: "clubName" },
+                        { header: "Visibility", key: "visibility" },
+                        { header: "Dates", key: "dates" },
+                        { header: "Days", key: "days" },
+                        { header: "Registered Players", key: "players" },
+                        { header: "Status", key: "status" },
+                        { header: "Entry Fee", key: "entryFee" },
+                      ],
+                      "tournaments-export.csv"
+                    );
+                  }}
+                  className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                 >
-                  <Download className="w-4 h-4" /> Export
-                </Button>
-                <FloatingMenu
-                  open={exportAnchorEl != null}
-                  anchorEl={exportAnchorEl}
-                  onClose={() => setExportAnchorEl(null)}
-                  placement="bottom-end"
-                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+                  <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => {
+                    setExportAnchorEl(null);
+                    exportToPdf(
+                      filteredTournaments,
+                      [
+                        { header: "Name", key: "name" },
+                        { header: "Organizer", key: "clubName" },
+                        { header: "Dates", key: "dates" },
+                        { header: "Players", key: "players" },
+                        { header: "Status", key: "status" },
+                      ],
+                      "tournaments-export.pdf",
+                      "Tournaments Export"
+                    );
+                  }}
+                  className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
                 >
-                  <button
-                    onClick={() => {
-                      setExportAnchorEl(null);
-                      exportToCsv(
-                        filteredTournaments,
-                        [
-                          { header: "Name", key: "name" },
-                          { header: "Organizer", key: "clubName" },
-                          { header: "Visibility", key: "visibility" },
-                          { header: "Dates", key: "dates" },
-                          { header: "Days", key: "days" },
-                          { header: "Registered Players", key: "players" },
-                          { header: "Status", key: "status" },
-                          { header: "Entry Fee", key: "entryFee" },
-                        ],
-                        "tournaments-export.csv"
-                      );
-                    }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
-                    Export CSV
-                  </button>
-                  <button
-                    onClick={() => {
-                      setExportAnchorEl(null);
-                      exportToPdf(
-                        filteredTournaments,
-                        [
-                          { header: "Name", key: "name" },
-                          { header: "Organizer", key: "clubName" },
-                          { header: "Dates", key: "dates" },
-                          { header: "Players", key: "players" },
-                          { header: "Status", key: "status" },
-                        ],
-                        "tournaments-export.pdf",
-                        "Tournaments Export"
-                      );
-                    }}
-                    className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-                  >
-                    <FileText className="w-4 h-4 text-rose-600" />
-                    Export PDF
-                  </button>
-                </FloatingMenu>
-                <Button
-                  onClick={() => router.push("/organizer-admin/tournaments/create")}
-                  className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
-                >
-                  <Plus className="w-4 h-4" /> Add Tournament
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {/* Filters */}
-              <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px]">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                  <Input
-                    placeholder="Search tournament name, organizer..."
-                    className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <SearchableSelect
-                  value={statusFilter}
-                  onValueChange={(v) => setStatusFilter(v)}
-                  options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                  placeholder="All Status"
+                  <FileText className="w-4 h-4 text-rose-600" />
+                  Export PDF
+                </button>
+              </FloatingMenu>
+              <Button
+                onClick={() => router.push("/organizer-admin/tournaments/create")}
+                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+              >
+                <Plus className="w-4 h-4" /> Add Tournament
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Filters */}
+            <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                <Input
+                  placeholder="Search tournament name, organizer..."
+                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <SearchableSelect
-                  value={monthFilter}
-                  onValueChange={(v) => setMonthFilter(v)}
-                  options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                  placeholder="All Months"
-                />
-                <SearchableSelect
-                  value={yearFilter}
-                  onValueChange={(v) => setYearFilter(v)}
-                  options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
-                  className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                  placeholder="All Years"
-                />
-
               </div>
 
-              {/* Table */}
-              <div className="w-full overflow-x-auto min-h-[400px]">
-                <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
-                  <thead>
-                    <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                      <th className="px-6 py-4">Tournament</th>
-                      <th className="px-6 py-4">Organizer & Visibility</th>
-                      <th className="px-6 py-4">Dates</th>
-                      <th className="px-6 py-4">Players</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Entry Fee</th>
-                      <th className="px-6 py-4 text-center">Actions</th>
+              <SearchableSelect
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v)}
+                options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Status"
+              />
+              <SearchableSelect
+                value={monthFilter}
+                onValueChange={(v) => setMonthFilter(v)}
+                options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Months"
+              />
+              <SearchableSelect
+                value={yearFilter}
+                onValueChange={(v) => setYearFilter(v)}
+                options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Years"
+              />
+
+            </div>
+
+            {/* Table */}
+            <div className="w-full overflow-x-auto min-h-[400px]">
+              <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
+                <thead>
+                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                    <th className="px-6 py-4">Tournament</th>
+                    <th className="px-6 py-4">Organizer & Visibility</th>
+                    <th className="px-6 py-4">Dates</th>
+                    <th className="px-6 py-4">Players</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Entry Fee</th>
+                    <th className="px-6 py-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e1efe5]">
+                  {error ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
+                        {error}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#e1efe5]">
-                    {error ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
-                          {error}
+                  ) : loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="hover:bg-background/50 transition-colors">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+                            <div className="flex flex-col gap-1.5">
+                              <Skeleton className="h-4 w-32 rounded-md" />
+                              <Skeleton className="h-3 w-24 rounded-md" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                            <div className="flex flex-col gap-1.5">
+                              <Skeleton className="h-4 w-28 rounded-md" />
+                              <Skeleton className="h-3 w-16 rounded-md" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <Skeleton className="h-4 w-12 rounded-md" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <Skeleton className="h-5.5 w-16 rounded-full" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <Skeleton className="h-4 w-20 rounded-md" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <Skeleton className="h-4 w-16 rounded-md ml-auto" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center justify-center gap-2">
+                            <Skeleton className="h-7 w-12 rounded-md" />
+                            <Skeleton className="h-7 w-12 rounded-md" />
+                            <Skeleton className="h-7 w-7 rounded-md" />
+                          </div>
                         </td>
                       </tr>
-                    ) : loading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i} className="hover:bg-background/50 transition-colors">
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                              <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
-                              <div className="flex flex-col gap-1.5">
-                                <Skeleton className="h-4 w-32 rounded-md" />
-                                <Skeleton className="h-3 w-24 rounded-md" />
+                    ))
+                  ) : paginatedTournaments.length > 0 ? (
+                    paginatedTournaments.map((t) => (
+                      <tr key={t.id} className="hover:bg-background/50 transition-colors group">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3 min-w-[220px]">
+                            <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
+                              <Trophy className="w-4 h-4" />
+                            </div>
+                            <div className="flex flex-col min-w-0 gap-0.5">
+                              <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
+                              <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.clubName}>{t.clubName}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            {t.clubLogo ? (
+                              <img src={t.clubLogo} alt={t.clubName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
+                                {t.clubName.substring(0, 2)}
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0 gap-1.5">
+                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
+                              <div className={cn("inline-flex items-center w-fit px-2 py-0.5 rounded border gap-1.5 text-[11px] font-medium uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400 border-gray-200")}>
+                                {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3 flex-shrink-0" })}
+                                <span>{t.visibility}</span>
                               </div>
                             </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
-                              <div className="flex flex-col gap-1.5">
-                                <Skeleton className="h-4 w-28 rounded-md" />
-                                <Skeleton className="h-3 w-16 rounded-md" />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <Skeleton className="h-4 w-12 rounded-md" />
-                          </td>
-                          <td className="px-6 py-5">
-                            <Skeleton className="h-5.5 w-16 rounded-full" />
-                          </td>
-                          <td className="px-6 py-5">
-                            <Skeleton className="h-4 w-20 rounded-md" />
-                          </td>
-                          <td className="px-6 py-5">
-                            <Skeleton className="h-4 w-16 rounded-md ml-auto" />
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center justify-center gap-2">
-                              <Skeleton className="h-7 w-12 rounded-md" />
-                              <Skeleton className="h-7 w-12 rounded-md" />
-                              <Skeleton className="h-7 w-7 rounded-md" />
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : paginatedTournaments.length > 0 ? (
-                      paginatedTournaments.map((t) => (
-                        <tr key={t.id} className="hover:bg-background/50 transition-colors group">
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3 min-w-[220px]">
-                              <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
-                                <Trophy className="w-4 h-4" />
-                              </div>
-                              <div className="flex flex-col min-w-0 gap-0.5">
-                                <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
-                                <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.clubName}>{t.clubName}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                              {t.clubLogo ? (
-                                <img src={t.clubLogo} alt={t.clubName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
-                                  {t.clubName.substring(0, 2)}
-                                </div>
-                              )}
-                              <div className="flex flex-col min-w-0 gap-1.5">
-                                <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
-                                <div className={cn("inline-flex items-center w-fit px-2 py-0.5 rounded border gap-1.5 text-[11px] font-medium uppercase", VISIBILITY_META[t.visibilityKey]?.badge || "text-gray-400 border-gray-200")}>
-                                  {React.createElement(VISIBILITY_META[t.visibilityKey]?.icon || Globe, { className: "w-3 h-3 flex-shrink-0" })}
-                                  <span>{t.visibility}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.dates}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex flex-col items-start gap-0.5">
-                              <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.players}</span>
-                              <span className="text-gray-500 text-[12px] font-normal mt-0.5">Registered</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border", t.badge)}>
-                              <span className={cn("w-1.5 h-1.5 rounded-full", 
-                                t.statusKey === "ONGOING" ? "bg-[#15803D]" : 
-                                t.statusKey === "REGISTRATION_OPEN" ? "bg-[#15803D]" : 
-                                t.statusKey === "COMPLETED" ? "bg-blue-500" : 
-                                t.statusKey === "CANCELLED" ? "bg-red-500" : 
-                                "bg-gray-400")} />
-                              {t.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                            <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{formatNaira(t.entryFee)}</span>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center justify-center gap-2">
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.dates}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.players}</span>
+                            <span className="text-gray-500 text-[12px] font-normal mt-0.5">Registered</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border", t.badge)}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full",
+                              t.statusKey === "ONGOING" ? "bg-[#15803D]" :
+                                t.statusKey === "REGISTRATION_OPEN" ? "bg-[#15803D]" :
+                                  t.statusKey === "COMPLETED" ? "bg-blue-500" :
+                                    t.statusKey === "CANCELLED" ? "bg-red-500" :
+                                      "bg-gray-400")} />
+                            {t.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{formatNaira(t.entryFee)}</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openView(t)}
+                              className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors border border-emerald-600 shadow-sm"
+                              title="Manage Tournament"
+                            >
+                              <Settings className="w-3.5 h-3.5" />
+                              <span className="text-[12px] font-medium leading-none">Manage tournament</span>
+                            </button>
+                            <div className="relative">
                               <button
-                                onClick={() => openView(t)}
-                                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors border border-emerald-600 shadow-sm"
-                                title="Manage Tournament"
-                              >
-                                <Settings className="w-3.5 h-3.5" />
-                                <span className="text-[12px] font-medium leading-none">Manage tournament</span>
-                              </button>
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => {
-                                    if (activeDropdown === t.id) {
-                                      closeDropdown();
-                                    } else {
-                                      if (closeTimeoutRef.current != null) {
-                                        window.clearTimeout(closeTimeoutRef.current);
-                                        closeTimeoutRef.current = null;
-                                      }
-                                      setActiveDropdown(t.id);
-                                      setDropdownAnchorEl(e.currentTarget);
-                                      setDropdownTournament(t);
+                                onClick={(e) => {
+                                  if (activeDropdown === t.id) {
+                                    closeDropdown();
+                                  } else {
+                                    if (closeTimeoutRef.current != null) {
+                                      window.clearTimeout(closeTimeoutRef.current);
+                                      closeTimeoutRef.current = null;
                                     }
-                                  }}
-                                  className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
-                                  title="More Actions"
-                                >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </button>
-                              </div>
+                                    setActiveDropdown(t.id);
+                                    setDropdownAnchorEl(e.currentTarget);
+                                    setDropdownTournament(t);
+                                  }
+                                }}
+                                className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
+                                title="More Actions"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-20 text-center">
-                          <EmptyState
-                            icon={Trophy}
-                            title="No tournaments found"
-                            description="Try adjusting your filters or search query to find what you're looking for."
-                          />
+                          </div>
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-20 text-center">
+                        <EmptyState
+                          icon={Trophy}
+                          title="No tournaments found"
+                          description="Try adjusting your filters or search query to find what you're looking for."
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Pagination */}
-              <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
-                <p className="text-[13px] text-gray-500">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTournaments.length)} of {filteredTournaments.length} tournaments
-                </p>
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Pagination */}
+            <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
+              <p className="text-[13px] text-gray-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTournaments.length)} of {filteredTournaments.length} tournaments
+              </p>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (
@@ -1422,9 +1422,9 @@ export default function TournamentsPage() {
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-[16px] font-normal text-gray-900 leading-tight">Invite via Email</h3>
+              <h3 className="text-[16px] font-medium text-gray-900 leading-tight">Invite via Email</h3>
               <p className="text-[13px] text-gray-500 mt-1">
-                Invite a player directly to <span className="text-openclub-800 font-normal">{selectedTournament?.name}</span>
+                Invite a player directly to <span className="text-openclub-800 font-medium">{selectedTournament?.name}</span>
               </p>
             </div>
           </div>

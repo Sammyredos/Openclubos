@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   ServiceUnavailableException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MemberStatus, UserRole } from '@prisma/client';
@@ -578,7 +579,38 @@ export class AuthService {
     });
   }
 
-  async acceptInvite(token: string, newPassword: string) {
+  async getInviteDetails(token: string) {
+    if (!token) {
+      throw new BadRequestException('Invitation token is required');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { inviteToken: token, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Invalid or expired invitation token');
+    }
+
+    if (user.inviteTokenExpires && user.inviteTokenExpires < new Date()) {
+      throw new NotFoundException('This invitation has expired');
+    }
+
+    return {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    };
+  }
+
+  async acceptInvite(
+    token: string,
+    newPassword: string,
+    firstName?: string,
+    lastName?: string,
+    middleName?: string,
+  ) {
     if (!token || !newPassword) {
       throw new BadRequestException('Token and password are required');
     }
@@ -599,14 +631,27 @@ export class AuthService {
 
     // Hash the new password and activate the account
     const hashedPassword = await bcrypt.hash(newPassword, 12);
+    
+    const updateData: any = {
+      password: hashedPassword,
+      status: MemberStatus.ACTIVE,
+      inviteToken: null,
+      inviteTokenExpires: null,
+    };
+
+    if (firstName) {
+      const first = firstName.trim();
+      const middle = middleName?.trim() || '';
+      updateData.firstName = middle ? `${first} ${middle}` : first;
+    }
+
+    if (lastName) {
+      updateData.lastName = lastName.trim();
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        status: MemberStatus.ACTIVE,
-        inviteToken: null,
-        inviteTokenExpires: null,
-      },
+      data: updateData,
     });
 
     // Auto-login: return JWT tokens

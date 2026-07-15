@@ -16,22 +16,24 @@ import { AuditLog } from '../../common/decorators/audit-log.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { SkipClubGuard } from '../../common/guards/club.guard';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentsService } from './tournaments.service';
 
 @Controller('tournaments')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class TournamentsController {
   constructor(private readonly tournamentsService: TournamentsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createTournamentDto: CreateTournamentDto) {
     return this.tournamentsService.create(createTournamentDto);
   }
 
   @Get('check-name')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async checkName(
     @Request() req: any,
     @Query('name') name: string,
@@ -49,6 +51,7 @@ export class TournamentsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   findAll(
     @Request() req: any,
     @Query('clubId') clubId?: string,
@@ -65,6 +68,7 @@ export class TournamentsController {
   }
 
   @Get('paged')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   findAllPaged(
     @Request() req: any,
     @Query('clubId') clubId?: string,
@@ -88,11 +92,13 @@ export class TournamentsController {
   }
 
   @Get(':id')
+  @SkipClubGuard()
   async findOne(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.findOne(id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @AuditLog('Tournament', 'UPDATE')
   async update(
     @Request() req: any,
@@ -103,6 +109,7 @@ export class TournamentsController {
   }
 
   @Post(':id/groupings/email')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   async publishGroupingsEmail(
     @Request() req: any,
@@ -113,12 +120,14 @@ export class TournamentsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @AuditLog('Tournament', 'DELETE')
   async remove(@Request() req: any, @Param('id') id: string) {
     return this.tournamentsService.remove(id);
   }
 
   @Post(':id/apply-cut')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   @AuditLog('Tournament', 'APPLY_CUT')
   async applyCut(@Request() req: any, @Param('id') id: string) {

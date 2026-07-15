@@ -12,7 +12,17 @@ import Link from "next/link"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+interface InviteDetails {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  role: string;
+}
+
 const schema = z.object({
+  firstName: z.string().min(1, { message: "First name is required." }),
+  middleName: z.string().min(1, { message: "Middle name is required." }),
+  lastName: z.string().min(1, { message: "Last name is required." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -36,6 +46,7 @@ function AcceptInvitePageInner() {
   const [pageState, setPageState] = React.useState<PageState>("idle")
   const [showPassword, setShowPassword] = React.useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
+  const [inviteDetails, setInviteDetails] = React.useState<InviteDetails | null>(null)
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -43,15 +54,48 @@ function AcceptInvitePageInner() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { password: "", confirmPassword: "" },
+    defaultValues: { firstName: "", middleName: "", lastName: "", password: "", confirmPassword: "" },
   })
 
   React.useEffect(() => {
     if (!token) {
       setPageState("error")
       toast.error("Invalid or missing invitation token.")
+      return
     }
-  }, [token])
+
+    async function fetchInvite() {
+      try {
+        const res = await fetch(`${API_BASE}/auth/invite/${token}`)
+        if (!res.ok) {
+          throw new Error("Invalid or expired invitation token.")
+        }
+        const data = (await res.json()) as InviteDetails
+        setInviteDetails(data)
+
+        let first = data.firstName || ""
+        let middle = ""
+        if (first.includes(" ")) {
+          const parts = first.split(" ")
+          first = parts[0]
+          middle = parts.slice(1).join(" ")
+        }
+
+        form.reset({
+          firstName: first,
+          middleName: middle,
+          lastName: data.lastName || "",
+          password: "",
+          confirmPassword: "",
+        })
+      } catch (err) {
+        setPageState("error")
+        toast.error("Invalid or expired invitation token.")
+      }
+    }
+
+    void fetchInvite()
+  }, [token, form])
 
   async function onSubmit(data: FormValues) {
     if (!token) return
@@ -60,7 +104,13 @@ function AcceptInvitePageInner() {
       const res = await fetch(`${API_BASE}/auth/accept-invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password: data.password }),
+        body: JSON.stringify({
+          token,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          middleName: data.middleName,
+        }),
       })
 
       if (!res.ok) {
@@ -82,17 +132,22 @@ function AcceptInvitePageInner() {
       }
 
       setPageState("success")
-      toast.success("Account activated! Redirecting to dashboard...")
+      toast.success("Account activated! Redirecting...")
 
-      // Redirect to organizer dashboard after a short delay
+      // Redirect based on role and query parameters
+      const fromParam = searchParams.get("from")
+      const nextPath = fromParam || (result.user?.role === "PLAYER" ? "/app/home" : "/organizer-admin/dashboard")
+
       setTimeout(() => {
-        router.push("/organizer-admin/dashboard")
+        router.push(nextPath)
       }, 2000)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
       setPageState("idle")
     }
   }
+
+  const defaultRedirect = inviteDetails?.role === "PLAYER" ? "/app/home" : "/organizer-admin/dashboard"
 
   return (
     <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
@@ -105,10 +160,12 @@ function AcceptInvitePageInner() {
 
           <div className="relative z-10 text-white">
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              Welcome to<br />the Team.
+              {inviteDetails?.role === "PLAYER" ? "Welcome\nto the Game." : "Welcome\nto the Team."}
             </h1>
             <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
-              Set up your password to activate your manager account and start managing your club on OpenClubOS.
+              {inviteDetails?.role === "PLAYER"
+                ? "Set up your details and password to activate your player account and join upcoming tournaments."
+                : "Set up your password to activate your manager account and start managing your club on OpenClubOS."}
             </p>
           </div>
         </div>
@@ -127,12 +184,12 @@ function AcceptInvitePageInner() {
 
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Account Activated!</h2>
                 <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-                  Your manager account is now active. You are being redirected to your dashboard.
+                  Your account is now active. You are being redirected.
                 </p>
 
-                <Link href="/organizer-admin/dashboard" className="w-full">
+                <Link href={searchParams.get("from") || defaultRedirect} className="w-full">
                   <button className="w-full bg-emerald-600 text-white font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center">
-                    Go to Dashboard
+                    {inviteDetails?.role === "PLAYER" ? "Proceed to Tournaments" : "Go to Dashboard"}
                   </button>
                 </Link>
               </div>
@@ -144,7 +201,7 @@ function AcceptInvitePageInner() {
 
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Invalid Invitation</h2>
                 <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-                  This invitation link is invalid or has expired. Please ask your club organizer to send a new invitation.
+                  This invitation link is invalid or has expired. Please ask your organizer to send a new invitation.
                 </p>
 
                 <Link href="/login" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
@@ -154,11 +211,69 @@ function AcceptInvitePageInner() {
             ) : (
               <>
                 <div className="mb-8 text-left">
-                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Set Your Password</h2>
-                  <p className="text-zinc-500 mb-2">Create a secure password for your new manager account.</p>
+                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">
+                    {inviteDetails?.role === "PLAYER" ? "Complete Registration" : "Set Your Password"}
+                  </h2>
+                  <p className="text-zinc-500 mb-2">
+                    {inviteDetails?.role === "PLAYER" ? (
+                      <>
+                        Hi <span className="font-medium text-zinc-900">{inviteDetails.email}</span>, let's set up your profile and password.
+                      </>
+                    ) : (
+                      "Create a secure password for your new manager account."
+                    )}
+                  </p>
                 </div>
 
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* First Name */}
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-semibold text-zinc-700 mb-2">First Name</label>
+                    <input
+                      id="firstName"
+                      type="text"
+                      placeholder="John"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      disabled={pageState === "loading"}
+                      {...form.register("firstName")}
+                    />
+                    {form.formState.errors.firstName && (
+                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.firstName.message}</p>
+                    )}
+                  </div>
+
+                  {/* Middle Name */}
+                  <div>
+                    <label htmlFor="middleName" className="block text-sm font-semibold text-zinc-700 mb-2">Middle Name</label>
+                    <input
+                      id="middleName"
+                      type="text"
+                      placeholder="Robert"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      disabled={pageState === "loading"}
+                      {...form.register("middleName")}
+                    />
+                    {form.formState.errors.middleName && (
+                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.middleName.message}</p>
+                    )}
+                  </div>
+
+                  {/* Last Name */}
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-semibold text-zinc-700 mb-2">Last Name</label>
+                    <input
+                      id="lastName"
+                      type="text"
+                      placeholder="Doe"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      disabled={pageState === "loading"}
+                      {...form.register("lastName")}
+                    />
+                    {form.formState.errors.lastName && (
+                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.lastName.message}</p>
+                    )}
+                  </div>
+
                   {/* Password field */}
                   <div>
                     <label htmlFor="password" className="block text-sm font-semibold text-zinc-700 mb-2">Password</label>

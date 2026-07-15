@@ -9,6 +9,7 @@ import {
   Request,
   UseGuards,
   Headers,
+  Param,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
@@ -166,15 +167,39 @@ export class AuthController {
   }
 
   /**
+   * GET /api/auth/invite/:token
+   * Public endpoint to fetch invite details.
+   */
+  @Get('invite/:token')
+  async getInviteDetails(@Param('token') token: string) {
+    return this.authService.getInviteDetails(token);
+  }
+
+  /**
    * POST /api/auth/accept-invite
-   * Body: { token: string, password: string }
+   * Body: { token: string, password: string, firstName?: string, lastName?: string, middleName?: string }
    * Public endpoint — no auth guard required.
-   * Validates the invite token, sets the manager's password, activates the account,
+   * Validates the invite token, sets the user's password, activates the account,
    * and returns JWT tokens for immediate login.
    */
   @Post('accept-invite')
   @HttpCode(HttpStatus.OK)
-  async acceptInvite(@Body() body: { token: string; password: string }) {
-    return this.authService.acceptInvite(body.token, body.password);
+  async acceptInvite(
+    @Body()
+    body: {
+      token: string;
+      password: string;
+      firstName?: string;
+      lastName?: string;
+      middleName?: string;
+    },
+  ) {
+    return this.authService.acceptInvite(
+      body.token,
+      body.password,
+      body.firstName,
+      body.lastName,
+      body.middleName,
+    );
   }
 }
