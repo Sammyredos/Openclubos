@@ -607,7 +607,7 @@ export default function SuperAdminDashboard() {
                     <TrendChartSkeleton variant="line" />
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={revenueData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                      <AreaChart data={revenueData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorFunnel" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#15803D" stopOpacity={0.25} />
@@ -625,6 +625,7 @@ export default function SuperAdminDashboard() {
                         <YAxis
                           axisLine={false}
                           tickLine={false}
+                          width={80}
                           tick={{ fontSize: 12, fill: "#a1a1aa" }}
                           tickFormatter={(value) => formatCurrency(value)}
                         />
@@ -691,10 +692,10 @@ export default function SuperAdminDashboard() {
                   <TrendChartSkeleton variant="bar" />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={growthData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                    <BarChart data={growthData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#a1a1aa" }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#a1a1aa" }} />
+                      <YAxis axisLine={false} tickLine={false} width={80} tick={{ fontSize: 13, fill: "#a1a1aa" }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: '1px solid #e1efe5', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
                       />

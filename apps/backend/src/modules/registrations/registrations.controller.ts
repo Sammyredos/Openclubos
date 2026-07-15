@@ -13,9 +13,11 @@ import {
 } from '@nestjs/common';
 import { PaymentStatus, RegistrationStatus, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SkipClubGuard } from '../../common/guards/club.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RegisterTournamentDto } from './dto/register-tournament.dto';
+import { InvitePlayerDto } from './dto/invite-player.dto';
 import { RegistrationsService } from './registrations.service';
 
 @Controller('registrations')
@@ -30,6 +32,13 @@ export class RegistrationsController {
       role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
     const userId = isAdmin && dto.userId ? dto.userId : req.user.userId;
     return this.registrationsService.register(userId, dto, isAdmin);
+  }
+
+  @Post('invite')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN, UserRole.STAFF, UserRole.MANAGER)
+  @SkipClubGuard()
+  invitePlayer(@Request() req: any, @Body() dto: InvitePlayerDto) {
+    return this.registrationsService.invitePlayer(dto, req.user);
   }
 
   @Get('my')

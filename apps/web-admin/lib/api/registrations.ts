@@ -39,6 +39,28 @@ function getErrorMessage(e: unknown) {
   return null;
 }
 
+export async function invitePlayerToTournament(data: { tournamentId: string; email: string }) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/registrations/invite`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    if (res.status === 401) await handleAuthFailure(res);
+    let msg = 'Failed to invite player';
+    try {
+      const err = await res.json();
+      msg = err.message || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 export async function registerForTournament(data: {
   tournamentId: string;
   playerType?: string;

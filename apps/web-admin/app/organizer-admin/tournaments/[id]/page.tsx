@@ -159,7 +159,7 @@ function formatPlayers(current: number, maxPlayers: number | null) {
 }
 
 function formatNaira(value: number | null) {
-  if (value == null || value === 0) return "FREE";
+  if (value == null || value === 0) return "₦0";
   return `₦${formatWithCommas(Math.round(value))}`;
 }
 

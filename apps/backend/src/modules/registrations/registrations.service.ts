@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   RegistrationStatus,
@@ -221,6 +222,74 @@ export class RegistrationsService {
           });
       }
     }
+
+    return registration;
+  }
+
+  async invitePlayer(dto: import('./dto/invite-player.dto').InvitePlayerDto, inviter: any) {
+    const { tournamentId, email } = dto;
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: { club: { select: { name: true } } },
+    });
+
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    if (inviter.role !== 'SUPER_ADMIN') {
+      if (tournament.clubId !== inviter.clubId) {
+        throw new ForbiddenException('You do not have access to this tournament.');
+      }
+    }
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    const isNewUser = !user;
+
+    if (user) {
+      if (['SUPER_ADMIN', 'CLUB_ADMIN', 'MANAGER', 'STAFF'].includes(user.role)) {
+        throw new BadRequestException('Administrators and managers cannot be invited to tournaments as players.');
+      }
+    }
+
+    if (!user) {
+      // Create shadow account
+      const randomPassword = require('crypto').randomBytes(16).toString('hex');
+      const hashedPassword = await require('bcrypt').hash(randomPassword, 10);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role: 'PLAYER',
+          status: 'PENDING',
+        },
+      });
+    }
+
+    const existing = await this.prisma.registration.findUnique({
+      where: { userId_tournamentId: { userId: user.id, tournamentId } },
+    });
+
+    if (existing) {
+      throw new ConflictException('Player is already registered for this tournament');
+    }
+
+    const registration = await this.prisma.registration.create({
+      data: {
+        userId: user.id,
+        tournamentId,
+        playerType: 'PLAYER',
+        status: RegistrationStatus.PENDING,
+        paymentStatus: PaymentStatus.UNPAID,
+      },
+    });
+
+    const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tournaments/${tournamentId}`;
+
+    await this.jobsService.queueEmail('TOURNAMENT_PLAYER_INVITE', email, {
+      tournamentName: tournament.name,
+      clubName: tournament.club?.name || 'Tournament Organizer',
+      inviteUrl,
+      isNewUser,
+    });
 
     return registration;
   }

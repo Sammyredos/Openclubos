@@ -1119,4 +1119,35 @@ export class EmailService {
       `Manager invite email sent to ${to} for ${clubName}`,
     );
   }
+  // ────────────────────────────────────────────────────────────────
+  // Tournament Player Invitation
+  // ────────────────────────────────────────────────────────────────
+
+  async sendTournamentPlayerInvite(
+    to: string,
+    tournamentName: string,
+    clubName: string,
+    inviteUrl: string,
+    isNewUser: boolean,
+  ): Promise<EmailResult> {
+    const html = this.wrap(
+      `You're Invited!`,
+      `
+      ${this.p(`You have been invited to participate in <strong>${tournamentName}</strong> by <strong>${clubName}</strong>.`)}
+      ${isNewUser ? this.p(`We've created a pending account for you. Click the button below to complete your registration and set your password.`) : this.p(`Click the button below to view the tournament details.`)}
+      
+      ${this.button(isNewUser ? 'Complete Registration' : 'View Tournament', inviteUrl)}
+      
+      ${this.p(`If the button doesn't work, you can copy and paste this link into your browser:<br/><a href="${inviteUrl}" style="color: #10b981; word-break: break-all;">${inviteUrl}</a>`)}
+      ${this.p('See you on the green!')}
+    `,
+      '#10b981, #059669',
+    );
+    return this.send(
+      to,
+      `You're invited to play in ${tournamentName}`,
+      html,
+      `Tournament invite email sent to ${to} for ${tournamentName}`,
+    );
+  }
 }

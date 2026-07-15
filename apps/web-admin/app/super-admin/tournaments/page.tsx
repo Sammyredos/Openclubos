@@ -162,7 +162,7 @@ function formatPlayers(current: number, maxPlayers: number | null) {
 }
 
 function formatNaira(value: number | null) {
-  if (value == null || value === 0) return "FREE";
+  if (value == null || value === 0) return "₦0";
   return `₦${formatWithCommas(Math.round(value))}`;
 }
 
@@ -229,8 +229,7 @@ export default function TournamentsPage() {
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardTournamentId, setWizardTournamentId] = useState<string | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+    const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
@@ -519,7 +518,7 @@ export default function TournamentsPage() {
   }, [registrationsSearch]);
 
   useEffect(() => {
-    if ((!isViewModalOpen && !isRegisterPlayerModalOpen) || !selectedTournament?.id) return;
+    if ((!isRegisterPlayerModalOpen) || !selectedTournament?.id) return;
     let cancelled = false;
     getRegistrations({
       tournamentId: selectedTournament.id,
@@ -565,12 +564,12 @@ export default function TournamentsPage() {
     return () => {
       cancelled = true;
     };
-  }, [isViewModalOpen, selectedTournament?.id, registrationsPerPage]);
+  }, [ selectedTournament?.id, registrationsPerPage]);
 
   useEffect(() => {
-    if (!isViewModalOpen || !selectedTournament?.id) return;
-    if (!registrationsInitialized) return;
+    
     if (registrationsMode !== "server") return;
+    if (!selectedTournament?.id) return;
     let cancelled = false;
     const skip = (registrationsPage - 1) * registrationsPerPage;
     getRegistrations({
@@ -608,7 +607,7 @@ export default function TournamentsPage() {
       cancelled = true;
     };
   }, [
-    isViewModalOpen,
+    
     selectedTournament?.id,
     registrationsInitialized,
     registrationsMode,
@@ -719,9 +718,7 @@ export default function TournamentsPage() {
       } else {
         // Full reload for client mode
         setRegistrationsInitialized(false);
-        setIsViewModalOpen(false);
-        setTimeout(() => setIsViewModalOpen(true), 10);
-      }
+                      }
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to register player");
     } finally {
@@ -1456,432 +1453,6 @@ export default function TournamentsPage() {
           </>
         ) : null}
       </FloatingMenu>
-
-      <Modal
-        isOpen={isViewModalOpen}
-        onClose={() => {
-          setStrokesMenuRegistration(null);
-          setStrokesMenuAnchorEl(null);
-          setIsViewModalOpen(false);
-        }}
-        title=""
-        size="xl"
-        footer={
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <span className="text-[11px] text-gray-400 font-normal italic">
-                Tournament ID: {selectedTournament?.id.slice(0, 8)}...
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setStrokesMenuRegistration(null);
-                setStrokesMenuAnchorEl(null);
-                setIsViewModalOpen(false);
-              }}
-              className="rounded-lg font-normal border-[#e1efe5]"
-            >
-              Close Details
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-8">
-          {/* Status Alert Banners */}
-          {selectedTournament?.statusKey === "CANCELLED" && (
-            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4 text-red-700">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <Ban className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[15px] font-normal">Tournament Cancelled</p>
-                <p className="text-[12px] text-red-600/80 font-normal">This tournament has been cancelled and player actions are disabled.</p>
-              </div>
-            </div>
-          )}
-          {selectedTournament?.statusKey === "COMPLETED" && (
-            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 text-emerald-700">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-5 h-5 text-openclub-800" />
-              </div>
-              <div>
-                <p className="text-[15px] font-normal">Tournament Completed</p>
-                <p className="text-[12px] text-openclub-800/80 font-normal">This tournament has concluded and is now read-only.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Header Section */}
-          <div className="flex items-center gap-5 border-b border-gray-50 pb-8">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#15803D] border border-emerald-100 flex-shrink-0 shadow-sm">
-              <Trophy className="w-8 h-8" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <h4 className="text-[16px] font-normal text-gray-900 truncate">
-                  {selectedTournament?.name || "Tournament Details"}
-                </h4>
-                {selectedTournament && (
-                  <span className={cn(
-                    "px-3 py-1 rounded-lg text-[11px] font-normal capitalize tracking-wider border",
-                    selectedTournament.statusKey === "ONGOING" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                      selectedTournament.statusKey === "REGISTRATION_OPEN" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                        selectedTournament.statusKey === "COMPLETED" ? "bg-background text-gray-600 border-[#e1efe5]" :
-                          "bg-amber-50 text-amber-700 border-amber-100"
-                  )}>
-                    {selectedTournament.status}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  {selectedTournament?.clubName || "Independent"}
-                </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
-                <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  {selectedTournament?.dates || "Dates TBD"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
-              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-[16px] font-normal text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
-                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Total Players</p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                  <Users className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
-              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-[16px] font-normal text-gray-900">{formatNaira(selectedTournament?.entryFee ?? null)}</p>
-                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Per Registration</p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">
-                  <Wallet className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-[#e1efe5] shadow-sm">
-              <p className="text-[11px] font-normal text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-[16px] font-normal text-gray-900">
-                    {selectedTournament?.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
-                  </p>
-                  <p className="text-[11px] text-gray-500 font-normal mt-0.5">Player Limit</p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                  <Lock className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Registrations Header Section */}
-          <div className="space-y-5 pt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h5 className="text-[16px] font-normal text-gray-900">Registered Players</h5>
-                <p className="text-[12px] text-gray-500 font-normal">Manage and monitor tournament participation</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  value={registrationsSearch}
-                  onChange={(e) => {
-                    setRegistrationsPage(1);
-                    if (registrationsMode === "server") setRegistrationsLoading(true);
-                    setRegistrationsSearch(e.target.value);
-                  }}
-                  placeholder="Search name or email..."
-                  className="pl-10 h-11 bg-background/50 border-[#e1efe5] focus:bg-white rounded-lg"
-                />
-              </div>
-              <SearchableSelect
-                value={registrationsStatusFilter === "All Status" ? "All Status" : registrationsStatusFilter}
-                onValueChange={(v) => {
-                  const next =
-                    v === "All Status" ||
-                      v === "PENDING" ||
-                      v === "APPROVED" ||
-                      v === "REJECTED" ||
-                      v === "WAITLISTED" ||
-                      v === "DISQUALIFIED"
-                      ? v
-                      : "All Status";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsStatusFilter(next);
-                }}
-                options={[
-                  { value: "All Status", label: "All Status" },
-                  { value: "PENDING", label: "Pending" },
-                  { value: "APPROVED", label: "Approved" },
-                  { value: "REJECTED", label: "Rejected" },
-                  { value: "WAITLISTED", label: "Waitlisted" },
-                  { value: "DISQUALIFIED", label: "Disqualified" },
-                ]}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-normal"
-                placeholder="All Status"
-              />
-              <SearchableSelect
-                value={registrationsPaymentFilter === "All Payments" ? "All Payments" : registrationsPaymentFilter}
-                onValueChange={(v) => {
-                  const next = v === "All Payments" || v === "PAID" || v === "UNPAID" || v === "REFUNDED" ? v : "All Payments";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsPaymentFilter(next);
-                }}
-                options={[
-                  { value: "All Payments", label: "All Payments" },
-                  { value: "PAID", label: "Paid" },
-                  { value: "UNPAID", label: "Unpaid" },
-                  { value: "REFUNDED", label: "Refunded" },
-                ]}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-normal"
-                placeholder="All Payments"
-              />
-              <SearchableSelect
-                value={registrationsDisqualifiedFilter}
-                onValueChange={(v) => {
-                  const next =
-                    v === "All Players" || v === "Enabled Players" || v === "Disqualified Players"
-                      ? v
-                      : "All Players";
-                  setRegistrationsPage(1);
-                  if (registrationsMode === "server") setRegistrationsLoading(true);
-                  setRegistrationsDisqualifiedFilter(next);
-                }}
-                options={[
-                  { value: "All Players", label: "All Players" },
-                  { value: "Enabled Players", label: "Enabled Players" },
-                  { value: "Disqualified Players", label: "Disqualified Players" },
-                ]}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-white font-normal"
-                placeholder="All Players"
-              />
-            </div>
-
-            {registrationsLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-[#efefef] bg-background/50 px-4 py-3">
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-40 rounded-md" />
-                      <Skeleton className="h-3 w-56 rounded-md" />
-                    </div>
-                    <Skeleton className="h-6 w-20 rounded-lg" />
-                  </div>
-                ))}
-              </div>
-            ) : registrationsPageItems.length > 0 ? (
-              <div className="rounded-xl border border-[#efefef] divide-y divide-gray-50 overflow-hidden">
-                {registrationsPageItems.map((r) => {
-                  const fullName = `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Unknown Player";
-                  const isTournamentLocked = selectedTournament?.statusKey === "CANCELLED" || selectedTournament?.statusKey === "COMPLETED";
-
-                  const statusConfig = {
-                    DISQUALIFIED: { badge: "bg-gray-100 text-gray-600 border-[#e1efe5]", icon: Ban },
-                    APPROVED: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2 },
-                    REJECTED: { badge: "bg-red-50 text-red-700 border-red-100", icon: X },
-                    WAITLISTED: { badge: "bg-blue-50 text-blue-700 border-blue-100", icon: Clock },
-                    PENDING: { badge: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-                  }[r.status as string] || { badge: "bg-background text-gray-600 border-[#efefef]", icon: Clock };
-
-                  const paymentConfig = {
-                    PAID: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "Paid" },
-                    REFUNDED: { badge: "bg-violet-50 text-violet-700 border-violet-100", label: "Refunded" },
-                    UNPAID: { badge: "bg-gray-100 text-gray-500 border-[#e1efe5]", label: "Unpaid" },
-                  }[r.paymentStatus as string] || { badge: "bg-background text-gray-500 border-[#efefef]", label: r.paymentStatus };
-
-                  return (
-                    <div key={r.id} className="px-5 py-4 hover:bg-background/60 transition-colors group">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                          <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
-                            alt={fullName}
-                            className="w-10 h-10 rounded-full border border-[#efefef] bg-white flex-shrink-0"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <p className="text-[14px] text-gray-900 font-normal truncate">{fullName}</p>
-                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-normal whitespace-nowrap uppercase tracking-wider", statusConfig.badge)}>
-                                {React.createElement(statusConfig.icon, { className: "w-3 h-3" })}
-                                {r.status}
-                              </span>
-                              <span className={cn("px-2 py-0.5 rounded-lg border text-[10px] font-normal whitespace-nowrap uppercase tracking-wider", paymentConfig.badge)}>
-                                {paymentConfig.label}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <p className="text-[12px] text-gray-400 font-normal truncate">{r.user?.email || "No email"}</p>
-                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                <span className="flex items-center gap-1 text-[11px] font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
-                                  <Plus className="w-3 h-3" />
-                                  {r.extraStrokes} Strokes
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className={cn(
-                          "flex items-center gap-1.5 flex-shrink-0 transition-all duration-200",
-                          isTournamentLocked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                        )}>
-                          {isTournamentLocked ? (
-                            <span className="text-[11px] font-normal text-gray-400 bg-background px-3 py-1.5 rounded-lg border border-[#efefef]">
-                              Tournament {selectedTournament?.statusKey === "CANCELLED" ? "Cancelled" : "Completed"}
-                            </span>
-                          ) : (
-                            <>
-                              {r.status === "DISQUALIFIED" ? (
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "text-openclub-800 hover:bg-emerald-50 hover:border-emerald-100"
-                                  )}
-                                  title="Enable Player"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={() => {
-                                    setActionRegistration(r);
-                                    setIsEnablePlayerModalOpen(true);
-                                  }}
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  <span>Enable</span>
-                                </button>
-                              ) : (
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "text-red-600 hover:bg-red-50 hover:border-red-100"
-                                  )}
-                                  title="Disqualify Player"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={() => {
-                                    setActionRegistration(r);
-                                    setIsDisqualifyModalOpen(true);
-                                  }}
-                                >
-                                  <Ban className="w-4 h-4" />
-                                  <span>Disqualify</span>
-                                </button>
-                              )}
-
-                              <button
-                                className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-gray-600 transition-all",
-                                  registrationActionId === r.id
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-background hover:border-gray-300"
-                                )}
-                                title="Add Strokes"
-                                disabled={registrationActionId === r.id}
-                                onClick={(e) => {
-                                  if (registrationActionId === r.id) return;
-                                  setStrokesMenuRegistration(r);
-                                  setStrokesMenuAnchorEl(e.currentTarget);
-                                }}
-                              >
-                                <Plus className="w-4 h-4" />
-                                <span>Strokes</span>
-                              </button>
-
-                              {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                <button
-                                  className={cn(
-                                    "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-gray-400 transition-all",
-                                    registrationActionId === r.id
-                                      ? "text-gray-300 cursor-not-allowed"
-                                      : "hover:bg-background hover:text-gray-600 hover:border-gray-300"
-                                  )}
-                                  title="Clear Strokes"
-                                  disabled={registrationActionId === r.id}
-                                  onClick={() => clearTournamentRegistrationStrokes(r)}
-                                >
-                                  <Eraser className="w-4 h-4" />
-                                  <span>Clear</span>
-                                </button>
-                              )}
-
-                              <button
-                                className={cn(
-                                  "h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-[#e1efe5] bg-white text-[12px] font-normal text-red-600 transition-all",
-                                  registrationActionId === r.id
-                                    ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-red-50 hover:border-red-100"
-                                )}
-                                title="Remove Player"
-                                disabled={registrationActionId === r.id}
-                                onClick={() => {
-                                  setActionRegistration(r);
-                                  setIsRemovePlayerModalOpen(true);
-                                }}
-                              >
-                                <UserMinus className="w-4 h-4" />
-                                <span>Remove</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#efefef] bg-background/40 px-4 py-4 text-[13px] text-gray-500 font-normal">
-                No registrations yet for this tournament.
-              </div>
-            )}
-
-            {!registrationsLoading && registrationsFilteredTotal > 0 && (
-              <div className="pt-2 flex items-center justify-between gap-4">
-                <p className="text-[13px] text-gray-500 font-normal">
-                  Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
-                  {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
-                  {formatWithCommas(registrationsFilteredTotal)} registrations
-                </p>
-                <Pagination
-                  currentPage={registrationsPage}
-                  totalPages={Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage))}
-                  onPageChange={(p) => {
-                    if (registrationsMode === "server") setRegistrationsLoading(true);
-                    setRegistrationsPage(p);
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
 
       <WaitlistModal
         isOpen={isWaitlistModalOpen}

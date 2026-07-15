@@ -112,7 +112,7 @@ export function formatNumber(value: string | number): string {
     return `${formatted}${suffix}`;
   }
 
-  const prefix = isNaira ? "₦" : "";
+  const prefix = isNaira ? " ₦" : "";
 
   if (absValue >= 1_000_000_000) {
     return `${sign}${prefix}${formatKMB(absValue, 1_000_000_000, "b")}`;
@@ -216,7 +216,7 @@ export function formatCurrency(amount: number): string {
   const sign = amount < 0 ? "-" : "";
 
   if (absValue > 11_000_000) {
-    return `${sign}₦11m and above`;
+    return `${sign} ₦11m and above`;
   }
 
   if (absValue >= 1_000_000) {
@@ -224,10 +224,10 @@ export function formatCurrency(amount: number): string {
     const formatted = new Intl.NumberFormat("en-US", {
       maximumFractionDigits: 1,
     }).format(val);
-    return `${sign}₦${formatted}m`;
+    return `${sign} ₦${formatted}m`;
   }
 
-  return `${sign}₦${new Intl.NumberFormat("en-US", {
+  return `${sign} ₦${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(absValue)}`;

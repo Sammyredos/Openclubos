@@ -253,6 +253,15 @@ export class JobsProcessor extends WorkerHost {
           data.clubName || 'Your Club',
         );
 
+      case 'TOURNAMENT_PLAYER_INVITE':
+        return this.emailService.sendTournamentPlayerInvite(
+          to,
+          data.tournamentName || 'Tournament',
+          data.clubName || 'Your Club',
+          data.inviteUrl || '',
+          data.isNewUser || false,
+        );
+
       default:
         throw new Error(`Unsupported email template: ${template}`);
     }
