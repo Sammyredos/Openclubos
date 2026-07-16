@@ -916,7 +916,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
               <div className="p-5 space-y-6">
                 <div className="space-y-2">
-                  <p className="text-[13px] font-normal text-gray-600">
+                  <p className="text-[13px] font-medium text-gray-600">
                     Tournament Format <span className="text-red-500">*</span>
                   </p>
                   <div className="grid grid-cols-1 gap-2">
@@ -992,7 +992,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-[13px] font-normal text-gray-600">
+                    <p className="text-[13px] font-medium text-gray-600">
                       Scoring Type <span className="text-red-500">*</span>
                     </p>
                     <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">

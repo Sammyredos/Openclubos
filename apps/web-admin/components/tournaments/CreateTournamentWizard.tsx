@@ -743,7 +743,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
             {/* ── Tournament Format ── */}
             <div className="space-y-2">
-              <p className="text-[13px] font-normal text-gray-600">Tournament Format <span className="text-red-500">*</span></p>
+              <p className="text-[13px] font-medium text-gray-600">Tournament Format <span className="text-red-500">*</span></p>
               <div className="grid grid-cols-1 gap-2">
                 {[
                   {
@@ -1091,7 +1091,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       value={formData.cutFormat}
                       onValueChange={(v) => {
                         set("cutFormat", v);
-                        set("cutLine", ""); 
+                        set("cutLine", "");
                       }}
                       options={[
                         { value: "NUMBER", label: "Exact Number" },

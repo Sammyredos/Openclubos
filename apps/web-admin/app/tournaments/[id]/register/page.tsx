@@ -7,11 +7,11 @@ import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
-import { 
-  ShieldCheck, 
-  CreditCard, 
-  AlertCircle, 
-  ChevronRight, 
+import {
+  ShieldCheck,
+  CreditCard,
+  AlertCircle,
+  ChevronRight,
   CheckCircle2,
   DollarSign,
   User,
@@ -83,7 +83,7 @@ export default function TournamentRegistrationPage() {
     <div className="min-h-screen flex items-center justify-center bg-background/50">
       <div className="text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <h1 className="text-[16px] font-nexa-bold">Tournament Not Found</h1>
+        <h1 className="text-[16px] font-medium">Tournament Not Found</h1>
         <Button onClick={() => router.back()}>Go Back</Button>
       </div>
     </div>
@@ -97,12 +97,12 @@ export default function TournamentRegistrationPage() {
           <AlertCircle className="w-10 h-10 text-amber-500" />
         </div>
         <div className="space-y-3">
-          <h1 className="text-[16px] font-nexa-bold text-gray-900 tracking-tight">Registration Closed</h1>
+          <h1 className="text-[16px] font-medium text-gray-900 tracking-tight">Registration Closed</h1>
           <p className="text-gray-500 leading-relaxed text-[15px]">
             We're sorry, but registration is now closed. This tournament has already started and we do not accept new registrations after Day 1 has commenced.
           </p>
         </div>
-        <Button className="w-full h-12 text-[15px] font-nexa-bold rounded-xl bg-gray-900 hover:bg-gray-800 text-white" onClick={() => router.back()}>
+        <Button className="w-full h-12 text-[15px] font-medium rounded-xl bg-gray-900 hover:bg-gray-800 text-white" onClick={() => router.back()}>
           Return
         </Button>
       </div>
@@ -112,22 +112,22 @@ export default function TournamentRegistrationPage() {
   return (
     <div className="min-h-screen bg-background/50 p-4 md:p-8 font-nexa-regular">
       <div className="max-w-2xl mx-auto">
-        
+
         {/* Progress Stepper */}
         <div className="mb-12 flex items-center justify-center gap-4">
           <div className={`flex items-center gap-2 ${step === 'details' ? 'text-primary' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'details' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>1</div>
-            <span className="font-nexa-bold text-[12px]">Review</span>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium border-2 ${step === 'details' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>1</div>
+            <span className="font-medium text-[12px]">Review</span>
           </div>
           <div className="w-12 h-px bg-gray-200" />
           <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-primary' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'payment' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>2</div>
-            <span className="font-nexa-bold text-[12px]">Payment</span>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium border-2 ${step === 'payment' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>2</div>
+            <span className="font-medium text-[12px]">Payment</span>
           </div>
           <div className="w-12 h-px bg-gray-200" />
           <div className={`flex items-center gap-2 ${step === 'success' ? 'text-primary' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-nexa-bold border-2 ${step === 'success' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>3</div>
-            <span className="font-nexa-bold text-[12px]">Done</span>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium border-2 ${step === 'success' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>3</div>
+            <span className="font-medium text-[12px]">Done</span>
           </div>
         </div>
 
@@ -140,21 +140,21 @@ export default function TournamentRegistrationPage() {
                     <ShieldCheck className="w-8 h-8" />
                   </div>
                   <div>
-                    <h1 className="text-[16px] font-nexa-bold text-gray-900">{tournament.name}</h1>
-                    <p className="text-gray-500">Registration Review</p>
+                    <h1 className="text-[16px] font-medium text-gray-900">{tournament.name}</h1>
+                    <p className="text-gray-500 font-normal">Registration Review</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-background p-4 rounded-2xl space-y-1">
-                    <p className="text-[11px] font-nexa-bold text-gray-400 capitalize tracking-wider">Entry Fee</p>
-                    <p className="text-[14px] font-nexa-bold text-gray-900">
+                    <p className="text-[11px] font-medium text-gray-400 capitalize tracking-wider">Entry Fee</p>
+                    <p className="text-[14px] font-medium text-gray-900">
                       {tournament.entryFee && tournament.entryFee > 0 ? `₦${tournament.entryFee.toFixed(2)}` : 'FREE'}
                     </p>
                   </div>
                   <div className="bg-background p-4 rounded-2xl space-y-1">
-                    <p className="text-[11px] font-nexa-bold text-gray-400 uppercase tracking-wider">Player Type</p>
-                    <div className="flex items-center gap-2 font-nexa-bold text-primary">
+                    <p className="text-[11px] font-medium text-gray-400 Capitalize tracking-wider">Player Type</p>
+                    <div className="flex items-center gap-2 font-medium text-primary">
                       <User className="w-4 h-4" />
                       {playerType}
                     </div>
@@ -162,20 +162,20 @@ export default function TournamentRegistrationPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-gray-50">
-                  <div className="flex items-center gap-3 text-[12px] text-gray-600">
-                    <Clock className="w-4 h-4 text-primary" />
+                  <div className="flex items-center font-normal gap-3 text-[12px] text-gray-600">
+                    <Clock className="w-4 h-4 text-primary font-medium" />
                     <span>Starts: {new Date(tournament.startDate).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[12px] text-gray-600">
-                    <Info className="w-4 h-4 text-primary" />
+                  <div className="flex items-center font-normal gap-3 text-[12px] text-gray-600">
+                    <Info className="w-4 h-4 text-primary font-medium" />
                     <span>Eligibility: {tournament.playerTypes.join(", ")}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <Button 
-              className="w-full h-14 rounded-lg font-nexa-bold text-[14px] bg-primary hover:bg-primary/90 border border-primary/60 text-white flex items-center justify-center gap-2 group"
+            <Button
+              className="w-full h-14 rounded-lg font-medium text-[14px] bg-primary hover:bg-primary/90 border border-primary/60 text-white flex items-center justify-center gap-2 group"
               onClick={() => tournament.entryFee && tournament.entryFee > 0 ? setStep("payment") : handleRegister()}
             >
               {tournament.entryFee && tournament.entryFee > 0 ? "Proceed to Payment" : "Confirm Registration"}
@@ -191,22 +191,22 @@ export default function TournamentRegistrationPage() {
                 <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-primary mx-auto mb-4">
                   <CreditCard className="w-8 h-8" />
                 </div>
-                <h2 className="text-[16px] font-nexa-bold text-gray-900">Secure Payment</h2>
+                <h2 className="text-[16px] font-medium text-gray-900">Secure Payment</h2>
                 <p className="text-gray-500">Complete your entry fee payment</p>
               </div>
 
               <div className="bg-primary/5 rounded-2xl p-6 flex items-center justify-between">
-                <span className="font-nexa-bold text-gray-600">Amount to Pay</span>
-                <span className="text-[16px] font-nexa-bold text-primary">₦{tournament.entryFee?.toFixed(2)}</span>
+                <span className="font-medium text-gray-600">Amount to Pay</span>
+                <span className="text-[16px] font-medium text-primary">₦{tournament.entryFee?.toFixed(2)}</span>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[12px] font-nexa-bold text-gray-700 ml-1">Payment Reference (Simulation)</label>
+                  <label className="text-[12px] font-medium text-gray-700 ml-1">Payment Reference (Simulation)</label>
                   <div className="relative group">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-                    <Input 
-                      placeholder="e.g. TRN-12345678" 
+                    <Input
+                      placeholder="e.g. TRN-12345678"
                       className="pl-12 h-14 bg-background border-transparent focus:bg-white focus:border-primary transition-all rounded-xl"
                       value={paymentRef}
                       onChange={(e) => setPaymentRef(e.target.value)}
@@ -218,15 +218,15 @@ export default function TournamentRegistrationPage() {
             </div>
 
             <div className="flex gap-4">
-              <Button 
-                variant="outline" 
-                className="flex-1 h-14 rounded-lg font-nexa-bold border-gray-200"
+              <Button
+                variant="outline"
+                className="flex-1 h-14 rounded-lg font-medium border-gray-200"
                 onClick={() => setStep("details")}
               >
                 Back
               </Button>
-              <Button 
-                className="flex-[2] h-14 rounded-lg font-nexa-bold text-[14px] bg-primary hover:bg-primary/90 border border-primary/60 text-white disabled:opacity-50"
+              <Button
+                className="flex-[2] h-14 rounded-lg font-medium text-[14px] bg-primary hover:bg-primary/90 border border-primary/60 text-white disabled:opacity-50"
                 disabled={!paymentRef || isSubmitting}
                 onClick={handleRegister}
               >
@@ -244,35 +244,35 @@ export default function TournamentRegistrationPage() {
               </div>
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
             </div>
-            
+
             <div className="space-y-3">
-              <h1 className="text-[16px] font-nexa-bold text-gray-900 tracking-tight">You&apos;re All Set!</h1>
+              <h1 className="text-[16px] font-medium text-gray-900 tracking-tight">You&apos;re All Set!</h1>
               <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                Your registration for <span className="font-nexa-bold text-gray-800">{tournament.name}</span> has been confirmed. We&apos;ve sent a summary to your email.
+                Your registration for <span className="font-medium text-gray-800">{tournament.name}</span> has been confirmed. We&apos;ve sent a summary to your email.
               </p>
             </div>
 
             <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm max-w-sm mx-auto">
               <div className="space-y-4 text-left">
                 <div className="flex justify-between text-[12px]">
-                  <span className="text-gray-400 font-nexa-bold">STATUS</span>
-                  <span className="text-primary font-nexa-bold bg-primary/5 px-2 py-0.5 rounded-lg">CONFIRMED</span>
+                  <span className="text-gray-400 font-medium">STATUS</span>
+                  <span className="text-primary font-medium bg-primary/5 px-2 py-0.5 rounded-lg">CONFIRMED</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
-                  <span className="text-gray-400 font-nexa-bold">PLAYER TYPE</span>
-                  <span className="text-gray-700 font-nexa-bold">{playerType}</span>
+                  <span className="text-gray-400 font-medium">Player Type</span>
+                  <span className="text-gray-700 font-medium">{playerType}</span>
                 </div>
                 {paymentRef && (
                   <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-400 font-nexa-bold">PAYMENT REF</span>
-                    <span className="text-gray-700 font-nexa-bold">{paymentRef}</span>
+                    <span className="text-gray-400 font-medium">PAYMENT REF</span>
+                    <span className="text-gray-700 font-medium">{paymentRef}</span>
                   </div>
                 )}
               </div>
             </div>
 
             <Button
-              className="h-14 px-12 rounded-lg font-nexa-bold text-[14px] bg-gray-900 hover:bg-gray-800 border border-gray-800/40 text-white transition-colors"
+              className="h-14 px-12 rounded-lg font-medium text-[14px] bg-gray-900 hover:bg-gray-800 border border-gray-800/40 text-white transition-colors"
               onClick={() => router.push("/tournaments")}
             >
               Back to Tournaments

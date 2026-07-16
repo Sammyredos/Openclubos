@@ -5,17 +5,17 @@ import { useParams, useRouter } from "next/navigation"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/ui/icons"
-import { 
-  Calendar, 
-  MapPin, 
-  Award, 
-  Users, 
-  DollarSign, 
-  Clock, 
-  ArrowLeft, 
-  AlertCircle, 
-  Shield, 
-  Trophy, 
+import {
+  Calendar,
+  MapPin,
+  Award,
+  Users,
+  DollarSign,
+  Clock,
+  ArrowLeft,
+  AlertCircle,
+  Shield,
+  Trophy,
   Info,
   ChevronRight,
   BookOpen
@@ -71,7 +71,7 @@ export default function TournamentDetailPage() {
 
   if (!tournament) return (
     <div className="min-h-screen flex items-center justify-center bg-background/50 p-4">
-      <div 
+      <div
         className="text-center space-y-4 bg-white p-8 md:p-12 rounded-3xl border border-gray-100 max-w-md w-full"
         style={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)" }}
       >
@@ -84,8 +84,8 @@ export default function TournamentDetailPage() {
   )
 
   const isRegistrationOpen = tournament.status === "REGISTRATION_OPEN"
-  const formattedFee = tournament.entryFee && tournament.entryFee > 0 
-    ? `₦${formatWithCommas(tournament.entryFee)}` 
+  const formattedFee = tournament.entryFee && tournament.entryFee > 0
+    ? `₦${formatWithCommas(tournament.entryFee)}`
     : "FREE"
 
   const statusMeta = STATUS_META[tournament.status] || { label: tournament.status, badge: "bg-gray-50 text-gray-600" }
@@ -93,9 +93,9 @@ export default function TournamentDetailPage() {
   return (
     <div className="min-h-screen bg-background/50 p-4 md:p-8 font-nexa-regular text-gray-700">
       <div className="max-w-4xl mx-auto space-y-6">
-        
+
         {/* Navigation / Header */}
-        <button 
+        <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-zinc-500 hover:text-zinc-800 transition-colors text-sm font-medium mb-4 group"
         >
@@ -104,17 +104,17 @@ export default function TournamentDetailPage() {
         </button>
 
         {/* Hero Banner Section */}
-        <div 
+        <div
           className="bg-white rounded-3xl border border-gray-100 overflow-hidden relative"
           style={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)" }}
         >
           {/* Banner Graphic background */}
           <div className="h-44 bg-gradient-to-r from-openclub-800 to-openclub-950 relative">
-            <div className="absolute inset-0 opacity-15" 
-                 style={{ 
-                   backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", 
-                   backgroundSize: "20px 20px" 
-                 }} 
+            <div className="absolute inset-0 opacity-15"
+              style={{
+                backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                backgroundSize: "20px 20px"
+              }}
             />
           </div>
 
@@ -172,12 +172,12 @@ export default function TournamentDetailPage() {
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Main Info Blocks (Left 2 columns) */}
           <div className="md:col-span-2 space-y-6">
-            
+
             {/* Description Section */}
-            <div 
+            <div
               className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 space-y-4"
               style={{ boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.01)" }}
             >
@@ -194,7 +194,7 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Rules & Requirements block */}
-            <div 
+            <div
               className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 space-y-4"
               style={{ boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.01)" }}
             >
@@ -221,9 +221,9 @@ export default function TournamentDetailPage() {
 
           {/* Quick Stats sidebar (Right 1 column) */}
           <div className="space-y-6">
-            
+
             {/* Key Information Card */}
-            <div 
+            <div
               className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6"
               style={{ boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.01)" }}
             >
@@ -231,7 +231,7 @@ export default function TournamentDetailPage() {
                 <h3 className="text-sm font-nexa-bold text-gray-900 border-b border-gray-50 pb-2 uppercase tracking-wide">
                   Tournament Info
                 </h3>
-                
+
                 <div className="space-y-4 text-sm">
                   {/* Entry Fee */}
                   <div className="flex items-start gap-3">
@@ -239,7 +239,7 @@ export default function TournamentDetailPage() {
                       <DollarSign className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Entry Fee</p>
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Entry Fee</p>
                       <p className="font-nexa-bold text-gray-900 mt-0.5">{formattedFee}</p>
                     </div>
                   </div>
@@ -251,7 +251,7 @@ export default function TournamentDetailPage() {
                         <Award className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Handicap Limits</p>
+                        <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Handicap Limits</p>
                         <p className="font-nexa-bold text-gray-900 mt-0.5">
                           {tournament.minHandicap ?? 0} - {tournament.maxHandicap ?? "N/A"}
                         </p>
@@ -281,7 +281,7 @@ export default function TournamentDetailPage() {
                         <Clock className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Registration Deadline</p>
+                        <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Registration Deadline</p>
                         <p className="font-nexa-bold text-gray-900 mt-0.5">
                           {new Date(tournament.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
@@ -301,7 +301,7 @@ export default function TournamentDetailPage() {
                     </Button>
                   </Link>
                 ) : (
-                  <Button 
+                  <Button
                     className="w-full h-12 bg-gray-100 border border-gray-200 text-gray-400 rounded-xl font-nexa-bold cursor-not-allowed flex items-center justify-center"
                     disabled
                   >
@@ -310,7 +310,7 @@ export default function TournamentDetailPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Help / Information Box */}
             <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-3xl p-6 space-y-3">
               <div className="flex items-center gap-2 text-openclub-900 font-nexa-bold">

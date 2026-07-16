@@ -297,7 +297,7 @@ export default function SignupOrganisationPage() {
                       <ArrowLeft className="w-5 h-5 text-zinc-700" />
                     </button>
                   )}
-                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create a New Account</h2>
+                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create an Organizer Account</h2>
                   <p className="text-zinc-500 font-medium tracking-tight">Step {step} of 5</p>
 
                   <div className="flex items-center gap-2 mt-6">
@@ -440,14 +440,14 @@ export default function SignupOrganisationPage() {
                     </div>
 
                     <div>
-                      <label className={labelClasses}>{orgCountry === "NG" ? "LGA" : "City"}</label>
+                      <label className={labelClasses}>{orgCountry === "NG" ? "Municipality/LGA" : "City"}</label>
                       {orgCountry === "NG" ? (
                         <SearchableSelect
                           value={form.watch("organizationCity")}
                           onValueChange={(v) => setValue("organizationCity", v, { shouldValidate: true })}
                           options={lgaOptions}
                           disabled={!orgState}
-                          placeholder="Select LGA"
+                          placeholder="Select Municipality/LGA"
                           triggerClassName={inputClasses}
                         />
                       ) : (

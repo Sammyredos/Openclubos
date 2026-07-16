@@ -3073,7 +3073,7 @@ function ViewTournamentPageInner() {
                         <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
                       </div>
                       <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Scoring Type</span>
+                        <span className="text-[10px] font-medium text-gray-400 uppercase block">Scoring Type</span>
                         <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
                       </div>
                       <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
