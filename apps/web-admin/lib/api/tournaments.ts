@@ -19,11 +19,13 @@ export interface Tournament {
   paymentDeadline?: string;
   clubId: string;
   courseId: string;
-  club?: { id: string; name: string; logo?: string | null } | null;
+  club?: { id: string; name: string; logo?: string | null; email?: string | null } | null;
   course?: { id: string; name: string } | null;
   enableWaitlist?: boolean;
   _count?: { registrations: number };
   lockedGroupingsDays?: number[];
+  bannerUrl?: string | null;
+  description?: string | null;
 }
 
 export type UpdateTournamentPayload = {

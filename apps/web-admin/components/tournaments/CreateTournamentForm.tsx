@@ -702,7 +702,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Field label="Tournament Banner" required>
                     <div className="relative">
                       {formData.bannerPreview ? (
-                        <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-background h-40">
+                        <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-background h-40" style={{ height: "270px" }}>
                           <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
                           <button
                             onClick={() => {
@@ -765,7 +765,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       onChange={(e) => set("description", e.target.value)}
                       placeholder="Brief description of the tournament..."
                       className={cn(
-                        "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
+                        "flex h-60 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
                         req(formData.description)
                       )}
                     />
