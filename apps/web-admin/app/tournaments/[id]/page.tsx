@@ -65,7 +65,7 @@ export default function TournamentDetailPage() {
   }, [params.id])
 
   if (isLoading) return (
-    <div className="min-h-screen bg-background/50 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-64 w-full rounded-lg" />
@@ -84,7 +84,7 @@ export default function TournamentDetailPage() {
   )
 
   if (!tournament) return (
-    <div className="min-h-screen flex items-center justify-center bg-background/50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="text-center space-y-4 bg-white p-8 md:p-12 rounded-lg border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] max-w-md w-full">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
         <h1 className="text-base text-gray-900">Tournament Not Found</h1>
@@ -102,17 +102,8 @@ export default function TournamentDetailPage() {
   const statusMeta = STATUS_META[tournament.status] || { label: tournament.status, badge: "bg-gray-50 text-gray-600" }
 
   return (
-    <div className="min-h-screen bg-background/50 p-4 md:p-8 text-gray-700">
-      <div className="max-w-4xl mx-auto space-y-6">
-
-        {/* Navigation / Header */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm mb-4 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Tournaments</span>
-        </button>
+    <div className="min-h-screen bg-background p-4 md:p-8 text-gray-700">
+      <div className="max-w-4xl mx-auto space-y-4">
 
         {/* Hero Banner Section */}
         <div className="bg-white rounded-lg border-none overflow-hidden relative shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
@@ -150,10 +141,10 @@ export default function TournamentDetailPage() {
             <div className="pt-14 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs text-openclub-700 tracking-wide uppercase">
+                  <span className="text-[11px] text-openclub-700 tracking-wide uppercase">
                     {tournament.club?.name || "Tournament Organizer"}
                   </span>
-                  <h1 className="text-xl md:text-2xl text-gray-900 tracking-tight leading-tight">
+                  <h1 className="text-lg md:text-xl text-gray-900 font-semibold tracking-tight leading-tight">
                     {tournament.name}
                   </h1>
                 </div>
@@ -163,7 +154,7 @@ export default function TournamentDetailPage() {
               </div>
 
               {/* Quick Info bar */}
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-5 pt-3 border-t border-gray-100 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-5 pt-3 border-t border-gray-100 text-xs text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-openclub-600" />
                   <span>
@@ -187,18 +178,18 @@ export default function TournamentDetailPage() {
         </div>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Main Info Blocks (Left 2 columns) */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-2 space-y-4">
 
             {/* Description Section */}
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <BookOpen className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-base">About the Tournament</h2>
+                <h2 className="text-sm font-semibold">About the Tournament</h2>
               </div>
-              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+              <p className="text-gray-600 text-xs leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
                   ? (tournament as any).description
                   : `Join us for the prestigious ${tournament.name} organized by ${tournament.club?.name || "our Club"}. This event brings players together for an outstanding competitive golf experience on a meticulously maintained course. Players of eligible divisions can confirm their slot and proceed with entry fee payments via the platform to secure their spot on the official roster.`}
@@ -209,9 +200,9 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <Shield className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-base">Entry Guidelines & Restrictions</h2>
+                <h2 className="text-sm font-semibold">Entry Guidelines & Restrictions</h2>
               </div>
-              <ul className="space-y-3 text-sm text-gray-600">
+              <ul className="space-y-3 text-xs text-gray-600">
                 <li className="flex items-start gap-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
                   <span>Participants must maintain a verified handicap index matching the tournament constraints.</span>
@@ -229,15 +220,15 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Quick Stats sidebar (Right 1 column) */}
-          <div className="space-y-6">
+          <div className="space-y-4">
 
             {/* Key Information Card */}
             <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <h3 className="text-xs text-gray-900 border-b border-gray-50 pb-2 uppercase tracking-wide">
+              <h3 className="text-[11px] text-gray-900 font-semibold border-b border-gray-50 pb-2 uppercase tracking-wide">
                 Tournament Info
               </h3>
 
-              <div className="space-y-4 text-sm">
+              <div className="space-y-4 text-xs">
                 {/* Entry Fee */}
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
@@ -316,12 +307,12 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Help / Information Box */}
-            <div className="bg-openclub-50/60 border border-openclub-100/50 rounded-lg p-5 space-y-2">
+            <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-openclub-900">
                 <Info className="w-4 h-4 text-openclub-700" />
-                <h4 className="text-sm">Need Assistance?</h4>
+                <h4 className="text-xs font-medium">Need Assistance?</h4>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
                 If you have questions about payment validation, guest eligibility, or handicap restrictions, please contact the golf organizer club directly{tournament.club?.email ? ` at ${tournament.club.email}` : ''}.
               </p>
             </div>

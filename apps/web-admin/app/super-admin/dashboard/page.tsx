@@ -929,28 +929,28 @@ export default function SuperAdminDashboard() {
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.api === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
-                  <div className="text-sm text-slate-800 font-normal">Core API Server</div>
+                  <div className="text-sm text-slate-800 font-medium">Core API Server</div>
                 </div>
                 <div className={`text-[13px] font-normal ${stats?.systemHealth?.api === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.api || 'Unknown'}</div>
               </div>
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.database === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
-                  <div className="text-sm text-slate-800 font-normal">PostgreSQL Database</div>
+                  <div className="text-sm text-slate-800 font-medium">PostgreSQL Database</div>
                 </div>
                 <div className={`text-[13px] font-normal ${stats?.systemHealth?.database === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.database || 'Unknown'}</div>
               </div>
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.redis === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
-                  <div className="text-sm text-slate-800 font-normal">Redis Cache</div>
+                  <div className="text-sm text-slate-800 font-medium">Redis Cache</div>
                 </div>
                 <div className={`text-[13px] font-normal ${stats?.systemHealth?.redis === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.redis || 'Unknown'}</div>
               </div>
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full ${stats?.systemHealth?.workers === 'Operational' ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
-                  <div className="text-sm text-slate-800 font-normal">Background Workers</div>
+                  <div className="text-sm text-slate-800 font-medium">Background Workers</div>
                 </div>
                 <div className={`text-[13px] font-normal ${stats?.systemHealth?.workers === 'Operational' ? 'text-[#15803D] bg-[#f5faf6] border-[#e1efe5]' : 'text-red-600 bg-red-50 border-red-200'} px-2.5 py-0.5 rounded-md border`}>{stats?.systemHealth?.workers || 'Unknown'}</div>
               </div>

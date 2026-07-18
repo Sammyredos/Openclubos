@@ -58,6 +58,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
+
 import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
@@ -200,6 +201,9 @@ function ViewTournamentPageInner() {
   const [selectedTournament, setSelectedTournament] = useState<TournamentRow | null>(null);
   const [courseDetails, setCourseDetails] = useState<Course | null>(null);
   const [clubDetails, setClubDetails] = useState<Club | null>(null);
+  
+  // --- Modals ---
+  const [isInvitePlayerModalOpen, setIsInvitePlayerModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [mutating, setMutating] = useState(false);
@@ -959,7 +963,7 @@ function ViewTournamentPageInner() {
 
   // Search & Register Logic inside tab
   useEffect(() => {
-    if (activeTab !== "register" || !selectedTournament?.id) {
+    if (!isInvitePlayerModalOpen || !selectedTournament?.id) {
       setRegisterPlayerResults([]);
       return;
     }
@@ -1003,7 +1007,7 @@ function ViewTournamentPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, registerPlayerSearch]);
+  }, [isInvitePlayerModalOpen, registerPlayerSearch]);
 
   const handleRegisterPlayer = async (userId: string) => {
     if (!selectedTournament?.id) return;
@@ -1542,9 +1546,9 @@ function ViewTournamentPageInner() {
                     <Button
                       onClick={() => setActiveTab("waitlist")}
                       variant="outline"
-                      className="h-9 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 rounded-md px-4 text-[11px] font-medium capitalize tracking-wider transition-all shadow-sm"
+                      className="h-9 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
                     >
-                      <Clock className="w-3.5 h-3.5 text-openclub-800" /> WAITLIST QUEUE
+                      <Clock className="w-3.5 h-3.5 text-openclub-800" /> Waitlist Queue
                       {pendingWaitlistTotal > 0 && (
                         <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[10px] font-medium px-1.5 h-4 min-w-[16px] rounded-full ml-1">
                           {pendingWaitlistTotal}
@@ -1553,10 +1557,10 @@ function ViewTournamentPageInner() {
                     </Button>
                     <Button
                       disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-                      onClick={() => setActiveTab("register")}
-                      className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[11px] font-medium uppercase tracking-wider transition-all shadow-sm"
+                      onClick={() => setIsInvitePlayerModalOpen(true)}
+                      className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
                     >
-                      <UserPlus className="w-3.5 h-3.5" /> REGISTER A PLAYER
+                      <UserPlus className="w-3.5 h-3.5" /> Invite a Player
                     </Button>
                   </div>
                 </div>
@@ -1801,12 +1805,16 @@ function ViewTournamentPageInner() {
               </div>
             )}
 
-            {/* TABS 2: Register Player Inline */}
-            {activeTab === "register" && (
+            {/* Modals for Registered Players Tab */}
+            <Modal
+              isOpen={isInvitePlayerModalOpen}
+              onClose={() => setIsInvitePlayerModalOpen(false)}
+              title="Manual Player Registration"
+              size="xl"
+            >
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Manual Player Registration</h2>
-                  <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
+                  <p className="text-[14px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
@@ -1993,7 +2001,7 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
               </div>
-            )}
+            </Modal>
 
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (

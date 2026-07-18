@@ -71,7 +71,7 @@ export function LiveTickerStrip() {
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-3">
           <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-          <span className="text-white font-normal tracking-wide uppercase text-xs">Live now</span>
+          <span className="text-white font-medium tracking-wide uppercase text-xs">Live now</span>
         </div>
 
         <div className="flex items-center gap-8">

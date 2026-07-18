@@ -67,25 +67,16 @@ function ResetPasswordPageInner() {
 
   return (
     <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
-      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
-
-        {/* LEFT COLUMN - Image */}
-        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
-          style={{ backgroundImage: "url('/sagamu-hole-15-island.png')" }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
-
-          <div className="relative z-10 text-white">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              Back on the<br />Fairway.
-            </h1>
-            <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
-              Create a new password to get back in the swing of things and regain access to your golf tournaments.
-            </p>
-          </div>
-        </div>
+      <div className="w-full max-w-[1440px] mx-auto flex justify-center relative">
 
         {/* RIGHT COLUMN - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+        <div className="w-full flex flex-col items-center justify-center p-8 lg:p-16 relative">
+          
+          <div className="flex items-center gap-2 mb-8 relative z-10">
+            <Icons.logo className="w-8 h-8 text-zinc-900" />
+            <span className="font-bold text-2xl tracking-tight text-zinc-900">OpenClub</span>
+          </div>
+
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
 
