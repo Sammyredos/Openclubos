@@ -187,9 +187,9 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <BookOpen className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-sm font-semibold">About the Tournament</h2>
+                <h2 className="text-[16px] text-slate-900 font-medium">About the Tournament</h2>
               </div>
-              <p className="text-gray-600 text-xs leading-relaxed whitespace-pre-line">
+              <p className="text-gray-500 text-[14px] leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
                   ? (tournament as any).description
                   : `Join us for the prestigious ${tournament.name} organized by ${tournament.club?.name || "our Club"}. This event brings players together for an outstanding competitive golf experience on a meticulously maintained course. Players of eligible divisions can confirm their slot and proceed with entry fee payments via the platform to secure their spot on the official roster.`}
@@ -200,9 +200,9 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <Shield className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-sm font-semibold">Entry Guidelines & Restrictions</h2>
+                <h2 className="text-[16px] text-slate-900 font-medium">Entry Guidelines & Restrictions</h2>
               </div>
-              <ul className="space-y-3 text-xs text-gray-600">
+              <ul className="space-y-3 text-[14px] text-gray-500">
                 <li className="flex items-start gap-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
                   <span>Participants must maintain a verified handicap index matching the tournament constraints.</span>
@@ -224,7 +224,7 @@ export default function TournamentDetailPage() {
 
             {/* Key Information Card */}
             <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <h3 className="text-[11px] text-gray-900 font-semibold border-b border-gray-50 pb-2 uppercase tracking-wide">
+              <h3 className="text-slate-900 text-[16px] font-medium border-b border-gray-50 pb-2 capitalize tracking-wide">
                 Tournament Info
               </h3>
 
@@ -235,8 +235,8 @@ export default function TournamentDetailPage() {
                     <DollarSign className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wider">Entry Fee</p>
-                    <p className="text-gray-900 mt-0.5">{formattedFee}</p>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider">Entry Fee</p>
+                    <p className="text-slate-900 text-[15px] font-medium mt-0.5">{formattedFee}</p>
                   </div>
                 </div>
 
@@ -247,8 +247,8 @@ export default function TournamentDetailPage() {
                       <Award className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-400 uppercase tracking-wider">Handicap Limits</p>
-                      <p className="text-gray-900 mt-0.5">
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Handicap Limits</p>
+                      <p className="text-slate-900 text-[15px] font-medium mt-0.5">
                         {tournament.minHandicap ?? 0} – {tournament.maxHandicap ?? "N/A"}
                       </p>
                     </div>
@@ -262,8 +262,8 @@ export default function TournamentDetailPage() {
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-400 uppercase tracking-wider">Roster Size</p>
-                      <p className="text-gray-900 mt-0.5">
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Roster Size</p>
+                      <p className="text-slate-900 text-[15px] font-medium mt-0.5">
                         {tournament._count?.registrations ?? 0} / {tournament.maxPlayers} Max Players
                       </p>
                     </div>
@@ -290,14 +290,14 @@ export default function TournamentDetailPage() {
               <div className="pt-3 border-t border-gray-100">
                 {isRegistrationOpen ? (
                   <Link href={`/tournaments/${tournament.id}/register`} className="w-full">
-                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-white rounded-lg flex items-center justify-center gap-2 group">
+                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-white text-[14px] text-medium rounded-lg flex items-center justify-center gap-2 group">
                       <span>Register to Play</span>
                       <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                 ) : (
                   <Button
-                    className="w-full h-11 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center justify-center"
+                    className="w-full h-11 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center justify-center text-[14px] text-medium"
                     disabled
                   >
                     {tournament.status === "COMPLETED" ? "Tournament Completed" : "Registration Closed"}
@@ -310,9 +310,9 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-openclub-900">
                 <Info className="w-4 h-4 text-openclub-700" />
-                <h4 className="text-xs font-medium">Need Assistance?</h4>
+                <h4 className="text-[14px] font-medium">Need Assistance?</h4>
               </div>
-              <p className="text-[11px] text-gray-500 leading-relaxed">
+              <p className="text-[12px] text-gray-500 leading-relaxed">
                 If you have questions about payment validation, guest eligibility, or handicap restrictions, please contact the golf organizer club directly{tournament.club?.email ? ` at ${tournament.club.email}` : ''}.
               </p>
             </div>

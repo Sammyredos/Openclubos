@@ -721,7 +721,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         <div
                           onClick={() => fileInputRef.current?.click()}
                           className={cn(
-                            "h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group",
+                            "h-60 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group",
                             req(formData.bannerUrl) || "border-[#e1efe5]"
                           )}
                         >

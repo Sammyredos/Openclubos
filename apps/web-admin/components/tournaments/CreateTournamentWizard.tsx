@@ -563,7 +563,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               <Field label="Tournament Banner" required>
                 <div className="relative">
                   {formData.bannerPreview ? (
-                    <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-40">
+                    <div className="relative rounded-xl overflow-hidden border border-[#e1efe5] bg-background h-60">
                       <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
                       <button onClick={() => { set("bannerPreview", ""); set("bannerUrl", ""); }}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
