@@ -122,7 +122,7 @@ function SearchableSelect({
 
       {open && (
         <div className={cn(
-          "absolute z-50 w-full overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
+          "absolute z-[9999] w-full overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
           openUpwards ? "bottom-full mb-2" : "top-full mt-2"
         )}>
           <div className="border-b border-[#e1efe5] p-2">
