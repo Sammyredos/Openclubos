@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   Users,
   UserPlus,
@@ -33,6 +33,7 @@ import {
   Target,
   FileText,
   FileSpreadsheet,
+  ArrowLeft,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,9 +47,9 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { toast } from "sonner";
-import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, type AdminUser } from "@/lib/api/members";
+import { deleteMember, forceLogoutUser, getAdminUsers, updateMember, inviteManager, type AdminUser } from "@/lib/api/members";
 import { getOrganizer } from "@/lib/api/organizers";
-import { forgotPasswordRequest, getAuthToken } from "@/lib/api/auth";
+import { forgotPasswordRequest } from "@/lib/api/auth";
 import { exportToCsv, exportToPdf } from "@/lib/export";
 import dynamic from "next/dynamic";
 import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
@@ -99,9 +100,9 @@ function RoleBadge({ role, managerScope }: { role: AdminUser["role"]; managerSco
       case "CLUB_ADMIN": {
         // Scope-based titles for invited managers
         if (managerScope === "FULL") return { label: "admin manager", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
-        if (managerScope === "TOURNAMENT" || managerScope === "TOURNAMENTS") return { label: "tournament manager", className: "bg-teal-50 text-teal-700 border-teal-100", dot: "bg-teal-500" };
-        if (managerScope === "FINANCE") return { label: "finance admin", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
-        return { label: "organizer admin", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
+        if (managerScope === "TOURNAMENTS") return { label: "tournament manager", className: "bg-teal-50 text-teal-700 border-teal-100", dot: "bg-teal-500" };
+        if (managerScope === "FINANCE") return { label: "finance manager", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
+        return { label: "organiser admin", className: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" };
       }
       case "MARKER":
         return { label: "marker", className: "bg-indigo-50 text-indigo-700 border-indigo-100", dot: "bg-indigo-500" };
@@ -118,13 +119,16 @@ function RoleBadge({ role, managerScope }: { role: AdminUser["role"]; managerSco
   );
 }
 
-function StatusPill({ status }: { status: AdminUser["status"] }) {
+function StatusPill({ status }: { status: AdminUser["status"] | "PENDING" }) {
   const meta = (() => {
-    switch (status) {
+    switch (status as any) {
       case "SUSPENDED":
         return { label: "Suspended", className: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" };
       case "EXPIRED":
         return { label: "Expired", className: "bg-red-50 text-red-700 border-red-100", dot: "bg-red-500" };
+      case "PENDING":
+      case "INVITED":
+        return { label: "Pending", className: "bg-orange-50 text-orange-700 border-orange-100", dot: "bg-orange-500" };
       default:
         return { label: "Active", className: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-openclub-700" };
     }
@@ -137,11 +141,15 @@ function StatusPill({ status }: { status: AdminUser["status"] }) {
   );
 }
 
-export default function SuperAdminUsersPage() {
+
+export default function SuperAdminTeamPage() {
+  const params = useParams();
+  const id = params?.id as string | undefined;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clubName, setClubName] = useState<string | null>(null);
 
   const [allUsers, setAllUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<{
@@ -150,7 +158,6 @@ export default function SuperAdminUsersPage() {
     suspendedUsers: number;
     newThisMonth: number;
     superAdmins: number;
-    totalManagers?: number;
     roles: Record<string, number>;
   } | null>(null);
 
@@ -171,12 +178,24 @@ export default function SuperAdminUsersPage() {
   const [suspendReason, setSuspendReason] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isMakeAdminModalOpen, setIsMakeAdminModalOpen] = useState(false);
+  const [isRemoveAdminModalOpen, setIsRemoveAdminModalOpen] = useState(false);
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
+  const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false);
+  const [newManagerScope, setNewManagerScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
+
+  // Invite Manager State
+  const [isInviteManagerModalOpen, setIsInviteManagerModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteMiddleName, setInviteMiddleName] = useState("");
+  const [inviteLastName, setInviteLastName] = useState("");
+  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -198,7 +217,7 @@ export default function SuperAdminUsersPage() {
   const [activityPage, setActivityPage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
   const [tournamentPage, setTournamentPage] = useState(1);
-  const modalItemsPerPage = 10;
+  const modalItemsPerPage = 5;
 
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -212,13 +231,6 @@ export default function SuperAdminUsersPage() {
     }, 160);
   };
 
-  const handleManageTeam = (u: AdminUser) => {
-    if (!u.clubId) {
-      toast.error("This user is not associated with any organizer.");
-      return;
-    }
-    router.push(`/super-admin/users/organizers/${u.clubId}`);
-  };
 
 
 
@@ -233,31 +245,24 @@ export default function SuperAdminUsersPage() {
   const paginatedUsers = allUsers;
 
   async function reload() {
-    const token = getAuthToken();
-    if (!token) {
-      setError("Not authenticated. Please login again.");
-      setAllUsers([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
+      if (!id || id === "undefined") {
+        throw new Error("Missing club ID in URL.");
+      }
       const data = await getAdminUsers({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
         search: searchQuery || undefined,
         role: roleFilter !== "All Roles" ? roleFilter : "CLUB_ADMIN",
         status: statusFilter !== "All Status" ? statusFilter : undefined,
-        isPrimaryOrganizer: true,
+        handicap: handicapFilter !== "All Handicaps" ? handicapFilter : undefined,
+        clubId: id,
       });
-      setAllUsers(Array.isArray(data.items) ? data.items : []);
-      if (data.total !== undefined && !data.stats) {
-        // Some endpoints return total directly
-        setStats(prev => prev ? { ...prev, totalUsers: data.total } : null);
-      }
-      setStats(data.stats ?? null);
+      setAllUsers(Array.isArray(data.items) ? (data.items as unknown as AdminUser[]) : []);
+      const fetchedStats = data.stats || { totalUsers: data.total, activeUsers: data.total, suspendedUsers: 0, newThisMonth: 0, superAdmins: 0, roles: {} };
+      setStats(fetchedStats as any);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to load users");
       setAllUsers([]);
@@ -276,7 +281,15 @@ export default function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, roleFilter, statusFilter, handicapFilter, currentPage]);
+  }, [searchQuery, roleFilter, statusFilter, handicapFilter, currentPage, id]);
+
+  useEffect(() => {
+    if (id && id !== "undefined") {
+      getOrganizer(id)
+        .then((org) => setClubName(org.name))
+        .catch(() => setClubName("Unknown Organizer"));
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!isViewModalOpen) return;
@@ -294,16 +307,18 @@ export default function SuperAdminUsersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "CLUB_ADMIN"].map((v) => ({
+      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v: any) => ({
         value: v,
-        label: v === "All Roles" ? "All Roles" : "Organiser Admin",
+        label: v === "All Roles" ? "All Roles" :
+          v === "CLUB_ADMIN" ? "Organiser Admin" :
+            v.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
       })),
     [],
   );
 
   const statusSelectOptions = useMemo(
     () =>
-      ["All Status", "ACTIVE", "SUSPENDED", "EXPIRED"].map((v) => ({
+      ["All Status", "ACTIVE", "SUSPENDED", "EXPIRED"].map((v: any) => ({
         value: v,
         label: v === "All Status" ? "All Status" : v[0] + v.slice(1).toLowerCase(),
       })),
@@ -316,11 +331,20 @@ export default function SuperAdminUsersPage() {
     const map = stats?.roles ?? {};
     const rows = [
       { key: "ORGANISER", label: "Organiser Admin", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
-      { key: "ADMIN_MGR", label: "Admin Managers", color: "bg-blue-400", value: (map.CLUB_ADMIN_FULL ?? 0) + (map.CLUB_ADMIN_UNKNOWN ?? 0) },
-      { key: "TOURNAMENT_MGR", label: "Tournament Managers", color: "bg-teal-500", value: map.CLUB_ADMIN_TOURNAMENTS ?? 0 },
-      { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: map.CLUB_ADMIN_FINANCE ?? 0 },
+      { key: "ADMIN_MGR", label: "Admin Managers", color: "bg-blue-400", value: 0 },
+      { key: "TOURNAMENT_MGR", label: "Tournament Managers", color: "bg-teal-500", value: 0 },
+      { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: 0 },
     ];
-    
+    // Count scoped managers from allUsers
+    for (const u of allUsers) {
+      if (u.role === "CLUB_ADMIN" && (u as any).managerScope) {
+        if ((u as any).managerScope === "FULL") rows[1].value++;
+        if ((u as any).managerScope === "TOURNAMENTS") rows[2].value++;
+        if ((u as any).managerScope === "FINANCE") rows[3].value++;
+        // Subtract scoped managers from the generic organiser count
+        rows[0].value = Math.max(0, rows[0].value - 1);
+      }
+    }
     const superAdmins = map.SUPER_ADMIN ?? 0;
     return { rows, superAdmins };
   }, [stats, allUsers]);
@@ -348,7 +372,58 @@ export default function SuperAdminUsersPage() {
     closeDropdown();
   };
 
-  const canManageUser = (u: AdminUser) => u.role !== "SUPER_ADMIN";
+  const canManageUser = (u: AdminUser) => {
+    if (u.role === "SUPER_ADMIN") return false;
+    if (u.role === "CLUB_ADMIN" && !(u as any).managerScope) {
+      return rolesOverview.rows[0].value > 1;
+    }
+    return true;
+  };
+
+  const handleChangeRole = async () => {
+    if (!selectedUser?.id || !newManagerScope) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { managerScope: newManagerScope });
+      toast.success("Manager role updated successfully");
+      setIsChangeRoleModalOpen(false);
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to change manager role");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const handleMakeAdmin = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { role: "CLUB_ADMIN", managerScope: "" });
+      toast.success("User is now an Organizer Admin");
+      setIsMakeAdminModalOpen(false);
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to make user Organizer Admin");
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const handleRemoveAdmin = async () => {
+    if (!selectedUser?.id) return;
+    setMutating(true);
+    try {
+      await updateMember(selectedUser.id, { role: "PLAYER" });
+      toast.success("Organizer Admin role removed");
+      setIsRemoveAdminModalOpen(false);
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove Organizer Admin role");
+    } finally {
+      setMutating(false);
+    }
+  };
 
   const openViewModal = async (u: AdminUser) => {
     setSelectedUser(u);
@@ -376,7 +451,7 @@ export default function SuperAdminUsersPage() {
 
   const openEditModal = (u: AdminUser) => {
     closeDropdown();
-    router.push(`/super-admin/users/organizers/${u.id}/edit`);
+    router.push(`/organizer-admin/users/${u.id}/edit`);
   };
 
   const openResetPasswordModal = (u: AdminUser) => {
@@ -563,6 +638,15 @@ export default function SuperAdminUsersPage() {
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
+      <div className="flex items-center">
+        <button 
+          onClick={() => router.push('/super-admin/users/organizers')} 
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors text-[13px] font-medium shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+          Back to Organizers
+        </button>
+      </div>
 
       {error && (
         <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-normal text-red-700">
@@ -570,91 +654,15 @@ export default function SuperAdminUsersPage() {
         </div>
       )}
 
-      {loading || !stats ? (
-        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
-          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            {[1, 2, 3, 4].map((i, idx) => (
-              <div key={i} className="flex items-center gap-12 flex-1">
-                <div className="flex flex-col justify-start items-start gap-3.5 w-full">
-                  <div className="flex justify-start items-center gap-3.5">
-                    <Skeleton className="h-[22px] w-32" />
-                    {i === 2 && <Skeleton className="h-6 w-24 rounded-lg" />}
-                  </div>
-                  <Skeleton className="h-9 w-16" />
-                  <Skeleton className="h-5 w-24" />
-                </div>
-                {idx < 3 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
-          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
 
-            {/* Stat 1: Total Users */}
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Organizers</div>
-              </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalUsers)}</div>
-              <div className="text-zinc-500 text-sm font-normal">All Time</div>
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            {/* Stat 2: Active Users */}
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Active Organizers</div>
-                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                  <div className="text-[#15803D] text-xs font-medium">
-                    {stats.totalUsers ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}% of total` : "0%"}
-                  </div>
-                </div>
-              </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.activeUsers)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Active & Operational</div>
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            {/* Stat 3: Total Managers */}
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Managers</div>
-              </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalManagers ?? 0)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Total Managers</div>
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            {/* Stat 4: Super Admins */}
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Super Admins</div>
-                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                  <div className="text-[#15803D] text-xs font-medium">
-                    {stats.totalUsers ? `${Math.round((stats.superAdmins / stats.totalUsers) * 100)}% of total` : "0%"}
-                  </div>
-                </div>
-              </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.superAdmins)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Platform Managers</div>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Users</CardTitle>
+          <CardTitle className="text-zinc-700 text-xl font-normal whitespace-nowrap">User for {clubName}</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
-              onClick={(e) => setExportAnchorEl(e.currentTarget)}
+              onClick={(e: any) => setExportAnchorEl(e.currentTarget)}
               className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
               <Download className="w-4 h-4" /> Export
@@ -711,10 +719,10 @@ export default function SuperAdminUsersPage() {
               </button>
             </FloatingMenu>
             <Button
-              onClick={() => router.push("/super-admin/users/create")}
+              onClick={() => setIsInviteManagerModalOpen(true)}
               className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
-              <UserPlus className="w-4 h-4" /> Add User
+              <UserPlus className="w-4 h-4" /> Invite Manager
             </Button>
           </div>
         </CardHeader>
@@ -726,7 +734,7 @@ export default function SuperAdminUsersPage() {
                 placeholder="Search users by name or email..."
                 className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
-                onChange={(e) => {
+                onChange={(e: any) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
@@ -734,7 +742,7 @@ export default function SuperAdminUsersPage() {
             </div>
             <SearchableSelect
               value={roleFilter}
-              onValueChange={(v) => {
+              onValueChange={(v: any) => {
                 setRoleFilter(v);
                 setCurrentPage(1);
               }}
@@ -745,7 +753,7 @@ export default function SuperAdminUsersPage() {
             />
             <SearchableSelect
               value={statusFilter}
-              onValueChange={(v) => {
+              onValueChange={(v: any) => {
                 setStatusFilter(v);
                 setCurrentPage(1);
               }}
@@ -753,6 +761,20 @@ export default function SuperAdminUsersPage() {
               className="min-w-[160px]"
               triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
+            />
+            <SearchableSelect
+              value={handicapFilter}
+              onValueChange={(v: any) => {
+                setHandicapFilter(v);
+                setCurrentPage(1);
+              }}
+              options={["All Handicaps", "0 - 9.9", "10 - 19.9", "20 - 29.9", "30+"].map((v: any) => ({
+                value: v,
+                label: v,
+              }))}
+              className="min-w-[160px]"
+              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              placeholder="All Handicaps"
             />
           </div>
 
@@ -762,8 +784,6 @@ export default function SuperAdminUsersPage() {
                 <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">User Profile</th>
                   <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Contact & Location</th>
-                  <th className="px-6 py-4">Organizer</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Joined Date</th>
                   <th className="px-6 py-4 text-center">Actions</th>
@@ -786,23 +806,15 @@ export default function SuperAdminUsersPage() {
                         <Skeleton className="h-5.5 w-16 rounded-full" />
                       </td>
                       <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          <Skeleton className="h-3.5 w-24 rounded-md" />
-                          <Skeleton className="h-3 w-16 rounded-md" />
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
                         <Skeleton className="h-5 w-16 rounded-lg" />
-                      </td>
-                      <td className="px-6 py-5">
-                        <Skeleton className="h-5 w-24 rounded-lg" />
                       </td>
                       <td className="px-6 py-5">
                         <Skeleton className="h-3.5 w-20 rounded-md" />
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <Skeleton className="h-7 w-[100px] rounded-md" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
+                          <Skeleton className="h-7 w-16 rounded-md" />
                           <Skeleton className="h-7 w-8 rounded-md" />
                         </div>
                       </td>
@@ -819,10 +831,10 @@ export default function SuperAdminUsersPage() {
                             className="size-10 rounded-full object-cover bg-gray-100 border border-[#efefef] flex-shrink-0"
                           />
                           <div className="inline-flex flex-col justify-start items-start pr-4 min-w-0">
-                            <div className="text-slate-900 text-sm font-medium truncate max-w-[180px] leading-tight">
+                            <div className="text-slate-900 text-sm font-medium leading-tight whitespace-normal break-words">
                               {fullName(u.firstName, u.lastName)}
                             </div>
-                            <div className="text-gray-600 text-xs font-normal mt-0.5 truncate max-w-[180px]">
+                            <div className="text-gray-600 text-xs font-normal mt-0.5 whitespace-normal break-words">
                               {u.email}
                             </div>
                           </div>
@@ -832,26 +844,6 @@ export default function SuperAdminUsersPage() {
                         <RoleBadge role={u.role} managerScope={(u as any).managerScope} />
                       </td>
                       <td className="px-6 py-5">
-                        <div className="flex flex-col min-w-0">
-                          {u.phone ? (
-                            <span className="text-[13px] text-gray-700 font-normal truncate">{u.phone}</span>
-                          ) : (
-                            <span className="text-[13px] text-gray-400 font-normal">—</span>
-                          )}
-                          {u.state ? (
-                            <span className="text-[11px] text-gray-600 font-normal truncate leading-tight flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                              <span>{u.state.toLowerCase()}</span>
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-[13px] text-gray-700 font-normal truncate max-w-[150px] inline-block">
-                          {u.club?.name || "—"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
                         <StatusPill status={u.status} />
                       </td>
                       <td className="px-6 py-5 text-[13px] text-gray-600 font-normal whitespace-nowrap">
@@ -859,17 +851,9 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleManageTeam(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors border border-[#15803D]"
-                            title="Manage Team"
-                          >
-                            <Users className="w-3 h-3" />
-                            <span className="text-[12px] font-medium leading-none">Manage Team</span>
-                          </button>
                           <div className="relative">
                             <button
-                              onClick={(e) => {
+                              onClick={(e: any) => {
                                 if (activeDropdown === u.id) {
                                   closeDropdown();
                                 } else {
@@ -916,73 +900,7 @@ export default function SuperAdminUsersPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="border border-[#e1efe5] shadow-sm lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-medium">Roles Overview</CardTitle>
-            <span className="text-[12px] font-normal text-gray-400">Total: {stats?.totalUsers ?? 0}</span>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between text-[13px] font-normal text-gray-700">
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
-                Super Admins
-              </span>
-              <span>{rolesOverview.superAdmins}</span>
-            </div>
-            {rolesOverview.rows.map((r) => (
-              <div key={r.key} className="flex items-center justify-between text-[13px] font-normal text-gray-700">
-                <span className="flex items-center gap-2">
-                  <span className={cn("h-2.5 w-2.5 rounded-full", r.color)} />
-                  {r.label}
-                </span>
-                <span>{r.value}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        <Card className="border border-[#e1efe5] shadow-sm lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px] font-medium">Recent User Registrations</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : allUsers.length > 0 ? (
-              allUsers.slice(0, 5).map((u) => (
-                <div key={`recent-${u.id}`} className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img
-                      src={u.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.email || u.id)}`}
-                      alt={u.email}
-                      className="h-10 w-10 rounded-full border border-[#efefef] bg-background object-cover"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-normal text-gray-900 truncate">{fullName(u.firstName, u.lastName)}</p>
-                      <p className="text-[12px] text-gray-400 font-normal truncate capitalize">
-                        {(() => {
-                          const scope = (u as any).managerScope;
-                          if (scope === "FULL") return "admin manager";
-                          if (scope === "TOURNAMENTS") return "tournament manager";
-                          if (scope === "FINANCE") return "finance manager";
-                          return (u.role === "CLUB_ADMIN" ? "organiser admin" : u.role).replaceAll("_", " ");
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-[12px] text-gray-400 font-normal whitespace-nowrap">{formatJoinedDate(u.createdAt)}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-[13px] text-gray-400 font-normal">No users</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+
 
       <FloatingMenu
         open={activeDropdown != null}
@@ -1013,68 +931,58 @@ export default function SuperAdminUsersPage() {
               {dropdownUser.status === "SUSPENDED" ? "Activate User" : "Suspend User"}
             </button>
             <div className="h-px bg-background my-1" />
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => openEditModal(dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit User
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("view-analytics", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <BarChart3 className="w-4 h-4 text-gray-400" />
-              View Analytics
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser) || mutating}
-              onClick={() => handleMoreAction("force-logout", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <LogOut className="w-4 h-4 text-gray-400" />
-              Force Logout
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("reset-password", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <KeyRound className="w-4 h-4 text-gray-400" />
-              Reset Password
-            </button>
-            <button
-              disabled={!canManageUser(dropdownUser)}
-              onClick={() => handleMoreAction("audit-logs", dropdownUser)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-              )}
-            >
-              <Clock className="w-4 h-4 text-gray-400" />
-              Audit Logs
-            </button>
-            <button
-              onClick={() => handleMoreAction("export", dropdownUser)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
-            >
-              <Download className="w-4 h-4 text-gray-400" />
-              Export User
-            </button>
+            {dropdownUser.managerScope || dropdownUser.role === "CLUB_ADMIN" ? (
+              <button
+                disabled={!canManageUser(dropdownUser)}
+                onClick={() => {
+                  setSelectedUser(dropdownUser);
+                  setNewManagerScope((dropdownUser.managerScope as any) || "FULL");
+                  setIsChangeRoleModalOpen(true);
+                  closeDropdown();
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                )}
+              >
+                <Shield className="w-4 h-4 text-gray-400" />
+                {dropdownUser.role === "CLUB_ADMIN" && !dropdownUser.managerScope ? "Switch to Manager" : "Change Manager Role"}
+              </button>
+            ) : null}
+            {dropdownUser.role !== "SUPER_ADMIN" && (dropdownUser.role !== "CLUB_ADMIN" || dropdownUser.managerScope) ? (
+              <button
+                disabled={!canManageUser(dropdownUser)}
+                onClick={() => {
+                  setSelectedUser(dropdownUser);
+                  setIsMakeAdminModalOpen(true);
+                  closeDropdown();
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                )}
+              >
+                <Crown className="w-4 h-4 text-openclub-800" />
+                Make Organizer Admin
+              </button>
+            ) : null}
+            {dropdownUser.role === "CLUB_ADMIN" && !dropdownUser.managerScope ? (
+              <button
+                onClick={() => {
+                  if (rolesOverview.rows[0].value <= 1) {
+                    toast.error("Cannot remove the only Organizer Admin.");
+                    return;
+                  }
+                  setSelectedUser(dropdownUser);
+                  setIsRemoveAdminModalOpen(true);
+                  closeDropdown();
+                }}
+                className="w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3 text-gray-700"
+              >
+                <Ban className="w-4 h-4 text-red-500" />
+                Remove Organizer Admin
+              </button>
+            ) : null}
             <div className="h-px bg-background my-1" />
             <button
               disabled={!canManageUser(dropdownUser)}
@@ -1188,7 +1096,7 @@ export default function SuperAdminUsersPage() {
               <Label className="font-medium text-gray-700">Reason (optional)</Label>
               <Input
                 value={suspendReason}
-                onChange={(e) => setSuspendReason(e.target.value)}
+                onChange={(e: any) => setSuspendReason(e.target.value)}
                 placeholder="Enter reason for suspension..."
                 className="rounded-xl h-12"
               />
@@ -1200,9 +1108,9 @@ export default function SuperAdminUsersPage() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title={selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? "Cannot Delete Organizer Administrator" : "Delete User Permanently?"}
+        title={selectedUser?.role === "CLUB_ADMIN" && (selectedUser as any)?.club ? "Cannot Delete Organizer Administrator" : "Delete User Permanently?"}
         footer={
-          selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? null : (
+          selectedUser?.role === "CLUB_ADMIN" && (selectedUser as any)?.club ? null : (
             <>
               <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
                 Cancel
@@ -1218,7 +1126,7 @@ export default function SuperAdminUsersPage() {
           )
         }
       >
-        {selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? (
+        {selectedUser?.role === "CLUB_ADMIN" && (selectedUser as any)?.club ? (
           <div className="space-y-6">
             <div className="flex flex-col items-center text-center py-2">
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
@@ -1226,7 +1134,7 @@ export default function SuperAdminUsersPage() {
               </div>
               <h4 className="text-[14px] font-normal text-gray-900 mb-2">Cannot Delete Administrator</h4>
               <p className="text-gray-500 max-w-sm">
-                This user is currently the primary administrator for organizer <span className="font-normal text-gray-800">&quot;{selectedUser.club.name}&quot;</span>. Never leave an organizer blank without an administrator.
+                This user is currently the primary administrator for organizer <span className="font-normal text-gray-800">&quot;{(selectedUser as any).club.name}&quot;</span>. Never leave an organizer blank without an administrator.
               </p>
               <p className="text-gray-500 max-w-sm mt-3 text-[12px]">
                 Please edit and update the organizer account with a new administrator under <strong>Super Admin &gt; Organizers</strong> before deleting this user.
@@ -1259,7 +1167,7 @@ export default function SuperAdminUsersPage() {
               </Label>
               <Input
                 value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                onChange={(e: any) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
                 className="rounded-xl border-[#e1efe5] focus:border-red-500"
               />
@@ -1269,6 +1177,102 @@ export default function SuperAdminUsersPage() {
       </Modal>
 
 
+
+      <Modal
+        isOpen={isMakeAdminModalOpen}
+        onClose={() => setIsMakeAdminModalOpen(false)}
+        title="Make Organizer Admin?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsMakeAdminModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white rounded-lg font-normal px-8"
+              onClick={handleMakeAdmin}
+              disabled={mutating}
+            >
+              Confirm
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-[#f5faf6] text-openclub-800">
+            <Crown className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Promote to Organizer Admin?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will give <span className="font-normal text-gray-800">{selectedUser?.email ?? "this user"}</span> full access to manage the organization, its users, and tournaments.
+            Assigning this role will transfer your Organizer Admin status to the new user, and you will automatically be changed to an Admin Manager with Full Access.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRemoveAdminModalOpen}
+        onClose={() => setIsRemoveAdminModalOpen(false)}
+        title="Remove Organizer Admin?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemoveAdminModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-normal px-8"
+              onClick={handleRemoveAdmin}
+              disabled={mutating}
+            >
+              Confirm
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+            <Ban className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Revoke Admin Privileges?</h4>
+          <p className="text-gray-500 max-w-sm mt-1">
+            This will remove Organizer Admin rights from <span className="font-normal text-gray-800">{selectedUser?.email ?? "this user"}</span>. They will still be a player.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isChangeRoleModalOpen}
+        onClose={() => setIsChangeRoleModalOpen(false)}
+        title={selectedUser?.role === "CLUB_ADMIN" && !(selectedUser as any)?.managerScope ? "Switch to Manager" : "Change Manager Role"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsChangeRoleModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              disabled={mutating}
+              className="bg-[#15803D] hover:bg-[#166534] text-white rounded-lg font-normal px-8"
+              onClick={handleChangeRole}
+            >
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label className="font-medium text-gray-700">Select Manager Role</Label>
+            <select
+              value={newManagerScope}
+              onChange={(e: any) => setNewManagerScope(e.target.value as any)}
+              className="w-full rounded-xl border border-[#e1efe5] bg-[#f5faf6] h-12 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#15803D]"
+            >
+              <option value="FULL">Admin Manager (Full Access)</option>
+              <option value="TOURNAMENTS">Tournament Manager</option>
+              <option value="FINANCE">Finance Manager</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isResetPasswordModalOpen}
@@ -1578,20 +1582,7 @@ export default function SuperAdminUsersPage() {
                           </div>
                           <div className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
                             <span className="text-[13px] text-gray-500 font-normal">Organizer</span>
-                            {selectedUser?.club ? (
-                              <div className="flex items-center gap-2">
-                                {selectedUser.club.logo ? (
-                                  <img src={selectedUser.club.logo} alt={selectedUser.club.name} className="w-5 h-5 rounded-md object-cover bg-gray-50 border border-gray-100" />
-                                ) : (
-                                  <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-[9px] font-bold">
-                                    {selectedUser.club.name.charAt(0)}
-                                  </div>
-                                )}
-                                <span className="text-[13px] text-gray-900 font-medium">{selectedUser.club.name}</span>
-                              </div>
-                            ) : (
-                              <span className="text-[13px] text-gray-900 font-normal">None</span>
-                            )}
+                            <span className="text-[13px] text-gray-900 font-normal">{selectedUser?.club?.name || "None"}</span>
                           </div>
                         </div>
                       </div>
@@ -1605,7 +1596,7 @@ export default function SuperAdminUsersPage() {
                         placeholder="Search activity..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={activitySearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setActivitySearch(e.target.value);
                           setActivityPage(1);
                         }}
@@ -1647,7 +1638,7 @@ export default function SuperAdminUsersPage() {
                         placeholder="Search payments..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={paymentSearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setPaymentSearch(e.target.value);
                           setPaymentPage(1);
                         }}
@@ -1700,7 +1691,7 @@ export default function SuperAdminUsersPage() {
                         placeholder="Search tournaments..."
                         className="pl-9 h-10 bg-background/50 border-[#e1efe5] rounded-xl text-[12px]"
                         value={tournamentSearch}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                           setTournamentSearch(e.target.value);
                           setTournamentPage(1);
                         }}
@@ -1759,8 +1750,167 @@ export default function SuperAdminUsersPage() {
         })()}
       </Modal>
 
+      {/* Invite Manager Modal */}
+      <Modal
+        isOpen={isInviteManagerModalOpen}
+        onClose={() => setIsInviteManagerModalOpen(false)}
+        title="Invite Manager"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
+              disabled={!inviteEmail || !inviteFirstName || !inviteMiddleName || !inviteLastName || mutating}
+              onClick={async () => {
+                setMutating(true);
+                try {
+                  // Call the real invite API
+                  await inviteManager({
+                    email: inviteEmail,
+                    firstName: inviteFirstName,
+                    middleName: inviteMiddleName,
+                    lastName: inviteLastName,
+                    scope: inviteScope,
+                  });
+                  toast.success("Invitation sent to " + inviteEmail);
+                  // Refresh the team list
+                  setCurrentPage(1);
+                  await reload();
+                  setIsInviteManagerModalOpen(false);
+                  setInviteEmail("");
+                  setInviteFirstName("");
+                  setInviteMiddleName("");
+                  setInviteLastName("");
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to invite manager");
+                } finally {
+                  setMutating(false);
+                }
+              }}
+            >
+              {mutating ? "Sending Invite..." : "Send Invite"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+            <Input
+              type="email"
+              placeholder="manager@example.com"
+              value={inviteEmail}
+              onChange={(e: any) => setInviteEmail(e.target.value)}
+              className="mt-1 h-11 border-gray-200"
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
+            <Input
+              placeholder="Doe"
+              value={inviteLastName}
+              onChange={(e: any) => setInviteLastName(e.target.value)}
+              className="mt-1 h-11 border-gray-200"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
+              <Input
+                placeholder="John"
+                value={inviteFirstName}
+                onChange={(e: any) => setInviteFirstName(e.target.value)}
+                className="mt-1 h-11 border-gray-200"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Middle Name <span className="text-red-500">*</span></Label>
+              <Input
+                placeholder="Middle name"
+                value={inviteMiddleName}
+                onChange={(e: any) => setInviteMiddleName(e.target.value)}
+                className="mt-1 h-11 border-gray-200"
+              />
+            </div>
+          </div>
 
+          <div className="pt-2">
+            <Label className="text-sm font-medium text-gray-700 mb-3 block">Access Scope</Label>
+            <div className="space-y-3">
+              {/* Full Access Card */}
+              <div
+                onClick={() => setInviteScope("FULL")}
+                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FULL" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FULL" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-medium ${inviteScope === "FULL" ? "text-zinc-900" : "text-zinc-700"}`}>Full Access</h4>
+                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                      Complete control over all operations including team, tournaments, financials, and settings.
+                    </p>
+                  </div>
+                </div>
+                {inviteScope === "FULL" && (
+                  <div className="absolute top-4 right-4">
+                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Tournaments Card */}
+              <div
+                onClick={() => setInviteScope("TOURNAMENTS")}
+                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "TOURNAMENTS" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "TOURNAMENTS" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-medium ${inviteScope === "TOURNAMENTS" ? "text-zinc-900" : "text-zinc-700"}`}>Tournaments Only</h4>
+                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                      Manage events, leaderboards, and scores. Cannot view financials or team details.
+                    </p>
+                  </div>
+                </div>
+                {inviteScope === "TOURNAMENTS" && (
+                  <div className="absolute top-4 right-4">
+                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Finance Card */}
+              <div
+                onClick={() => setInviteScope("FINANCE")}
+                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FINANCE" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FINANCE" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-medium ${inviteScope === "FINANCE" ? "text-zinc-900" : "text-zinc-700"}`}>Finance Only</h4>
+                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                      Manage payments, subscriptions, and financial reports. No access to events or team management.
+                    </p>
+                  </div>
+                </div>
+                {inviteScope === "FINANCE" && (
+                  <div className="absolute top-4 right-4">
+                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </Modal>
     </div>
   );
 }
-

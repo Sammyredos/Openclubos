@@ -281,9 +281,14 @@ export class MembersService {
     clubId?: string;
     role?: UserRole;
     handicap?: string;
+    isPrimaryOrganizer?: boolean;
   }) {
-    const { skip, take, search, status, clubId, role, handicap } = query;
+    const { skip, take, search, status, clubId, role, handicap, isPrimaryOrganizer } = query;
     const where: any = { deletedAt: null };
+
+    if (isPrimaryOrganizer) {
+      where.managerScope = null;
+    }
 
     if (search) {
       const q = search.trim();
@@ -334,6 +339,9 @@ export class MembersService {
       } else {
         baseStatsWhere.role = role;
       }
+    }
+    if (isPrimaryOrganizer) {
+      baseStatsWhere.managerScope = null;
     }
 
     const [
@@ -399,16 +407,30 @@ export class MembersService {
         where: { deletedAt: null, role: UserRole.SUPER_ADMIN }, // Keep global for Super Admins stat card
       }),
       this.prisma.user.groupBy({
-        by: ['role'],
+        by: ['role', 'managerScope'],
         where: { deletedAt: null }, // Keep global so all roles are returned
         _count: { role: true },
       }),
     ]);
 
     const roles: Record<string, number> = {};
+    let totalManagers = 0;
     for (const r of roleCounts) {
-      roles[r.role] = r._count.role;
+      const count = r._count.role;
+      
+      // Breakdown manager scopes specifically
+      if (r.role === 'CLUB_ADMIN' && r.managerScope !== null) {
+        const scope = r.managerScope.trim().toUpperCase() || 'UNKNOWN';
+        roles[`CLUB_ADMIN_${scope}`] = (roles[`CLUB_ADMIN_${scope}`] || 0) + count;
+        totalManagers += count; // Accumulate all managers
+      } else {
+        roles[r.role] = (roles[r.role] || 0) + count;
+      }
     }
+    
+
+    // Also add to totalManagers if we want SUPER_ADMINs as well? User said "count of managers".
+    // Usually "managers" means the sub-managers created by organizers. Let's return totalManagers.
 
     return {
       items,
@@ -419,6 +441,7 @@ export class MembersService {
         suspendedUsers,
         newThisMonth,
         superAdmins,
+        totalManagers,
         roles,
       },
     };
@@ -633,6 +656,37 @@ export class MembersService {
       this.validateHandicap(newHandicap, newGender, existing.handicap);
     }
 
+    if (data.managerScope === '') {
+      data.managerScope = null;
+    }
+
+    if (
+      nextRole === UserRole.CLUB_ADMIN &&
+      (updateMemberDto.managerScope === '' || updateMemberDto.managerScope === null) &&
+      clubId
+    ) {
+      const existingAdmins = await this.prisma.user.findMany({
+        where: {
+          clubId,
+          role: UserRole.CLUB_ADMIN,
+          OR: [{ managerScope: null }, { managerScope: '' }],
+          id: { not: id },
+          deletedAt: null,
+        },
+      });
+
+      if (existingAdmins.length > 0) {
+        await this.prisma.user.updateMany({
+          where: {
+            id: { in: existingAdmins.map((a) => a.id) },
+          },
+          data: {
+            managerScope: 'FULL',
+          },
+        });
+      }
+    }
+
     try {
       return await this.prisma.user.update({
         where: { id },
@@ -710,6 +764,20 @@ export class MembersService {
       throw new ConflictException(
         'A user with this email already exists. Please use a different email address.',
       );
+    }
+
+    // Check if the organizer already has 10 managers
+    const managerCount = await this.prisma.user.count({
+      where: {
+        clubId: dto.clubId,
+        role: 'CLUB_ADMIN',
+        managerScope: { not: null },
+        deletedAt: null,
+      },
+    });
+
+    if (managerCount >= 10) {
+      throw new BadRequestException('An organizer cannot have more than 10 managers.');
     }
 
     // Generate secure token

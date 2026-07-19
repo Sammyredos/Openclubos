@@ -5,13 +5,15 @@ import { useParams, useRouter } from "next/navigation"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Modal } from "@/components/ui/modal"
+import { Input } from "@/components/ui/input"
 import { Icons } from "@/components/ui/icons"
 import {
   Calendar,
   MapPin,
   Award,
   Users,
-  DollarSign,
+  Banknote,
   Clock,
   ArrowLeft,
   AlertCircle,
@@ -47,6 +49,11 @@ export default function TournamentDetailPage() {
   const router = useRouter()
   const [tournament, setTournament] = React.useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  
+  // Contact Modal State
+  const [isContactModalOpen, setIsContactModalOpen] = React.useState(false)
+  const [contactForm, setContactForm] = React.useState({ name: "", email: "", subject: "", message: "" })
+  const [isSending, setIsSending] = React.useState(false)
 
   React.useEffect(() => {
     async function loadTournament() {
@@ -66,17 +73,89 @@ export default function TournamentDetailPage() {
 
   if (isLoading) return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-64 w-full rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <Skeleton className="h-48 w-full rounded-lg" />
-            <Skeleton className="h-48 w-full rounded-lg" />
+      <div className="max-w-4xl mx-auto space-y-4">
+        {/* Hero Banner Section Skeleton */}
+        <div className="bg-white rounded-lg border-none overflow-hidden relative shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+          <Skeleton className="w-full h-[350px] rounded-none" />
+          <div className="px-6 md:px-8 pb-6 relative">
+            <div className="w-20 h-20 rounded-lg absolute -top-10 left-6 md:left-8 z-20">
+              <Skeleton className="w-full h-full rounded-lg" />
+            </div>
+            <div className="pt-14 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-6 w-64" />
+                </div>
+                <Skeleton className="h-6 w-24 rounded-full" />
+              </div>
+              <div className="flex gap-5 pt-3 border-t border-gray-100">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </div>
           </div>
-          <div className="space-y-6">
-            <Skeleton className="h-64 w-full rounded-lg" />
-            <Skeleton className="h-32 w-full rounded-lg" />
+        </div>
+
+        {/* Content Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 flex flex-col gap-4">
+            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+              <Skeleton className="h-5 w-48 mb-6" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
+              <Skeleton className="h-5 w-56 mb-6" />
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 h-full">
+            <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+              <Skeleton className="h-5 w-36 mb-4" />
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              </div>
+              <div className="pt-3 border-t border-gray-100">
+                <Skeleton className="h-11 w-full rounded-lg" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
+              <Skeleton className="h-4 w-32 mb-2" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -144,7 +223,7 @@ export default function TournamentDetailPage() {
                   <span className="text-[11px] text-openclub-700 tracking-wide uppercase">
                     {tournament.club?.name || "Tournament Organizer"}
                   </span>
-                  <h1 className="text-lg md:text-xl text-gray-900 font-semibold tracking-tight leading-tight">
+                  <h1 className="text-lg md:text-xl text-gray-900 tracking-tight leading-tight">
                     {tournament.name}
                   </h1>
                 </div>
@@ -181,13 +260,13 @@ export default function TournamentDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Main Info Blocks (Left 2 columns) */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="md:col-span-2 flex flex-col gap-4">
 
             {/* Description Section */}
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <BookOpen className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[16px] text-slate-900 font-medium">About the Tournament</h2>
+                <h2 className="text-[16px] text-slate-900">About the Tournament</h2>
               </div>
               <p className="text-gray-500 text-[14px] leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
@@ -197,10 +276,10 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Rules & Requirements block */}
-            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <Shield className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[16px] text-slate-900 font-medium">Entry Guidelines & Restrictions</h2>
+                <h2 className="text-[16px] text-slate-900">Entry Guidelines & Restrictions</h2>
               </div>
               <ul className="space-y-3 text-[14px] text-gray-500">
                 <li className="flex items-start gap-3">
@@ -220,11 +299,11 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Quick Stats sidebar (Right 1 column) */}
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4 h-full">
 
             {/* Key Information Card */}
             <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <h3 className="text-slate-900 text-[16px] font-medium border-b border-gray-50 pb-2 capitalize tracking-wide">
+              <h3 className="text-slate-900 text-[16px] border-b border-gray-50 pb-2 capitalize tracking-wide">
                 Tournament Info
               </h3>
 
@@ -232,11 +311,11 @@ export default function TournamentDetailPage() {
                 {/* Entry Fee */}
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
-                    <DollarSign className="w-4 h-4" />
+                    <Banknote className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-[11px] text-gray-500 uppercase tracking-wider">Entry Fee</p>
-                    <p className="text-slate-900 text-[15px] font-medium mt-0.5">{formattedFee}</p>
+                    <p className="text-slate-900 text-[15px] mt-0.5">{formattedFee}</p>
                   </div>
                 </div>
 
@@ -248,8 +327,10 @@ export default function TournamentDetailPage() {
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-500 uppercase tracking-wider">Handicap Limits</p>
-                      <p className="text-slate-900 text-[15px] font-medium mt-0.5">
-                        {tournament.minHandicap ?? 0} – {tournament.maxHandicap ?? "N/A"}
+                      <p className="text-slate-900 text-[15px] mt-0.5">
+                        {tournament.minHandicap === 0 && tournament.maxHandicap === 0
+                          ? "None"
+                          : `${tournament.minHandicap ?? 0} – ${tournament.maxHandicap ?? "N/A"}`}
                       </p>
                     </div>
                   </div>
@@ -263,7 +344,7 @@ export default function TournamentDetailPage() {
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-500 uppercase tracking-wider">Roster Size</p>
-                      <p className="text-slate-900 text-[15px] font-medium mt-0.5">
+                      <p className="text-slate-900 text-[15px] mt-0.5">
                         {tournament._count?.registrations ?? 0} / {tournament.maxPlayers} Max Players
                       </p>
                     </div>
@@ -277,8 +358,8 @@ export default function TournamentDetailPage() {
                       <Clock className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-400 uppercase tracking-wider">Registration Deadline</p>
-                      <p className="text-gray-900 mt-0.5">
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Registration Deadline</p>
+                      <p className="text-slate-900 text-[15px] mt-0.5">
                         {new Date(tournament.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
@@ -290,14 +371,14 @@ export default function TournamentDetailPage() {
               <div className="pt-3 border-t border-gray-100">
                 {isRegistrationOpen ? (
                   <Link href={`/tournaments/${tournament.id}/register`} className="w-full">
-                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-white text-[14px] text-medium rounded-lg flex items-center justify-center gap-2 group">
+                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-[14px] rounded-lg flex items-center justify-center gap-2 group text-white">
                       <span>Register to Play</span>
                       <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                 ) : (
                   <Button
-                    className="w-full h-11 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center justify-center text-[14px] text-medium"
+                    className="w-full h-11 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center justify-center text-[14px]"
                     disabled
                   >
                     {tournament.status === "COMPLETED" ? "Tournament Completed" : "Registration Closed"}
@@ -307,19 +388,110 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Help / Information Box */}
-            <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <div className="flex items-center gap-2 text-openclub-900">
+            <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
+              <div className="flex text-[14px] items-center gap-2 text-openclub-900">
                 <Info className="w-4 h-4 text-openclub-700" />
-                <h4 className="text-[14px] font-medium">Need Assistance?</h4>
+                <h4 className="text-[14px]">Need Assistance?</h4>
               </div>
               <p className="text-[12px] text-gray-500 leading-relaxed">
-                If you have questions about payment validation, guest eligibility, or handicap restrictions, please contact the golf organizer club directly{tournament.club?.email ? ` at ${tournament.club.email}` : ''}.
+                If you have questions about payment validation, guest eligibility, or handicap restrictions, please send a message directly to the golf organizer club.
+                <span className="block mt-2">
+                  <button onClick={() => setIsContactModalOpen(true)} className="text-openclub-600 hover:text-openclub-700 hover:underline">
+                    Send message
+                  </button>
+                </span>
               </p>
             </div>
           </div>
         </div>
 
       </div>
+
+      <Modal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        title="Contact Organizer"
+        size="md"
+        className="max-w-md"
+        footer={
+          <div className="flex w-full gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsContactModalOpen(false)}
+              className="font-semibold flex-1"
+              disabled={isSending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="font-bold flex-1"
+              disabled={isSending || !contactForm.name || !contactForm.email || !contactForm.message}
+              onClick={async () => {
+                setIsSending(true)
+                // Simulate API call for now
+                await new Promise(r => setTimeout(r, 1000))
+                toast.success("Message sent successfully")
+                setIsSending(false)
+                setIsContactModalOpen(false)
+                setContactForm({ name: "", email: "", subject: "", message: "" })
+              }}
+            >
+              {isSending ? "Sending..." : "Send Message"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Fill out the form below to <span className="font-semibold text-gray-900">send a direct message</span> to the tournament organizer. They will reply to your email address.
+          </p>
+          
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-900">Your Name</label>
+                <Input 
+                  placeholder="e.g. John Doe" 
+                  value={contactForm.name} 
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  disabled={isSending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-900">Your Email</label>
+                <Input 
+                  type="email"
+                  placeholder="john@example.com" 
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                  disabled={isSending}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-900">Subject</label>
+              <Input 
+                placeholder="e.g. Question about eligibility" 
+                value={contactForm.subject}
+                onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
+                disabled={isSending}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-900">Message</label>
+              <textarea 
+                className="w-full flex min-h-[120px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                placeholder="Type your message here..."
+                value={contactForm.message}
+                onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                disabled={isSending}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

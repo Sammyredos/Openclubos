@@ -87,6 +87,7 @@ export class MembersController {
     @Query('clubId') clubId?: string,
     @Query('role') role?: UserRole,
     @Query('handicap') handicap?: string,
+    @Query('isPrimaryOrganizer') isPrimaryOrganizer?: string,
   ) {
     return this.membersService.findAllUsers({
       skip,
@@ -96,6 +97,7 @@ export class MembersController {
       clubId,
       role,
       handicap,
+      isPrimaryOrganizer: isPrimaryOrganizer === 'true',
     });
   }
 

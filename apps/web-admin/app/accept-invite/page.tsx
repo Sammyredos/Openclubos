@@ -217,7 +217,7 @@ function AcceptInvitePageInner() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   {/* First Name */}
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-semibold text-zinc-700 mb-2">First Name</label>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700 mb-2">First Name</label>
                     <input
                       id="firstName"
                       type="text"
@@ -233,7 +233,7 @@ function AcceptInvitePageInner() {
 
                   {/* Middle Name */}
                   <div>
-                    <label htmlFor="middleName" className="block text-sm font-semibold text-zinc-700 mb-2">Middle Name</label>
+                    <label htmlFor="middleName" className="block text-sm font-medium text-zinc-700 mb-2">Middle Name</label>
                     <input
                       id="middleName"
                       type="text"
@@ -249,7 +249,7 @@ function AcceptInvitePageInner() {
 
                   {/* Last Name */}
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-semibold text-zinc-700 mb-2">Last Name</label>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-zinc-700 mb-2">Last Name</label>
                     <input
                       id="lastName"
                       type="text"
@@ -265,7 +265,7 @@ function AcceptInvitePageInner() {
 
                   {/* Password field */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-semibold text-zinc-700 mb-2">Password</label>
+                    <label htmlFor="password" className="block text-sm font-medium text-zinc-700 mb-2">Password</label>
                     <div className="relative">
                       <input
                         id="password"

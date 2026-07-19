@@ -86,7 +86,6 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Overview", href: "/super-admin/dashboard", icon: Home },
-      { name: "Organizers", href: "/super-admin/organizers", icon: Building2 },
       {
         name: "Users",
         href: "/super-admin/users",

@@ -129,7 +129,7 @@ function ResetPasswordPageInner() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   {/* New Password field */}
                   <div>
-                    <label htmlFor="newPassword" className="block text-sm font-semibold text-zinc-700 mb-2">New Password</label>
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-zinc-700 mb-2">New Password</label>
                     <div className="relative">
                       <input
                         id="newPassword"
@@ -154,7 +154,7 @@ function ResetPasswordPageInner() {
 
                   {/* Confirm Password field */}
                   <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-zinc-700 mb-2">Confirm Password</label>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-700 mb-2">Confirm Password</label>
                     <div className="relative">
                       <input
                         id="confirmPassword"

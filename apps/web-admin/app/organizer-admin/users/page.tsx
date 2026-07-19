@@ -1330,6 +1330,7 @@ export default function OrganizerAdminMembersPage() {
           <h4 className="text-[14px] font-normal text-gray-900 mb-2">Promote to Organizer Admin?</h4>
           <p className="text-gray-500 max-w-sm mt-1">
             This will give <span className="font-normal text-gray-800">{selectedUser?.email ?? "this user"}</span> full access to manage the organization, its users, and tournaments.
+            Assigning this role will transfer your Organizer Admin status to the new user, and you will automatically be changed to an Admin Manager with Full Access.
           </p>
         </div>
       </Modal>

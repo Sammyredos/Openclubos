@@ -28,8 +28,6 @@ export function TopNav() {
       return "Dashboard";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Dashboard";
-    if (pathname === "/super-admin/organizers") return "Organizers";
-    if (pathname.startsWith("/super-admin/organizers/")) return "Organizer Details";
     if (pathname === "/super-admin/users") return "Users";
     if (pathname === "/super-admin/users/players") return "Players";
     if (pathname === "/super-admin/users/organizers") return "Organizers";
@@ -52,7 +50,6 @@ export function TopNav() {
     || pathname === "/super-admin/users"
     || pathname === "/super-admin/users/players"
     || pathname === "/super-admin/users/organizers"
-    || pathname === "/super-admin/organizers"
     || pathname === "/super-admin/tournaments"
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
@@ -86,8 +83,6 @@ export function TopNav() {
       return "";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview of platform key metrics and recent activities.";
-    if (pathname === "/super-admin/organizers") return "Manage and monitor all club organizers on the platform.";
-    if (pathname.startsWith("/super-admin/organizers/")) return "Detailed view and settings for the selected organizer.";
     if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
     if (pathname === "/super-admin/users/players") return "View and manage all registered players and markers on the platform.";
     if (pathname === "/super-admin/users/organizers") return "View and manage all club management staff and administrators.";
