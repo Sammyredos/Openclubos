@@ -65,12 +65,31 @@ export class ClubsService {
         },
       }),
       this.prisma.user.count({
-        where: { deletedAt: null, clubId: id },
+        where: {
+          deletedAt: null,
+          clubId: id,
+          role: {
+            in: [
+              UserRole.CLUB_ADMIN,
+              UserRole.STAFF,
+              UserRole.MARKER,
+              UserRole.MANAGER,
+            ],
+          },
+        },
       }),
       this.prisma.user.count({
         where: {
           deletedAt: null,
           clubId: id,
+          role: {
+            in: [
+              UserRole.CLUB_ADMIN,
+              UserRole.STAFF,
+              UserRole.MARKER,
+              UserRole.MANAGER,
+            ],
+          },
           createdAt: { gte: startThisMonth, lt: startNextMonth },
         },
       }),

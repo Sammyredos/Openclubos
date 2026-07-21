@@ -45,7 +45,7 @@ export class TournamentsService {
       // Basic
       name: dto.name,
       description: dto.description ?? null,
-      bannerUrl: dto.bannerUrl ?? null,
+      bannerUrl: dto.bannerUrl || '/yellow-9-flag-realistic.png',
       venue: dto.venue ?? null,
       location: dto.location ?? null,
       // Club / Course
@@ -373,7 +373,7 @@ export class TournamentsService {
 
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl;
+    if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl || '/yellow-9-flag-realistic.png';
     if (dto.venue !== undefined) data.venue = dto.venue;
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.clubId !== undefined) data.clubId = dto.clubId;

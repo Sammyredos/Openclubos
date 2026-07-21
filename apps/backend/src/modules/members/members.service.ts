@@ -57,6 +57,10 @@ export class MembersService {
   }
 
   async create(createMemberDto: CreateMemberDto) {
+    if (createMemberDto.role === UserRole.MARKER) {
+      throw new BadRequestException('Markers can only be invited by organizer admins.');
+    }
+
     createMemberDto.email = createMemberDto.email?.trim().toLowerCase();
     const existing = await this.prisma.user.findFirst({
       where: {
@@ -96,8 +100,8 @@ export class MembersService {
     if (
       !clubId &&
       createMemberDto.clubName &&
-      (createMemberDto.role === UserRole.CLUB_ADMIN ||
-        createMemberDto.role === UserRole.MARKER)
+      ((createMemberDto.role as any) === UserRole.CLUB_ADMIN ||
+        (createMemberDto.role as any) === UserRole.MARKER)
     ) {
       const existingClub = await this.prisma.club.findFirst({
         where: {
@@ -131,6 +135,39 @@ export class MembersService {
         },
       });
       clubId = newClub.id;
+    }
+
+    if (clubId) {
+      const isManagerRole = (
+        [
+          UserRole.CLUB_ADMIN,
+          UserRole.STAFF,
+          UserRole.MARKER,
+          UserRole.MANAGER,
+        ] as UserRole[]
+      ).includes(createMemberDto.role || UserRole.PLAYER);
+
+      if (isManagerRole) {
+        const totalUsersCount = await this.prisma.user.count({
+          where: {
+            clubId,
+            role: {
+              in: [
+                UserRole.CLUB_ADMIN,
+                UserRole.STAFF,
+                UserRole.MARKER,
+                UserRole.MANAGER,
+              ],
+            },
+            deletedAt: null,
+          },
+        });
+        if (totalUsersCount >= 30) {
+          throw new BadRequestException(
+            'An organizer cannot have more than 30 users.',
+          );
+        }
+      }
     }
 
     this.validateHandicap(
@@ -186,10 +223,29 @@ export class MembersService {
     const where: any = {};
 
     // Filter by role: if specific role requested use it, otherwise exclude SUPER_ADMIN
-    if (role) {
-      where.role = role as UserRole;
+    if (clubId) {
+      if (role) {
+        if (role === UserRole.PLAYER || role === UserRole.SUPER_ADMIN) {
+          where.role = { in: [] };
+        } else {
+          where.role = role as UserRole;
+        }
+      } else {
+        where.role = {
+          in: [
+            UserRole.CLUB_ADMIN,
+            UserRole.STAFF,
+            UserRole.MARKER,
+            UserRole.MANAGER,
+          ],
+        };
+      }
     } else {
-      where.role = { not: UserRole.SUPER_ADMIN };
+      if (role) {
+        where.role = role as UserRole;
+      } else {
+        where.role = { not: UserRole.SUPER_ADMIN };
+      }
     }
 
     if (search) {
@@ -510,6 +566,10 @@ export class MembersService {
     });
     if (!existing) throw new NotFoundException('Member not found');
 
+    if (updateMemberDto.role === UserRole.MARKER && existing.role !== UserRole.MARKER) {
+      throw new BadRequestException('Markers can only be invited by organizer admins.');
+    }
+
     if (updateMemberDto.email) {
       const email = updateMemberDto.email.trim().toLowerCase();
       const existingEmail = await this.prisma.user.findFirst({
@@ -545,6 +605,46 @@ export class MembersService {
     }
 
     const nextRole = updateMemberDto.role ?? existing.role;
+    const isNextRoleManager = (
+      [
+        UserRole.CLUB_ADMIN,
+        UserRole.STAFF,
+        UserRole.MARKER,
+        UserRole.MANAGER,
+      ] as UserRole[]
+    ).includes(nextRole);
+
+    const isCurrentRoleManager = (
+      [
+        UserRole.CLUB_ADMIN,
+        UserRole.STAFF,
+        UserRole.MARKER,
+        UserRole.MANAGER,
+      ] as UserRole[]
+    ).includes(existing.role);
+
+    if (isNextRoleManager && !isCurrentRoleManager && existing.clubId) {
+      const totalUsersCount = await this.prisma.user.count({
+        where: {
+          clubId: existing.clubId,
+          role: {
+            in: [
+              UserRole.CLUB_ADMIN,
+              UserRole.STAFF,
+              UserRole.MARKER,
+              UserRole.MANAGER,
+            ],
+          },
+          deletedAt: null,
+        },
+      });
+      if (totalUsersCount >= 30) {
+        throw new BadRequestException(
+          'An organizer cannot have more than 30 users.',
+        );
+      }
+    }
+
     let clubId = existing.clubId;
 
     if (nextRole === UserRole.CLUB_ADMIN || nextRole === UserRole.MARKER) {
@@ -766,18 +866,26 @@ export class MembersService {
       );
     }
 
-    // Check if the organizer already has 10 managers
-    const managerCount = await this.prisma.user.count({
+    // Check if the organizer already has 30 users (managers/markers)
+    const totalUsersCount = await this.prisma.user.count({
       where: {
         clubId: dto.clubId,
-        role: 'CLUB_ADMIN',
-        managerScope: { not: null },
+        role: {
+          in: [
+            UserRole.CLUB_ADMIN,
+            UserRole.STAFF,
+            UserRole.MARKER,
+            UserRole.MANAGER,
+          ],
+        },
         deletedAt: null,
       },
     });
 
-    if (managerCount >= 10) {
-      throw new BadRequestException('An organizer cannot have more than 10 managers.');
+    if (totalUsersCount >= 30) {
+      throw new BadRequestException(
+        'An organizer cannot have more than 30 users.',
+      );
     }
 
     // Generate secure token
@@ -794,16 +902,17 @@ export class MembersService {
     const middle = dto.middleName?.trim() || '';
     const finalFirstName = middle ? `${first} ${middle}` : first;
 
+    const isMarker = dto.scope === 'MARKER';
     const user = await this.prisma.user.create({
       data: {
         email,
         firstName: finalFirstName,
         lastName: dto.lastName.trim(),
         password: placeholderPassword,
-        role: UserRole.CLUB_ADMIN,
+        role: isMarker ? UserRole.MARKER : UserRole.CLUB_ADMIN,
         status: MemberStatus.PENDING,
         clubId: dto.clubId,
-        managerScope: dto.scope,
+        managerScope: isMarker ? null : dto.scope,
         inviteToken,
         inviteTokenExpires,
         emailVerified: true, // Skip email verification for invited managers

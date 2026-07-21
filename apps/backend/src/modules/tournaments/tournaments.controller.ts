@@ -61,8 +61,14 @@ export class TournamentsController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const effectiveClubId =
-      role === UserRole.CLUB_ADMIN ? userClubId : (clubId ?? organizerId);
+    const isOrgRole = role && [
+      UserRole.CLUB_ADMIN,
+      UserRole.MARKER,
+      UserRole.MANAGER,
+      UserRole.STAFF,
+    ].includes(role);
+
+    const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
 
     return this.tournamentsService.findAll({ clubId: effectiveClubId, status });
   }
@@ -80,8 +86,14 @@ export class TournamentsController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const effectiveClubId =
-      role === UserRole.CLUB_ADMIN ? userClubId : (clubId ?? organizerId);
+    const isOrgRole = role && [
+      UserRole.CLUB_ADMIN,
+      UserRole.MARKER,
+      UserRole.MANAGER,
+      UserRole.STAFF,
+    ].includes(role);
+
+    const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
 
     return this.tournamentsService.findAllPaged({
       clubId: effectiveClubId,

@@ -54,42 +54,6 @@ const STEPS = [
   "Publish",
 ];
 
-async function compressImage(file: File, targetKB = 50): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-      const MAX_DIM = 800;
-      if (width > MAX_DIM || height > MAX_DIM) {
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, width, height);
-      let lo = 0.1, hi = 0.9, best = "";
-      const target = targetKB * 1024;
-      for (let i = 0; i < 8; i++) {
-        const mid = (lo + hi) / 2;
-        const data = canvas.toDataURL("image/jpeg", mid);
-        const bytes = Math.round((data.length * 3) / 4);
-        if (bytes <= target) {
-          best = data;
-          lo = mid;
-        } else hi = mid;
-      }
-      if (!best) best = canvas.toDataURL("image/jpeg", 0.1);
-      resolve(best);
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
-}
 
 function getErrorMessage(e: unknown) {
   if (e instanceof Error) return e.message;
@@ -104,8 +68,8 @@ const DEFAULT_FORM = {
   name: "",
   clubId: "",
   courseId: "",
-  bannerUrl: "",
-  bannerPreview: "",
+  bannerUrl: "/yellow-9-flag-realistic.png",
+  bannerPreview: "/yellow-9-flag-realistic.png",
   description: "",
   venue: "NG",
   location: "",
@@ -154,7 +118,6 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
     if (!f.venue) return "Please select a country.";
     if (!f.clubId) return "Please select an organizer.";
     if (!f.courseId) return "Please select a golf course.";
-    if (!f.bannerUrl) return "Tournament banner is required.";
     if (!f.description.trim()) return "Description is required.";
   }
   if (step === 2) {
@@ -256,7 +219,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [showValidation, setShowValidation] = useState(false);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [compressing, setCompressing] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [nameCheckLoading, setNameCheckLoading] = useState(false);
   const [organizers, setOrganizers] = useState<{ id: string; name: string; logo?: string }[]>([]);
@@ -264,7 +226,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
@@ -437,24 +398,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     }
   };
 
-  const handleBannerUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file.");
-      return;
-    }
-    setCompressing(true);
-    try {
-      const compressed = await compressImage(file, 50);
-      set("bannerPreview", compressed);
-      set("bannerUrl", compressed);
-      const kb = Math.round((compressed.length * 3) / 4 / 1024);
-      toast.success(`Banner compressed to ~${kb}KB`);
-    } catch {
-      toast.error("Failed to process image.");
-    } finally {
-      setCompressing(false);
-    }
-  };
+
 
   const handleNext = async () => {
     const err = validateStep(step, formData, isMultiDay, originalStatus);
@@ -698,74 +642,14 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   </Field>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Tournament Banner" required>
-                    <div className="relative">
-                      {formData.bannerPreview ? (
-                        <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-background h-40" style={{ height: "270px" }}>
-                          <img src={formData.bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => {
-                              set("bannerPreview", "");
-                              set("bannerUrl", "");
-                            }}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                          <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
-                            Compressed to ≤50KB
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className={cn(
-                            "h-60 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all group",
-                            req(formData.bannerUrl) || "border-[#e1efe5]"
-                          )}
-                        >
-                          {compressing ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="w-8 h-8 border-2 border-openclub-700 border-t-transparent rounded-full animate-spin" />
-                              <span className="text-[12px] text-gray-400">Compressing image...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                                <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-openclub-700" />
-                              </div>
-                              <div className="text-center">
-                                <p className="text-[13px] font-normal text-gray-600 group-hover:text-openclub-800">
-                                  Click to upload banner
-                                </p>
-                                <p className="text-[11px] text-gray-400">JPG, PNG, WebP</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handleBannerUpload(f);
-                          e.target.value = "";
-                        }}
-                      />
-                    </div>
-                  </Field>
-
+                <div className="grid grid-cols-1 gap-4">
                   <Field label="Description" required>
                     <textarea
                       value={formData.description}
                       onChange={(e) => set("description", e.target.value)}
                       placeholder="Brief description of the tournament..."
                       className={cn(
-                        "flex h-60 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
+                        "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
                         req(formData.description)
                       )}
                     />

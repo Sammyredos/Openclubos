@@ -238,7 +238,7 @@ export default function SuperAdminUsersPage() {
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
         search: searchQuery || undefined,
-        role: roleFilter !== "All Roles" ? roleFilter : "PLAYER,MARKER", // Backend might not support comma separated, let's just use roleFilter and default it to PLAYER
+        role: "PLAYER",
         status: statusFilter !== "All Status" ? statusFilter : undefined,
         handicap: handicapFilter !== "All Handicaps" ? handicapFilter : undefined,
       });
@@ -284,7 +284,7 @@ export default function SuperAdminUsersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "PLAYER", "MARKER"].map((v) => ({
+      ["All Roles", "PLAYER"].map((v) => ({
         value: v,
         label: v === "All Roles" ? "All Roles" :
           v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
@@ -308,7 +308,6 @@ export default function SuperAdminUsersPage() {
     const rows = [
       { key: "CLUB_ADMIN", label: "Organiser Admins", color: "bg-blue-500", value: map.CLUB_ADMIN ?? 0 },
       { key: "PLAYER", label: "Players", color: "bg-openclub-700", value: map.PLAYER ?? 0 },
-      { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
     const superAdmins = map.SUPER_ADMIN ?? 0;
     return { rows, superAdmins };

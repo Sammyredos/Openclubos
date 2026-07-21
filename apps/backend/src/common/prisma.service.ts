@@ -96,6 +96,24 @@ export class PrismaService
         where: { role: UserRole.STAFF },
         data: { role: UserRole.PLAYER },
       });
+
+      const markers = await this.user.findMany({
+        where: { role: UserRole.MARKER },
+        select: { id: true },
+      });
+      if (markers.length > 0) {
+        const markerIds = markers.map((m) => m.id);
+        await this.score.deleteMany({
+          where: { userId: { in: markerIds } },
+        });
+        await this.registration.deleteMany({
+          where: { userId: { in: markerIds } },
+        });
+        await this.user.deleteMany({
+          where: { id: { in: markerIds } },
+        });
+        this.logger.log(`Deleted ${markers.length} MARKER users on startup.`);
+      }
     } catch (error) {
       const trace =
         error instanceof Error

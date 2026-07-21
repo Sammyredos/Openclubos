@@ -192,7 +192,7 @@ export default function OrganizerAdminMembersPage() {
   const [inviteFirstName, setInviteFirstName] = useState("");
   const [inviteMiddleName, setInviteMiddleName] = useState("");
   const [inviteLastName, setInviteLastName] = useState("");
-  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
+  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE" | "MARKER">("FULL");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -308,7 +308,7 @@ export default function OrganizerAdminMembersPage() {
 
   const roleSelectOptions = useMemo(
     () =>
-      ["All Roles", "MANAGER", "PLAYER", "MARKER"].map((v: any) => ({
+      ["All Roles", "CLUB_ADMIN", "MANAGER", "MARKER", "STAFF"].map((v: any) => ({
         value: v,
         label: v === "All Roles" ? "All Roles" :
           v === "CLUB_ADMIN" ? "Organiser Admin" :
@@ -335,6 +335,7 @@ export default function OrganizerAdminMembersPage() {
       { key: "ADMIN_MGR", label: "Admin Managers", color: "bg-blue-400", value: 0 },
       { key: "TOURNAMENT_MGR", label: "Tournament Managers", color: "bg-teal-500", value: 0 },
       { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: 0 },
+      { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
     // Count scoped managers from allUsers
     for (const u of allUsers) {
@@ -1887,7 +1888,7 @@ export default function OrganizerAdminMembersPage() {
             <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
             <Button
               className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
-              disabled={!inviteEmail || !inviteFirstName || !inviteMiddleName || !inviteLastName || mutating}
+              disabled={!inviteEmail || !inviteFirstName || !inviteMiddleName || !inviteLastName || (stats?.totalUsers ?? 0) >= 30 || mutating}
               onClick={async () => {
                 setMutating(true);
                 try {
@@ -1921,6 +1922,32 @@ export default function OrganizerAdminMembersPage() {
         }
       >
         <div className="space-y-4">
+          {/* Team Limit Banner */}
+          {(stats?.totalUsers ?? 0) >= 30 ? (
+            <div className="p-3.5 bg-red-50 border border-red-100 rounded-xl flex flex-col gap-1 text-xs font-normal text-red-800">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">Team Limit Reached</span>
+                <span className="font-semibold text-red-950">
+                  {stats?.totalUsers ?? 0} / 30 slots used
+                </span>
+              </div>
+              <p className="text-[11px] text-red-600 mt-0.5 leading-relaxed">
+                An organizer cannot have more than 30 team members (admins, managers, and markers). Please remove an existing user before inviting a new one.
+              </p>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-emerald-50/50 border border-emerald-100 rounded-xl flex flex-col gap-1 text-xs font-normal text-emerald-800">
+              <div className="flex items-center font-semibold justify-between">
+                <span>Team Slots Used</span>
+                <span className="font-medium text-emerald-950">
+                  {stats?.totalUsers ?? 0} / 30 Slots Used
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-600 mt-0.5 leading-relaxed">
+                Organizers are limited to a maximum of 30 team members (admins, managers, and markers).
+              </p>
+            </div>
+          )}
           <div>
             <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
             <Input
@@ -2027,6 +2054,29 @@ export default function OrganizerAdminMembersPage() {
                   </div>
                 </div>
                 {inviteScope === "FINANCE" && (
+                  <div className="absolute top-4 right-4">
+                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Marker Card */}
+              <div
+                onClick={() => setInviteScope("MARKER")}
+                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "MARKER" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "MARKER" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-medium ${inviteScope === "MARKER" ? "text-zinc-900" : "text-zinc-700"}`}>Marker Only</h4>
+                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                      Input scores and verify play during tournaments. No access to other management features.
+                    </p>
+                  </div>
+                </div>
+                {inviteScope === "MARKER" && (
                   <div className="absolute top-4 right-4">
                     <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
                   </div>

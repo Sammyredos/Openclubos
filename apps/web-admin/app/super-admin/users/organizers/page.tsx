@@ -319,6 +319,7 @@ export default function SuperAdminUsersPage() {
       { key: "ADMIN_MGR", label: "Admin Managers", color: "bg-blue-400", value: (map.CLUB_ADMIN_FULL ?? 0) + (map.CLUB_ADMIN_UNKNOWN ?? 0) },
       { key: "TOURNAMENT_MGR", label: "Tournament Managers", color: "bg-teal-500", value: map.CLUB_ADMIN_TOURNAMENTS ?? 0 },
       { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: map.CLUB_ADMIN_FINANCE ?? 0 },
+      { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
     
     const superAdmins = map.SUPER_ADMIN ?? 0;

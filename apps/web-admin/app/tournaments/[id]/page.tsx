@@ -188,20 +188,11 @@ export default function TournamentDetailPage() {
         <div className="bg-white rounded-lg border-none overflow-hidden relative shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
           {/* Banner background */}
           <div className="bg-gradient-to-r from-openclub-800 via-openclub-600 to-openclub-400 relative overflow-hidden" style={{ height: "350px" }}>
-            {tournament.bannerUrl ? (
-              <img
-                src={tournament.bannerUrl}
-                alt="Tournament Banner"
-                className="absolute inset-0 w-full h-full object-cover z-10"
-              />
-            ) : (
-              <div className="absolute inset-0 opacity-15"
-                style={{
-                  backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.5) 1px, transparent 0)",
-                  backgroundSize: "20px 20px"
-                }}
-              />
-            )}
+            <img
+              src={tournament.bannerUrl || "/yellow-9-flag-realistic.png"}
+              alt="Tournament Banner"
+              className="absolute inset-0 w-full h-full object-cover z-10"
+            />
           </div>
 
           <div className="px-6 md:px-8 pb-6 relative">
