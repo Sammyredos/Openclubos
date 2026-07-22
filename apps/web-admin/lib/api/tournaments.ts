@@ -40,7 +40,7 @@ export type UpdateTournamentPayload = {
   registrationOpenAt?: string | null;
   registrationCloseAt?: string | null;
   format?: 'STROKE_PLAY' | 'MATCH_PLAY' | 'STABLEFORD' | 'SCRAMBLE' | 'BEST_BALL';
-  scoringType?: 'GROSS' | 'NET';
+  scoringType?: 'GROSS' | 'NET' | 'BOTH';
   holes?: number;
   divisions?: string[];
   allowRegisteredPlayers?: boolean;

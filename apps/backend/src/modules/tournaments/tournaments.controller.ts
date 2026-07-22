@@ -61,12 +61,12 @@ export class TournamentsController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const isOrgRole = role && [
+    const isOrgRole = role && ([
       UserRole.CLUB_ADMIN,
       UserRole.MARKER,
       UserRole.MANAGER,
       UserRole.STAFF,
-    ].includes(role);
+    ] as UserRole[]).includes(role);
 
     const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
 
@@ -86,12 +86,12 @@ export class TournamentsController {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
 
-    const isOrgRole = role && [
+    const isOrgRole = role && ([
       UserRole.CLUB_ADMIN,
       UserRole.MARKER,
       UserRole.MANAGER,
       UserRole.STAFF,
-    ].includes(role);
+    ] as UserRole[]).includes(role);
 
     const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
 

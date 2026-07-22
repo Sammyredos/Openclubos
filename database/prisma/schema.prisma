@@ -221,7 +221,7 @@ model Tournament {
 
   // Step 3: Format
   format      TournamentFormat @default(STROKE_PLAY)
-  scoringType ScoringType      @default(GROSS)
+  scoringType ScoringType      @default(BOTH)
   holes       Int              @default(18)
 
   // Step 4: Eligibility
@@ -315,6 +315,7 @@ enum TournamentFormat {
 enum ScoringType {
   GROSS
   NET
+  BOTH
 }
 
 enum TournamentVisibility {

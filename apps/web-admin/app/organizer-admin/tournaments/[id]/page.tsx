@@ -111,7 +111,7 @@ type TournamentRow = {
   enableWaitlist?: boolean;
   createdAt: string;
   registrations: number;
-  scoringType: "NET" | "GROSS";
+  scoringType: "NET" | "GROSS" | "BOTH";
   lockedGroupingsDays: number[];
   enableCut?: boolean;
   cutAfterRound?: number;
@@ -748,14 +748,14 @@ function ViewTournamentPageInner() {
           enableWaitlist: t.enableWaitlist,
           createdAt: t.createdAt,
           registrations,
-          scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
+          scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
           lockedGroupingsDays: t.lockedGroupingsDays ?? [],
           enableCut: t.enableCut,
           cutAfterRound: t.cutAfterRound,
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
-        setLeaderboardSortBy(t.scoringType === "GROSS" ? "GROSS" : "NET");
+        setLeaderboardSortBy(t.scoringType === "NET" ? "NET" : "GROSS");
       } catch (e: unknown) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to fetch tournament details");
@@ -2656,16 +2656,22 @@ function ViewTournamentPageInner() {
                     />
 
                     {/* Sort Filter */}
-                    <SearchableSelect
-                      value={leaderboardSortBy}
-                      onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
-                      options={[
-                        { value: "NET", label: "Net Score" },
-                        { value: "GROSS", label: "Gross Score" },
-                      ]}
-                      className="min-w-[140px]"
-                      triggerClassName="h-10 bg-[#f8f9fa] font-normal"
-                    />
+                    {selectedTournament?.scoringType === "BOTH" ? (
+                      <SearchableSelect
+                        value={leaderboardSortBy}
+                        onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
+                        options={[
+                          { value: "NET", label: "Net Score" },
+                          { value: "GROSS", label: "Gross Score" },
+                        ]}
+                        className="min-w-[140px]"
+                        triggerClassName="h-10 bg-[#f8f9fa] font-normal"
+                      />
+                    ) : (
+                      <div className="h-10 px-4 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-sm text-gray-700 font-medium">
+                        {selectedTournament?.scoringType === "GROSS" ? "Gross Score" : "Net Score"}
+                      </div>
+                    )}
                   </div>
                 </div>
 

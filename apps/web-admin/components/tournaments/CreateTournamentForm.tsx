@@ -78,7 +78,7 @@ const DEFAULT_FORM = {
   registrationOpenAt: "",
   registrationCloseAt: "",
   format: "STROKE_PLAY" as const,
-  scoringType: "GROSS" as const,
+  scoringType: "BOTH" as const,
   holes: 18,
   divisions: [] as string[],
   allowRegisteredPlayers: true,
@@ -808,34 +808,14 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       {
                         value: "STROKE_PLAY",
                         label: "Stroke Play",
-                        icon: "⛳",
                         desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
-                      },
-                      {
-                        value: "STABLEFORD",
-                        label: "Stableford",
-                        icon: "⭐",
-                        desc: "Players earn points based on their score relative to par on each hole (e.g. 2pts for par). Highest total points wins. Encourages risk-taking.",
                       },
                       {
                         value: "MATCH_PLAY",
                         label: "Match Play",
-                        icon: "⚔️",
                         desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match.",
                       },
-                      {
-                        value: "SCRAMBLE",
-                        label: "Scramble",
-                        icon: "🤝",
-                        desc: "All team members tee off, the best shot is selected, and everyone plays their next shot from that spot.",
-                      },
-                      {
-                        value: "BEST_BALL",
-                        label: "Best Ball",
-                        icon: "🏆",
-                        desc: "Each player plays their own ball. The team score is the lowest individual score.",
-                      },
-                    ].map(({ value, label, icon, desc }) => {
+                    ].map(({ value, label, desc }) => {
                       const active = formData.format === value;
                       return (
                         <button
@@ -861,7 +841,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[13px] leading-none">{icon}</span>
                               <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-850")}>
                                 {label}
                               </span>
@@ -881,6 +860,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     </p>
                     <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                       {[
+                        { value: "BOTH", label: "Both", desc: "Gross & Net" },
                         { value: "GROSS", label: "Gross", desc: "Actual strokes" },
                         { value: "NET", label: "Net", desc: "After handicap" },
                       ].map(({ value, label, desc }) => {
