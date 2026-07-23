@@ -8,3 +8,36 @@
 - **Modal Size**: Use a compact maximum width (e.g., `max-w-md` or `max-w-sm` in Tailwind).
 - **Typography & Weights**: Unlike the general admin page rule, modals **should** use heavier font weights (`font-semibold` or `font-bold`) for Titles, Subtitles, button text, and emphasizing critical words in body text.
 - **Font Sizes**: Titles should be prominent (e.g., `text-lg`), secondary headings/questions standard size (`text-base`), and description text slightly smaller (`text-sm`).
+
+## Page Titles
+Always ensure that every page has a distinct title shown in the browser tab.
+
+1. The root `layout.tsx` must define a title template:
+   ```tsx
+   export const metadata: Metadata = {
+     title: {
+       template: "%s | Openclub Admin",
+       default: "Openclub Admin",
+     }
+   };
+   ```
+
+2. **Server Components (`page.tsx`)**: Directly export `metadata`:
+   ```tsx
+   export const metadata = {
+     title: "Dashboard",
+   };
+   ```
+
+3. **Client Components (`page.tsx` with `"use client"`)**: Client components cannot export metadata. You MUST create a `layout.tsx` file in the exact same directory to provide the metadata:
+   ```tsx
+   import { Metadata } from "next";
+
+   export const metadata: Metadata = {
+     title: "Login",
+   };
+
+   export default function Layout({ children }: { children: React.ReactNode }) {
+     return <>{children}</>;
+   }
+   ```

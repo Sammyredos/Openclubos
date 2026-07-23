@@ -7,6 +7,11 @@ import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
+export const metadata = {
+  title: "Home",
+};
+
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 flex flex-col font-sans">

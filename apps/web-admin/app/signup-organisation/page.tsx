@@ -241,38 +241,20 @@ export default function SignupOrganisationPage() {
 
   const inputClasses = "w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
   const labelClasses = "block font-medium text-sm text-zinc-700 mb-2"
-  const btnClasses = "w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 mt-4"
+  const btnClasses = "w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-4"
   const errorClasses = "text-xs text-red-600 font-medium mt-2"
 
   return (
-    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900 overflow-x-hidden">
-      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
+    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900 p-4 lg:p-8 overflow-x-hidden">
+      <div className="w-full max-w-7xl lg:min-h-[820px] bg-white rounded-[2rem] border border-zinc-100 flex flex-col lg:flex-row overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.05)]">
 
-        {/* LEFT COLUMN - Image */}
-        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end sticky top-0 h-screen"
-          style={{ backgroundImage: "url('/yellow-9-flag-realistic.png')" }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
-
-          <div className="relative z-10 text-white">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              Host Tournaments<br />Like A Pro.
-            </h1>
-            <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
-              Create your OpenClub organization to streamline tournament registrations, manage leaderboards, and elevate the player experience.
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative min-h-screen lg:min-h-0">
-          {/* Subtle background glow */}
-          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
-
-          <div className="w-full max-w-[560px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
+        {/* LEFT COLUMN - Form */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 relative z-10">
+          <div className="w-full max-w-[560px] mx-auto">
 
             {isSuccess ? (
               <div className="text-center">
-                <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-8 mx-auto border border-emerald-100 shadow-sm">
+                <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-8 mx-auto border border-emerald-100">
                   <Icons.logo className="h-10 w-10 text-emerald-600" />
                 </div>
                 <h2 className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Check Your Email</h2>
@@ -292,7 +274,7 @@ export default function SignupOrganisationPage() {
                   {step > 1 && (
                     <button
                       onClick={handleBack}
-                      className="mb-4 w-10 h-10 rounded-xl bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 flex items-center justify-center transition-all"
+                      className="mb-4 w-10 h-10 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 flex items-center justify-center transition-all"
                     >
                       <ArrowLeft className="w-5 h-5 text-zinc-700" />
                     </button>
@@ -370,12 +352,12 @@ export default function SignupOrganisationPage() {
                     <div className="flex justify-center my-6">
                       <div className="relative">
                         {logo ? (
-                          <div className="w-48 h-48 rounded-2xl border border-zinc-200 bg-white relative overflow-hidden shadow-sm">
+                          <div className="w-48 h-48 rounded-2xl border border-zinc-200 bg-white relative overflow-hidden">
                             <img src={logo} alt="Logo" className="w-full h-full object-cover" />
                             <button
                               type="button"
                               onClick={() => setValue("organizationLogo", "", { shouldValidate: true })}
-                              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 shadow-sm transition-all"
+                              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition-all"
                             >
                               <X className="w-4 h-4 text-zinc-700" />
                             </button>
@@ -385,7 +367,7 @@ export default function SignupOrganisationPage() {
                             onClick={() => fileInputRef.current?.click()}
                             className="w-48 h-48 rounded-2xl border border-dashed border-zinc-300 bg-[#f5faf6] hover:bg-[#e1efe5] hover:border-zinc-400 transition-all flex flex-col items-center justify-center cursor-pointer group"
                           >
-                            <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                            <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                               <Upload className="w-5 h-5 text-zinc-600" />
                             </div>
                             <p className="font-semibold text-sm text-zinc-700">Upload Logo</p>
@@ -599,7 +581,7 @@ export default function SignupOrganisationPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <button type="button" className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300">
+                      <button type="button" className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-semibold text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300">
                         <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -608,7 +590,7 @@ export default function SignupOrganisationPage() {
                         </svg>
                         Google
                       </button>
-                      <button type="button" className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300">
+                      <button type="button" className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-semibold text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M16.365 21.43c-1.327.962-2.75 1.57-4.329 1.57-1.547 0-3.003-.604-4.301-1.558C5.068 19.508 3 15.655 3 11.168c0-3.791 1.884-7.234 5.09-9.155.105-.06.216-.109.332-.143a4.708 4.708 0 0 1 1.25-.17 4.717 4.717 0 0 1 1.156.143c1.517.404 3.036 1.05 4.546 1.83.19.1.378.204.56.315 2.924 1.82 4.664 4.887 4.664 8.237 0 4.382-2.023 8.163-4.233 10.205z" fill="none" stroke="none" />
                           <path d="M12.002 23c-1.464 0-2.884-.576-4.148-1.492C5.352 19.697 3.5 15.753 3.5 11.168c0-3.486 1.637-6.721 4.526-8.62a4.417 4.417 0 0 1 1.144-.57A4.475 4.475 0 0 1 10.3 1.84c1.498.4 3.013 1.047 4.516 1.82.164.086.326.176.486.275C18.067 5.75 19.7 8.528 19.7 11.668c0 4.144-1.928 7.828-4.045 9.771C14.542 22.424 13.277 23 12.002 23zM10.428 2.296c-.34.02-.676.074-1.002.162a3.921 3.921 0 0 0-1.01.503C5.744 4.72 4 7.765 4 11.168c0 4.364 1.761 8.147 4.095 9.851 1.189.865 2.52 1.481 4.164 1.481 1.642 0 3.014-.627 4.223-1.491 2.005-1.841 3.718-5.352 3.718-9.341 0-2.991-1.562-5.63-4.183-7.29a28.09 28.09 0 0 0-.44-.248c-1.458-.75-2.925-1.376-4.368-1.761a3.96 3.96 0 0 0-.78-.173zM15.228 5.674a.5.5 0 0 1 .184.983c-1.611.638-2.613 2.115-3.033 3.633a.5.5 0 1 1-.963-.268c.48-1.737 1.643-3.411 3.483-4.141a.496.496 0 0 1 .33-.207z" />
@@ -628,6 +610,24 @@ export default function SignupOrganisationPage() {
             )}
           </div>
         </div>
+
+        {/* RIGHT COLUMN - Image */}
+        <div className="hidden lg:flex w-1/2 p-4">
+          <div className="w-full h-full min-h-[600px] relative bg-cover bg-center rounded-[1.5rem] overflow-hidden flex items-end p-12"
+            style={{ backgroundImage: "url('/images/backgrounds/yellow-9-flag-realistic.png')" }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/20" />
+
+            <div className="relative z-10 text-white">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4 leading-tight">
+                Host Tournaments<br />Like A Pro.
+              </h1>
+              <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
+                Create your OpenClub organization to streamline tournament registrations, manage leaderboards, and elevate the player experience.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )

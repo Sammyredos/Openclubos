@@ -150,46 +150,43 @@ function AcceptInvitePageInner() {
   const defaultRedirect = inviteDetails?.role === "PLAYER" ? "/app/home" : "/organizer-admin/dashboard"
 
   return (
-    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
+    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900">
       <div className="w-full max-w-[1440px] mx-auto flex justify-center relative">
 
         {/* RIGHT COLUMN - Form */}
-        <div className="w-full flex flex-col items-center justify-center p-8 lg:p-16 relative">
+        <div className="w-full flex flex-col items-center justify-center p-2 md:p-8 lg:p-16 relative">
           
-          <div className="flex items-center gap-2 mb-8 relative z-10">
-            <Icons.logo className="w-8 h-8 text-zinc-900" />
-            <span className="font-bold text-2xl tracking-tight text-zinc-900">OpenClub</span>
-          </div>
+
 
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
 
-          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
+          <div className="w-full max-w-[480px] md:max-w-[420px] lg:max-w-[730px] flex flex-col justify-center bg-white rounded-3xl p-6 md:p-10 lg:p-16 border border-zinc-100 relative z-10">
             {pageState === "success" ? (
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 shadow-sm">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
                   <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                 </div>
 
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Account Activated!</h2>
-                <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+                <h2 className="text-[28px] font-bold tracking-tight text-zinc-900 mb-3">Account Activated!</h2>
+                <p className="text-zinc-500 text-[15px] mb-8 leading-relaxed">
                   Your account is now active. You are being redirected.
                 </p>
 
                 <Link href={searchParams.get("from") || defaultRedirect} className="w-full">
-                  <button className="w-full bg-emerald-600 text-white font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center">
+                  <button className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98]">
                     {inviteDetails?.role === "PLAYER" ? "Proceed to Tournaments" : "Go to Dashboard"}
                   </button>
                 </Link>
               </div>
             ) : pageState === "error" ? (
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-6 shadow-sm">
+                <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-6">
                   <AlertCircle className="h-8 w-8 text-red-500" />
                 </div>
 
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-3">Invalid Invitation</h2>
-                <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+                <h2 className="text-[28px] font-bold tracking-tight text-zinc-900 mb-3">Invalid Invitation</h2>
+                <p className="text-zinc-500 text-[15px] mb-8 leading-relaxed">
                   This invitation link is invalid or has expired. Please ask your organizer to send a new invitation.
                 </p>
 
@@ -198,12 +195,12 @@ function AcceptInvitePageInner() {
                 </Link>
               </div>
             ) : (
-              <>
-                <div className="mb-8 text-left">
-                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">
+              <div className="flex flex-col items-center w-full">
+                <div className="text-center w-full mb-8">
+                  <h2 className="text-[28px] font-bold tracking-tight mb-2 text-zinc-900">
                     {inviteDetails?.role === "PLAYER" ? "Complete Registration" : "Set Your Password"}
                   </h2>
-                  <p className="text-zinc-500 mb-2">
+                  <p className="text-zinc-500 text-[15px]">
                     {inviteDetails?.role === "PLAYER" ? (
                       <>
                         Hi <span className="font-medium text-zinc-900">{inviteDetails.email}</span>, let's set up your profile and password.
@@ -214,7 +211,7 @@ function AcceptInvitePageInner() {
                   </p>
                 </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
                   {/* First Name */}
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700 mb-2">First Name</label>
@@ -222,7 +219,7 @@ function AcceptInvitePageInner() {
                       id="firstName"
                       type="text"
                       placeholder="John"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("firstName")}
                     />
@@ -238,7 +235,7 @@ function AcceptInvitePageInner() {
                       id="middleName"
                       type="text"
                       placeholder="Robert"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("middleName")}
                     />
@@ -254,7 +251,7 @@ function AcceptInvitePageInner() {
                       id="lastName"
                       type="text"
                       placeholder="Doe"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("lastName")}
                     />
@@ -271,7 +268,7 @@ function AcceptInvitePageInner() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         disabled={pageState === "loading"}
                         {...form.register("password")}
                       />
@@ -296,7 +293,7 @@ function AcceptInvitePageInner() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         disabled={pageState === "loading"}
                         {...form.register("confirmPassword")}
                       />
@@ -317,7 +314,7 @@ function AcceptInvitePageInner() {
                   <button
                     type="submit"
                     disabled={pageState === "loading"}
-                    className="w-full bg-emerald-600 text-white font-semibold text-sm rounded-xl py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center mt-4"
+                    className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-2"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-white" />
@@ -326,7 +323,7 @@ function AcceptInvitePageInner() {
                     )}
                   </button>
                 </form>
-              </>
+              </div>
             )}
           </div>
         </div>

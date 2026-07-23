@@ -98,30 +98,12 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
-      <div className="w-full max-w-[1440px] mx-auto flex flex-col lg:flex-row relative">
+    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900 p-4 lg:p-8">
+      <div className="w-full max-w-[1100px] lg:min-h-[820px] bg-white rounded-[2rem] border border-zinc-100 flex flex-col lg:flex-row overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.05)]">
 
-        {/* LEFT COLUMN - Image */}
-        <div className="hidden lg:flex w-1/2 relative bg-cover bg-center border-r border-zinc-200 p-16 items-end"
-          style={{ backgroundImage: "url('/yellow-9-flag-realistic.png')" }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/10" />
-
-          <div className="relative z-10 text-white">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              The Leaderboard,<br />Digitized.
-            </h1>
-            <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
-              Sign in to manage your tournaments, track live scoring, and oversee your entire event operations.
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
-          {/* Subtle background glow */}
-          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
-
-          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
+        {/* LEFT COLUMN - Form */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 relative z-10">
+          <div className="w-full max-w-[400px] mx-auto">
 
             <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Welcome Back</h2>
             <p className="text-zinc-500 mb-10">Log in to access your dashboard.</p>
@@ -129,7 +111,7 @@ function LoginPageInner() {
             {/* OAuth Button */}
             <button
               type="button"
-              className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-medium text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-8"
+              className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center gap-3 font-medium text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-8"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -217,7 +199,7 @@ function LoginPageInner() {
               <button
                 type="submit"
                 disabled={isLoading || form.formState.isSubmitting}
-                className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 mt-4"
+                className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-4"
               >
                 {isLoading ? (
                   <Icons.spinner className="w-5 h-5 animate-spin text-white" />
@@ -234,6 +216,24 @@ function LoginPageInner() {
             </div>
           </div>
         </div>
+
+        {/* RIGHT COLUMN - Image */}
+        <div className="hidden lg:flex w-1/2 p-4">
+          <div className="w-full h-full min-h-[600px] relative bg-cover bg-center rounded-[1.5rem] overflow-hidden flex items-end p-12"
+            style={{ backgroundImage: "url('/images/backgrounds/golf_ball_cup_login.png')" }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/20" />
+
+            <div className="relative z-10 text-white">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4 leading-tight">
+                The Leaderboard,<br />Digitized.
+              </h1>
+              <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
+                Sign in to manage your tournaments, track live scoring, and oversee your entire event operations.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Unverified Email Modal */}
@@ -249,7 +249,7 @@ function LoginPageInner() {
             <button
               onClick={handleResendVerification}
               disabled={isResending}
-              className="px-6 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm shadow-sm hover:bg-emerald-700 transition-all flex items-center justify-center"
+              className="px-6 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-all flex items-center justify-center"
             >
               {isResending ? <Icons.spinner className="w-4 h-4 animate-spin" /> : "Send New Link"}
             </button>

@@ -31,7 +31,10 @@ const zxgamutFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Openclub Admin",
+  title: {
+    template: "%s | Openclub Admin",
+    default: "Openclub Admin",
+  },
   description: "Openclub Golf Tournament Administration",
 };
 

@@ -58,35 +58,34 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-background font-sans text-zinc-900">
+    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900">
       <div className="w-full max-w-[1440px] mx-auto flex justify-center relative">
         
         {/* RIGHT COLUMN - Form */}
-        <div className="w-full flex flex-col items-center justify-center p-8 lg:p-16 relative">
+        <div className="w-full flex flex-col items-center justify-center p-2 md:p-8 lg:p-16 relative">
           
-          <div className="flex items-center gap-2 mb-8 relative z-10">
-            <Icons.logo className="w-8 h-8 text-zinc-900" />
-            <span className="font-bold text-2xl tracking-tight text-zinc-900">OpenClub</span>
-          </div>
+
 
           {/* Subtle background glow */}
           <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
           
-          <div className="w-full max-w-[480px] bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-100 relative z-10">
+          <div className="w-full max-w-[480px] md:max-w-[420px] lg:max-w-[730px] lg:h-[515px] flex flex-col justify-center bg-white rounded-3xl p-6 md:p-10 lg:p-16 border border-zinc-100 relative z-10">
             
             {pageState !== "sent" ? (
-              <>
-                <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Reset Password</h2>
-                <p className="text-zinc-500 mb-10">Enter your email to receive a recovery link.</p>
+              <div className="flex flex-col items-center w-full">
+                <div className="text-center w-full mb-8">
+                  <h2 className="text-[28px] font-bold tracking-tight mb-2 text-zinc-900">Forgot password?</h2>
+                  <p className="text-zinc-500 text-[15px]">No worries, we'll send you reset instructions.</p>
+                </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
                   {/* Email */}
                   <div>
-                    <label htmlFor="reset-email" className="block font-medium text-sm text-zinc-700 mb-2">Email Address</label>
+                    <label htmlFor="reset-email" className="block font-medium text-sm text-zinc-700 mb-2">Email</label>
                     <input
                       id="reset-email"
                       type="email"
-                      placeholder="golfer@example.com"
+                      placeholder="Enter your email"
                       className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("email")}
@@ -100,26 +99,26 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={pageState === "loading"}
-                    className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 mt-4"
+                    className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-2"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-white" />
                     ) : (
-                      "Send Reset Link"
+                      "Reset Password"
                     )}
                   </button>
                 </form>
 
                 <div className="mt-8 text-center font-medium text-sm">
-                  <p className="text-zinc-500">
-                    Remembered your password? <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors">Sign in</a>
-                  </p>
+                  <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-2">
+                    Back to login
+                  </a>
                 </div>
-              </>
+              </div>
             ) : (
               <>
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-8 border border-emerald-100 shadow-sm">
+                  <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-8 border border-emerald-100">
                     <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                   </div>
                   
@@ -131,7 +130,7 @@ export default function ForgotPasswordPage() {
                   <button
                     onClick={handleResend}
                     disabled={countdown > 0}
-                    className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center font-semibold text-sm text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center font-semibold text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {countdown > 0 ? `Resend Email in ${countdown}s` : "Resend Email"}
                   </button>

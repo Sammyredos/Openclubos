@@ -37,11 +37,11 @@ function getErrorMessage(e: unknown) {
 }
 
 const STATUS_META = {
-  DRAFT: { label: "Draft", badge: "bg-slate-50 text-gray-600 border border-slate-200" },
-  REGISTRATION_OPEN: { label: "Registration Open", badge: "bg-emerald-50 text-openclub-800 border border-emerald-100" },
-  ONGOING: { label: "Tournament Ongoing", badge: "bg-blue-50 text-blue-600 border border-blue-100" },
-  COMPLETED: { label: "Completed", badge: "bg-violet-50 text-violet-600 border border-violet-100" },
-  CANCELLED: { label: "Cancelled", badge: "bg-rose-50 text-rose-600 border border-rose-100" },
+  DRAFT: { label: "Draft", badge: "bg-slate-50 text-gray-600 font-medium border border-slate-200" },
+  REGISTRATION_OPEN: { label: "Registration Open", badge: "bg-emerald-50 font-medium text-openclub-800 border border-emerald-100" },
+  ONGOING: { label: "Tournament Ongoing", badge: "bg-blue-50 font-medium text-blue-600 border border-blue-100" },
+  COMPLETED: { label: "Completed", badge: "bg-violet-50 font-medium text-violet-600 border border-violet-100" },
+  CANCELLED: { label: "Cancelled", badge: "bg-rose-50 font-medium text-rose-600 border border-rose-100" },
 }
 
 export default function TournamentDetailPage() {
@@ -49,7 +49,7 @@ export default function TournamentDetailPage() {
   const router = useRouter()
   const [tournament, setTournament] = React.useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
-  
+
   // Contact Modal State
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false)
   const [contactForm, setContactForm] = React.useState({ name: "", email: "", subject: "", message: "" })
@@ -189,7 +189,7 @@ export default function TournamentDetailPage() {
           {/* Banner background */}
           <div className="bg-gradient-to-r from-openclub-800 via-openclub-600 to-openclub-400 relative overflow-hidden" style={{ height: "350px" }}>
             <img
-              src={tournament.bannerUrl || "/yellow-9-flag-realistic.png"}
+              src="/images/tournaments/tournament-banner-new.jpg"
               alt="Tournament Banner"
               className="absolute inset-0 w-full h-full object-cover z-10"
             />
@@ -257,7 +257,7 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <BookOpen className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[16px] text-slate-900">About the Tournament</h2>
+                <h2 className="text-[15px] font-medium text-slate-900">About the Tournament</h2>
               </div>
               <p className="text-gray-500 text-[14px] leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
@@ -270,7 +270,7 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
                 <Shield className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[16px] text-slate-900">Entry Guidelines & Restrictions</h2>
+                <h2 className="text-[15px] font-medium text-slate-900">Entry Guidelines & Restrictions</h2>
               </div>
               <ul className="space-y-3 text-[14px] text-gray-500">
                 <li className="flex items-start gap-3">
@@ -294,7 +294,7 @@ export default function TournamentDetailPage() {
 
             {/* Key Information Card */}
             <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <h3 className="text-slate-900 text-[16px] border-b border-gray-50 pb-2 capitalize tracking-wide">
+              <h3 className="text-slate-900 text-[15px] font-medium border-b border-gray-50 pb-2 capitalize tracking-wide">
                 Tournament Info
               </h3>
 
@@ -306,7 +306,7 @@ export default function TournamentDetailPage() {
                   </div>
                   <div>
                     <p className="text-[11px] text-gray-500 uppercase tracking-wider">Entry Fee</p>
-                    <p className="text-slate-900 text-[15px] mt-0.5">{formattedFee}</p>
+                    <p className="text-slate-900 font-medium text-[15px] mt-0.5">{formattedFee}</p>
                   </div>
                 </div>
 
@@ -317,8 +317,8 @@ export default function TournamentDetailPage() {
                       <Award className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Handicap Limits</p>
-                      <p className="text-slate-900 text-[15px] mt-0.5">
+                      <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Handicap Limits</p>
+                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
                         {tournament.minHandicap === 0 && tournament.maxHandicap === 0
                           ? "None"
                           : `${tournament.minHandicap ?? 0} – ${tournament.maxHandicap ?? "N/A"}`}
@@ -335,7 +335,7 @@ export default function TournamentDetailPage() {
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-500 uppercase tracking-wider">Roster Size</p>
-                      <p className="text-slate-900 text-[15px] mt-0.5">
+                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
                         {tournament._count?.registrations ?? 0} / {tournament.maxPlayers} Max Players
                       </p>
                     </div>
@@ -350,7 +350,7 @@ export default function TournamentDetailPage() {
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-500 uppercase tracking-wider">Registration Deadline</p>
-                      <p className="text-slate-900 text-[15px] mt-0.5">
+                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
                         {new Date(tournament.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
@@ -382,7 +382,7 @@ export default function TournamentDetailPage() {
             <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
               <div className="flex text-[14px] items-center gap-2 text-openclub-900">
                 <Info className="w-4 h-4 text-openclub-700" />
-                <h4 className="text-[14px]">Need Assistance?</h4>
+                <h4 className="text-[14px] font-medium">Need Assistance?</h4>
               </div>
               <p className="text-[12px] text-gray-500 leading-relaxed">
                 If you have questions about payment validation, guest eligibility, or handicap restrictions, please send a message directly to the golf organizer club.
@@ -406,15 +406,15 @@ export default function TournamentDetailPage() {
         className="max-w-md"
         footer={
           <div className="flex w-full gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsContactModalOpen(false)}
               className="font-semibold flex-1"
               disabled={isSending}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               className="font-bold flex-1"
               disabled={isSending || !contactForm.name || !contactForm.email || !contactForm.message}
               onClick={async () => {
@@ -436,34 +436,34 @@ export default function TournamentDetailPage() {
           <p className="text-sm text-gray-600 leading-relaxed">
             Fill out the form below to <span className="font-semibold text-gray-900">send a direct message</span> to the tournament organizer. They will reply to your email address.
           </p>
-          
+
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-900">Your Name</label>
-                <Input 
-                  placeholder="e.g. John Doe" 
-                  value={contactForm.name} 
+                <Input
+                  placeholder="e.g. John Doe"
+                  value={contactForm.name}
                   onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                   disabled={isSending}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-900">Your Email</label>
-                <Input 
+                <Input
                   type="email"
-                  placeholder="john@example.com" 
+                  placeholder="john@example.com"
                   value={contactForm.email}
                   onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                   disabled={isSending}
                 />
               </div>
             </div>
-            
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-900">Subject</label>
-              <Input 
-                placeholder="e.g. Question about eligibility" 
+              <Input
+                placeholder="e.g. Question about eligibility"
                 value={contactForm.subject}
                 onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
                 disabled={isSending}
@@ -472,7 +472,7 @@ export default function TournamentDetailPage() {
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-900">Message</label>
-              <textarea 
+              <textarea
                 className="w-full flex min-h-[120px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 placeholder="Type your message here..."
                 value={contactForm.message}
