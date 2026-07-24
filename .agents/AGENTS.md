@@ -41,3 +41,6 @@ Always ensure that every page has a distinct title shown in the browser tab.
      return <>{children}</>;
    }
    ```
+
+## Workspace Cleanup
+- Always remove all unused scripts, scratch files, and temporary code blocks immediately after they are no longer needed.

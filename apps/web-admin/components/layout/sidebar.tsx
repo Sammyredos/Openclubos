@@ -67,7 +67,7 @@ function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { nam
               key={subItem.name}
               href={subItem.href}
               className={cn(
-                "flex items-center h-[34px] px-3 ml-[22px] text-[13px] rounded-lg transition-colors duration-200 w-[140px] relative z-10",
+                "flex items-center h-[34px] px-3 ml-[22px] text-[13px] rounded-lg transition-colors duration-200 w-[140px] relative z-10 no-underline hover:no-underline",
                 isSubActive
                   ? "bg-[#e0fbea] text-[#15803D] font-medium"
                   : "text-zinc-600 hover:bg-background hover:text-zinc-900"
@@ -111,6 +111,7 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Tournaments", href: "/super-admin/tournaments", icon: Trophy },
+      { name: "Leaderboard", href: "/super-admin/leaderboard", icon: BarChart3 },
       { name: "Payments", href: "/super-admin/payments", icon: CreditCard },
     ],
   },
@@ -137,8 +138,6 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Tournaments", href: "/organizer-admin/tournaments", icon: Trophy },
-      { name: "Registrations", href: "/organizer-admin/registrations", icon: CheckSquare },
-      { name: "Scoring", href: "/organizer-admin/scoring", icon: Activity },
     ],
   },
   {
@@ -244,11 +243,11 @@ export function Sidebar() {
         ...group,
         items: group.items.filter(item => {
           if (user.managerScope === 'TOURNAMENTS') {
-            const allowed = ["Dashboard", "Tournaments", "Registrations", "Scoring", "Leaderboard", "Reports", "Handicaps", "Notifications", "Settings"];
+            const allowed = ["Dashboard", "Tournaments", "Leaderboard", "Reports", "Handicaps", "Notifications", "Settings"];
             return allowed.includes(item.name);
           }
           if (user.managerScope === 'FINANCE') {
-            const allowed = ["Dashboard", "Registrations", "Payments", "Reports", "Notifications"];
+            const allowed = ["Dashboard", "Payments", "Reports", "Notifications"];
             return allowed.includes(item.name);
           }
           // Default for FULL manager scope or regular Organizer Admin
@@ -332,7 +331,7 @@ export function Sidebar() {
                         <Link
                           href={item.href}
                           className={cn(
-                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group",
+                            "flex items-center justify-between h-[40px] ml-[21px] px-3 flex-1 rounded-lg text-sm font-normal transition-colors duration-200 group no-underline hover:no-underline",
                             isActive && !item.subItems
                               ? "bg-[#e0fbea] text-[#15803D]"
                               : "text-zinc-700 hover:bg-background hover:text-zinc-900"

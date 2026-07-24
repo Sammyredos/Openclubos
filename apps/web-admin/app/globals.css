@@ -187,4 +187,8 @@
   ::placeholder {
     opacity: 0.5 !important;
   }
+
+  a:not(:has(> button)):not(:has(> div)):not(:has(> img)) {
+    @apply underline transition-colors duration-200 hover:text-primary;
+  }
 }

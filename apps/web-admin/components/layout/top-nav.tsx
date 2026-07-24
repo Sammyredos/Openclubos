@@ -17,9 +17,8 @@ export function TopNav() {
       if (pathname.startsWith("/organizer-admin/users/")) return "User Details";
       if (pathname === "/organizer-admin/tournaments") return "Tournaments";
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Tournament Details";
-      if (pathname === "/organizer-admin/registrations") return "Registrations";
-      if (pathname === "/organizer-admin/scoring") return "Scoring";
       if (pathname === "/organizer-admin/leaderboard") return "Leaderboard";
+      if (pathname.startsWith("/organizer-admin/leaderboard/")) return "Tournament Leaderboard";
       if (pathname === "/organizer-admin/payments") return "Payments";
       if (pathname === "/organizer-admin/reports") return "Reports";
       if (pathname === "/organizer-admin/handicaps") return "Handicaps";
@@ -33,6 +32,8 @@ export function TopNav() {
     if (pathname === "/super-admin/users/organizers") return "Organizers";
     if (pathname.startsWith("/super-admin/users/")) return "User Details";
     if (pathname === "/super-admin/tournaments") return "Tournaments";
+    if (pathname === "/super-admin/leaderboard") return "Leaderboard";
+    if (pathname.startsWith("/super-admin/leaderboard/")) return "Tournament Leaderboard";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Tournament Details";
     if (pathname === "/super-admin/subscriptions/organizers") return "Subscribed Organizers";
     if (pathname === "/super-admin/subscriptions/players") return "Subscribed Players";
@@ -51,13 +52,12 @@ export function TopNav() {
     || pathname === "/super-admin/users/players"
     || pathname === "/super-admin/users/organizers"
     || pathname === "/super-admin/tournaments"
+    || pathname === "/super-admin/leaderboard"
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
     || pathname === "/super-admin/settings"
     || pathname === "/organizer-admin/users"
     || pathname === "/organizer-admin/tournaments"
-    || pathname === "/organizer-admin/registrations"
-    || pathname === "/organizer-admin/scoring"
     || pathname === "/organizer-admin/leaderboard"
     || pathname === "/organizer-admin/payments"
     || pathname === "/organizer-admin/reports"
@@ -72,9 +72,8 @@ export function TopNav() {
       if (pathname.startsWith("/organizer-admin/users/")) return "Detailed view and settings for the selected user.";
       if (pathname === "/organizer-admin/tournaments") return "Track and manage all golf tournaments for your club.";
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
-      if (pathname === "/organizer-admin/registrations") return "Manage player registrations for upcoming events.";
-      if (pathname === "/organizer-admin/scoring") return "Live scoring and scorecard management.";
       if (pathname === "/organizer-admin/leaderboard") return "View tournament leaderboards and standings.";
+      if (pathname.startsWith("/organizer-admin/leaderboard/")) return "Detailed leaderboard view for the selected tournament.";
       if (pathname === "/organizer-admin/payments") return "Track tournament entry fees and other payments.";
       if (pathname === "/organizer-admin/reports") return "Generate and view club and tournament reports.";
       if (pathname === "/organizer-admin/handicaps") return "Manage and update player handicaps.";
@@ -87,7 +86,9 @@ export function TopNav() {
     if (pathname === "/super-admin/users/players") return "View and manage all registered players and markers on the platform.";
     if (pathname === "/super-admin/users/organizers") return "View and manage all club management staff and administrators.";
     if (pathname.startsWith("/super-admin/users/")) return "Detailed view and settings for the selected user.";
-    if (pathname === "/super-admin/tournaments") return "Track and manage all golf tournaments across clubs.";
+    if (pathname === "/super-admin/tournaments") return "Track and manage all golf tournaments across Organizers.";
+    if (pathname === "/super-admin/leaderboard") return "View tournament leaderboards and standings across Organizers.";
+    if (pathname.startsWith("/super-admin/leaderboard/")) return "Detailed leaderboard view for the selected tournament.";
     if (pathname.startsWith("/super-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
     if (pathname === "/super-admin/subscriptions/organizers") return "Monitor billing, plans, and organizer subscription statuses.";
     if (pathname === "/super-admin/subscriptions/players") return "Monitor billing, plans, and player subscription statuses.";

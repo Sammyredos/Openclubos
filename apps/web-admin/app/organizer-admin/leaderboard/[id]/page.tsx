@@ -139,6 +139,8 @@ const TABS = [
   { id: "waitlist", label: "Waitlist Settings", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
+  { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
+  { id: "overview", label: "Overview", icon: Eye },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -176,7 +178,7 @@ function ViewTournamentPageInner() {
   const pathname = usePathname();
 
   // Tab Sync with search parameters
-  const activeTab = (searchParams.get("tab") || "players") as TabId;
+  const activeTab = "leaderboard" as TabId;
 
   const setActiveTab = (tabId: TabId) => {
     router.push(`${pathname}?tab=${tabId}`);
@@ -606,6 +608,8 @@ function ViewTournamentPageInner() {
       if (selectedTournament?.enableCut) {
         loadLeaderboardData();
       }
+    } else if (activeTab === "leaderboard") {
+      loadLeaderboardData();
     }
   }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
 
@@ -1174,47 +1178,26 @@ function ViewTournamentPageInner() {
   if (loading) {
     return (
       <div className="w-full max-w-full font-sans space-y-6">
-        {/* Premium Header Skeleton */}
-        <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
-          <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-            <div className="flex items-start md:items-center gap-5">
-              <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
-              <div className="flex flex-col gap-2.5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Skeleton className="h-8 w-64 rounded-md" />
-                  <Skeleton className="h-6 w-24 rounded-full" />
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
-              <Skeleton className="h-11 w-32 rounded-[12px]" />
-              <Skeleton className="h-11 w-32 rounded-[12px]" />
-              <Skeleton className="h-11 w-11 rounded-[12px]" />
-            </div>
+        <div className="space-y-4 mb-6">
+          <h1 className="text-2xl font-normal text-gray-900 tracking-tight">Tournament Leaderboard</h1>
+          <div className="flex items-center">
+            <button 
+              disabled
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors text-[13px] font-medium shadow-sm opacity-70 cursor-not-allowed"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+              Go Back
+            </button>
           </div>
         </div>
-
-        {/* Main Layout Grid Skeleton */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Navigation */}
-          <div className="w-full lg:w-[280px] shrink-0">
-            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-xl" />
-              ))}
-            </div>
+        
+        {/* Table Skeleton */}
+        <div className="bg-white rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-9 w-40 rounded-lg" />
           </div>
-
-          {/* Right Column - Active Panel */}
-          <div className="flex-1 min-w-0 space-y-6">
-            <Skeleton className="w-full h-[600px] rounded-xl border border-gray-200" />
-          </div>
+          <Skeleton className="w-full h-[400px] rounded-xl border border-gray-200" />
         </div>
       </div>
     );
@@ -1234,17 +1217,24 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full font-sans space-y-6">
+
+
+
+      <div className="flex items-center">
+        <button 
+          onClick={() => router.push('/organizer-admin/leaderboard')} 
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors text-[13px] font-medium shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+          Back to Leaderboards
+        </button>
+      </div>
+
       {/* Premium Back Header */}
       <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
 
         <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
           <div className="flex items-start md:items-center gap-5">
-            <button
-              onClick={() => router.push("/organizer-admin/tournaments")}
-              className="mt-1 md:mt-0 flex-shrink-0 w-11 h-11 bg-white border border-gray-200 shadow-sm hover:border-openclub-400 hover:shadow-md text-gray-500 hover:text-openclub-700 rounded-full flex items-center justify-center transition-all duration-300 group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-300" />
-            </button>
             <div className="flex flex-col gap-2.5">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-[20px] md:text-[24px] font-semibold text-gray-900 tracking-tight">{selectedTournament.name}</h1>
@@ -1373,32 +1363,7 @@ function ViewTournamentPageInner() {
 
       {/* Main Layout Grid */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left Column - Navigation */}
-        <div className="w-full lg:w-[280px] shrink-0">
-          <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
-                    isActive
-                      ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                      : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                  )}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <tab.icon className="w-[18px] h-[18px]" />
-                    <span className="text-[13px] font-normal leading-tight">{tab.label}</span>
-                  </div>
-                  {isActive && <ChevronRight className="w-4 h-4 text-[#15803D]" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Left Column - Removed for full width */}
 
         {/* Right Column - Active Panel */}
         <div className="flex-1 min-w-0 space-y-6">
@@ -2546,6 +2511,604 @@ function ViewTournamentPageInner() {
               </div>
             )}
 
+            {/* TABS 5: Leaderboard */}
+            {activeTab === "leaderboard" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Day Selection Tabs (Styled like AccoReg GenderTabs) */}
+                <div className="flex items-center justify-between pb-2 border-b border-[#e1efe5]">
+                  <div className="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-xl border border-gray-200">
+                    <button
+                      onClick={() => setSelectedLeaderboardDay("all")}
+                      className={cn(
+                        "px-10 py-3 text-[14px] font-normal rounded-xl transition-all duration-300",
+                        selectedLeaderboardDay === "all"
+                          ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                      )}
+                    >
+                      ALL DAYS
+                    </button>
+                    {Array.from({ length: getTournamentDays() }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedLeaderboardDay(i + 1)}
+                        className={cn(
+                          "px-10 py-3 text-[14px] font-normal rounded-xl transition-all duration-300",
+                          selectedLeaderboardDay === i + 1
+                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                        )}
+                      >
+                        DAY {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-normal text-openclub-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 flex items-center gap-2 shadow-sm">
+                      <Activity className="w-3.5 h-3.5" />
+                      Viewing: {selectedLeaderboardDay === "all" ? "Tournament Total" : `Day ${selectedLeaderboardDay} Results`}
+                    </span>
+                  </div>
+                </div>
+
+                {isCutPending && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-4 shadow-sm animate-in slide-in-from-top-2">
+                    <div className="flex gap-4">
+                      <div className="bg-white p-2 rounded-full shadow-sm border border-red-100 h-fit">
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-red-900 font-normal text-[14px]">Tournament Cut-Off Required</h4>
+                        <p className="text-red-700 text-[13px] mt-1 font-normal max-w-2xl">
+                          A cut is configured after Round {selectedTournament?.cutAfterRound}. Once all scores for this round are finalized and verified, please apply the cut to generate the advancing players' list.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setShowCutModal(true)}
+                      disabled={applyingCut}
+                      className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-6 text-[14px] font-normal shadow-sm transition-colors border border-red-700/20 whitespace-nowrap"
+                    >
+                      {applyingCut ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><line x1="9" y1="17" x2="15" y2="17" /><line x1="9" y1="13" x2="15" y2="13" /></svg>}
+                      Apply Cut-Off
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+                  <div className="space-y-1">
+                    <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-2">
+                      Live Standings
+                      <span className="text-[10px] font-normal bg-emerald-50 text-openclub-800 px-2 py-0.5 rounded-lg border border-emerald-100 uppercase">
+                        Live
+                      </span>
+                    </h3>
+                    <p className="text-[13px] text-gray-500">Real-time ranking based on {selectedLeaderboardDay === "all" ? "all played holes" : `holes played on Day ${selectedLeaderboardDay}`}.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+
+                    <SearchableSelect
+                      value={leaderboardGenderFilter}
+                      onValueChange={setLeaderboardGenderFilter}
+                      options={[
+                        { value: "ALL", label: "Gender" },
+                        { value: "MALE", label: "Male" },
+                        { value: "FEMALE", label: "Female" },
+                      ]}
+                      className="min-w-[120px]"
+                      triggerClassName="h-10 bg-[#f8f9fa] font-normal"
+                    />
+
+                    {/* Category Filter */}
+                    <SearchableSelect
+                      value={leaderboardCategoryFilter}
+                      onValueChange={setLeaderboardCategoryFilter}
+                      options={[
+                        { value: "ALL", label: "Division" },
+                        { value: "Category 1", label: "Category 1" },
+                        { value: "Category 2", label: "Category 2" },
+                        { value: "Category 3", label: "Category 3" },
+                        { value: "Category 4", label: "Category 4" },
+                        { value: "Category 5/6", label: "Category 5/6" },
+                        { value: "Open", label: "Open" },
+                      ]}
+                      className="min-w-[140px]"
+                      triggerClassName="h-10 bg-[#f8f9fa] font-normal"
+                    />
+
+                    {/* Sort Filter */}
+                    {selectedTournament?.scoringType === "BOTH" ? (
+                      <SearchableSelect
+                        value={leaderboardSortBy}
+                        onValueChange={(v) => setLeaderboardSortBy(v as "NET" | "GROSS")}
+                        options={[
+                          { value: "NET", label: "Net Score" },
+                          { value: "GROSS", label: "Gross Score" },
+                        ]}
+                        className="min-w-[140px]"
+                        triggerClassName="h-10 bg-[#f8f9fa] font-normal"
+                      />
+                    ) : (
+                      <div className="h-10 px-4 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-sm text-gray-700 font-medium">
+                        {selectedTournament?.scoringType === "GROSS" ? "Gross Score" : "Net Score"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Type player name or email to search..."
+                    value={leaderboardSearch}
+                    onChange={(e) => setLeaderboardSearch(e.target.value)}
+                    className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                  />
+                </div>
+
+                {leaderboardLoading ? (
+                  <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-background/50 border-b border-[#e1efe5]">
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider">Player</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Division</th>
+                            {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                              <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                            ))}
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Holes</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Total Gross</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">HCP</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-openclub-800 uppercase tracking-wider text-center">Net</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">To Par</th>
+                            <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {Array.from({ length: leaderboardPerPage }).map((_, i) => (
+                            <tr key={`sk-${i}`} className="hover:bg-background/50 transition-colors">
+                              <td className="px-6 py-4"><Skeleton className="w-8 h-8 rounded-lg mx-auto" /></td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <Skeleton className="w-9 h-9 rounded-lg" />
+                                  <div className="space-y-1">
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-3 w-24" />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-12 rounded-lg mx-auto" /></td>
+                              {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, j) => (
+                                <td key={`sk-r${j}`} className="px-6 py-4"><Skeleton className="h-4 w-6 mx-auto" /></td>
+                              ))}
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-10 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-8 rounded-lg mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-10 mx-auto" /></td>
+                              <td className="px-6 py-4"><Skeleton className="h-5 w-16 rounded-lg mx-auto" /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (() => {
+                  const q = leaderboardSearch.trim().toLowerCase();
+                  const filteredData = leaderboardData.filter(entry => {
+                    if (q) {
+                      const matchesSearch = entry.user.firstName?.toLowerCase().includes(q) ||
+                        entry.user.lastName?.toLowerCase().includes(q) ||
+                        entry.user.email?.toLowerCase().includes(q) ||
+                        `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q);
+                      if (!matchesSearch) return false;
+                    }
+                    if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
+                    if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
+                    return true;
+                  });
+
+                  if (filteredData.length === 0 && !q) {
+                    return (
+                      <EmptyState
+                        icon={Trophy}
+                        title="No Leaderboard Data"
+                        description="No scores have been recorded for this tournament yet."
+                      />
+                    );
+                  }
+
+                  if (filteredData.length === 0 && q) {
+                    return (
+                      <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm p-16 text-center">
+                        <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-[14px] font-normal text-gray-900">No players found</h3>
+                        <p className="text-gray-500 mt-1">We couldn't find anyone matching "{leaderboardSearch}"</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-background/50 border-b border-[#e1efe5]">
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider w-16 text-center">Pos</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider">Player</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Division</th>
+                              {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
+                                <th key={`h-r${i}`} className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">R{i + 1}</th>
+                              ))}
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Holes</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Total Gross</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">HCP</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-openclub-800 uppercase tracking-wider text-center">Net</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">To Par</th>
+                              <th className="px-6 py-4 text-[11px] font-normal text-gray-400 uppercase tracking-wider text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {filteredData.slice((leaderboardPage - 1) * leaderboardPerPage, leaderboardPage * leaderboardPerPage).map((entry, index, array) => {
+                              const rank = (leaderboardPage - 1) * leaderboardPerPage + index + 1;
+                              const isFirstMissedCut = selectedLeaderboardDay === "all" && entry.madeCut === false && (index === 0 || array[index - 1].madeCut !== false);
+                              return (
+                                <React.Fragment key={entry.user.id}>
+                                  {isFirstMissedCut && (
+                                    <tr>
+                                      <td colSpan={20} className="px-0 py-0 bg-background">
+                                        <div className="flex items-center justify-center py-3 border-y-2 border-dashed border-red-300">
+                                          <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm border border-red-200">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>
+                                            <span className="text-[11px] font-normal text-red-600 uppercase tracking-widest">Cut Line</span>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr className="hover:bg-background/50 transition-colors group">
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="flex items-center justify-center">
+                                        {entry.status === "DISQUALIFIED" ? (
+                                          <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase tracking-tight">DQ</span>
+                                        ) : rank === 1 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                            <Trophy className="w-4 h-4 text-yellow-600" />
+                                          </div>
+                                        ) : rank === 2 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-gray-400" />
+                                          </div>
+                                        ) : rank === 3 ? (
+                                          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
+                                            <Award className="w-4 h-4 text-orange-600" />
+                                          </div>
+                                        ) : (
+                                          <span className="text-[13px] font-normal text-gray-400">{rank}</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+                                          <img
+                                            src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="text-[13px] font-medium text-gray-900 truncate">
+                                            {entry.user.firstName} {entry.user.lastName}
+                                          </div>
+                                          <div className="text-[10px] text-gray-400 font-normal truncate">
+                                            {entry.user.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-normal text-gray-500 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5] uppercase tracking-tight whitespace-nowrap">
+                                        {getGolfCategory(entry.user.handicap)}
+                                      </span>
+                                    </td>
+                                    {selectedLeaderboardDay === "all" && getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => {
+                                      const day = i + 1;
+                                      const isAfterCut = selectedTournament?.enableCut && day > (selectedTournament?.cutAfterRound || 0);
+                                      const missedCut = entry.madeCut === false;
+
+                                      if (isAfterCut && missedCut) {
+                                        return (
+                                          <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                            <span className="text-[10px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg uppercase tracking-tight" title="Missed Cut">MC</span>
+                                          </td>
+                                        );
+                                      }
+
+                                      return (
+                                        <td key={`r-${i}`} className="px-6 py-4 text-center">
+                                          <span className="text-[13px] font-normal text-gray-700">{entry.rounds[day] || "-"}</span>
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="space-y-1.5">
+                                        <span className="text-[12px] font-normal text-gray-600">
+                                          {entry.grossStrokes > 0 ? `${entry.holesCount}/${selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18}` : "-"}
+                                        </span>
+                                        {entry.grossStrokes > 0 && (
+                                          <div className="w-20 mx-auto h-1 bg-gray-100 rounded-lg overflow-hidden">
+                                            <div
+                                              className="h-full bg-openclub-700 rounded-lg transition-all duration-500"
+                                              style={{ width: `${(entry.holesCount / (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18)) * 100}%` }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="flex flex-col items-center justify-center gap-1">
+                                        <span className="text-[13px] font-normal text-gray-700">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                        {entry.extraStrokes > 0 && (
+                                          <span className="text-[9px] font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
+                                            +{entry.extraStrokes} Pen
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[11px] font-normal text-gray-400 bg-background px-2 py-0.5 rounded-lg border border-[#e1efe5]">
+                                        {entry.user.handicap || 0}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-[15px] font-normal text-gray-700">
+                                        {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <span className={cn(
+                                        "text-[15px] font-normal",
+                                        entry.toPar < 0 ? "text-red-600" : entry.toPar > 0 ? "text-gray-900" : "text-openclub-800"
+                                      )}>
+                                        {entry.grossStrokes > 0 ? (entry.toPar > 0 ? `+${entry.toPar}` : entry.toPar === 0 ? "E" : entry.toPar) : "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      {entry.status === "DISQUALIFIED" ? (
+                                        <span className="text-[10px] font-normal bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                      ) : entry.madeCut === false ? (
+                                        <span className="text-[10px] font-normal bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
+                                      ) : entry.grossStrokes > 0 ? (
+                                        entry.holesCount === (selectedLeaderboardDay === "all" ? 18 * getTournamentDays() : 18) ? (
+                                          <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>
+                                        ) : (
+                                          <span className="text-[10px] font-normal bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                                        )
+                                      ) : (
+                                        <span className="text-[10px] font-normal bg-background text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Not Started</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const q = leaderboardSearch.trim().toLowerCase();
+                  const filteredData = q
+                    ? leaderboardData.filter(entry =>
+                      entry.user.firstName?.toLowerCase().includes(q) ||
+                      entry.user.lastName?.toLowerCase().includes(q) ||
+                      entry.user.email?.toLowerCase().includes(q) ||
+                      `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q)
+                    )
+                    : leaderboardData;
+
+                  if (filteredData.length > 0) {
+                    return (
+                      <div className="p-4 border-t border-[#e1efe5] flex justify-end bg-background/30">
+                        <Pagination
+                          currentPage={leaderboardPage}
+                          totalPages={Math.max(1, Math.ceil(filteredData.length / leaderboardPerPage))}
+                          onPageChange={setLeaderboardPage}
+                        />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+
+            {/* TABS 6: Overview */}
+            {activeTab === "overview" && (
+              <div className="space-y-8">
+                {/* Statistics Cards Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-[16px] font-normal text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
+                        <p className="text-[11px] text-gray-505 font-normal mt-0.5">Total Players</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                        <Users className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-[16px] font-normal text-gray-900">{formatNaira(selectedTournament.entryFee)}</p>
+                        <p className="text-[11px] text-gray-550 font-normal mt-0.5">Per Registration</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
+                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-[16px] font-normal text-gray-900">
+                          {selectedTournament.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
+                        </p>
+                        <p className="text-[11px] text-gray-550 font-normal mt-0.5">Player Limit</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Course & Organiser Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Golf Course Box */}
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
+                        {courseDetails?.coverImage ? (
+                          <img src={courseDetails.coverImage} className="w-full h-full object-cover" />
+                        ) : (
+                          <Flag className="w-7 h-7 text-openclub-800" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
+                          {courseDetails?.name || "Golf Course details"}
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          {courseDetails?.address || "No address listed"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Holes</span>
+                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.holes || "—"} Holes</span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Par</span>
+                        <span className="text-[15px] font-normal text-gray-800">Par {courseDetails?.par || "—"}</span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Slope Rating</span>
+                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.slopeRating || "—"}</span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Architect</span>
+                        <span className="text-[15px] font-normal text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scoring Rules Box */}
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
+                        <Activity className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
+                          Scoring Rules
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          Configuration for format and scoring verification
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Format</span>
+                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-medium text-gray-400 uppercase block">Scoring Type</span>
+                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Live Scoring</span>
+                        <span className={cn(
+                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).enableLiveScoring ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                        )}>
+                          {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Marker Verification</span>
+                        <span className={cn(
+                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
+                          (selectedTournament as any).requireMarkerVerification ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
+                        )}>
+                          {(selectedTournament as any).requireMarkerVerification ? "REQUIRED" : "NOT REQUIRED"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organiser Box */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
+                        {clubDetails?.logo ? (
+                          <img src={clubDetails.logo} className="w-full h-full object-cover" />
+                        ) : (
+                          <Trophy className="w-7 h-7 text-emerald-650" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
+                          {clubDetails?.name || selectedTournament.clubName}
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          {clubDetails?.address || "No address listed"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Status</span>
+                        <span className="text-[13px] font-normal text-openclub-800 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+                          {clubDetails?.status || "ACTIVE"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Plan tier</span>
+                        <span className="text-[13px] font-normal text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+                          {clubDetails?.plan || "PRO"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5] col-span-2">
+                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Admin Email</span>
+                        <span className="text-[14px] font-normal text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === "penalize" && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
@@ -3351,3 +3914,4 @@ export default function ViewTournamentPage() {
     </Suspense>
   );
 }
+

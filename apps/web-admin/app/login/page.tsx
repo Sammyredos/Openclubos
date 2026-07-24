@@ -71,7 +71,7 @@ function LoginPageInner() {
     try {
       const response = await loginRequest(data);
       login(response.accessToken, response.user, rememberMe);
-      toast.success("Successfully logged in");
+      toast.success("Successfully Logged into your Account");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid email or password.";
       if (msg === "EMAIL_NOT_VERIFIED" || msg.toLowerCase() === "email not verified") {
@@ -192,7 +192,7 @@ function LoginPageInner() {
                   </div>
                   <span className="ml-3 text-zinc-600 font-medium">Remember me</span>
                 </label>
-                <a href="/forgot-password" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">Forgot password?</a>
+                <a href="/forgot-password" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium no-underline hover:no-underline">Forgot password?</a>
               </div>
 
               {/* Sign In Button */}
