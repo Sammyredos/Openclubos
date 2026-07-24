@@ -146,6 +146,7 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
+  { id: "invite", label: "Invite a Player", icon: UserPlus },
   { id: "register", label: "Register a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
@@ -244,6 +245,49 @@ function ViewTournamentPageInner() {
     if (strokeModalAction === "CLEAR") clearTournamentRegistrationStrokes(strokeModalRegistration);
     setStrokeModalRegistration(null);
     setStrokeModalAction(null);
+  };
+
+  // Invite Player options
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
+
+  const handleSendInvite = async () => {
+    if (!selectedTournament?.id) {
+      toast.error("Tournament information not loaded.");
+      return;
+    }
+    const isConcluded = selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || (selectedTournament as any).status === "COMPLETED" || (selectedTournament as any).status === "CANCELLED";
+    if (isConcluded) {
+      toast.error("Invitations are disabled because this tournament has concluded or been cancelled.");
+      return;
+    }
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error("Please enter a player's email address.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    const toastId = toast.loading("Sending invitation...");
+    try {
+      setIsSubmittingInvite(true);
+      const { invitePlayerToTournament } = await import("@/lib/api/registrations");
+      await invitePlayerToTournament({
+        tournamentId: selectedTournament.id,
+        email: email,
+      });
+      toast.success(`Invitation sent successfully to ${email}`, { id: toastId });
+      setInviteEmail("");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to send invitation";
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsSubmittingInvite(false);
+    }
   };
 
   // Manual register options
@@ -1550,7 +1594,7 @@ function ViewTournamentPageInner() {
                     </Button>
                     <Button
                       disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-                      onClick={() => setActiveTab("register")}
+                      onClick={() => setActiveTab("invite")}
                       className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
                     >
                       <UserPlus className="w-3.5 h-3.5" /> Invite a Player
@@ -1560,7 +1604,7 @@ function ViewTournamentPageInner() {
 
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="relative flex-1 min-w-[240px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
                       onChange={(e) => {
@@ -1569,7 +1613,7 @@ function ViewTournamentPageInner() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     />
                   </div>
                   <SearchableSelect
@@ -1588,7 +1632,8 @@ function ViewTournamentPageInner() {
                       { value: "DISQUALIFIED", label: "Disqualified" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f8f9fa]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                    placeholder="All Status"
                   />
                   <SearchableSelect
                     value={registrationsPaymentFilter}
@@ -1604,7 +1649,8 @@ function ViewTournamentPageInner() {
                       { value: "REFUNDED", label: "Refunded" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f8f9fa]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                    placeholder="All Payments"
                   />
                 </div>
 
@@ -1797,6 +1843,66 @@ function ViewTournamentPageInner() {
                 </div>
               </div>
             )}
+
+            {/* TABS: Invite Player */}
+            {activeTab === "invite" && selectedTournament && (() => {
+              const isConcluded = selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || (selectedTournament as any).status === "COMPLETED" || (selectedTournament as any).status === "CANCELLED";
+              return (
+                <div className="space-y-6 w-full">
+                  <div className="border-b border-[#e1efe5] pb-4">
+                    <h2 className="text-[15px] font-medium text-gray-900 font-sans">Invite Player</h2>
+                    <p className="text-[12px] text-gray-500 mt-1">Send an invitation email directly to a player to join this tournament.</p>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 shadow-sm space-y-6">
+                    {/* Banner box */}
+                    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-emerald-50/40 border border-emerald-100/60">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center shrink-0 shadow-xs">
+                        <UserPlus className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Invite via Email</h3>
+                        <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
+                          Invite a player directly to{" "}
+                          <span className="text-openclub-800 font-medium">
+                            {selectedTournament.name}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Form */}
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-medium text-gray-700 block">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
+                        disabled={isSubmittingInvite || isConcluded}
+                        className="h-11 border-gray-200 bg-background/50 focus:bg-white text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
+                            handleSendInvite();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Button */}
+                    <Button
+                      onClick={handleSendInvite}
+                      disabled={isSubmittingInvite || isConcluded || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())}
+                      className="w-full h-11 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white font-medium text-[13px] rounded-lg transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:border-transparent disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingInvite ? "Sending Invitation..." : isConcluded ? "Tournament Concluded" : "Send Invitation"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* TABS 2: Register Player Inline */}
             {activeTab === "register" && (

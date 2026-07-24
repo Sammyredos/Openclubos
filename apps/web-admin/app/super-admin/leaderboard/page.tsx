@@ -1022,7 +1022,6 @@ export default function TournamentsPage() {
               <div className="text-[#15803D] text-3xl font-bold">{formatWithCommas(totalParticipants)}</div>
               <div className="text-zinc-500 text-sm font-normal">Across all</div>
             </div>
-
             <div className="w-px h-16 bg-slate-200" />
 
             {/* Stat 5: Total Entry Fees */}
@@ -1103,12 +1102,6 @@ export default function TournamentsPage() {
                   Export PDF
                 </button>
               </FloatingMenu>
-              <Button
-                onClick={() => router.push("/super-admin/tournaments/create")}
-                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
-              >
-                <Plus className="w-4 h-4" /> Add Tournament
-              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -1123,6 +1116,7 @@ export default function TournamentsPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+
               <SearchableSelect
                 value={clubFilter}
                 onValueChange={(v) => setClubFilter(v)}
@@ -1131,6 +1125,7 @@ export default function TournamentsPage() {
                 triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                 placeholder="All Organizers"
               />
+
               <SearchableSelect
                 value={statusFilter}
                 onValueChange={(v) => setStatusFilter(v)}
@@ -1155,7 +1150,6 @@ export default function TournamentsPage() {
                 triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                 placeholder="All Years"
               />
-
             </div>
 
             {/* Table */}
@@ -1167,7 +1161,6 @@ export default function TournamentsPage() {
                     <th className="px-6 py-4">Golf Course</th>
                     <th className="px-6 py-4">Date</th>
                     <th className="px-6 py-4">Format</th>
-                    <th className="px-6 py-4">Players</th>
                     <th className="px-6 py-4">Rounds</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4">Last Updated</th>
@@ -1177,7 +1170,7 @@ export default function TournamentsPage() {
                 <tbody className="divide-y divide-[#e1efe5]">
                   {error ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
+                      <td colSpan={8} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
                         {error}
                       </td>
                     </tr>
@@ -1203,7 +1196,6 @@ export default function TournamentsPage() {
                         </td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-24 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-20 rounded-md" /></td>
-                        <td className="px-6 py-5"><Skeleton className="h-4 w-12 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-12 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-5.5 w-16 rounded-full" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-16 rounded-md" /></td>
@@ -1259,11 +1251,6 @@ export default function TournamentsPage() {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col items-start gap-0.5">
-                            <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.playersCount}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col items-start gap-0.5">
                             <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.rounds}</span>
                           </div>
                         </td>
@@ -1299,7 +1286,7 @@ export default function TournamentsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-20 text-center">
+                      <td colSpan={8} className="px-6 py-20 text-center">
                         <EmptyState
                           icon={Trophy}
                           title="No tournaments found"

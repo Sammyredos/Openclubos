@@ -122,7 +122,8 @@ export async function getTournaments(query?: QueryRecord) {
 
   if (!res.ok) {
     await handleAuthFailure(res);
-    throw new Error('Failed to fetch tournaments');
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to fetch tournaments');
   }
   return res.json();
 }

@@ -1178,19 +1178,29 @@ function ViewTournamentPageInner() {
   if (loading) {
     return (
       <div className="w-full max-w-full font-sans space-y-6">
-        <div className="space-y-4 mb-6">
-          <h1 className="text-2xl font-normal text-gray-900 tracking-tight">Tournament Leaderboard</h1>
-          <div className="flex items-center">
-            <button 
-              disabled
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors text-[13px] font-medium shadow-sm opacity-70 cursor-not-allowed"
-            >
-              <ArrowLeft className="w-4 h-4 text-white" />
-              Go Back
-            </button>
-          </div>
+        <div className="flex items-center">
+          <button 
+            onClick={() => router.push('/super-admin/leaderboard')}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+            Back to Leaderboards
+          </button>
         </div>
         
+        {/* Header Skeleton */}
+        <div className="rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-7 w-64 rounded-lg" />
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <Skeleton className="h-4 w-32 rounded" />
+            <Skeleton className="h-4 w-40 rounded" />
+            <Skeleton className="h-4 w-28 rounded" />
+          </div>
+        </div>
+
         {/* Table Skeleton */}
         <div className="bg-white rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
@@ -1400,7 +1410,7 @@ function ViewTournamentPageInner() {
 
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="relative flex-1 min-w-[240px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
                       onChange={(e) => {
@@ -1409,7 +1419,7 @@ function ViewTournamentPageInner() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     />
                   </div>
                   <SearchableSelect
@@ -1428,7 +1438,8 @@ function ViewTournamentPageInner() {
                       { value: "DISQUALIFIED", label: "Disqualified" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f8f9fa]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                    placeholder="All Status"
                   />
                   <SearchableSelect
                     value={registrationsPaymentFilter}
@@ -1444,7 +1455,8 @@ function ViewTournamentPageInner() {
                       { value: "REFUNDED", label: "Refunded" },
                     ]}
                     className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f8f9fa]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                    placeholder="All Payments"
                   />
                 </div>
 

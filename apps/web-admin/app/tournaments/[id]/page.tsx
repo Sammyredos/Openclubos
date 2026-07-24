@@ -232,6 +232,7 @@ export default function TournamentDetailPage() {
               </p>
             </div>
 
+
             {/* Rules & Requirements block */}
             <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
               <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
@@ -251,6 +252,37 @@ export default function TournamentDetailPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
                   <span>Day 1 tee times will be published upon closing of registrations. No late entries will be accepted once tournament groupings are finalised.</span>
                 </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
+                  <span>All players must strictly adhere to the club's dress code policy both on and off the golf course.</span>
+                </li>
+
+                {/* Dynamic Refund Rule */}
+                {("isRefundable" in tournament && (tournament as any).isRefundable !== false) && (
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
+                    <span>Withdrawals must be requested at least 48 hours prior to the tournament start date to be eligible for a refund.</span>
+                  </li>
+                )}
+
+                {/* Dynamic Gender Rule */}
+                {("genderRestriction" in tournament && (tournament as any).genderRestriction === 'FEMALE_ONLY') && (
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
+                    <span>This tournament is exclusively for female players. Registrations from other players will not be accepted.</span>
+                  </li>
+                )}
+                {("genderRestriction" in tournament && (tournament as any).genderRestriction === 'MALE_ONLY') && (
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
+                    <span>This tournament is exclusively for male players. Registrations from other players will not be accepted.</span>
+                  </li>
+                )}
+
+                <li className="flex items-start gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
+                  <span>The Tournament Committee reserves the right to adjust handicap divisions based on total registration numbers.</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -259,60 +291,79 @@ export default function TournamentDetailPage() {
           <div className="flex flex-col gap-4 h-full">
 
             {/* Key Information Card */}
-            <div className="bg-white rounded-lg border-none p-6 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <h3 className="text-slate-900 text-[15px] font-medium border-b border-gray-50 pb-2 capitalize tracking-wide">
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-5 shadow-xl text-white relative overflow-hidden">
+              <h3 className="text-white text-[15px] font-medium border-b border-slate-700/60 pb-3 capitalize tracking-wide relative z-10">
                 Tournament Info
               </h3>
+              <div className="absolute top-0 right-0 -mt-16 -mr-16 w-32 h-32 bg-openclub-600/20 blur-[40px] rounded-full pointer-events-none" />
 
               <div className="space-y-4 text-xs">
                 {/* Venue */}
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                  <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider">Venue</p>
-                    <p className="text-slate-900 font-medium text-[15px] mt-0.5">{tournament.course?.name || tournament.club?.name || "TBD"}</p>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wider">Venue</p>
+                    <p className="text-white font-medium text-[13px] mt-0.5">{tournament.course?.name || tournament.club?.name || "TBD"}</p>
                   </div>
                 </div>
 
                 {/* Entry Fee */}
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                  <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
                     <Banknote className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-500 uppercase tracking-wider">Entry Fee</p>
-                    <p className="text-slate-900 font-medium text-[15px] mt-0.5">{formattedFee}</p>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wider">Entry Fee</p>
+                    <p className="text-white font-medium text-[13px] mt-0.5">{formattedFee}</p>
                   </div>
                 </div>
 
                 {/* Handicap constraints */}
                 {("hasHandicapRestriction" in tournament && (tournament as any).hasHandicapRestriction) || tournament.minHandicap !== undefined || tournament.maxHandicap !== undefined ? (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
                       <Award className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Handicap Limits</p>
-                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
-                        {tournament.minHandicap === 0 && tournament.maxHandicap === 0
-                          ? "None"
-                          : `${tournament.minHandicap ?? 0} – ${tournament.maxHandicap ?? "N/A"}`}
+                      <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Handicap Limits</p>
+                      <p className="text-white font-medium text-[13px] mt-0.5">
+                        {(() => {
+                          const min = tournament.minHandicap ?? 0;
+                          const max = tournament.maxHandicap;
+                          if (min === 0 && (!max || max === 0)) return "No Handicap Limit";
+                          return `${min} - ${max || "No Limit"}`;
+                        })()}
                       </p>
                     </div>
                   </div>
                 ) : null}
 
-                {/* Capacity / Slots */}
-                {tournament.maxPlayers && (
+                {/* Gender Restriction */}
+                {("genderRestriction" in tournament && (tournament as any).genderRestriction && (tournament as any).genderRestriction !== 'MIXED') && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Roster Size</p>
-                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
+                      <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Gender</p>
+                      <p className="text-white font-medium text-[13px] mt-0.5">
+                        {(tournament as any).genderRestriction === 'FEMALE_ONLY' ? "Women Only" : "Men Only"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Capacity / Slots */}
+                {tournament.maxPlayers && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-slate-400 uppercase tracking-wider">Roster Size</p>
+                      <p className="text-white font-medium text-[13px] mt-0.5">
                         {tournament._count?.registrations ?? 0} / {tournament.maxPlayers} Max Players
                       </p>
                     </div>
@@ -322,12 +373,12 @@ export default function TournamentDetailPage() {
                 {/* Registration Close Deadline */}
                 {tournament.registrationCloseAt && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border-slate-700 flex items-center justify-center flex-shrink-0 text-[#16a34a]">
                       <Clock className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Registration Deadline</p>
-                      <p className="text-slate-900 font-medium text-[15px] mt-0.5">
+                      <p className="text-[11px] text-slate-400 uppercase tracking-wider">Registration Deadline</p>
+                      <p className="text-white font-medium text-[13px] mt-0.5">
                         {new Date(tournament.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
@@ -336,24 +387,24 @@ export default function TournamentDetailPage() {
               </div>
 
               {/* Call-to-action buttons */}
-              <div className="pt-4 border-t border-gray-100 space-y-3">
+              <div className="pt-4 border-t border-slate-700/60 space-y-3">
                 {isRegistrationOpen ? (
                   <Link href={`/tournaments/${tournament.id}/register`} className="w-full block">
-                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-[14px] rounded-lg flex items-center justify-center gap-2 group text-white">
+                    <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-[13px] rounded-lg flex items-center justify-center gap-2 group text-white">
                       <span>Register to Play</span>
                       <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                 ) : (
                   <Button
-                    className="w-full h-11 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center justify-center text-[14px]"
+                    className="w-full h-11 bg-slate-800 border border-slate-700 text-slate-400 rounded-lg cursor-not-allowed flex items-center justify-center text-[13px]"
                     disabled
                   >
                     {tournament.status === "COMPLETED" ? "Tournament Completed" : "Registration Closed"}
                   </Button>
                 )}
-                
-                <Button 
+
+                <Button
                   variant="outline"
                   onClick={() => {
                     if (navigator.share) {
@@ -367,7 +418,7 @@ export default function TournamentDetailPage() {
                       toast.success("Link copied to clipboard!");
                     }
                   }}
-                  className="w-full h-11 text-[14px] rounded-lg flex items-center justify-center gap-2 group border-gray-200 text-gray-700 hover:bg-gray-50"
+                  className="w-full h-11 text-[14px] rounded-lg flex items-center justify-center gap-2 group bg-white text-slate-900 hover:bg-gray-100 font-medium transition-colors"
                 >
                   <Share2 className="w-4 h-4 group-hover:scale-105 transition-transform" />
                   <span>Share Tournament</span>

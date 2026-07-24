@@ -53,7 +53,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
-import { getAdminUsers } from "@/lib/api/members";
+
 import {
   addRegistrationStrokes,
   clearRegistrationStrokes,
@@ -214,11 +214,8 @@ function toLocalYMD(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-import { useAuth } from "@/lib/auth/AuthContext";
-
 export default function TournamentsPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const tomorrowYMD = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -275,10 +272,7 @@ export default function TournamentsPage() {
 
   const [isRegisterPlayerModalOpen, setIsRegisterPlayerModalOpen] = useState(false);
   const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
-  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
-  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
@@ -313,7 +307,7 @@ export default function TournamentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = (await getTournaments({ clubId: user?.clubId })) as ApiTournament[];
+      const data = (await getTournaments()) as ApiTournament[];
       setTournaments(Array.isArray(data) ? data : []);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to fetch tournaments");
@@ -329,7 +323,7 @@ export default function TournamentsPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = (await getTournaments({ clubId: user?.clubId })) as ApiTournament[];
+        const data = (await getTournaments()) as ApiTournament[];
         if (cancelled) return;
         setTournaments(Array.isArray(data) ? data : []);
       } catch (e: unknown) {
@@ -551,7 +545,6 @@ export default function TournamentsPage() {
 
   const openView = (tournament: TournamentRow) => {
     closeDropdown();
-    
     router.push(`/organizer-admin/leaderboard/${tournament.id}`);
   };
 
@@ -610,13 +603,11 @@ export default function TournamentsPage() {
   }, [selectedTournament?.id, registrationsPerPage]);
 
   useEffect(() => {
+
     if (registrationsMode !== "server") return;
     if (!selectedTournament?.id) return;
-
     let cancelled = false;
     const skip = (registrationsPage - 1) * registrationsPerPage;
-
-    setRegistrationsLoading(true);
     getRegistrations({
       tournamentId: selectedTournament.id,
       q: registrationsDebouncedSearch || undefined,
@@ -652,7 +643,9 @@ export default function TournamentsPage() {
       cancelled = true;
     };
   }, [
+
     selectedTournament?.id,
+    registrationsInitialized,
     registrationsMode,
     registrationsPage,
     registrationsPerPage,
@@ -710,7 +703,28 @@ export default function TournamentsPage() {
       toast.success("Player invited successfully");
       setIsRegisterPlayerModalOpen(false);
       setRegisterPlayerSearch("");
-      router.push(`/organizer-admin/tournaments/${selectedTournament.id}?tab=players`);
+
+      // Update local state for realtime feel
+      setRegistrationsTournamentTotal(prev => prev + 1);
+      setSelectedTournament(prev => prev ? { ...prev, registrations: prev.registrations + 1 } : null);
+
+      // Refresh everything
+      reloadTournaments();
+
+      if (registrationsMode === "server") {
+        setRegistrationsPage(1);
+        setRegistrationsLoading(true);
+        const { items, total } = await getRegistrations({
+          tournamentId: selectedTournament.id,
+          skip: 0,
+          take: registrationsPerPage,
+        });
+        setRegistrations(Array.isArray(items) ? items : []);
+        setRegistrationsTotal(typeof total === "number" ? total : 0);
+        setRegistrationsLoading(false);
+      } else {
+        setRegistrationsInitialized(false);
+      }
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to invite player");
     } finally {
@@ -836,6 +850,7 @@ export default function TournamentsPage() {
     if (action === "register") {
       setSelectedTournament(tournament);
       setIsRegisterPlayerModalOpen(true);
+      return;
     }
     if (action === "waitlist") {
       setSelectedTournament(tournament);
@@ -1007,7 +1022,6 @@ export default function TournamentsPage() {
               <div className="text-[#15803D] text-3xl font-bold">{formatWithCommas(totalParticipants)}</div>
               <div className="text-zinc-500 text-sm font-normal">Across all</div>
             </div>
-
             <div className="w-px h-16 bg-slate-200" />
 
             {/* Stat 5: Total Entry Fees */}
@@ -1088,12 +1102,6 @@ export default function TournamentsPage() {
                   Export PDF
                 </button>
               </FloatingMenu>
-              <Button
-                onClick={() => router.push("/organizer-admin/tournaments/create")}
-                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
-              >
-                <Plus className="w-4 h-4" /> Add Tournament
-              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -1108,6 +1116,15 @@ export default function TournamentsPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+
+              <SearchableSelect
+                value={clubFilter}
+                onValueChange={(v) => setClubFilter(v)}
+                options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Organizers"
+              />
 
               <SearchableSelect
                 value={statusFilter}
@@ -1133,7 +1150,6 @@ export default function TournamentsPage() {
                 triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                 placeholder="All Years"
               />
-
             </div>
 
             {/* Table */}
@@ -1145,7 +1161,6 @@ export default function TournamentsPage() {
                     <th className="px-6 py-4">Golf Course</th>
                     <th className="px-6 py-4">Date</th>
                     <th className="px-6 py-4">Format</th>
-                    <th className="px-6 py-4">Players</th>
                     <th className="px-6 py-4">Rounds</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4">Last Updated</th>
@@ -1155,7 +1170,7 @@ export default function TournamentsPage() {
                 <tbody className="divide-y divide-[#e1efe5]">
                   {error ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
+                      <td colSpan={8} className="px-6 py-12 text-center text-red-500 font-normal text-[13px]">
                         {error}
                       </td>
                     </tr>
@@ -1181,7 +1196,6 @@ export default function TournamentsPage() {
                         </td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-24 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-20 rounded-md" /></td>
-                        <td className="px-6 py-5"><Skeleton className="h-4 w-12 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-12 rounded-md" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-5.5 w-16 rounded-full" /></td>
                         <td className="px-6 py-5"><Skeleton className="h-4 w-16 rounded-md" /></td>
@@ -1237,11 +1251,6 @@ export default function TournamentsPage() {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col items-start gap-0.5">
-                            <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.playersCount}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col items-start gap-0.5">
                             <span className="text-slate-900 text-[13px] font-medium leading-tight">{t.rounds}</span>
                           </div>
                         </td>
@@ -1277,7 +1286,7 @@ export default function TournamentsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-20 text-center">
+                      <td colSpan={8} className="px-6 py-20 text-center">
                         <EmptyState
                           icon={Trophy}
                           title="No tournaments found"
@@ -1469,7 +1478,7 @@ export default function TournamentsPage() {
             <Button
               type="submit"
               disabled={isRegistering || !registerPlayerSearch.trim() || !registerPlayerSearch.includes('@')}
-              className="w-full h-12 bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl font-medium"
+              className="w-full h-12 bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl font-normal"
             >
               {isRegistering ? (
                 <div className="flex items-center gap-2">
@@ -1709,4 +1718,3 @@ export default function TournamentsPage() {
     </div>
   );
 }
-
