@@ -95,10 +95,15 @@ type ApiTournament = {
   registrationDeadline?: string | null;
   playerTypes: string[];
   club: { id: string; name: string; logo?: string | null } | null;
+  course?: { id: string; name: string } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
   updatedAt?: string;
+  scoringType?: string;
+  format?: string;
+  holes?: number;
+  description?: string;
   lockedGroupingsDays?: number[];
   _count?: { registrations: number };
 };
@@ -108,6 +113,7 @@ type TournamentRow = {
   name: string;
   clubName: string;
   clubLogo: string | null;
+  courseName: string;
   types: string[];
   dates: string;
   players: string;
@@ -123,6 +129,11 @@ type TournamentRow = {
   visibilityKey: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
+  updatedAt?: string;
+  scoringType?: string;
+  format?: string;
+  holes?: number;
+  description?: string;
   lockedGroupingsDays?: number[];
   registrations: number;
 };
@@ -339,6 +350,7 @@ export default function TournamentsPage() {
   const rows = tournaments.map((t) => {
     const clubName = t.club?.name || "-";
     const clubLogo = t.club?.logo || null;
+    const courseName = t.course?.name || "TBD";
     const registrations = t._count?.registrations ?? 0;
     
     // Format
@@ -365,9 +377,10 @@ export default function TournamentsPage() {
     return {
       id: t.id,
       name: t.name,
-      subtitle: t.description || clubName,
+      subtitle: clubName,
       clubName,
       clubLogo,
+      courseName,
       dates: formatDateRange(t.startDate, t.endDate),
       startDate: t.startDate,
       endDate: t.endDate,
@@ -1129,7 +1142,7 @@ export default function TournamentsPage() {
                 <thead>
                   <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
                     <th className="px-6 py-4">Tournament</th>
-                    <th className="px-6 py-4">Club</th>
+                    <th className="px-6 py-4">Golf Course</th>
                     <th className="px-6 py-4">Date</th>
                     <th className="px-6 py-4">Format</th>
                     <th className="px-6 py-4">Players</th>
@@ -1201,14 +1214,14 @@ export default function TournamentsPage() {
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             {t.clubLogo ? (
-                              <img src={t.clubLogo} alt={t.clubName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
+                              <img src={t.clubLogo} alt={t.courseName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
                                 {t.clubName.substring(0, 2)}
                               </div>
                             )}
                             <div className="flex flex-col min-w-0 gap-1.5">
-                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
+                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.courseName}</span>
                             </div>
                           </div>
                         </td>
@@ -1256,7 +1269,7 @@ export default function TournamentsPage() {
                               title="View Leaderboard"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span className="text-[12px] font-medium leading-none">View</span>
+                              <span className="text-[12px] font-medium leading-none">View Leaderboard</span>
                             </button>
                           </div>
                         </td>

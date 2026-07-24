@@ -21,7 +21,8 @@ import {
   Trophy,
   Info,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Share2
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatWithCommas } from "@/lib/utils"
@@ -185,64 +186,29 @@ export default function TournamentDetailPage() {
       <div className="max-w-4xl mx-auto space-y-4">
 
         {/* Hero Banner Section */}
-        <div className="bg-white rounded-lg border-none overflow-hidden relative shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+        <div className="relative w-full rounded-[20px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] min-h-[380px] flex flex-col justify-end">
           {/* Banner background */}
-          <div className="bg-gradient-to-r from-openclub-800 via-openclub-600 to-openclub-400 relative overflow-hidden" style={{ height: "350px" }}>
-            <img
-              src="/images/tournaments/tournament-banner-new.jpg"
-              alt="Tournament Banner"
-              className="absolute inset-0 w-full h-full object-cover z-10"
-            />
-          </div>
+          <img
+            src={tournament.bannerUrl || "/images/tournaments/tournament-banner-new.jpg"}
+            alt="Tournament Banner"
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+          {/* Dark Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/60 to-transparent z-10" />
 
-          <div className="px-6 md:px-8 pb-6 relative">
-            {/* Club logo overlap */}
-            <div className="w-20 h-20 rounded-lg bg-white p-1 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] absolute -top-10 left-6 md:left-8 z-20">
-              <div className="w-full h-full rounded-lg overflow-hidden bg-openclub-50 flex items-center justify-center">
-                {tournament.club?.logo ? (
-                  <img src={tournament.club.logo} alt={tournament.club.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Trophy className="w-8 h-8 text-openclub-700" />
-                )}
-              </div>
-            </div>
+          {/* Banner Content */}
+          <div className="relative z-20 w-full p-8 md:p-12">
+            <div className="max-w-3xl space-y-4">
+              <span className="text-[#16a34a] text-[12px] font-bold tracking-[0.15em] uppercase">
+                Tournament
+              </span>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-[1.1]">
+                {tournament.name}
+              </h1>
+              <p className="text-base md:text-lg text-gray-200 font-medium tracking-wide max-w-2xl">
+                {("description" in tournament && tournament.description) ? (tournament as any).description : "Great golf. Good company. Better memories."}
+              </p>
 
-            {/* Title area */}
-            <div className="pt-14 space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="text-[11px] text-openclub-700 tracking-wide uppercase">
-                    {tournament.club?.name || "Tournament Organizer"}
-                  </span>
-                  <h1 className="text-lg md:text-xl text-gray-900 tracking-tight leading-tight">
-                    {tournament.name}
-                  </h1>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs ${statusMeta.badge}`}>
-                  {statusMeta.label}
-                </span>
-              </div>
-
-              {/* Quick Info bar */}
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-5 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-openclub-600" />
-                  <span>
-                    {new Date(tournament.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    {tournament.endDate && ` – ${new Date(tournament.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
-                  </span>
-                </div>
-                {tournament.course && (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-openclub-600" />
-                    <span>{tournament.course.name}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-openclub-600" />
-                  <span className="capitalize">{tournament.playerTypes?.join(", ") || "All Players"}</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -299,6 +265,17 @@ export default function TournamentDetailPage() {
               </h3>
 
               <div className="space-y-4 text-xs">
+                {/* Venue */}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider">Venue</p>
+                    <p className="text-slate-900 font-medium text-[15px] mt-0.5">{tournament.course?.name || tournament.club?.name || "TBD"}</p>
+                  </div>
+                </div>
+
                 {/* Entry Fee */}
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-openclub-50 border border-openclub-100 flex items-center justify-center flex-shrink-0 text-openclub-700">
@@ -358,10 +335,10 @@ export default function TournamentDetailPage() {
                 )}
               </div>
 
-              {/* Call-to-action button */}
-              <div className="pt-3 border-t border-gray-100">
+              {/* Call-to-action buttons */}
+              <div className="pt-4 border-t border-gray-100 space-y-3">
                 {isRegistrationOpen ? (
-                  <Link href={`/tournaments/${tournament.id}/register`} className="w-full">
+                  <Link href={`/tournaments/${tournament.id}/register`} className="w-full block">
                     <Button className="w-full h-11 bg-openclub-700 hover:bg-openclub-800 text-[14px] rounded-lg flex items-center justify-center gap-2 group text-white">
                       <span>Register to Play</span>
                       <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -375,6 +352,26 @@ export default function TournamentDetailPage() {
                     {tournament.status === "COMPLETED" ? "Tournament Completed" : "Registration Closed"}
                   </Button>
                 )}
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: tournament.name,
+                        text: `Check out the ${tournament.name} tournament!`,
+                        url: window.location.href,
+                      }).catch(console.error);
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success("Link copied to clipboard!");
+                    }
+                  }}
+                  className="w-full h-11 text-[14px] rounded-lg flex items-center justify-center gap-2 group border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  <Share2 className="w-4 h-4 group-hover:scale-105 transition-transform" />
+                  <span>Share Tournament</span>
+                </Button>
               </div>
             </div>
 
