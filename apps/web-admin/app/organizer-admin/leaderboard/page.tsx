@@ -1156,15 +1156,15 @@ export default function TournamentsPage() {
             <div className="w-full overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                 <thead>
-                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                    <th className="px-6 py-4">Tournament</th>
-                    <th className="px-6 py-4">Golf Course</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Format</th>
-                    <th className="px-6 py-4">Rounds</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Last Updated</th>
-                    <th className="px-6 py-4 text-center">Actions</th>
+                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">TOURNAMENT</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">GOLF COURSE</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DATES</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">FORMAT</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ROUNDS</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">LAST UPDATED</th>
+                    <th className="px-6 py-4 text-center text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1efe5]">

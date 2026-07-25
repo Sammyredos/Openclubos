@@ -364,8 +364,22 @@ export async function generateGroupings(
   let currentHour = isNaN(startHour) ? 8 : startHour;
   let currentMin = isNaN(startMin) ? 0 : startMin;
 
-  // Apply grouping rules
-  let sortedPlayers = [...players];
+  let existingGroups: GroupingItem[] = [];
+  let playersToProcess = [...players];
+  let startingGroupIndex = 0;
+
+  if (rule === 'MANUAL_EMPTY') {
+    try {
+      const current = await getGroupings(tournamentId, day);
+      if (current && current.groups && current.groups.length > 0) {
+        existingGroups = current.groups;
+        playersToProcess = current.unassigned;
+        startingGroupIndex = existingGroups.length;
+      }
+    } catch (e) {}
+  }
+
+  let sortedPlayers = [...playersToProcess];
   if (rule === 'RANDOM') {
     // Shuffle players
     sortedPlayers.sort(() => Math.random() - 0.5);
@@ -381,7 +395,7 @@ export async function generateGroupings(
     };
     
     const buckets: Record<number, any[]> = {};
-    players.forEach(p => {
+    playersToProcess.forEach(p => {
       const cat = getCategory(p.user?.handicap);
       if (!buckets[cat]) buckets[cat] = [];
       buckets[cat].push(p);
@@ -479,9 +493,17 @@ export async function generateGroupings(
 
   const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
   
+  groups.push(...existingGroups);
+
+
   if (rule === 'MANUAL_EMPTY') {
     unassigned.push(...sortedPlayers);
   }
+
+  // Fast forward time if appending
+  currentMin += startingGroupIndex * interval;
+  currentHour += Math.floor(currentMin / 60);
+  currentMin = currentMin % 60;
 
   for (let i = 0; i < totalGroups; i++) {
     const groupPlayers = rule === 'MANUAL_EMPTY' ? [] : sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
@@ -490,8 +512,8 @@ export async function generateGroupings(
     const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
 
     groups.push({
-      id: `group-${day}-${i + 1}-${Math.random().toString(36).substr(2, 9)}`,
-      name: `Flight ${indexToFlightLetters(i)}`,
+      id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
+      name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
       startTime: timeStr,
       registrations: groupPlayers,
     });

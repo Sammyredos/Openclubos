@@ -1646,7 +1646,7 @@ export default function SuperAdminTeamPage() {
                     </div>
                     <div className="overflow-hidden rounded-xl border border-[#efefef]">
                       <table className="w-full text-left">
-                        <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
+                        <thead className="bg-background text-[11px] font-normal text-[#15803D] uppercase tracking-wider">
                           <tr>
                             <th className="px-5 py-3">Tournament</th>
                             <th className="px-5 py-3">Amount</th>
@@ -1699,7 +1699,7 @@ export default function SuperAdminTeamPage() {
                     </div>
                     <div className="overflow-hidden rounded-xl border border-[#efefef]">
                       <table className="w-full text-left">
-                        <thead className="bg-background text-[11px] font-normal text-gray-400 uppercase tracking-wider">
+                        <thead className="bg-background text-[11px] font-normal text-[#15803D] uppercase tracking-wider">
                           <tr>
                             <th className="px-5 py-3">Tournament</th>
                             <th className="px-5 py-3">Date</th>

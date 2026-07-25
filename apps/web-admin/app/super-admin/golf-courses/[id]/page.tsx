@@ -538,13 +538,13 @@ export default function GolfCourseDetailPage() {
                   <div className="overflow-x-auto rounded-xl border border-[#efefef]">
                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
-                        <tr className="bg-background/50 border-b border-[#efefef]">
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Tee Name</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Type</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Par</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Yards</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Rating</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-gray-900">Slope</th>
+                        <tr className="bg-background/50 border-b border-[#efefef] text-[#15803D]">
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Tee Name</th>
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Type</th>
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Par</th>
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Yards</th>
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Rating</th>
+                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Slope</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">

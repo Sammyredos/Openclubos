@@ -131,10 +131,10 @@ export function WaitlistModal({
         <div className="border border-[#e1efe5] rounded-2xl overflow-hidden bg-white shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-widest border-b border-[#e1efe5]">
-                <th className="px-6 py-4">Player Details</th>
-                <th className="px-6 py-4">Joined Date</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+              <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                <th className="px-6 py-4">PLAYER DETAILS</th>
+                <th className="px-6 py-4">JOINED DATE</th>
+                <th className="px-6 py-4 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">

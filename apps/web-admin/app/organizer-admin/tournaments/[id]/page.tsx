@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Trash2,
   AlertTriangle,
+  RotateCcw,
   Globe,
   Lock,
   Shield,
@@ -229,9 +230,28 @@ function ViewTournamentPageInner() {
 
   const confirmStrokeAction = () => {
     if (!strokeModalRegistration || !strokeModalAction) return;
-    if (strokeModalAction === "ADD_1") addTournamentRegistrationStrokes(strokeModalRegistration, 1);
-    if (strokeModalAction === "ADD_2") addTournamentRegistrationStrokes(strokeModalRegistration, 2);
-    if (strokeModalAction === "CLEAR") clearTournamentRegistrationStrokes(strokeModalRegistration);
+    const currentStrokes = strokeModalRegistration.extraStrokes ?? 0;
+    if (strokeModalAction === "ADD_1") {
+      if (currentStrokes === 1) {
+        toast.info("Player already has +1 Stroke penalty");
+        setStrokeModalRegistration(null);
+        setStrokeModalAction(null);
+        return;
+      }
+      const delta = 1 - currentStrokes;
+      addTournamentRegistrationStrokes(strokeModalRegistration, delta);
+    } else if (strokeModalAction === "ADD_2") {
+      if (currentStrokes === 2) {
+        toast.info("Player already has +2 Strokes penalty");
+        setStrokeModalRegistration(null);
+        setStrokeModalAction(null);
+        return;
+      }
+      const delta = 2 - currentStrokes;
+      addTournamentRegistrationStrokes(strokeModalRegistration, delta);
+    } else if (strokeModalAction === "CLEAR") {
+      clearTournamentRegistrationStrokes(strokeModalRegistration);
+    }
     setStrokeModalRegistration(null);
     setStrokeModalAction(null);
   };
@@ -1229,35 +1249,108 @@ function ViewTournamentPageInner() {
                   <Skeleton className="h-6 w-24 rounded-full" />
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
-                  <Skeleton className="h-8 w-32 rounded-lg" />
+                  <Skeleton className="h-8 w-36 rounded-lg" />
+                  <Skeleton className="h-8 w-36 rounded-lg" />
+                  <Skeleton className="h-8 w-36 rounded-lg" />
+                  <Skeleton className="h-8 w-36 rounded-lg" />
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
-              <Skeleton className="h-11 w-32 rounded-[12px]" />
-              <Skeleton className="h-11 w-32 rounded-[12px]" />
-              <Skeleton className="h-11 w-11 rounded-[12px]" />
+              <Skeleton className="h-11 w-36 rounded-xl" />
+              <Skeleton className="h-11 w-36 rounded-xl" />
+              <Skeleton className="h-11 w-11 rounded-xl" />
             </div>
           </div>
         </div>
 
         {/* Main Layout Grid Skeleton */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Navigation */}
+          {/* Left Column - Navigation Tabs Skeleton */}
           <div className="w-full lg:w-[280px] shrink-0">
             <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-xl" />
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3.5 bg-white border border-[#e1efe5] rounded-xl">
+                  <div className="flex items-center gap-3.5">
+                    <Skeleton className="w-[18px] h-[18px] rounded" />
+                    <Skeleton className="h-4 w-32 rounded" />
+                  </div>
+                  <Skeleton className="w-4 h-4 rounded" />
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Right Column - Active Panel */}
+          {/* Right Column - Active Panel Skeleton */}
           <div className="flex-1 min-w-0 space-y-6">
-            <Skeleton className="w-full h-[600px] rounded-xl border border-gray-200" />
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8 space-y-6">
+              {/* Tab Header & Action Bar Skeleton */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-5 w-48 rounded-md" />
+                  <Skeleton className="h-4 w-72 rounded-md" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-32 rounded-md" />
+                  <Skeleton className="h-9 w-36 rounded-md" />
+                </div>
+              </div>
+
+              {/* Tab Filters Bar Skeleton */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative flex-1 min-w-[240px]">
+                  <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
+                </div>
+                <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
+                <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
+              </div>
+
+              {/* Tab Table Content Skeleton */}
+              <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
+                <div className="bg-[#f5faf6] border-b border-[#e1efe5] p-4 flex items-center justify-between">
+                  <Skeleton className="h-4 w-24 rounded" />
+                  <Skeleton className="h-4 w-32 rounded" />
+                  <Skeleton className="h-4 w-20 rounded" />
+                  <Skeleton className="h-4 w-28 rounded" />
+                  <Skeleton className="h-4 w-16 rounded" />
+                </div>
+                <div className="divide-y divide-[#e1efe5]">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-36 rounded" />
+                          <Skeleton className="h-3 w-48 rounded" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 hidden sm:flex">
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                      </div>
+                      <div className="hidden md:flex items-center gap-2">
+                        <Skeleton className="h-5 w-14 rounded-lg" />
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-24 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab Footer Pagination Skeleton */}
+              <div className="pt-2 flex items-center justify-between gap-4">
+                <Skeleton className="h-4 w-48 rounded" />
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1278,139 +1371,108 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full font-sans space-y-6">
-      {/* Premium Back Header */}
-      <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
-
-        <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-          <div className="flex items-start md:items-center gap-5">
-            <button
-              onClick={() => router.push("/organizer-admin/tournaments")}
-              className="mt-1 md:mt-0 flex-shrink-0 w-11 h-11 bg-white border border-gray-200 shadow-sm hover:border-openclub-400 hover:shadow-md text-gray-500 hover:text-openclub-700 rounded-full flex items-center justify-center transition-all duration-300 group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-300" />
-            </button>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-[20px] md:text-[24px] font-semibold text-gray-900 tracking-tight">{selectedTournament.name}</h1>
-                <span className={cn(
-                  "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-widest border shadow-sm",
-                  STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
-                )}>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-pulse" />
-                    {selectedTournament.status}
-                  </span>
+      {/* Page Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-2 gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/organizer-admin/tournaments")}
+            className="w-10 h-10 shrink-0 border border-[#e1efe5] hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-[16px] font-medium text-gray-900">{selectedTournament.name}</h1>
+              <span className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-widest border shadow-sm",
+                STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"
+              )}>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-pulse" />
+                  {selectedTournament.status}
                 </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-gray-600 font-normal">
-                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                    <MapPin className="w-3.5 h-3.5" />
-                  </div>
-                  {selectedTournament.clubName}
-                </div>
-
-                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                    <Calendar className="w-3.5 h-3.5" />
-                  </div>
-                  {selectedTournament.dates}
-                </div>
-
-                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                    <Trophy className="w-3.5 h-3.5" />
-                  </div>
-                  {selectedTournament.type || "Stroke Play"}
-                </div>
-
-                <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                    <span className="text-[9px] uppercase tracking-wider">HCP</span>
-                  </div>
-                  {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
-                </div>
-              </div>
+              </span>
             </div>
+            <p className="text-[13px] text-gray-500 font-normal">Manage tournament details, registrations, tee times and scores</p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100">
-            {selectedTournament.statusKey === "DRAFT" && (
-              <Button
-                onClick={async () => {
-                  try {
-                    setMutating(true);
-                    await updateTournament(selectedTournament.id, { publishImmediately: true });
-                    toast.success("Tournament published successfully!");
-                    await reloadSingleTournament();
-                  } catch (e: any) {
-                    toast.error(e.message || "Failed to publish tournament");
-                  } finally {
-                    setMutating(false);
-                  }
-                }}
-                disabled={mutating}
-                className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-6 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02]"
-              >
-                <Send className="w-4 h-4" />
-                Publish Now
-              </Button>
-            )}
-
+        <div className="flex items-center gap-3 ml-14 lg:ml-0">
+          {selectedTournament.statusKey === "DRAFT" && (
             <Button
-              onClick={() => openEdit(selectedTournament)}
-              disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-              variant="outline"
-              className="bg-white h-11 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+              onClick={async () => {
+                try {
+                  setMutating(true);
+                  await updateTournament(selectedTournament.id, { publishImmediately: true });
+                  toast.success("Tournament published successfully!");
+                  await reloadSingleTournament();
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to publish tournament");
+                } finally {
+                  setMutating(false);
+                }
+              }}
+              disabled={mutating}
+              className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-6 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02]"
             >
-              <Edit2 className="w-4 h-4 text-gray-400" />
-              Edit Tournament
+              <Send className="w-4 h-4" />
+              Publish Now
             </Button>
+          )}
 
-            <div className="relative">
-              <Button
-                variant="outline"
-                onClick={(e) => {
-                  setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                  setDropdownAnchorEl(e.currentTarget);
-                }}
-                className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
+          <Button
+            onClick={() => openEdit(selectedTournament)}
+            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+            variant="outline"
+            className="bg-white h-11 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+          >
+            <Edit2 className="w-4 h-4 text-gray-400" />
+            Edit Tournament
+          </Button>
+
+          <div className="relative">
+            <Button
+              variant="outline"
+              onClick={(e) => {
+                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
+                setDropdownAnchorEl(e.currentTarget);
+              }}
+              className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
+            >
+              <MoreHorizontal className="w-5 h-5" />
+            </Button>
+            {activeDropdown === selectedTournament.id && (
+              <FloatingMenu
+                open={activeDropdown === selectedTournament.id}
+                anchorEl={dropdownAnchorEl}
+                onClose={closeDropdown}
+                placement="bottom-end"
+                className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
               >
-                <MoreHorizontal className="w-5 h-5" />
-              </Button>
-              {activeDropdown === selectedTournament.id && (
-                <FloatingMenu
-                  open={activeDropdown === selectedTournament.id}
-                  anchorEl={dropdownAnchorEl}
-                  onClose={closeDropdown}
-                  placement="bottom-end"
-                  className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
+                <button
+                  className={cn(
+                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
+                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-700 hover:bg-background"
+                  )}
+                  onClick={() => {
+                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
+                      handleMenuAction(selectedTournament, "cancel");
+                    }
+                  }}
                 >
-                  <button
-                    className={cn(
-                      "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
-                      selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-700 hover:bg-background"
-                    )}
-                    onClick={() => {
-                      if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
-                        handleMenuAction(selectedTournament, "cancel");
-                      }
-                    }}
-                  >
-                    <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
-                  </button>
-                  <div className="h-px bg-background my-1 mx-2" />
-                  <button
-                    className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg capitalize"
-                    onClick={() => handleMenuAction(selectedTournament, "delete")}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
-                  </button>
-                </FloatingMenu>
-              )}
-            </div>
+                  <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
+                </button>
+                <div className="h-px bg-background my-1 mx-2" />
+                <button
+                  className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg capitalize"
+                  onClick={() => handleMenuAction(selectedTournament, "delete")}
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
+                </button>
+              </FloatingMenu>
+            )}
           </div>
         </div>
       </div>
@@ -1419,8 +1481,8 @@ function ViewTournamentPageInner() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column - Navigation */}
         <div className="w-full lg:w-[280px] shrink-0">
-          <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2 sticky top-6">
-            {TABS.map((tab) => {
+          <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
+            {TABS.map((tab, index) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -1433,11 +1495,20 @@ function ViewTournamentPageInner() {
                       : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                   )}
                 >
-                  <div className="flex items-center gap-3.5">
-                    <tab.icon className="w-[18px] h-[18px]" />
-                    <span className="text-[13px] font-normal leading-tight">{tab.label}</span>
+                  <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                    <div className={cn(
+                      "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
+                      isActive
+                        ? "bg-[#15803D] text-white"
+                        : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <span className="text-[13px] font-normal leading-tight">
+                      {tab.label}
+                    </span>
                   </div>
-                  {isActive && <ChevronRight className="w-4 h-4 text-[#15803D]" />}
+                  {isActive && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
                 </button>
               );
             })}
@@ -1466,7 +1537,7 @@ function ViewTournamentPageInner() {
             </div>
           )}
 
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
+          <div className="rounded-xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden min-h-[600px] p-6 sm:p-8">
             {/* TABS 1: Registered Players */}
             {activeTab === "players" && (
               <div className="space-y-6">
@@ -1565,12 +1636,12 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                          <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider border-b border-[#e1efe5]">
-                            <th className="px-4 py-4">Player</th>
-                            <th className="px-4 py-4">Status & Payment</th>
-                            <th className="px-4 py-4">Details</th>
-                            <th className="px-4 py-4 text-center">Handicap / Penalty</th>
-                            <th className="px-4 py-4 text-right">Actions</th>
+                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS & PAYMENT</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DETAILS</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-center">HANDICAP / PENALTY</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
@@ -1595,7 +1666,7 @@ function ViewTournamentPageInner() {
                                       />
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-[14px] font-medium text-gray-900 truncate">
+                                      <p className="text-[15px] font-medium text-gray-900 truncate">
                                         {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
                                       </p>
                                       <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
@@ -1605,7 +1676,7 @@ function ViewTournamentPageInner() {
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className={cn(
-                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                         r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                           r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
@@ -1616,7 +1687,7 @@ function ViewTournamentPageInner() {
                                       {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
                                     </span>
                                     <span className={cn(
-                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                         "bg-background text-gray-600 border border-gray-250"
                                     )}>
@@ -1804,10 +1875,10 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                   <Input
                     placeholder="Search waitlist by name or email..."
-                    className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                    className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     value={waitlistSearch}
                     onChange={(e) => setWaitlistSearch(e.target.value)}
                   />
@@ -1818,7 +1889,7 @@ function ViewTournamentPageInner() {
                     onClick={() => setWaitlistFilter("PENDING")}
                     className={cn(
                       "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
-                      waitlistFilter === "PENDING" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                      waitlistFilter === "PENDING" ? "bg-[#f4fdf8] text-[#15803D] shadow-sm border border-[#e1efe5]" : "text-[#15803D]/70 hover:text-[#15803D] hover:bg-[#f5faf6]"
                     )}
                   >
                     Pending Queue
@@ -1863,11 +1934,11 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                          <tr className="bg-background/50 text-[11px] font-normal text-gray-400 uppercase tracking-wider border-b border-[#e1efe5]">
-                            <th className="px-4 py-4">Player</th>
-                            <th className="px-4 py-4">Details</th>
-                            <th className="px-4 py-4 text-center">Handicap</th>
-                            <th className="px-4 py-4 text-right">Actions</th>
+                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                            <th className="px-4 py-4">PLAYER</th>
+                            <th className="px-4 py-4">DETAILS</th>
+                            <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                            <th className="px-4 py-4 text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
@@ -1982,16 +2053,16 @@ function ViewTournamentPageInner() {
               <div className="space-y-8 animate-in fade-in duration-500">
                 {groupingsLoading ? (
                   <div className="space-y-8">
-                    {/* Day Selection Skeleton */}
-                    <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#e1efe5] gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-40 h-[56px] bg-gray-100 animate-pulse rounded-2xl" />
-                        <div className="w-8 h-8 bg-gray-100 animate-pulse rounded-xl" />
+                    {/* Day Selection Linear Flow Skeleton */}
+                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
+                      <div className="w-1/3 flex items-center">
+                        <Skeleton className="h-10 w-36 rounded-xl bg-gray-100" />
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <div className="w-[180px] h-10 bg-gray-100 animate-pulse rounded-xl hidden md:block" />
-                        <div className="w-32 h-10 bg-gray-100 animate-pulse rounded-xl hidden md:block" />
-                        <div className="w-[140px] h-10 bg-gray-100 animate-pulse rounded-xl" />
+                      <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none">
+                        <Skeleton className="h-10 w-64 rounded-xl bg-emerald-50/70 border border-emerald-100" />
+                      </div>
+                      <div className="w-1/3 flex justify-end">
+                        <Skeleton className="h-10 w-40 rounded-xl bg-emerald-100/70" />
                       </div>
                     </div>
 
@@ -2058,7 +2129,7 @@ function ViewTournamentPageInner() {
                         {selectedDay > 1 && (
                           <button
                             onClick={() => setSelectedDay(selectedDay - 1)}
-                            className="px-6 py-2.5 text-[13px] font-normal rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[14px] font-normal rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
                           >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Day {selectedDay - 1}
@@ -2067,12 +2138,12 @@ function ViewTournamentPageInner() {
                       </div>
 
                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-xl px-5 py-2 shadow-sm">
+                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
-                            <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+                            <Calendar className="w-4 h-4 text-emerald-800" />
                           </div>
-                          <span className="text-emerald-800 text-[13px] font-normal tracking-wide capitalize">Flights & Tee Times for</span>
-                          <span className="text-emerald-950 text-[13px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">Flights & Tee Times For</span>
+                          <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
                         </div>
                       </div>
 
@@ -2080,10 +2151,10 @@ function ViewTournamentPageInner() {
                         {selectedDay < getTournamentDays() && (
                           <button
                             onClick={() => setSelectedDay(selectedDay + 1)}
-                            className="px-6 py-2.5 text-[13px] font-normal rounded-xl bg-[#15803D] hover:bg-openclub-800 text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[14px] font-normal rounded-xl bg-[#15803D] hover:bg-openclub-800 text-white shadow-sm transition-all duration-300 flex items-center gap-2"
                           >
                             Proceed to Day {selectedDay + 1}
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRight className="w-4.5 h-4.5" />
                           </button>
                         )}
                       </div>
@@ -2149,7 +2220,7 @@ function ViewTournamentPageInner() {
                           title="Grouping Rules"
                         >
                           <Info className="w-4 h-4 text-openclub-800" />
-                          Grouping Rules
+                          Rules
                         </button>
 
                         <Button
@@ -2223,7 +2294,7 @@ function ViewTournamentPageInner() {
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                       <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                         <Input
                           placeholder="Search groups or players..."
                           value={groupingsSearch}
@@ -2232,7 +2303,7 @@ function ViewTournamentPageInner() {
                             setGroupsPage(1);
                             setUnassignedPage(1);
                           }}
-                          className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                          className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                         />
                       </div>
                     </div>
@@ -2247,14 +2318,14 @@ function ViewTournamentPageInner() {
                         className={cn(
                           "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center",
                           groupingsSubTab === "unassigned"
-                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                            ? "bg-[#f4fdf8] text-[#15803D] shadow-sm border border-[#e1efe5]"
+                            : "text-[#15803D]/70 hover:text-[#15803D] hover:bg-[#f5faf6]"
                         )}
                       >
                         Ungrouped Players
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
-                          groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "unassigned" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
                         )}>
                           {groupingsData?.unassigned.length || 0}
                         </Badge>
@@ -2267,14 +2338,14 @@ function ViewTournamentPageInner() {
                         className={cn(
                           "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center",
                           groupingsSubTab === "grouped"
-                            ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
-                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                            ? "bg-[#f4fdf8] text-[#15803D] shadow-sm border border-[#e1efe5]"
+                            : "text-[#15803D]/70 hover:text-[#15803D] hover:bg-[#f5faf6]"
                         )}
                       >
                         Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
-                          groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "grouped" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
                         )}>
                           {groupingsData?.groups.length || 0}
                         </Badge>
@@ -2464,7 +2535,7 @@ function ViewTournamentPageInner() {
                                                       value: p.id,
                                                       label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
                                                     }))}
-                                                    triggerClassName="bg-transparent border-none shadow-none h-9 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
+                                                    triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
                                                     className="w-full"
                                                   />
                                                 </td>
@@ -2516,7 +2587,6 @@ function ViewTournamentPageInner() {
                                     `${p.user?.firstName} ${p.user?.lastName}`,
                                     `${p.user?.lastName} ${p.user?.firstName}`
                                   ];
-
                                   return tokens.every(token =>
                                     searchableFields.some(field => field?.toLowerCase().includes(token))
                                   );
@@ -2526,13 +2596,13 @@ function ViewTournamentPageInner() {
 
                                 return (
                                   <div className="space-y-6">
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-hidden border border-[#e1efe5] rounded-lg">
                                       <table className="w-full text-left">
                                         <thead>
-                                          <tr className="border-b border-[#e1efe5] bg-background/50">
-                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider">Player</th>
-                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider">Attributes</th>
-                                            <th className="px-4 py-3 text-[11px] font-normal text-gray-500 uppercase tracking-wider text-right">Action</th>
+                                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                                            <th className="px-4 py-3">PLAYER</th>
+                                            <th className="px-4 py-3">ATTRIBUTES</th>
+                                            <th className="px-4 py-3 text-right">ACTIONS</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#efefef]">
@@ -2603,7 +2673,7 @@ function ViewTournamentPageInner() {
                                                         handleMovePlayer(player.id, val);
                                                       }
                                                     }}
-                                                    className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
+                                                    className="bg-[#f5faf6] text-[#15803D] border border-[#e1efe5] text-[11px] font-medium rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:bg-[#e1efe5] transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
                                                   >
                                                     <option value="unassigned">Assign To...</option>
                                                     {groupingsData.groups.map((g: GroupingItem) => (
@@ -2668,9 +2738,9 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div className="relative flex-1 min-w-[240px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
                       onChange={(e) => {
@@ -2679,44 +2749,43 @@ function ViewTournamentPageInner() {
                         setRegistrationsSearch(e.target.value);
                       }}
                       placeholder="Search name or email..."
-                      className="pl-10 h-11 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     />
                   </div>
-                  <SearchableSelect
-                    value={penalizeStrokesFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      setPenalizeStrokesFilter(v);
-                    }}
-                    options={[
-                      { value: "ALL", label: "All Players" },
-                      { value: "WITH_STROKES", label: "With Strokes" },
-                    ]}
-                    className="min-w-[180px]"
-                    triggerClassName="h-11 bg-[#f8f9fa]"
-                  />
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
-                    <button
-                      onClick={() => setPenalizeFilter("APPROVED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
-                        penalizeFilter === "APPROVED" ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                      )}
-                    >
-                      Active Players
-                    </button>
-                    <button
-                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-normal rounded-lg transition-all",
-                        penalizeFilter === "DISQUALIFIED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
-                      )}
-                    >
-                      Disqualified Players
-                    </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <SearchableSelect
+                      value={penalizeStrokesFilter}
+                      onValueChange={(v: any) => {
+                        setRegistrationsPage(1);
+                        setPenalizeStrokesFilter(v);
+                      }}
+                      options={[
+                        { value: "ALL", label: "All Players" },
+                        { value: "WITH_STROKES", label: "With Strokes" },
+                      ]}
+                      className="min-w-[160px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                    />
+                    <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
+                      <button
+                        onClick={() => setPenalizeFilter("APPROVED")}
+                        className={cn(
+                          "px-3.5 py-1.5 text-[13px] font-normal rounded-lg transition-all",
+                          penalizeFilter === "APPROVED" ? "bg-white text-[#15803D] shadow-sm border border-emerald-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                        )}
+                      >
+                        Active Players
+                      </button>
+                      <button
+                        onClick={() => setPenalizeFilter("DISQUALIFIED")}
+                        className={cn(
+                          "px-3.5 py-1.5 text-[13px] font-normal rounded-lg transition-all",
+                          penalizeFilter === "DISQUALIFIED" ? "bg-red-50 text-red-700 shadow-sm border border-red-200" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+                        )}
+                      >
+                        Disqualified Players
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2774,11 +2843,11 @@ function ViewTournamentPageInner() {
                           <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                               <thead>
-                                <tr className="bg-[#fafafa] border-b border-[#e1efe5] text-[12px] font-normal text-gray-500 uppercase tracking-wider">
-                                  <th className="px-4 py-4">Player</th>
-                                  <th className="px-4 py-4">Status</th>
-                                  <th className="px-4 py-4 text-center">Handicap / Penalty</th>
-                                  <th className="px-4 py-4 text-right">Actions</th>
+                                <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                                  <th className="px-4 py-4">PLAYER</th>
+                                  <th className="px-4 py-4">STATUS</th>
+                                  <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                                  <th className="px-4 py-4 text-right">ACTIONS</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-[#efefef] bg-white">
@@ -2802,8 +2871,8 @@ function ViewTournamentPageInner() {
                                             />
                                           </div>
                                           <div className="min-w-0">
-                                            <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block">
-                                              <p className="text-[14px] font-medium text-gray-900 truncate hover:text-openclub-800 transition-colors">
+                                            <NextLink href={`/organizer-admin/users/${r.user?.id}`} className="block no-underline hover:no-underline">
+                                              <p className="text-[14px] font-medium text-gray-900 truncate hover:text-openclub-800 transition-colors no-underline">
                                                 {r.user?.firstName} {r.user?.lastName}
                                               </p>
                                             </NextLink>
@@ -2842,17 +2911,29 @@ function ViewTournamentPageInner() {
                                           <div className="flex flex-wrap items-center justify-end gap-2">
                                             <Button
                                               variant="outline"
+                                              disabled={(r.extraStrokes ?? 0) === 1}
                                               onClick={() => openStrokeModal(r, "ADD_1")}
                                               title="Add 1-Stroke Penalty"
-                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-normal"
+                                              className={cn(
+                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
+                                                (r.extraStrokes ?? 0) === 1
+                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
+                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                                              )}
                                             >
                                               +1 Stroke
                                             </Button>
                                             <Button
                                               variant="outline"
+                                              disabled={(r.extraStrokes ?? 0) === 2}
                                               onClick={() => openStrokeModal(r, "ADD_2")}
                                               title="Add 2-Stroke Penalty"
-                                              className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center text-[11px] font-normal"
+                                              className={cn(
+                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
+                                                (r.extraStrokes ?? 0) === 2
+                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
+                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                                              )}
                                             >
                                               +2 Strokes
                                             </Button>
@@ -2861,18 +2942,18 @@ function ViewTournamentPageInner() {
                                                 variant="outline"
                                                 onClick={() => openStrokeModal(r, "CLEAR")}
                                                 title="Clear Penalties"
-                                                className="h-8 p-0 px-2 bg-white rounded-lg border-gray-200 text-gray-600 hover:bg-background flex items-center justify-center text-[11px] font-normal"
+                                                className="h-8 w-8 p-0 bg-white rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
                                               >
-                                                Clear
+                                                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
                                               </Button>
                                             )}
                                             <Button
-                                              variant="outline"
                                               onClick={() => openDisqualify(r)}
                                               title="Disqualify Player"
-                                              className="h-8 w-8 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+                                              className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white border border-red-700 rounded-lg text-[11px] font-normal transition-colors flex items-center gap-1.5 shadow-sm"
                                             >
                                               <Ban className="w-3.5 h-3.5" />
+                                              Disqualify Player
                                             </Button>
                                           </div>
                                         )}
@@ -2953,7 +3034,7 @@ function ViewTournamentPageInner() {
             "w-20 h-20 rounded-full flex items-center justify-center mb-6 border",
             strokeModalAction === "CLEAR" ? "bg-amber-50 text-amber-500 border-amber-100" : "bg-red-50 text-red-500 border-red-100"
           )}>
-            <AlertTriangle className="h-10 w-10 animate-bounce" />
+            {strokeModalAction === "CLEAR" ? <RotateCcw className="h-10 w-10" strokeWidth={2.5} /> : <AlertTriangle className="h-10 w-10 animate-bounce" />}
           </div>
           <h4 className="text-[14px] font-normal text-gray-900 mb-2">
             {strokeModalAction === "ADD_1" ? "Add 1-Stroke Penalty?" :

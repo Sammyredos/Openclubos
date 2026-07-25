@@ -1,7 +1,7 @@
 import { CreateTournamentForm } from "@/components/tournaments/CreateTournamentForm";
 
 export const metadata = {
-  title: "Create",
+  title: "Create Tournament",
 };
 
 
