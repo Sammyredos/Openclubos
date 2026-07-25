@@ -1243,7 +1243,7 @@ export default function TournamentsPage() {
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => openView(t)}
-                              className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors border border-emerald-600 shadow-sm"
+                              className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
                               title="Manage Tournament"
                             >
                               <Settings className="w-3.5 h-3.5" />

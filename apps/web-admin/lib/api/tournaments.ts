@@ -368,16 +368,14 @@ export async function generateGroupings(
   let playersToProcess = [...players];
   let startingGroupIndex = 0;
 
-  if (rule === 'MANUAL_EMPTY') {
-    try {
-      const current = await getGroupings(tournamentId, day);
-      if (current && current.groups && current.groups.length > 0) {
-        existingGroups = current.groups;
-        playersToProcess = current.unassigned;
-        startingGroupIndex = existingGroups.length;
-      }
-    } catch (e) {}
-  }
+  try {
+    const current = await getGroupings(tournamentId, day);
+    if (current && current.groups && current.groups.length > 0) {
+      existingGroups = current.groups;
+      playersToProcess = current.unassigned;
+      startingGroupIndex = existingGroups.length;
+    }
+  } catch (e) {}
 
   let sortedPlayers = [...playersToProcess];
   if (rule === 'RANDOM') {
@@ -491,37 +489,71 @@ export async function generateGroupings(
     }
   }
 
-  const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
-  
   groups.push(...existingGroups);
-
 
   if (rule === 'MANUAL_EMPTY') {
     unassigned.push(...sortedPlayers);
-  }
-
-  // Fast forward time if appending
-  currentMin += startingGroupIndex * interval;
-  currentHour += Math.floor(currentMin / 60);
-  currentMin = currentMin % 60;
-
-  for (let i = 0; i < totalGroups; i++) {
-    const groupPlayers = rule === 'MANUAL_EMPTY' ? [] : sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
     
-    const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-    const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
+    const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
+    
+    // Fast forward time if appending
+    currentMin += startingGroupIndex * interval;
+    currentHour += Math.floor(currentMin / 60);
+    currentMin = currentMin % 60;
 
-    groups.push({
-      id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
-      name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
-      startTime: timeStr,
-      registrations: groupPlayers,
-    });
+    for (let i = 0; i < totalGroups; i++) {
+      const pad = (n: number) => n < 10 ? `0${n}` : String(n);
+      const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
 
-    currentMin += interval;
-    if (currentMin >= 60) {
+      groups.push({
+        id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
+        name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
+        startTime: timeStr,
+        registrations: [],
+      });
+
+      currentMin += interval;
+      if (currentMin >= 60) {
+        currentHour += Math.floor(currentMin / 60);
+        currentMin = currentMin % 60;
+      }
+    }
+  } else {
+    // Fill existing empty spots in groups first
+    for (const group of groups) {
+      while (group.registrations.length < maxPerGroup && sortedPlayers.length > 0) {
+        group.registrations.push(sortedPlayers.shift()!);
+      }
+    }
+
+    // Generate new flights for remaining players
+    if (sortedPlayers.length > 0) {
+      const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
+      
+      // Fast forward time if appending
+      currentMin += startingGroupIndex * interval;
       currentHour += Math.floor(currentMin / 60);
       currentMin = currentMin % 60;
+
+      for (let i = 0; i < totalGroups; i++) {
+        const groupPlayers = sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
+        
+        const pad = (n: number) => n < 10 ? `0${n}` : String(n);
+        const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
+
+        groups.push({
+          id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
+          name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
+          startTime: timeStr,
+          registrations: groupPlayers,
+        });
+
+        currentMin += interval;
+        if (currentMin >= 60) {
+          currentHour += Math.floor(currentMin / 60);
+          currentMin = currentMin % 60;
+        }
+      }
     }
   }
 

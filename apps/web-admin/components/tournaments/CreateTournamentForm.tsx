@@ -78,7 +78,7 @@ const DEFAULT_FORM = {
   registrationOpenAt: "",
   registrationCloseAt: "",
   format: "STROKE_PLAY" as const,
-  scoringType: "BOTH" as const,
+  scoringType: "GROSS" as const,
   holes: 18,
   divisions: [] as string[],
   allowRegisteredPlayers: true,
@@ -240,6 +240,12 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const req = (val: any) => (showValidation && !val ? "!border-red-500" : "");
 
   // Date arithmetic helpers
+  function getTodayStr(): string {
+    const dt = new Date();
+    const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  }
+
   function shiftDate(ymd: string, days: number): string {
     if (!ymd) return "";
     const [y, m, d] = ymd.split("-").map(Number);
@@ -714,12 +720,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <DatePicker
                       value={formData.startDate}
                       onValueChange={(v) => {
-                        set("startDate", v);
-                        if (formData.endDate && formData.endDate <= v) set("endDate", "");
-                        if (formData.registrationOpenAt && formData.registrationOpenAt >= v)
-                          set("registrationOpenAt", "");
-                        if (formData.registrationCloseAt && formData.registrationCloseAt >= v)
-                          set("registrationCloseAt", "");
+                        const newStart = v || getTodayStr();
+                        set("startDate", newStart);
+                        if (formData.endDate && formData.endDate <= newStart) set("endDate", getTodayStr());
+                        if (formData.registrationOpenAt && formData.registrationOpenAt >= newStart)
+                          set("registrationOpenAt", getTodayStr());
+                        if (formData.registrationCloseAt && formData.registrationCloseAt >= newStart)
+                          set("registrationCloseAt", getTodayStr());
                       }}
                       buttonClassName={req(formData.startDate)}
                       disabled={originalStatus != null && originalStatus !== "DRAFT"}
@@ -733,7 +740,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <Field label="Tournament End Date" required>
                       <DatePicker
                         value={formData.endDate}
-                        onValueChange={(v) => set("endDate", v)}
+                        onValueChange={(v) => set("endDate", v || getTodayStr())}
                         minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
                         buttonClassName={req(formData.endDate)}
                         disabled={(originalStatus != null && originalStatus !== "DRAFT") || !formData.startDate}
@@ -749,10 +756,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <DatePicker
                       value={formData.registrationOpenAt}
                       onValueChange={(v) => {
-                        set("registrationOpenAt", v);
-                        const minCloseDate = v ? shiftDate(v, 1) : "";
-                        if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
-                          set("registrationCloseAt", "");
+                        const newOpen = v || getTodayStr();
+                        set("registrationOpenAt", newOpen);
+                        const minCloseDate = shiftDate(newOpen, 1);
+                        if (formData.registrationCloseAt && formData.registrationCloseAt < minCloseDate) {
+                          set("registrationCloseAt", getTodayStr());
                         }
                       }}
                       disablePast={originalStatus !== "ONGOING"}
@@ -767,7 +775,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <Field label="Registration Closes" required={originalStatus !== "ONGOING"}>
                     <DatePicker
                       value={formData.registrationCloseAt}
-                      onValueChange={(v) => set("registrationCloseAt", v)}
+                      onValueChange={(v) => set("registrationCloseAt", v || getTodayStr())}
                       minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
                       maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
                       buttonClassName={originalStatus !== "ONGOING" ? req(formData.registrationCloseAt) : undefined}
@@ -860,7 +868,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     </p>
                     <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                       {[
-                        { value: "BOTH", label: "Both", desc: "Gross & Net" },
                         { value: "GROSS", label: "Gross", desc: "Actual strokes" },
                         { value: "NET", label: "Net", desc: "After handicap" },
                       ].map(({ value, label, desc }) => {
@@ -1364,7 +1371,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
               <div className="p-5 animate-in slide-in-from-top-2 fade-in duration-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Players Per Group" required>
+                  <Field label="Players Per Tee Flight" required>
                     <Input
                       type="number"
                       value={formData.maxPlayersPerGroup}

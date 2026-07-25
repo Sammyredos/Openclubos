@@ -862,10 +862,10 @@ export default function SuperAdminUsersPage() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleManageTeam(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-[#15803D]/90 transition-colors border border-[#15803D]"
+                            className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
                             title="Manage Team"
                           >
-                            <Users className="w-3 h-3" />
+                            <Users className="w-3.5 h-3.5" />
                             <span className="text-[12px] font-medium leading-none">Manage Team</span>
                           </button>
                           <div className="relative">
