@@ -22,6 +22,7 @@ type DatePickerProps = {
   buttonClassName?: string;
   rangeStart?: string;
   rangeEnd?: string;
+  defaultMonth?: string;
 };
 
 function pad2(n: number) {
@@ -63,6 +64,7 @@ export function DatePicker({
   buttonClassName,
   rangeStart,
   rangeEnd,
+  defaultMonth,
 }: DatePickerProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -71,9 +73,13 @@ export function DatePicker({
   const selectedDate = React.useMemo(() => (value ? parseYMD(value) : null), [value]);
   const [viewMonth, setViewMonth] = React.useState<Date>(() => {
     if (selectedDate) return selectedDate;
-    if (maxDate) {
-      const parsedMax = parseYMD(maxDate);
-      if (parsedMax) return parsedMax;
+    if (defaultMonth) {
+      const parsedDef = parseYMD(defaultMonth);
+      if (parsedDef) return parsedDef;
+    }
+    if (minDate) {
+      const parsedMin = parseYMD(minDate);
+      if (parsedMin) return parsedMin;
     }
     return new Date();
   });
@@ -83,11 +89,14 @@ export function DatePicker({
 
     if (selectedDate) {
       setViewMonth(selectedDate);
-    } else if (maxDate) {
-      const parsedMax = parseYMD(maxDate);
-      if (parsedMax) setViewMonth(parsedMax);
+    } else if (defaultMonth) {
+      const parsedDef = parseYMD(defaultMonth);
+      if (parsedDef) setViewMonth(parsedDef);
+    } else if (minDate) {
+      const parsedMin = parseYMD(minDate);
+      if (parsedMin) setViewMonth(parsedMin);
     }
-  }, [open, selectedDate, maxDate]);
+  }, [open, selectedDate, defaultMonth, minDate]);
 
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);

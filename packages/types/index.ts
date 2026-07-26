@@ -71,6 +71,7 @@ export type TournamentFormat = (typeof TournamentFormat)[keyof typeof Tournament
 export const ScoringType = {
   GROSS: 'GROSS',
   NET: 'NET',
+  BOTH: 'BOTH',
 } as const;
 export type ScoringType = (typeof ScoringType)[keyof typeof ScoringType];
 

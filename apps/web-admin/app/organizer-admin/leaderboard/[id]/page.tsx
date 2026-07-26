@@ -703,7 +703,7 @@ function ViewTournamentPageInner() {
         enableWaitlist: t.enableWaitlist,
         createdAt: t.createdAt,
         registrations,
-        scoringType: t.scoringType === "GROSS" ? "GROSS" : "NET",
+        scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
         lockedGroupingsDays: t.lockedGroupingsDays ?? [],
         enableCut: t.enableCut,
         cutAfterRound: t.cutAfterRound,

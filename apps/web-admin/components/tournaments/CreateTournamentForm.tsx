@@ -78,7 +78,7 @@ const DEFAULT_FORM = {
   registrationOpenAt: "",
   registrationCloseAt: "",
   format: "STROKE_PLAY" as const,
-  scoringType: "GROSS" as const,
+  scoringType: "BOTH" as const,
   holes: 18,
   divisions: [] as string[],
   allowRegisteredPlayers: true,
@@ -860,6 +860,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     </p>
                     <div className="flex rounded-xl border border-[#e1efe5] overflow-hidden">
                       {[
+                        { value: "BOTH", label: "Both", desc: "Gross & Net" },
                         { value: "GROSS", label: "Gross", desc: "Actual strokes" },
                         { value: "NET", label: "Net", desc: "After handicap" },
                       ].map(({ value, label, desc }) => {
