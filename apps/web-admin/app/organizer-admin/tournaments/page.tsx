@@ -29,8 +29,10 @@ import {
   Eraser,
   UserMinus,
   Clock,
+  ChevronDown,
   X,
   Activity,
+  Award,
   CreditCard,
   FileText,
   FileSpreadsheet,
@@ -224,9 +226,19 @@ export default function TournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<ApiTournament[]>([]);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownTournament, setDropdownTournament] = useState<TournamentRow | null>(null);
+
+  const [activeManageDropdown, setActiveManageDropdown] = useState<string | null>(null);
+  const [manageDropdownAnchorEl, setManageDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [manageDropdownTournament, setManageDropdownTournament] = useState<TournamentRow | null>(null);
+
+  const closeManageDropdown = () => {
+    setActiveManageDropdown(null);
+    setManageDropdownAnchorEl(null);
+    setManageDropdownTournament(null);
+  };
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const [mutating, setMutating] = useState(false);
 
@@ -1281,6 +1293,33 @@ export default function TournamentsPage() {
         </Card>
       </div>
 
+      
+      <FloatingMenu open={activeManageDropdown != null} anchorEl={manageDropdownAnchorEl} onClose={closeManageDropdown} placement="bottom-end" className="w-56 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 py-2">
+        {manageDropdownTournament && [
+          { id: "players", label: "Players & Registrations", icon: Users },
+          { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
+          { id: "scoring", label: "Scorecards & Verification", icon: Award },
+          { id: "invite", label: "Invite a Player", icon: UserPlus },
+          { id: "register", label: "Register a Player", icon: UserPlus },
+          { id: "waitlist", label: "Waitlisted Players", icon: Clock },
+          { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
+          { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              const prefix = window.location.pathname.includes("super-admin") ? "super-admin" : "organizer-admin";
+              router.push(`/${prefix}/tournaments/${manageDropdownTournament.id}?tab=${tab.id}`);
+              closeManageDropdown();
+            }}
+            className="w-full text-left px-4 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+          >
+            <tab.icon className="w-4 h-4 text-gray-400" />
+            {tab.label}
+          </button>
+        ))}
+      </FloatingMenu>
+      
       <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (
           <>

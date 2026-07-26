@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner"
 import { formatWithCommas } from "@/lib/utils"
 import Link from "next/link"
+import PublicLeaderboard from "@/components/tournaments/PublicLeaderboard"
 
 function getErrorMessage(e: unknown) {
   if (e instanceof Error) return e.message
@@ -50,6 +51,7 @@ export default function TournamentDetailPage() {
   const router = useRouter()
   const [tournament, setTournament] = React.useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [activeTab, setActiveTab] = React.useState<"registration" | "leaderboard">("registration")
 
   // Contact Modal State
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false)
@@ -192,6 +194,9 @@ export default function TournamentDetailPage() {
             src={tournament.bannerUrl || "/images/tournaments/tournament-banner-new.jpg"}
             alt="Tournament Banner"
             className="absolute inset-0 w-full h-full object-cover z-0"
+            onError={(e) => {
+              e.currentTarget.src = "/images/tournaments/tournament-banner-new.jpg";
+            }}
           />
           {/* Dark Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/60 to-transparent z-10" />
@@ -205,16 +210,32 @@ export default function TournamentDetailPage() {
               <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-[1.1]">
                 {tournament.name}
               </h1>
-              <p className="text-base md:text-lg text-gray-200 font-medium tracking-wide max-w-2xl">
-                {("description" in tournament && tournament.description) ? (tournament as any).description : "Great golf. Good company. Better memories."}
-              </p>
+
 
             </div>
           </div>
         </div>
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Tabs Navigation */}
+        <div className="flex items-center gap-6 border-b border-gray-100 mb-2">
+          <button
+            onClick={() => setActiveTab("registration")}
+            className={`pb-3 text-[14px] font-medium transition-colors border-b-2 ${activeTab === "registration" ? "border-openclub-600 text-openclub-800" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+          >
+            Registration
+          </button>
+          <button
+            onClick={() => setActiveTab("leaderboard")}
+            className={`pb-3 text-[14px] font-medium transition-colors border-b-2 ${activeTab === "leaderboard" ? "border-openclub-600 text-openclub-800" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+          >
+            Leaderboard
+          </button>
+        </div>
+
+        {activeTab === "leaderboard" ? (
+          <PublicLeaderboard tournamentId={tournament.id} />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Main Info Blocks (Left 2 columns) */}
           <div className="md:col-span-2 flex flex-col gap-4">
@@ -442,8 +463,8 @@ export default function TournamentDetailPage() {
               </p>
             </div>
           </div>
-        </div>
-
+          </div>
+        )}
       </div>
 
       <Modal

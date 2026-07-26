@@ -39,14 +39,14 @@ import {
   ArrowUpDown,
   Layers,
   Info,
-  Dices,
-  Scale,
-  TrendingUp,
-  TrendingDown,
-  ArrowRight,
+          ArrowRight,
   MapPin,
   ChevronRight,
-  Hand,
+    Shuffle,
+  SlidersHorizontal,
+  ArrowUp,
+  ArrowDown,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -2276,10 +2276,10 @@ function ViewTournamentPageInner() {
                               }
                             }}
                             searchable={false}
-                            disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || isCheckingPreviousDay || !groupingsData?.unassigned.length}
+                            
                             trigger={
                               <Button
-                                disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsGenerating || groupingsLoading || !groupingsData?.unassigned.length}
+                                
                                 className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
                               >
                                 {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -2288,12 +2288,12 @@ function ViewTournamentPageInner() {
                               </Button>
                             }
                             options={[
-                              { value: "RANDOM", label: "Random Grouping", icon: Dices },
-                              { value: "CATEGORY_RANDOM", label: "Category Balanced", icon: Scale },
-                              { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reverse (Gross)", icon: TrendingUp, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_REVERSE_NET", label: "Leaderboard Reverse (Net)", icon: TrendingUp, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_DIRECT_GROSS", label: "Leaderboard Direct (Gross)", icon: TrendingDown, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_DIRECT_NET", label: "Leaderboard Direct (Net)", icon: TrendingDown, disabled: selectedDay === 1 },
+                              { value: "RANDOM", label: "Random Grouping", icon: Shuffle },
+                              { value: "CATEGORY_RANDOM", label: "Category Balanced", icon: SlidersHorizontal },
+                              { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reverse (Gross)", icon: ArrowUp, disabled: selectedDay === 1 },
+                              { value: "LEADERBOARD_REVERSE_NET", label: "Leaderboard Reverse (Net)", icon: ArrowUp, disabled: selectedDay === 1 },
+                              { value: "LEADERBOARD_DIRECT_GROSS", label: "Leaderboard Direct (Gross)", icon: ArrowDown, disabled: selectedDay === 1 },
+                              { value: "LEADERBOARD_DIRECT_NET", label: "Leaderboard Direct (Net)", icon: ArrowDown, disabled: selectedDay === 1 },
                             ]}
                           />
                         </div>
@@ -3308,31 +3308,31 @@ function ViewTournamentPageInner() {
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <Dices className="w-4 h-4 text-openclub-800" /> Random Grouping
+              <Shuffle className="w-4 h-4 text-openclub-800" /> Random Grouping
             </h4>
             <p className="text-[13px] text-gray-600">Assigns players into groups completely at random. Good for social play.</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <Scale className="w-4 h-4 text-blue-600" /> Category Balanced
+              <SlidersHorizontal className="w-4 h-4 text-blue-600" /> Category Balanced
             </h4>
             <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
+              <ArrowUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players last (latest tee times).</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
+              <ArrowDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
             </h4>
             <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players first (earliest tee times).</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <Hand className="w-4 h-4 text-emerald-600" /> Manually Tee Players
+              <Settings2 className="w-4 h-4 text-emerald-600" /> Manually Tee Players
             </h4>
             <p className="text-[13px] text-gray-600">Allows you to freely drag and drop players between groups to completely customize flights and tee times.</p>
           </div>

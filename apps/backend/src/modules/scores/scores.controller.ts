@@ -17,21 +17,23 @@ import { CreateScoreDto } from './dto/create-score.dto';
 import { ScoresService } from './scores.service';
 
 @Controller('scores')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class ScoresController {
   constructor(private readonly scoresService: ScoresService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   upsert(@Request() req: any, @Body() createScoreDto: CreateScoreDto) {
     return this.scoresService.upsertScore(createScoreDto, req.user);
   }
 
   @Post(':id/confirm')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   confirm(@Request() req: any, @Param('id') id: string) {
     return this.scoresService.confirmScore(id, req.user);
   }
 
   @Patch(':id/override')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   override(@Param('id') id: string, @Body() updateData: any) {
     return this.scoresService.adminOverride(id, updateData);
