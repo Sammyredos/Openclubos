@@ -52,6 +52,11 @@ export class ScoresController {
     );
   }
 
+  @Get('tournament/:tournamentId/leaderboard-data')
+  getPublicLeaderboardData(@Param('tournamentId') tournamentId: string) {
+    return this.scoresService.getPublicLeaderboardData(tournamentId);
+  }
+
   @Get('tournament/:tournamentId')
   findByTournament(
     @Param('tournamentId') tournamentId: string,

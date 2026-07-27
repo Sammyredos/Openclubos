@@ -2629,8 +2629,7 @@ function ViewTournamentPageInner() {
 
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
-                          disabled={!!groupingsData?.groups?.length}
-                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 disabled:bg-background disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed transition-all text-[13px] font-normal shadow-sm"
+                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 transition-all text-[13px] font-normal shadow-sm"
                           title="Auto tee off Explained"
                         >
                           <Info className="w-4 h-4 text-openclub-800" />

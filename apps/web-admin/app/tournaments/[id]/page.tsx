@@ -22,7 +22,8 @@ import {
   Info,
   ChevronRight,
   BookOpen,
-  Share2
+  Share2,
+  Handshake
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatWithCommas } from "@/lib/utils"
@@ -51,7 +52,7 @@ export default function TournamentDetailPage() {
   const router = useRouter()
   const [tournament, setTournament] = React.useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
-  const [activeTab, setActiveTab] = React.useState<"registration" | "leaderboard">("registration")
+  const [activeTab, setActiveTab] = React.useState<"registration" | "sponsors" | "leaderboard">("registration")
 
   // Contact Modal State
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false)
@@ -76,7 +77,7 @@ export default function TournamentDetailPage() {
 
   if (isLoading) return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="max-w-6xl mx-auto space-y-4">
         {/* Hero Banner Section Skeleton */}
         <div className="bg-white rounded-lg border-none overflow-hidden relative shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
           <Skeleton className="w-full h-[350px] rounded-none" />
@@ -185,7 +186,7 @@ export default function TournamentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 text-gray-700">
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="max-w-6xl mx-auto space-y-4">
 
         {/* Hero Banner Section */}
         <div className="relative w-full rounded-[20px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] min-h-[380px] flex flex-col justify-end">
@@ -217,23 +218,82 @@ export default function TournamentDetailPage() {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="flex items-center gap-6 border-b border-gray-100 mb-2">
+        <div className="rounded-xl bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] w-full md:w-fit mb-6 flex items-center divide-x divide-gray-100 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("registration")}
-            className={`pb-3 text-[14px] font-medium transition-colors border-b-2 ${activeTab === "registration" ? "border-openclub-600 text-openclub-800" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+            className={`flex items-center gap-3 px-6 py-4 transition-colors whitespace-nowrap flex-shrink-0 ${
+              activeTab === "registration"
+                ? "bg-white"
+                : "bg-white hover:bg-gray-50"
+            }`}
           >
-            Registration
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              activeTab === "registration"
+                ? "border-2 border-[#15803D] text-[#15803D] bg-white"
+                : "border border-gray-200 text-gray-400 bg-gray-50"
+            }`}><Users className="w-3.5 h-3.5" /></span>
+            <span className={`text-[15px] ${
+              activeTab === "registration"
+                ? "text-[#15803D] font-medium"
+                : "text-gray-600 font-normal"
+            }`}>Registration</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("sponsors")}
+            className={`flex items-center gap-3 px-6 py-4 transition-colors whitespace-nowrap flex-shrink-0 ${
+              activeTab === "sponsors"
+                ? "bg-white"
+                : "bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              activeTab === "sponsors"
+                ? "border-2 border-[#15803D] text-[#15803D] bg-white"
+                : "border border-gray-200 text-gray-400 bg-gray-50"
+            }`}><Handshake className="w-3.5 h-3.5" /></span>
+            <span className={`text-[15px] ${
+              activeTab === "sponsors"
+                ? "text-[#15803D] font-medium"
+                : "text-gray-600 font-normal"
+            }`}>Sponsors</span>
           </button>
           <button
             onClick={() => setActiveTab("leaderboard")}
-            className={`pb-3 text-[14px] font-medium transition-colors border-b-2 ${activeTab === "leaderboard" ? "border-openclub-600 text-openclub-800" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+            className={`flex items-center gap-3 px-6 py-4 transition-colors whitespace-nowrap flex-shrink-0 ${
+              activeTab === "leaderboard"
+                ? "bg-white"
+                : "bg-white hover:bg-gray-50"
+            }`}
           >
-            Leaderboard
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              activeTab === "leaderboard"
+                ? "border-2 border-[#15803D] text-[#15803D] bg-white"
+                : "border border-gray-200 text-gray-400 bg-gray-50"
+            }`}><Trophy className="w-3.5 h-3.5" /></span>
+            <span className={`text-[15px] ${
+              activeTab === "leaderboard"
+                ? "text-[#15803D] font-medium"
+                : "text-gray-600 font-normal"
+            }`}>Leaderboard</span>
           </button>
         </div>
 
         {activeTab === "leaderboard" ? (
-          <PublicLeaderboard tournamentId={tournament.id} />
+          <PublicLeaderboard tournamentId={tournament.id} tournamentStartDate={tournament.startDate} />
+        ) : activeTab === "sponsors" ? (
+          <div className="space-y-4 mt-4">
+            <div className="bg-white rounded-lg p-6 md:p-8 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+              <div className="flex items-center gap-2.5 border-b border-gray-50 pb-4 mb-6">
+                <Handshake className="w-5 h-5 text-openclub-600" />
+                <h2 className="text-[17px] font-medium text-slate-900">Tournament Sponsors</h2>
+              </div>
+              <div className="text-center py-12">
+                <Handshake className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-[15px] font-medium text-gray-900">No Sponsors Yet</h3>
+                <p className="text-[14px] text-gray-500 mt-1">Sponsor information will be displayed here once added by the organizer.</p>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -241,12 +301,12 @@ export default function TournamentDetailPage() {
           <div className="md:col-span-2 flex flex-col gap-4">
 
             {/* Description Section */}
-            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
-              <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
-                <BookOpen className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[15px] font-medium text-slate-900">About the Tournament</h2>
+            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+              <div className="flex items-center gap-2.5 text-gray-900 border-b border-gray-50 pb-4">
+                <BookOpen className="w-5 h-5 text-openclub-600" />
+                <h2 className="text-[17px] font-medium text-slate-900">About the Tournament</h2>
               </div>
-              <p className="text-gray-500 text-[14px] leading-relaxed whitespace-pre-line">
+              <p className="text-gray-500 text-[15px] leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
                   ? (tournament as any).description
                   : `Join us for the prestigious ${tournament.name} organized by ${tournament.club?.name || "our Club"}. This event brings players together for an outstanding competitive golf experience on a meticulously maintained course. Players of eligible divisions can confirm their slot and proceed with entry fee payments via the platform to secure their spot on the official roster.`}
@@ -255,12 +315,12 @@ export default function TournamentDetailPage() {
 
 
             {/* Rules & Requirements block */}
-            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
-              <div className="flex items-center gap-2 text-gray-900 border-b border-gray-50 pb-3">
-                <Shield className="w-4 h-4 text-openclub-600" />
-                <h2 className="text-[15px] font-medium text-slate-900">Entry Guidelines & Restrictions</h2>
+            <div className="bg-white rounded-lg border-none p-6 md:p-8 space-y-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
+              <div className="flex items-center gap-2.5 text-gray-900 border-b border-gray-50 pb-4">
+                <Shield className="w-5 h-5 text-openclub-600" />
+                <h2 className="text-[17px] font-medium text-slate-900">Entry Guidelines & Restrictions</h2>
               </div>
-              <ul className="space-y-3 text-[14px] text-gray-500">
+              <ul className="space-y-3.5 text-[15px] text-gray-500">
                 <li className="flex items-start gap-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
                   <span>Participants must maintain a verified handicap index matching the tournament constraints.</span>
@@ -448,12 +508,12 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Help / Information Box */}
-            <div className="bg-white rounded-lg border-none p-5 space-y-2 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
-              <div className="flex text-[14px] items-center gap-2 text-openclub-900">
-                <Info className="w-4 h-4 text-openclub-700" />
-                <h4 className="text-[14px] font-medium">Need Assistance?</h4>
+            <div className="bg-white rounded-lg border-none p-6 space-y-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex-1">
+              <div className="flex items-center gap-2.5 text-openclub-900">
+                <Info className="w-5 h-5 text-openclub-700" />
+                <h4 className="text-[15px] font-medium">Need Assistance?</h4>
               </div>
-              <p className="text-[12px] text-gray-500 leading-relaxed">
+              <p className="text-[14px] text-gray-500 leading-relaxed">
                 If you have questions about payment validation, guest eligibility, or handicap restrictions, please send a message directly to the golf organizer club.
                 <span className="block mt-2">
                   <button onClick={() => setIsContactModalOpen(true)} className="text-openclub-600 hover:text-openclub-700 hover:underline">

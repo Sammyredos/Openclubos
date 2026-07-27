@@ -236,4 +236,44 @@ export class ScoresService {
       },
     });
   }
+
+  async getPublicLeaderboardData(tournamentId: string) {
+    const registrations = await this.prisma.registration.findMany({
+      where: {
+        tournamentId,
+        status: { in: ['APPROVED', 'DISQUALIFIED'] },
+        paymentStatus: 'PAID',
+      },
+      select: {
+        id: true,
+        status: true,
+        madeCut: true,
+        extraStrokes: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            handicap: true,
+            profilePhoto: true,
+          }
+        }
+      }
+    });
+
+    const scores = await this.prisma.score.findMany({
+      where: {
+        group: { tournamentId }
+      },
+      select: {
+        strokes: true,
+        points: true,
+        userId: true,
+        holeId: true,
+        hole: { select: { par: true } }
+      }
+    });
+
+    return { registrations, scores };
+  }
 }

@@ -42,3 +42,11 @@ export const getTournamentScores = async (tournamentId: string) => {
   }
 };
 
+export const getPublicLeaderboardData = async (tournamentId: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/scores/tournament/${tournamentId}/leaderboard-data`, getHeaders());
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
