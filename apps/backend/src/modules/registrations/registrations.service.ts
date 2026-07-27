@@ -654,6 +654,18 @@ export class RegistrationsService {
       },
     });
 
+    if (!registration) throw new NotFoundException('Registration not found');
+
+    // Remove the user from any tournament groupings (flights/tee times) by deleting their scores in this tournament
+    await this.prisma.score.deleteMany({
+      where: {
+        userId: registration.userId,
+        group: {
+          tournamentId: registration.tournamentId,
+        },
+      },
+    });
+
     const deleted = await this.prisma.registration.delete({
       where: { id },
     });

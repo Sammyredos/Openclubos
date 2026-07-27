@@ -303,6 +303,20 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
     if (cached) {
       const data: GroupingData = JSON.parse(cached);
       
+      // Filter out players who no longer exist in the registrations (e.g., deleted or unpaid)
+      const validIds = new Set(allPaidPlayers.map(p => p.id));
+      let wasFiltered = false;
+      
+      data.groups.forEach(g => {
+        const originalLength = g.registrations.length;
+        g.registrations = g.registrations.filter(p => validIds.has(p.id));
+        if (g.registrations.length !== originalLength) wasFiltered = true;
+      });
+      
+      const origUnassignedLen = data.unassigned.length;
+      data.unassigned = data.unassigned.filter(p => validIds.has(p.id));
+      if (data.unassigned.length !== origUnassignedLen) wasFiltered = true;
+      
       // Identify players who are PAID but not in any group or unassigned list
       const assignedIds = new Set<string>();
       data.groups.forEach(g => g.registrations.forEach(p => assignedIds.add(p.id)));
@@ -310,8 +324,10 @@ export async function getGroupings(tournamentId: string, day: number = 1): Promi
       
       const missingPlayers = allPaidPlayers.filter(p => !assignedIds.has(p.id));
       
-      if (missingPlayers.length > 0) {
-        data.unassigned = [...data.unassigned, ...missingPlayers];
+      if (missingPlayers.length > 0 || wasFiltered) {
+        if (missingPlayers.length > 0) {
+          data.unassigned = [...data.unassigned, ...missingPlayers];
+        }
         localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(data));
       }
       return upgradeGroupNames(data);

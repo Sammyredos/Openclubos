@@ -2131,7 +2131,7 @@ function ViewTournamentPageInner() {
                             groupingsGenerating ||
                             groupingsLoading ||
                             !groupingsData?.unassigned.length ||
-                            (!!groupingsData?.groups?.length && (groupingsData?.unassigned?.length || 0) <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0))
+                            groupingsData.unassigned.length <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0)
                           }
                           className="bg-white border border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
                         >
@@ -2176,7 +2176,12 @@ function ViewTournamentPageInner() {
                             
                             trigger={
                               <Button
-                                
+                                disabled={
+                            selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+                            groupingsGenerating ||
+                            groupingsLoading ||
+                            !groupingsData?.unassigned.length
+                          }
                                 className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
                               >
                                 {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
