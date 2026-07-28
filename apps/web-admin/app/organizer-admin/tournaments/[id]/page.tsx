@@ -11,45 +11,54 @@ import {
   Wallet,
   Search,
   Plus,
+  Download,
+  Filter,
   Eye,
   Edit2,
   MoreHorizontal,
+  ArrowUpRight,
   Ban,
   CheckCircle2,
   Trash2,
   AlertTriangle,
-  RotateCcw,
+  Link,
   Globe,
   Lock,
   Shield,
+  Check,
+  Eraser,
+  RotateCcw,
   UserMinus,
   Clock,
+  X,
   ArrowLeft,
   Loader2,
   Flag,
+  Route,
   Activity,
   Award,
   Sparkles,
   RefreshCcw,
+  Home,
   Send,
   ChevronDown,
-  ArrowUpRight,
   Mail,
-  Filter,
   ArrowUpDown,
   Layers,
   Info,
-          ArrowRight,
+  ArrowRight,
   MapPin,
   ChevronRight,
-    Shuffle,
+  Shuffle,
   SlidersHorizontal,
   ArrowUp,
   ArrowDown,
   Settings2,
+  MonitorPlay,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
@@ -57,6 +66,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PlayerActionDropdown } from "@/components/player-action-dropdown";
 import {
   cancelTournament,
   deleteTournament,
@@ -74,6 +84,7 @@ import {
   type GroupingPlayer,
 } from "@/lib/api/tournaments";
 import { getTournamentScores } from "@/lib/api/scores";
+import { getAdminUsers } from "@/lib/api/members";
 import { getCourse, type Course } from "@/lib/api/courses";
 import { getClub, type Club } from "@/lib/api/clubs";
 import {
@@ -102,6 +113,7 @@ type TournamentRow = {
   status: string;
   badge: string;
   entryFee: number | null;
+  requiresPayment: boolean;
   startDate: string;
   endDate: string | null;
   maxPlayers: number | null;
@@ -113,9 +125,9 @@ type TournamentRow = {
   createdAt: string;
   registrations: number;
   scoringType: "NET" | "GROSS" | "BOTH";
-  lockedGroupingsDays: number[];
   enableCut?: boolean;
   cutAfterRound?: number;
+  lockedGroupingsDays: number[];
   type?: string;
   minHandicap?: number;
   maxHandicap?: number;
@@ -138,7 +150,8 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
   { id: "invite", label: "Invite a Player", icon: UserPlus },
-  { id: "waitlist", label: "Waitlist Settings", icon: Clock },
+  { id: "register", label: "Register a Player", icon: UserPlus },
+  { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
 ] as const;
@@ -212,7 +225,7 @@ function ViewTournamentPageInner() {
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
   >("All Status");
   const [registrationsPaymentFilter, setRegistrationsPaymentFilter] = useState<"All Payments" | "PAID" | "UNPAID" | "REFUNDED">("All Payments");
-  const [registrationsDisqualifiedFilter] = useState<
+  const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
   const [penalizeFilter, setPenalizeFilter] = useState<"APPROVED" | "DISQUALIFIED">("APPROVED");
@@ -299,9 +312,24 @@ function ViewTournamentPageInner() {
     }
   };
 
+  // Manual register options
+  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
+  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
+  const [registeredUserIdsForSearch, setRegisteredUserIdsForSearch] = useState<string[]>([]);
+  const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
+
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
+  const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
+  const [attemptedDayIndex, setAttemptedDayIndex] = useState<number | null>(null);
+  const [pendingGroupingRule, setPendingGroupingRule] = useState<any>(null);
+  const [isUngroupedPlayersModalOpen, setIsUngroupedPlayersModalOpen] = useState(false);
+  const [isAppendGroupingsModalOpen, setIsAppendGroupingsModalOpen] = useState(false);
+  const [isCheckingPreviousDay, setIsCheckingPreviousDay] = useState(false);
   const [actionRegistration, setActionRegistration] = useState<RegistrationListItem | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
@@ -309,8 +337,17 @@ function ViewTournamentPageInner() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [waitlistSearch, setWaitlistSearch] = useState("");
+  const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
+  const [waitlistPage, setWaitlistPage] = useState(1);
+  const [waitlistTotal, setWaitlistTotal] = useState(0);
+  const waitlistPerPage = 6;
   const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
   const [waitlistFilter, setWaitlistFilter] = useState<"PENDING" | "REJECTED">("PENDING");
+
+  // Waitlist Multi-Select and Modals
+  const [selectedWaitlistIds, setSelectedWaitlistIds] = useState<string[]>([]);
+  const [isApproveWaitlistModalOpen, setIsApproveWaitlistModalOpen] = useState(false);
+  const [isRemoveWaitlistModalOpen, setIsRemoveWaitlistModalOpen] = useState(false);
 
   // Groupings (Tee Times) Management States
   const [groupingsData, setGroupingsData] = useState<GroupingData | null>(null);
@@ -320,17 +357,17 @@ function ViewTournamentPageInner() {
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
   const [isManualGenerating, setIsManualGenerating] = useState(false);
   const [isPublishEmailModalOpen, setIsPublishEmailModalOpen] = useState(false);
+  const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
+  const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
-  const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
-  const [isUngroupedPlayersModalOpen, setIsUngroupedPlayersModalOpen] = useState(false);
-  const [pendingGroupingRule, setPendingGroupingRule] = useState<any>(null);
-  const [isAppendGroupingsModalOpen, setIsAppendGroupingsModalOpen] = useState(false);
-  const [isCheckingPreviousDay, setIsCheckingPreviousDay] = useState(false);
-
+  const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
   // Groupings Search/Filter
+  const [publishClickCount, setPublishClickCount] = useState(0);
+  const [justGrouped, setJustGrouped] = useState(false);
   const [groupingsSearch, setGroupingsSearch] = useState("");
   const [groupsSearch, setGroupsSearch] = useState("");
+  const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
   const unassignedPerPage = 5;
@@ -341,11 +378,12 @@ function ViewTournamentPageInner() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
   const [leaderboardSortBy, setLeaderboardSortBy] = useState<"NET" | "GROSS">("NET");
-  const [leaderboardSearch, setLeaderboardSearch] = useState("");
   const [leaderboardCategoryFilter, setLeaderboardCategoryFilter] = useState<string>("ALL");
   const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [leaderboardSearch, setLeaderboardSearch] = useState("");
   const leaderboardPerPage = 10;
+  const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
   const getTournamentDays = () => {
     if (!selectedTournament?.startDate) return 1;
@@ -361,23 +399,38 @@ function ViewTournamentPageInner() {
     setDropdownAnchorEl(null);
   };
 
-  const [publishClickCount, setPublishClickCount] = useState(0);
-  const [justGrouped, setJustGrouped] = useState(false);
-  const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
-
   const fetchWaitlistData = async () => {
     if (!tournamentId) return;
     setWaitlistLoading(true);
     try {
-      const { items } = await getRegistrations({
+      const skip = (waitlistPage - 1) * waitlistPerPage;
+      const { items, total } = await getRegistrations({
         tournamentId,
-        waitlistOnly: true,
+        status: waitlistFilter === "PENDING" ? "WAITLISTED" : "REJECTED",
+        q: waitlistDebouncedSearch || undefined,
+        skip,
+        take: waitlistPerPage,
       });
       setWaitlist(items || []);
+      setWaitlistTotal(typeof total === "number" ? total : 0);
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch waitlist queue");
     } finally {
       setWaitlistLoading(false);
+    }
+  };
+
+  const fetchPendingWaitlistCount = async () => {
+    if (!tournamentId) return;
+    try {
+      const { total } = await getRegistrations({
+        tournamentId,
+        status: "WAITLISTED",
+        take: 1,
+      });
+      setPendingWaitlistTotal(typeof total === "number" ? total : 0);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -456,9 +509,17 @@ function ViewTournamentPageInner() {
     try {
       const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId, selectedDay);
       setGroupingsData(data);
-      toast.success("Player reassigned successfully");
+      if (targetGroupId === null) {
+        toast.success("Player has been removed from flight");
+      } else {
+        toast.success("Player has been moved successfully");
+      }
     } catch (err) {
-      toast.error((err instanceof Error ? err.message : null) || "Failed to reassign player");
+      if (targetGroupId === null) {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to remove player");
+      } else {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to move player");
+      }
     }
   };
 
@@ -467,6 +528,7 @@ function ViewTournamentPageInner() {
     try {
       const data = await updateGroupingTime(tournamentId, groupId, payload, selectedDay);
       setGroupingsData(data);
+      setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
       toast.success("Flight updated successfully");
     } catch (err) {
@@ -498,22 +560,6 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleLockGroupings = async () => {
-    if (!selectedTournament) return;
-    try {
-      setMutating(true);
-      const currentLocks = selectedTournament.lockedGroupingsDays || [];
-      const newLocks = Array.from(new Set([...currentLocks, selectedDay]));
-      await updateTournament(selectedTournament.id, { lockedGroupingsDays: newLocks });
-      toast.success(`Day ${selectedDay} groupings locked successfully`);
-      await reloadSingleTournament();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to lock groupings");
-    } finally {
-      setMutating(false);
-    }
-  };
-
   const [applyingCut, setApplyingCut] = useState(false);
   const [showCutModal, setShowCutModal] = useState(false);
   const handleApplyCut = async () => {
@@ -529,7 +575,6 @@ function ViewTournamentPageInner() {
       setApplyingCut(false);
     }
   };
-
 
   const loadLeaderboardData = async () => {
     if (!tournamentId || !selectedTournament) return;
@@ -671,7 +716,8 @@ function ViewTournamentPageInner() {
         loadLeaderboardData();
       }
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
+    fetchPendingWaitlistCount();
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
 
   const isCutPending = useMemo(() => {
     if (!selectedTournament?.enableCut || selectedTournament.cutAfterRound == null) return false;
@@ -733,6 +779,7 @@ function ViewTournamentPageInner() {
         status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
         badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
         entryFee: t.entryFee ?? null,
+        requiresPayment: t.requiresPayment ?? false,
         startDate: t.startDate,
         endDate: t.endDate ?? null,
         maxPlayers: t.maxPlayers ?? null,
@@ -744,9 +791,9 @@ function ViewTournamentPageInner() {
         createdAt: t.createdAt,
         registrations,
         scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
-        lockedGroupingsDays: t.lockedGroupingsDays ?? [],
         enableCut: t.enableCut,
         cutAfterRound: t.cutAfterRound,
+        lockedGroupingsDays: t.lockedGroupingsDays || [],
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -798,6 +845,7 @@ function ViewTournamentPageInner() {
           status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
           badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
           entryFee: t.entryFee ?? null,
+          requiresPayment: t.requiresPayment ?? false,
           startDate: t.startDate,
           endDate: t.endDate ?? null,
           maxPlayers: t.maxPlayers ?? null,
@@ -806,12 +854,12 @@ function ViewTournamentPageInner() {
           visibility: VISIBILITY_META[t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY"]?.label ?? t.visibility,
           visibilityKey: t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY",
           enableWaitlist: t.enableWaitlist,
+          enableCut: t.enableCut,
+          cutAfterRound: t.cutAfterRound,
           createdAt: t.createdAt,
           registrations,
           scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
-          lockedGroupingsDays: t.lockedGroupingsDays ?? [],
-          enableCut: t.enableCut,
-          cutAfterRound: t.cutAfterRound,
+          lockedGroupingsDays: t.lockedGroupingsDays || [],
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
@@ -834,6 +882,11 @@ function ViewTournamentPageInner() {
   useEffect(() => {
     setRegistrationsDebouncedSearch(registrationsSearch.trim());
   }, [registrationsSearch]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setWaitlistDebouncedSearch(waitlistSearch.trim()), 300);
+    return () => clearTimeout(handler);
+  }, [waitlistSearch]);
 
   useEffect(() => {
     if (!selectedTournament?.id) return;
@@ -931,7 +984,6 @@ function ViewTournamentPageInner() {
     registrationsMode,
     registrationsPage,
     registrationsDebouncedSearch,
-    registrationsStatusFilter,
     registrationsDisqualifiedFilter,
     registrationsPaymentFilter,
     registrationsRefreshTrigger,
@@ -955,9 +1007,7 @@ function ViewTournamentPageInner() {
           searchableFields.some(field => field?.toLowerCase().includes(token))
         );
 
-        const matchesStatus = registrationsStatusFilter === "All Status"
-          ? (r.status !== "WAITLISTED" && r.status !== "REJECTED")
-          : r.status === registrationsStatusFilter;
+        const matchesStatus = registrationsStatusFilter === "All Status" ? (r.status !== "WAITLISTED" && r.status !== "REJECTED") : r.status === registrationsStatusFilter;
         const matchesPayment =
           registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
         const matchesDisqualified =
@@ -978,53 +1028,117 @@ function ViewTournamentPageInner() {
       )
       : registrations;
 
+  // Search & Register Logic inside tab
+  useEffect(() => {
+    if (activeTab !== "register" || !selectedTournament?.id) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+    const tId = selectedTournament.id;
+    const q = registerPlayerSearch.trim();
+    if (q.length < 2) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingPlayers(true);
+    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
+      .then(async ({ items }) => {
+        if (cancelled) return;
+
+        try {
+          const { items: regItems } = await getRegistrations({
+            tournamentId: tId,
+            q,
+            take: 50,
+          });
+          if (cancelled) return;
+          const registeredIds = regItems.map(r => r.user?.id).filter((id): id is string => !!id);
+          setRegisteredUserIdsForSearch(registeredIds);
+        } catch (err) {
+          console.error("Failed to fetch registrations for search", err);
+        }
+
+        setRegisterPlayerResults(Array.isArray(items) ? items : []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          console.error("Player search failed", e);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearchingPlayers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, registerPlayerSearch]);
+
+  const handleRegisterPlayer = async (userId: string) => {
+    if (!selectedTournament?.id) return;
+    setIsRegistering(true);
+    try {
+      const { registerForTournament } = await import("@/lib/api/registrations");
+      await registerForTournament({
+        tournamentId: selectedTournament.id,
+        userId,
+        paymentStatus: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "PAID" : "UNPAID",
+        status: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "APPROVED" : "PENDING",
+      });
+      toast.success("Player registered successfully");
+      setNewlyRegisteredUserIds(prev => [...prev, userId]);
+
+      await reloadSingleTournament();
+      setRegistrationsRefreshTrigger(prev => prev + 1);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to register player");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   // Waitlist Action methods
-  const handleApproveWaitlist = async (regId: string) => {
-    setWaitlistActionId(regId);
+  const handleApproveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await updateRegistrationStatus(regId, "APPROVED");
-      toast.success("Player approved from waitlist successfully");
-      setWaitlist(prev => prev.filter(item => item.id !== regId));
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "APPROVED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players approved from waitlist successfully` : "Player approved from waitlist successfully");
+      setSelectedWaitlistIds([]);
+      setIsApproveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to approve player");
+      toast.error(err.message || "Failed to approve player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
 
-  const handleRemoveWaitlist = async (regId: string) => {
-    if (!confirm("Are you sure you want to remove this player from the waitlist?")) return;
-    setWaitlistActionId(regId);
+  const handleRemoveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await updateRegistrationStatus(regId, "REJECTED");
-      toast.success("Player removed from waitlist");
-      await fetchWaitlistData();
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "REJECTED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players removed from waitlist` : "Player removed from waitlist");
+      setSelectedWaitlistIds([]);
+      setIsRemoveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove player");
+      toast.error(err.message || "Failed to remove player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
-
-  const filteredWaitlist = waitlist.filter(item => {
-    const query = waitlistSearch.trim().toLowerCase();
-    const tokens = query.split(/[\s-]+/).filter(Boolean);
-    const searchableFields = [
-      item.user?.firstName,
-      item.user?.lastName,
-      item.user?.email,
-      `${item.user?.firstName} ${item.user?.lastName}`,
-      `${item.user?.lastName} ${item.user?.firstName}`
-    ];
-
-    return tokens.length === 0 || tokens.every(token =>
-      searchableFields.some(field => field?.toLowerCase().includes(token))
-    );
-  });
 
   const updateTournamentRegistrationStatus = async (
     registrationId: string,
@@ -1132,7 +1246,7 @@ function ViewTournamentPageInner() {
     router.push(`/organizer-admin/tournaments/${tournament.id}/edit`);
   };
 
-  const openCancel = () => {
+  const openCancel = (tournament: TournamentRow) => {
     closeDropdown();
     setIsCancelModalOpen(true);
   };
@@ -1150,7 +1264,7 @@ function ViewTournamentPageInner() {
   const handleMenuAction = (tournament: TournamentRow, action: string) => {
     closeDropdown();
     if (action === "cancel") {
-      openCancel();
+      openCancel(tournament);
       return;
     }
     if (action === "delete") {
@@ -1420,6 +1534,16 @@ function ViewTournamentPageInner() {
             </Button>
           )}
 
+          <NextLink
+            href={`/tv/tournaments/${selectedTournament.id}`}
+            target="_blank"
+            className="bg-white h-11 border border-gray-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-800 font-normal underline text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            title="Launch TV Display"
+          >
+            <MonitorPlay className="w-4 h-4 text-emerald-600" />
+            TV Display
+          </NextLink>
+
           <Button
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
@@ -1430,50 +1554,7 @@ function ViewTournamentPageInner() {
             Edit Tournament
           </Button>
 
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={(e) => {
-                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                setDropdownAnchorEl(e.currentTarget);
-              }}
-              className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </Button>
-            {activeDropdown === selectedTournament.id && (
-              <FloatingMenu
-                open={activeDropdown === selectedTournament.id}
-                anchorEl={dropdownAnchorEl}
-                onClose={closeDropdown}
-                placement="bottom-end"
-                className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
-              >
-                <button
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
-                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-700 hover:bg-background"
-                  )}
-                  onClick={() => {
-                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
-                      handleMenuAction(selectedTournament, "cancel");
-                    }
-                  }}
-                >
-                  <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
-                </button>
-                <div className="h-px bg-background my-1 mx-2" />
-                <button
-                  className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg capitalize"
-                  onClick={() => handleMenuAction(selectedTournament, "delete")}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
-                </button>
-              </FloatingMenu>
-            )}
-          </div>
+
         </div>
       </div>
 
@@ -1546,13 +1627,28 @@ function ViewTournamentPageInner() {
                     <h2 className="text-[15px] font-medium text-gray-900">Registered Players</h2>
                     <p className="text-[13px] text-gray-500 mt-0.5">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
-                  <Button
-                    disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-                    onClick={() => setActiveTab("invite")}
-                    className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" /> Invite a Player
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => setActiveTab("waitlist")}
+                      variant="outline"
+                      className="h-9 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 rounded-md px-4 text-[12px] font-normal.
+                       capitalize tracking-wider transition-all shadow-sm"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-openclub-800" /> Waitlist Queue
+                      {pendingWaitlistTotal > 0 && (
+                        <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[10px] font-medium px-1.5 h-4 min-w-[16px] rounded-full ml-1">
+                          {pendingWaitlistTotal}
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+                      onClick={() => setActiveTab("invite")}
+                      className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" /> Invite a Player
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -1666,7 +1762,7 @@ function ViewTournamentPageInner() {
                                       />
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-[15px] font-medium text-gray-900 truncate">
+                                      <p className="text-[14px] font-medium text-gray-900 truncate">
                                         {fullName(r.user?.firstName ?? null, r.user?.lastName ?? null)}
                                       </p>
                                       <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
@@ -1676,7 +1772,7 @@ function ViewTournamentPageInner() {
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className={cn(
-                                      "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                         r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                           r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
@@ -1687,7 +1783,7 @@ function ViewTournamentPageInner() {
                                       {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
                                     </span>
                                     <span className={cn(
-                                      "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                      "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
                                       isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                         "bg-background text-gray-600 border border-gray-250"
                                     )}>
@@ -1803,7 +1899,7 @@ function ViewTournamentPageInner() {
               return (
                 <div className="space-y-6 w-full">
                   <div className="border-b border-[#e1efe5] pb-4">
-                    <h2 className="text-[15px] font-medium text-gray-900">Invite Player</h2>
+                    <h2 className="text-[15px] font-medium text-gray-900 font-sans">Invite Player</h2>
                     <p className="text-[12px] text-gray-500 mt-1">Send an invitation email directly to a player to join this tournament.</p>
                   </div>
 
@@ -1835,7 +1931,7 @@ function ViewTournamentPageInner() {
                         onChange={(e) => setInviteEmail(e.target.value)}
                         placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
                         disabled={isSubmittingInvite || isConcluded}
-                        className="h-11 border-gray-200 bg-background/50 focus:bg-white text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
                             handleSendInvite();
@@ -1857,6 +1953,200 @@ function ViewTournamentPageInner() {
               );
             })()}
 
+            {/* TABS 2: Register Player Inline */}
+            {activeTab === "register" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Manual Player Registration</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Quick Registration</h3>
+                    <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
+                      Register members directly into <span className="text-openclub-800 font-normal">{selectedTournament.name}</span>. Flights & Tee Times and pairing calculations will be recalculated dynamically.
+                    </p>
+                  </div>
+                </div>
+
+                {selectedTournament?.requiresPayment && (
+                  <div className="space-y-3">
+                    <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Initial Payment Status</Label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setManualPaymentType('UNPAID')}
+                        className={cn(
+                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                          manualPaymentType === 'UNPAID'
+                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
+                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
+                            manualPaymentType === 'UNPAID' ? "border-openclub-700" : "border-gray-300"
+                          )}>
+                            {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
+                          </div>
+                          <span className="text-[13px] font-medium">Unpaid</span>
+                        </div>
+                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will not be confirmed for grouping until payment is recorded.</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualPaymentType('CASH')}
+                        className={cn(
+                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
+                          manualPaymentType === 'CASH'
+                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
+                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
+                            manualPaymentType === 'CASH' ? "border-openclub-700" : "border-gray-300"
+                          )}>
+                            {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
+                          </div>
+                          <span className="text-[13px] font-medium">Paid (Cash / Direct)</span>
+                        </div>
+                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will be marked as PAID and automatically APPROVED.</p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                    <Input
+                      placeholder="Type player name or email to search..."
+                      value={registerPlayerSearch}
+                      onChange={(e) => setRegisterPlayerSearch(e.target.value)}
+                      className="pl-10 h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
+                    />
+                  </div>
+
+                  <div className="min-h-[300px]">
+                    {isSearchingPlayers ? (
+                      <div className="p-12 text-center text-gray-400 space-y-3">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
+                        <p className="text-[12px]">Searching the openclub registry...</p>
+                      </div>
+                    ) : registerPlayerResults.length > 0 ? (
+                      <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                              <th className="px-4 py-4">PLAYER</th>
+                              <th className="px-4 py-4">DETAILS</th>
+                              <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                              <th className="px-4 py-4 text-right">ACTIONS</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#efefef] bg-white">
+                            {registerPlayerResults.map((player) => {
+                              const isAlreadyRegistered =
+                                registrationsAll.some(x => x.user?.id === player.id) ||
+                                registrations.some(x => x.user?.id === player.id) ||
+                                registeredUserIdsForSearch.includes(player.id) ||
+                                newlyRegisteredUserIds.includes(player.id);
+                              return (
+                                <tr key={player.id} className="transition-all hover:bg-background/50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
+                                        <img
+                                          src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-[15px] font-medium text-gray-900 truncate">
+                                          {fullName(player.firstName ?? null, player.lastName ?? null)}
+                                        </p>
+                                        <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-1.5">
+                                      {player.gender && (
+                                        <span className={cn(
+                                          "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                          player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                        )}>
+                                          {player.gender}
+                                        </span>
+                                      )}
+                                      {player.dob && (
+                                        <span className="text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                          {(() => {
+                                            const birthDate = new Date(player.dob);
+                                            const today = new Date();
+                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                            const m = today.getMonth() - birthDate.getMonth();
+                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                            return `${age} YRS`;
+                                          })()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      HCP {player.handicap ?? 0}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <Button
+                                      disabled={isAlreadyRegistered || isRegistering}
+                                      size="sm"
+                                      onClick={() => handleRegisterPlayer(player.id)}
+                                      className={cn(
+                                        "rounded-xl font-normal text-[12px] px-4 h-9",
+                                        isAlreadyRegistered
+                                          ? "bg-gray-100 text-gray-400 border border-gray-200"
+                                          : "bg-[#15803D] hover:bg-[#166534] text-white"
+                                      )}
+                                    >
+                                      {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : registerPlayerSearch.trim().length >= 2 ? (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Search}
+                        title="No players found"
+                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
+                      />
+                    ) : (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Users}
+                        title="Start Enrolling"
+                        description="Type 2 or more characters of a member's name or email to retrieve matches."
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (
               <div className="space-y-6">
@@ -1869,44 +2159,91 @@ function ViewTournamentPageInner() {
                     <h4 className="text-[15px] font-medium text-gray-900 truncate">Waitlist Queue</h4>
                   </div>
                   <div className="text-right">
-                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(waitlist.filter(w => w.status === "WAITLISTED").length)}</p>
+                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(pendingWaitlistTotal)}</p>
                     <p className="text-[11px] text-emerald-650 font-normal uppercase tracking-widest mt-1">Waiting</p>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                  <Input
-                    placeholder="Search waitlist by name or email..."
-                    className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                    value={waitlistSearch}
-                    onChange={(e) => setWaitlistSearch(e.target.value)}
-                  />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                    <Input
+                      placeholder="Search waitlist by name or email..."
+                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                      value={waitlistSearch}
+                      onChange={(e) => {
+                        setWaitlistSearch(e.target.value);
+                        setWaitlistPage(1);
+                      }}
+                    />
+                  </div>
+                  {selectedWaitlistIds.length > 0 && (
+                    <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100">
+                      <span className="text-[12px] font-normal text-emerald-700 mr-2">
+                        {selectedWaitlistIds.length} selected
+                      </span>
+                      <Button
+                        onClick={() => setIsApproveWaitlistModalOpen(true)}
+                        className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Approve All
+                      </Button>
+                      <Button
+                        onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                        variant="ghost"
+                        className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove All
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
-                  <button
-                    onClick={() => setWaitlistFilter("PENDING")}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                      waitlistFilter === "PENDING"
-                        ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                        : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                    )}
-                  >
-                    Pending Queue
-                  </button>
-                  <button
-                    onClick={() => setWaitlistFilter("REJECTED")}
-                    className={cn(
-                      "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                      waitlistFilter === "REJECTED"
-                        ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                        : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                    )}
-                  >
-                    Rejected Players
-                  </button>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
+                    <button
+                      onClick={() => setWaitlistFilter("PENDING")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        waitlistFilter === "PENDING"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Pending Queue
+                    </button>
+                    <button
+                      onClick={() => setWaitlistFilter("REJECTED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        waitlistFilter === "REJECTED"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Rejected Players
+                    </button>
+                  </div>
+                  {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                    <div className="flex items-center gap-2 px-2">
+                      <input
+                        type="checkbox"
+                        id="selectAllWaitlist"
+                        className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                        checked={selectedWaitlistIds.length === waitlist.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedWaitlistIds(waitlist.map(i => i.id));
+                          } else {
+                            setSelectedWaitlistIds([]);
+                          }
+                        }}
+                      />
+                      <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -1934,23 +2271,55 @@ function ViewTournamentPageInner() {
                         ))}
                       </div>
                     </div>
-                  ) : filteredWaitlist.length > 0 ? (
+                  ) : waitlist.length > 0 ? (
                     <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                           <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                            <th className="px-4 py-4">PLAYER</th>
+                            {waitlistFilter === "PENDING" && (
+                              <th className="w-12 px-4 py-4 text-center">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                                  checked={selectedWaitlistIds.length > 0 && waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedWaitlistIds(waitlist.map(i => i.id));
+                                    } else {
+                                      setSelectedWaitlistIds([]);
+                                    }
+                                  }}
+                                />
+                              </th>
+                            )}
+                            <th className={cn("px-4 py-4", waitlistFilter !== "PENDING" && "pl-6")}>PLAYER</th>
                             <th className="px-4 py-4">DETAILS</th>
                             <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
                             <th className="px-4 py-4 text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
-                          {filteredWaitlist
+                          {waitlist
                             .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
                             .map((item) => (
-                              <tr key={item.id} className="transition-all hover:bg-background/50">
-                                <td className="px-4 py-3">
+                              <tr key={item.id} className={cn("transition-all hover:bg-background/50", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30" : "")}>
+                                {waitlistFilter === "PENDING" && (
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                                      checked={selectedWaitlistIds.includes(item.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                        } else {
+                                          setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                        }
+                                      }}
+                                    />
+                                  </td>
+                                )}
+                                <td className={cn("px-4 py-3", waitlistFilter !== "PENDING" && "pl-6")}>
                                   <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                       <img
@@ -2005,7 +2374,10 @@ function ViewTournamentPageInner() {
                                   <div className="flex items-center justify-end gap-2">
                                     {item.status !== "REJECTED" && (
                                       <Button
-                                        onClick={() => handleApproveWaitlist(item.id)}
+                                        onClick={() => {
+                                          if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                          setIsApproveWaitlistModalOpen(true);
+                                        }}
                                         disabled={waitlistActionId === item.id}
                                         title="Approve"
                                         className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center"
@@ -2018,7 +2390,10 @@ function ViewTournamentPageInner() {
                                       </Button>
                                     )}
                                     <Button
-                                      onClick={() => handleRemoveWaitlist(item.id)}
+                                      onClick={() => {
+                                        if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                        setIsRemoveWaitlistModalOpen(true);
+                                      }}
                                       disabled={waitlistActionId === item.id || item.status === "REJECTED"}
                                       title={item.status === "REJECTED" ? "Rejected" : "Reject"}
                                       className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
@@ -2036,12 +2411,22 @@ function ViewTournamentPageInner() {
                     <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center">
                       <EmptyState
                         icon={Clock}
-                        title="Waitlist is empty"
-                        description="No players currently in the queue for this tournament."
+                        title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
+                        description={waitlistSearch ? "Try adjusting your search terms." : "No players currently in the queue for this tournament."}
                       />
                     </div>
                   )}
                 </div>
+
+                {waitlistTotal > waitlistPerPage && (
+                  <div className="mt-4 flex justify-end">
+                    <Pagination
+                      currentPage={waitlistPage}
+                      totalPages={Math.ceil(waitlistTotal / waitlistPerPage)}
+                      onPageChange={setWaitlistPage}
+                    />
+                  </div>
+                )}
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
@@ -2165,12 +2550,14 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <div className="flex gap-3">
-                          <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
+                      <div className="bg-emerald-50/40 border border-emerald-100/60 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                        <div className="flex gap-4 items-center">
+                          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 text-[#15803D] flex items-center justify-center shrink-0 shadow-xs">
+                            <Mail className="w-5 h-5" />
+                          </div>
                           <div>
-                            <h4 className="text-[16px] font-medium text-gray-900">Send Tee Times via Email</h4>
-                            <p className="text-[13px] text-gray-500 mt-1">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+                            <h4 className="text-[15px] font-medium text-gray-900">Send Tee Times via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-0.5">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2180,8 +2567,8 @@ function ViewTournamentPageInner() {
                           }}
                           disabled={groupingsGenerating || groupingsLoading}
                           className={cn(
-                            "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
-                            justGrouped && "animate-pulse ring-4 ring-gray-200"
+                            "bg-[#15803D] hover:bg-[#166534] text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
+                            justGrouped && "animate-pulse ring-4 ring-[#15803D]/20"
                           )}
                         >
                           <Mail className="w-4 h-4" />
@@ -2217,13 +2604,15 @@ function ViewTournamentPageInner() {
 
                       <div className="flex items-center gap-3">
 
+
+
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 transition-all text-[13px] font-normal shadow-sm"
-                          title="Auto tee off Explained"
+                          title="Tee off Rules"
                         >
                           <Info className="w-4 h-4 text-openclub-800" />
-                          Auto tee off Explained
+                          Tee off Rules
                         </button>
 
                         <Button
@@ -2275,14 +2664,15 @@ function ViewTournamentPageInner() {
                               }
                             }}
                             searchable={false}
+
                             trigger={
                               <Button
                                 disabled={
-                            selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-                            groupingsGenerating ||
-                            groupingsLoading ||
-                            !groupingsData?.unassigned.length
-                          }
+                                  selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+                                  groupingsGenerating ||
+                                  groupingsLoading ||
+                                  !groupingsData?.unassigned.length
+                                }
                                 className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
                               >
                                 {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -2361,7 +2751,7 @@ function ViewTournamentPageInner() {
                             : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                         )}
                       >
-                        Assigned Tee Players
+                        Assigned Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
                           groupingsSubTab === "grouped" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
@@ -2517,19 +2907,14 @@ function ViewTournamentPageInner() {
                                                   </div>
                                                 </td>
                                                 <td className="pr-3 py-2 align-middle text-right w-[40px]">
-                                                  <select
+                                                  <PlayerActionDropdown
+                                                    player={player}
+                                                    group={group}
+                                                    groupingsData={groupingsData}
                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value={group.id}
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      handleMovePlayer(player.id, val === "unassigned" ? null : val);
-                                                    }}
-                                                    className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
-                                                  >
-                                                    <option value={group.id}>☰</option>
-                                                    <option value="unassigned">Unassign</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-                                                  </select>
+                                                    onMovePlayer={handleMovePlayer}
+                                                    capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                  />
                                                 </td>
                                               </tr>
                                             ))}
@@ -2606,6 +2991,7 @@ function ViewTournamentPageInner() {
                                     `${p.user?.firstName} ${p.user?.lastName}`,
                                     `${p.user?.lastName} ${p.user?.firstName}`
                                   ];
+
                                   return tokens.every(token =>
                                     searchableFields.some(field => field?.toLowerCase().includes(token))
                                   );
@@ -2615,13 +3001,13 @@ function ViewTournamentPageInner() {
 
                                 return (
                                   <div className="space-y-6">
-                                    <div className="overflow-hidden border border-[#e1efe5] rounded-lg">
+                                    <div className="overflow-x-auto">
                                       <table className="w-full text-left">
                                         <thead>
                                           <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                                            <th className="px-4 py-3">PLAYER</th>
-                                            <th className="px-4 py-3">ATTRIBUTES</th>
-                                            <th className="px-4 py-3 text-right">ACTIONS</th>
+                                            <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+                                            <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
+                                            <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#efefef]">
@@ -2683,22 +3069,14 @@ function ViewTournamentPageInner() {
                                                   </div>
                                                 </td>
                                                 <td className="pr-4 py-3 align-middle text-right">
-                                                  <select
+                                                  <PlayerActionDropdown
+                                                    player={player}
+                                                    groupingsData={groupingsData}
                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value="unassigned"
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      if (val !== "unassigned") {
-                                                        handleMovePlayer(player.id, val);
-                                                      }
-                                                    }}
-                                                    className="bg-[#f5faf6] text-[#15803D] border border-[#e1efe5] text-[11px] font-medium rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:bg-[#e1efe5] transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
-                                                  >
-                                                    <option value="unassigned">Assign To...</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => (
-                                                      <option key={g.id} value={g.id}>{g.name}</option>
-                                                    ))}
-                                                  </select>
+                                                    onMovePlayer={handleMovePlayer}
+                                                    variant="assign"
+                                                    capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                  />
                                                 </td>
                                               </tr>
                                             ))
@@ -2757,6 +3135,33 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-4 mb-2">
+                  <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
+                    <button
+                      onClick={() => setPenalizeFilter("APPROVED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        penalizeFilter === "APPROVED"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Active Players
+                    </button>
+                    <button
+                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        penalizeFilter === "DISQUALIFIED"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Disqualified Players
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div className="relative flex-1 min-w-[240px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
@@ -2771,45 +3176,19 @@ function ViewTournamentPageInner() {
                       className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     />
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <SearchableSelect
-                      value={penalizeStrokesFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        setPenalizeStrokesFilter(v);
-                      }}
-                      options={[
-                        { value: "ALL", label: "All Players" },
-                        { value: "WITH_STROKES", label: "With Strokes" },
-                      ]}
-                      className="min-w-[160px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    />
-                    <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                      <button
-                        onClick={() => setPenalizeFilter("APPROVED")}
-                        className={cn(
-                          "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                          penalizeFilter === "APPROVED"
-                            ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                            : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                        )}
-                      >
-                        Active Players
-                      </button>
-                      <button
-                        onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                        className={cn(
-                          "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                          penalizeFilter === "DISQUALIFIED"
-                            ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                            : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                        )}
-                      >
-                        Disqualified Players
-                      </button>
-                    </div>
-                  </div>
+                  <SearchableSelect
+                    value={penalizeStrokesFilter}
+                    onValueChange={(v: any) => {
+                      setRegistrationsPage(1);
+                      setPenalizeStrokesFilter(v);
+                    }}
+                    options={[
+                      { value: "ALL", label: "All Players" },
+                      { value: "WITH_STROKES", label: "With Strokes" },
+                    ]}
+                    className="min-w-[160px]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -3081,7 +3460,7 @@ function ViewTournamentPageInner() {
               Close
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30"
               onClick={confirmCancel}
               disabled={mutating}
             >
@@ -3112,7 +3491,7 @@ function ViewTournamentPageInner() {
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-medium px-8 capitalize"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete
@@ -3158,7 +3537,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
               onClick={confirmDisqualify}
             >
               Confirm
@@ -3191,7 +3570,7 @@ function ViewTournamentPageInner() {
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-medium px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30 capitalize"
+                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -3206,7 +3585,7 @@ function ViewTournamentPageInner() {
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30 capitalize"
+                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
                 onClick={confirmRemovePlayer}
               >
                 Remove
@@ -3253,7 +3632,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
               onClick={confirmEnablePlayer}
             >
               Enable
@@ -3282,7 +3661,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
               onClick={confirmResetGroupings}
             >
               Yes, Reset All
@@ -3301,7 +3680,91 @@ function ViewTournamentPageInner() {
         </div>
       </Modal>
 
-      {/* Auto Tee Off Selection Explained Modal */}
+      {/* Waitlist Approve Modal */}
+      <Modal
+        isOpen={isApproveWaitlistModalOpen}
+        onClose={() => setIsApproveWaitlistModalOpen(false)}
+        title={(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Action Restricted" : (selectedWaitlistIds.length > 1 ? "Approve Players?" : "Approve Player?")}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsApproveWaitlistModalOpen(false)} className="rounded-lg font-normal">
+              {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Close" : "Cancel"}
+            </Button>
+            {!(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) && (
+              <Button
+                className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
+                onClick={() => handleApproveWaitlist(selectedWaitlistIds)}
+                disabled={waitlistActionId === "processing"}
+              >
+                {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Approve
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+                <Ban className="h-10 w-10" />
+              </div>
+              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Tournament In Progress</h4>
+              <p className="text-gray-500 max-w-sm">
+                Cannot approve waitlist. The tournament has already started.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-openclub-700 border border-emerald-100">
+                <CheckCircle2 className="h-10 w-10" />
+              </div>
+              <h4 className="text-[14px] font-normal text-gray-900 mb-2">
+                Approve {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+              </h4>
+              <p className="text-gray-500 max-w-sm">
+                Are you sure you want to approve {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This will move them to the registered players list.
+              </p>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* Waitlist Remove Modal */}
+      <Modal
+        isOpen={isRemoveWaitlistModalOpen}
+        onClose={() => setIsRemoveWaitlistModalOpen(false)}
+        title={selectedWaitlistIds.length > 1 ? "Remove Players?" : "Remove Player?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemoveWaitlistModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              onClick={() => handleRemoveWaitlist(selectedWaitlistIds)}
+              disabled={waitlistActionId === "processing"}
+            >
+              {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <Trash2 className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
+            Remove {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+          </h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to remove {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This action cannot be undone.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Grouping Rules Info Modal */}
       <Modal
         isOpen={isGroupingRulesModalOpen}
         onClose={() => setIsGroupingRulesModalOpen(false)}
@@ -3319,7 +3782,7 @@ function ViewTournamentPageInner() {
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-blue-600" /> Category Balanced
             </h4>
-            <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
+            <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing all handicap categories (1, 2, 3 and all) so each group has a mix of skill levels.</p>
           </div>
           <div className="p-4 bg-background rounded-xl border border-gray-100">
             <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
@@ -3408,7 +3871,7 @@ function ViewTournamentPageInner() {
             <Button
               onClick={confirmPublishGroupingsEmail}
               disabled={groupingsGenerating}
-              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-medium shadow-sm capitalize"
+              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-normal shadow-sm"
             >
               {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
               Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
@@ -3563,7 +4026,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
               onClick={() => {
                 setShowCutModal(false);
                 handleApplyCut();
@@ -3611,3 +4074,4 @@ export default function ViewTournamentPage() {
     </Suspense>
   );
 }
+

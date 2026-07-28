@@ -46,14 +46,15 @@ import {
   ArrowUpDown,
   Layers,
   Info,
-          ArrowRight,
+  ArrowRight,
   MapPin,
   ChevronRight,
-    Shuffle,
+  Shuffle,
   SlidersHorizontal,
   ArrowUp,
   ArrowDown,
   Settings2,
+  MonitorPlay,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -65,6 +66,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PlayerActionDropdown } from "@/components/player-action-dropdown";
 import {
   cancelTournament,
   deleteTournament,
@@ -507,9 +509,17 @@ function ViewTournamentPageInner() {
     try {
       const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId, selectedDay);
       setGroupingsData(data);
-      toast.success("Player reassigned successfully");
+      if (targetGroupId === null) {
+        toast.success("Player has been removed from flight");
+      } else {
+        toast.success("Player has been moved successfully");
+      }
     } catch (err) {
-      toast.error((err instanceof Error ? err.message : null) || "Failed to reassign player");
+      if (targetGroupId === null) {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to remove player");
+      } else {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to move player");
+      }
     }
   };
 
@@ -1524,6 +1534,16 @@ function ViewTournamentPageInner() {
             </Button>
           )}
 
+          <NextLink
+            href={`/tv/tournaments/${selectedTournament.id}`}
+            target="_blank"
+            className="bg-white h-11 border border-gray-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-800 font-normal underline text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            title="Launch TV Display"
+          >
+            <MonitorPlay className="w-4 h-4 text-emerald-600" />
+            TV Display
+          </NextLink>
+
           <Button
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
@@ -1534,50 +1554,7 @@ function ViewTournamentPageInner() {
             Edit Tournament
           </Button>
 
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={(e) => {
-                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                setDropdownAnchorEl(e.currentTarget);
-              }}
-              className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </Button>
-            {activeDropdown === selectedTournament.id && (
-              <FloatingMenu
-                open={activeDropdown === selectedTournament.id}
-                anchorEl={dropdownAnchorEl}
-                onClose={closeDropdown}
-                placement="bottom-end"
-                className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
-              >
-                <button
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
-                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-700 hover:bg-background"
-                  )}
-                  onClick={() => {
-                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
-                      handleMenuAction(selectedTournament, "cancel");
-                    }
-                  }}
-                >
-                  <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
-                </button>
-                <div className="h-px bg-background my-1 mx-2" />
-                <button
-                  className="w-full text-left px-4 py-2.5 text-[12px] font-normal text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg"
-                  onClick={() => handleMenuAction(selectedTournament, "delete")}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
-                </button>
-              </FloatingMenu>
-            )}
-          </div>
+
         </div>
       </div>
 
@@ -2627,13 +2604,15 @@ function ViewTournamentPageInner() {
 
                       <div className="flex items-center gap-3">
 
+
+
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 transition-all text-[13px] font-normal shadow-sm"
-                          title="Auto tee off Explained"
+                          title="Tee off Rules"
                         >
                           <Info className="w-4 h-4 text-openclub-800" />
-                          Auto tee off Explained
+                          Tee off Rules
                         </button>
 
                         <Button
@@ -2685,15 +2664,15 @@ function ViewTournamentPageInner() {
                               }
                             }}
                             searchable={false}
-                            
+
                             trigger={
                               <Button
                                 disabled={
-                            selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-                            groupingsGenerating ||
-                            groupingsLoading ||
-                            !groupingsData?.unassigned.length
-                          }
+                                  selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+                                  groupingsGenerating ||
+                                  groupingsLoading ||
+                                  !groupingsData?.unassigned.length
+                                }
                                 className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
                               >
                                 {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -2772,7 +2751,7 @@ function ViewTournamentPageInner() {
                             : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                         )}
                       >
-                        Assigned Tee Players
+                        Assigned Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
                           groupingsSubTab === "grouped" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
@@ -2928,19 +2907,14 @@ function ViewTournamentPageInner() {
                                                   </div>
                                                 </td>
                                                 <td className="pr-3 py-2 align-middle text-right w-[40px]">
-                                                  <select
+                                                  <PlayerActionDropdown
+                                                    player={player}
+                                                    group={group}
+                                                    groupingsData={groupingsData}
                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value={group.id}
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      handleMovePlayer(player.id, val === "unassigned" ? null : val);
-                                                    }}
-                                                    className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
-                                                  >
-                                                    <option value={group.id}>☰</option>
-                                                    <option value="unassigned">Unassign</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-                                                  </select>
+                                                    onMovePlayer={handleMovePlayer}
+                                                    capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                  />
                                                 </td>
                                               </tr>
                                             ))}
@@ -3095,22 +3069,14 @@ function ViewTournamentPageInner() {
                                                   </div>
                                                 </td>
                                                 <td className="pr-4 py-3 align-middle text-right">
-                                                  <select
+                                                  <PlayerActionDropdown
+                                                    player={player}
+                                                    groupingsData={groupingsData}
                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value="unassigned"
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      if (val !== "unassigned") {
-                                                        handleMovePlayer(player.id, val);
-                                                      }
-                                                    }}
-                                                    className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
-                                                  >
-                                                    <option value="unassigned">Assign To...</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => (
-                                                      <option key={g.id} value={g.id}>{g.name}</option>
-                                                    ))}
-                                                  </select>
+                                                    onMovePlayer={handleMovePlayer}
+                                                    variant="assign"
+                                                    capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                  />
                                                 </td>
                                               </tr>
                                             ))
@@ -3169,6 +3135,33 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-4 mb-2">
+                  <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
+                    <button
+                      onClick={() => setPenalizeFilter("APPROVED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        penalizeFilter === "APPROVED"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Active Players
+                    </button>
+                    <button
+                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
+                      className={cn(
+                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
+                        penalizeFilter === "DISQUALIFIED"
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                      )}
+                    >
+                      Disqualified Players
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div className="relative flex-1 min-w-[240px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
@@ -3183,45 +3176,19 @@ function ViewTournamentPageInner() {
                       className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                     />
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <SearchableSelect
-                      value={penalizeStrokesFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        setPenalizeStrokesFilter(v);
-                      }}
-                      options={[
-                        { value: "ALL", label: "All Players" },
-                        { value: "WITH_STROKES", label: "With Strokes" },
-                      ]}
-                      className="min-w-[160px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    />
-                    <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                      <button
-                        onClick={() => setPenalizeFilter("APPROVED")}
-                        className={cn(
-                          "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                          penalizeFilter === "APPROVED"
-                            ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                            : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                        )}
-                      >
-                        Active Players
-                      </button>
-                      <button
-                        onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                        className={cn(
-                          "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                          penalizeFilter === "DISQUALIFIED"
-                            ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                            : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                        )}
-                      >
-                        Disqualified Players
-                      </button>
-                    </div>
-                  </div>
+                  <SearchableSelect
+                    value={penalizeStrokesFilter}
+                    onValueChange={(v: any) => {
+                      setRegistrationsPage(1);
+                      setPenalizeStrokesFilter(v);
+                    }}
+                    options={[
+                      { value: "ALL", label: "All Players" },
+                      { value: "WITH_STROKES", label: "With Strokes" },
+                    ]}
+                    className="min-w-[160px]"
+                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  />
                 </div>
 
                 <div className="space-y-4">

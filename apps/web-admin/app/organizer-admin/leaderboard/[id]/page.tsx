@@ -39,10 +39,10 @@ import {
   ArrowUpDown,
   Layers,
   Info,
-          ArrowRight,
+  ArrowRight,
   MapPin,
   ChevronRight,
-    Shuffle,
+  Shuffle,
   SlidersHorizontal,
   ArrowUp,
   ArrowDown,
@@ -2118,10 +2118,10 @@ function ViewTournamentPageInner() {
                         <button
                           onClick={() => setIsGroupingRulesModalOpen(true)}
                           className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 transition-all text-[13px] font-normal shadow-sm"
-                          title="Auto tee off Explained"
+                          title="Tee off Rules"
                         >
                           <Info className="w-4 h-4 text-openclub-800" />
-                          Auto tee off Explained
+                          Tee off Rules
                         </button>
 
                         <Button
@@ -2173,15 +2173,15 @@ function ViewTournamentPageInner() {
                               }
                             }}
                             searchable={false}
-                            
+
                             trigger={
                               <Button
                                 disabled={
-                            selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-                            groupingsGenerating ||
-                            groupingsLoading ||
-                            !groupingsData?.unassigned.length
-                          }
+                                  selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+                                  groupingsGenerating ||
+                                  groupingsLoading ||
+                                  !groupingsData?.unassigned.length
+                                }
                                 className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
                               >
                                 {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -2260,7 +2260,7 @@ function ViewTournamentPageInner() {
                             : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
                         )}
                       >
-                        Assigned Tee Players
+                        Assigned Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
                           groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"

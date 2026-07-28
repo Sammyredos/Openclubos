@@ -242,6 +242,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
       return list.map((reg: any) => ({
         id: reg.id,
         paymentStatus: reg.paymentStatus,
+        status: reg.status,
         extraStrokes: reg.extraStrokes || 0,
         madeCut: reg.madeCut,
         user: reg.user ? {
@@ -254,7 +255,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
           gender: reg.user.gender || null,
           dob: reg.user.dob || null,
         } : null,
-      })).filter((p: any) => p.madeCut !== false);
+      })).filter((p: any) => p.madeCut !== false && p.status !== "DISQUALIFIED");
     }
   } catch {
     // Ignore and fallback
