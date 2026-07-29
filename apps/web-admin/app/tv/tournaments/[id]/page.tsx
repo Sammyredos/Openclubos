@@ -74,7 +74,7 @@ export default function TVDisplayPage() {
 
     const pageInterval = setInterval(() => {
       setCurrentPage((prev) => (prev + 1) % totalPages);
-    }, 20000);
+    }, 10000);
 
     return () => clearInterval(pageInterval);
   }, [totalPages]);
@@ -206,8 +206,8 @@ export default function TVDisplayPage() {
                       </div>
                       <div>
                         <h3 className="text-3xl font-bold">{group.name || `Flight ${currentPage * groupsPerPage + idx + 1}`}</h3>
-                        <div className="flex items-center gap-2 text-openclub-100 mt-1 text-lg">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div className="flex items-center gap-2 text-openclub-100 mt-1 text-2xl">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                           <span>{group.startTime || "TBD"}</span>
                         </div>
                       </div>
@@ -237,7 +237,7 @@ export default function TVDisplayPage() {
                                 className="w-full h-full object-cover" 
                               />
                             </div>
-                            <span className="text-2xl font-medium text-gray-900">
+                            <span className="text-3xl font-medium text-gray-900">
                               {user?.firstName} {user?.lastName}
                             </span>
                           </div>
@@ -245,16 +245,19 @@ export default function TVDisplayPage() {
                           <div className="flex items-center gap-3">
                             {/* Gender Badge */}
                             <div className={cn(
-                              "px-3 h-8 rounded-md flex items-center justify-center text-sm font-bold uppercase",
+                              "px-4 h-10 rounded-md flex items-center justify-center text-lg font-bold uppercase",
                               gender.toUpperCase() === "MALE" ? "bg-blue-50 text-blue-500" : "bg-pink-50 text-pink-500"
                             )}>
                               {gender}
                             </div>
                             
-
+                            {/* Category Badge */}
+                            <div className="px-4 h-10 bg-purple-50 text-purple-600 rounded-md flex items-center justify-center text-lg font-bold uppercase">
+                              {getGolfCategory(hcp)}
+                            </div>
                             
                             {/* HCP Badge */}
-                            <div className="px-3 h-8 bg-emerald-50 text-emerald-600 rounded-md flex items-center justify-center text-sm font-bold">
+                            <div className="px-4 h-10 bg-emerald-50 text-emerald-600 rounded-md flex items-center justify-center text-lg font-bold">
                               HCP {hcp}
                             </div>
                           </div>
