@@ -328,7 +328,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "courses-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
@@ -349,7 +349,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "Golf Courses Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -765,7 +765,7 @@ export default function SuperAdminGolfCoursesPage() {
           <button
             onClick={() => openStatusModal(dropdownCourse)}
             className={cn(
-              "w-full text-left px-4 py-2 text-[12px] font-normal rounded-lg flex items-center gap-3 text-gray-700",
+              "w-full text-left px-4 py-2 text-[12px] font-medium rounded-lg flex items-center gap-3 text-gray-700",
               dropdownCourse.status === "INACTIVE" 
                 ? "hover:bg-emerald-50" 
                 : "hover:bg-red-50"
@@ -784,7 +784,7 @@ export default function SuperAdminGolfCoursesPage() {
               closeDropdown();
               router.push(`/super-admin/golf-courses/${dropdownCourse.id}/edit`);
             }}
-            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
           >
             <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
           </button>
@@ -802,14 +802,14 @@ export default function SuperAdminGolfCoursesPage() {
               URL.revokeObjectURL(url);
               toast.success("Course exported");
             }}
-            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
           >
             <Download className="w-4 h-4 text-gray-400" /> Export Data
           </button>
           <div className="h-px bg-background my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
           >
             <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>

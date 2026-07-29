@@ -991,20 +991,24 @@ export class EmailService {
     groupName: string,
     groupMembers?: string[],
     organizerName?: string,
+    startType?: string,
   ): Promise<EmailResult> {
+    const isShotgun = startType === 'SHOTGUN';
     const recipientName = await this.getRecipientName(to, 'Player');
+    const title = isShotgun ? 'Hole Assignment Published' : 'Tee Time Published';
+    
     const html = this.wrap(
-      'Tee Time Published',
+      title,
       `
       ${this.p(`Dear ${recipientName},`)}
-      ${this.p(`Your official tee time and grouping for <strong>${roundName}</strong> of the <strong>${tournamentName}</strong> have been published.`)}
+      ${this.p(`Your official ${isShotgun ? 'starting hole assignment' : 'tee time'} and grouping for <strong>${roundName}</strong> of the <strong>${tournamentName}</strong> have been published.`)}
       
       ${this.h2('Grouping Details')}
       ${this.dataTable([
         { label: 'Tournament', value: tournamentName },
         { label: 'Round', value: roundName },
-        { label: 'Tee Time', value: teeTime },
-        { label: 'Flight', value: groupName },
+        { label: isShotgun ? 'Start Time' : 'Tee Time', value: teeTime },
+        { label: isShotgun ? 'Starting Hole' : 'Flight', value: groupName },
       ])}
 
       ${
@@ -1016,7 +1020,7 @@ export class EmailService {
           : ''
       }
       
-      ${this.infoBox('<strong>Arrival Note:</strong> Please ensure you arrive at the tee box at least 15 minutes prior to your scheduled tee time.', '#eff6ff', '#bfdbfe', '#1e3a8a')}
+      ${this.infoBox(`<strong>Arrival Note:</strong> Please ensure you arrive at your designated ${isShotgun ? 'starting hole' : 'tee box'} at least 15 minutes prior to the scheduled start time.`, '#eff6ff', '#bfdbfe', '#1e3a8a')}
       
       ${this.p('We wish you the best of luck on the course!')}
       ${this.p(`Best regards,<br/><strong>${organizerName || 'The Tournament Team'}</strong>`)}
@@ -1025,7 +1029,7 @@ export class EmailService {
     );
     return this.send(
       to,
-      `Tee Time Published: ${tournamentName}`,
+      `${title}: ${tournamentName}`,
       html,
       `Tee time email sent to ${to} for ${tournamentName}`,
     );

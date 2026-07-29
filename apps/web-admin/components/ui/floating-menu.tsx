@@ -13,6 +13,7 @@ export function FloatingMenu({
   placement = "top-end",
   align = "end",
   className,
+  style,
   children,
 }: {
   open: boolean;
@@ -21,6 +22,7 @@ export function FloatingMenu({
   placement?: Placement;
   align?: "start" | "center" | "end";
   className?: string;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +125,7 @@ export function FloatingMenu({
         opacity: open ? 1 : 0,
         transform: open ? "scale(1)" : "scale(0.98)",
         pointerEvents: open ? "auto" : "none",
+        ...style,
       }}
     >
       {children}

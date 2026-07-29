@@ -1049,7 +1049,7 @@ export default function TournamentsPage() {
                       "tournaments-export.csv"
                     );
                   }}
-                  className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                  className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                   Export CSV
@@ -1070,7 +1070,7 @@ export default function TournamentsPage() {
                       "Tournaments Export"
                     );
                   }}
-                  className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                  className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
                 >
                   <FileText className="w-4 h-4 text-rose-600" />
                   Export PDF
@@ -1259,7 +1259,7 @@ export default function TournamentsPage() {
                               title="Manage Tournament"
                             >
                               <Settings className="w-3.5 h-3.5" />
-                              <span className="text-[12px] font-medium leading-none">Manage tournament</span>
+                              <span className="textw-full text-left px-4 py-2 text-[12px] font-medium leading-none">Manage tournament</span>
                             </button>
                             <div className="relative">
                               <button
@@ -1349,7 +1349,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("edit", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium flex items-center gap-3",
                 dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-background"
@@ -1361,14 +1361,14 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Tournament Data
             </button>
             <button
               onClick={() => handleMoreAction("copy-link", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Link className="w-4 h-4 text-openclub-700" />
               Copy Tournament Link
@@ -1377,7 +1377,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("register", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700"
@@ -1390,7 +1390,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("waitlist", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
                 !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
               )}
               disabled={!dropdownTournament.enableWaitlist}
@@ -1402,7 +1402,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700",
@@ -1421,7 +1421,7 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("delete", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Tournament
@@ -1445,7 +1445,7 @@ export default function TournamentsPage() {
             {[1, 2, 3, 4].map((delta) => (
               <button
                 key={delta}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
                 onClick={() => {
                   const reg = strokesMenuRegistration;
                   setStrokesMenuRegistration(null);

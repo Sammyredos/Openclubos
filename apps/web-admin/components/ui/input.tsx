@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Building2 } from "lucide-react"
+import { FloatingMenu } from "./floating-menu"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
@@ -58,25 +59,17 @@ function SearchableSelect({
   const [openUpwards, setOpenUpwards] = React.useState(false)
 
   React.useEffect(() => {
-    if (!open) return
-
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      if (spaceBelow < 300 && rect.top > 300) {
-        setOpenUpwards(true)
-      } else {
-        setOpenUpwards(false)
-      }
-    }
-
     function onMouseDown(e: MouseEvent) {
       if (!ref.current) return
-      if (e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false)
+      // We don't need to close if clicked inside the floating menu, FloatingMenu handles outside clicks
+      // but we do want to prevent closing if they click the trigger
+      if (e.target instanceof Node && !ref.current.contains(e.target)) {
+        // FloatingMenu actually handles closing on outside click, but just in case
+      }
     }
     window.addEventListener("mousedown", onMouseDown)
     return () => window.removeEventListener("mousedown", onMouseDown)
-  }, [open])
+  }, [])
 
   const selected = options.find((o) => o.value?.toLowerCase() === value?.toLowerCase()) || null
   const filtered = query.trim()
@@ -131,10 +124,15 @@ function SearchableSelect({
       )}
 
       {open && (
-        <div className={cn(
-          "absolute z-[9999] w-max min-w-full right-0 overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
-          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
-        )}>
+        <FloatingMenu
+          open={open}
+          onClose={() => setOpen(false)}
+          anchorEl={ref.current}
+          placement={openUpwards ? "top-end" : "bottom-end"}
+          align="start"
+          className="z-[9999] min-w-full overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl"
+          style={{ width: ref.current?.offsetWidth }}
+        >
           {searchable && (
             <div className="border-b border-[#e1efe5] p-2">
               <input
@@ -203,7 +201,7 @@ function SearchableSelect({
               ))
             )}
           </div>
-        </div>
+        </FloatingMenu>
       )}
     </div>
   )

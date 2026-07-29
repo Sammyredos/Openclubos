@@ -3,6 +3,7 @@
 import React from "react"
 import { Clock, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FloatingMenu } from "./floating-menu"
 
 type TimePickerProps = {
   value?: string
@@ -33,28 +34,11 @@ export function TimePicker({
 }: TimePickerProps) {
   const ref = React.useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = React.useState(false)
-  const [openUpwards, setOpenUpwards] = React.useState(false)
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
   React.useEffect(() => {
-    if (!open) return
-
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      if (spaceBelow < 300 && rect.top > 300) {
-        setOpenUpwards(true)
-      } else {
-        setOpenUpwards(false)
-      }
-    }
-
-    function onMouseDown(e: MouseEvent) {
-      if (!ref.current) return
-      if (e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false)
-    }
-    window.addEventListener("mousedown", onMouseDown)
-    return () => window.removeEventListener("mousedown", onMouseDown)
-  }, [open])
+    if (ref.current) setAnchorEl(ref.current)
+  }, [])
 
   const selected = TIME_OPTIONS.find((o) => o.value === value) || null
 
@@ -75,13 +59,15 @@ export function TimePicker({
         <Clock className="h-4 w-4 text-gray-400" />
       </button>
 
-      {open && (
-        <div
-          className={cn(
-            "absolute z-[9999] w-full overflow-hidden rounded-2xl border border-[#e1efe5] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100",
-            openUpwards ? "bottom-full mb-2" : "top-full mt-2"
-          )}
-        >
+      <FloatingMenu
+        open={open}
+        anchorEl={anchorEl}
+        onClose={() => setOpen(false)}
+        placement="bottom-end"
+        align="start"
+        className="w-full sm:w-[280px]"
+      >
+        <div className="w-full overflow-hidden rounded-2xl border border-[#e1efe5] bg-white shadow-xl">
           <div className="max-h-[280px] overflow-auto py-1 custom-scrollbar">
             {TIME_OPTIONS.map((opt) => {
               const isSelected = value === opt.value
@@ -105,7 +91,7 @@ export function TimePicker({
             })}
           </div>
         </div>
-      )}
+      </FloatingMenu>
     </div>
   )
 }

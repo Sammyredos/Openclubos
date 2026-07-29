@@ -93,6 +93,7 @@ export class TournamentsService {
       divisions: dto.divisions ?? [],
       // Grouping
       autoGrouping: dto.autoGrouping ?? false,
+      startType: dto.startType ?? 'TEE_TIMES',
       teeStartTime: dto.teeStartTime ?? null,
       teeIntervalMinutes: dto.teeIntervalMinutes ?? 10,
       // Scoring
@@ -431,6 +432,7 @@ export class TournamentsService {
     if (dto.divisions !== undefined) data.divisions = dto.divisions;
 
     if (dto.autoGrouping !== undefined) data.autoGrouping = dto.autoGrouping;
+    if (dto.startType !== undefined) data.startType = dto.startType;
     if (dto.teeStartTime !== undefined) data.teeStartTime = dto.teeStartTime;
     if (dto.teeIntervalMinutes !== undefined)
       data.teeIntervalMinutes = dto.teeIntervalMinutes;
@@ -852,6 +854,7 @@ export class TournamentsService {
               groupName,
               groupMembers,
               organizerName: tournament.club?.name,
+              startType: tournament.startType,
             },
           },
         });

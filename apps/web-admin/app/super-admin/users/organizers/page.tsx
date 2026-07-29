@@ -685,7 +685,7 @@ export default function SuperAdminUsersPage() {
                     "users-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
@@ -705,7 +705,7 @@ export default function SuperAdminUsersPage() {
                     "Users Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -866,7 +866,7 @@ export default function SuperAdminUsersPage() {
                             title="Manage Team"
                           >
                             <Users className="w-3.5 h-3.5" />
-                            <span className="text-[12px] font-medium leading-none">Manage Team</span>
+                            <span className="textw-full text-left px-4 py-2 text-[12px] font-medium leading-none">Manage Team</span>
                           </button>
                           <div className="relative">
                             <button
@@ -998,7 +998,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openStatusModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser)
                   ? "text-gray-300 cursor-not-allowed"
                   : dropdownUser.status === "SUSPENDED"
@@ -1018,7 +1018,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openEditModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1029,7 +1029,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("view-analytics", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1040,7 +1040,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser) || mutating}
               onClick={() => handleMoreAction("force-logout", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1051,7 +1051,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("reset-password", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1062,7 +1062,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("audit-logs", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
@@ -1071,7 +1071,7 @@ export default function SuperAdminUsersPage() {
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownUser)}
-              className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export User
@@ -1081,7 +1081,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("delete", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >

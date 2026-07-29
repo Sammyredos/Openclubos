@@ -206,6 +206,11 @@ model Hole {
   scores   Score[]
 }
 
+enum TournamentStartType {
+  TEE_TIMES
+  SHOTGUN
+}
+
 model Tournament {
   id        String           @id @default(uuid())
   name      String
@@ -260,6 +265,7 @@ model Tournament {
 
   // Step 8: Grouping Settings
   autoGrouping       Boolean @default(false)
+  startType          TournamentStartType @default(TEE_TIMES)
   teeStartTime       String?
   teeIntervalMinutes Int     @default(10)
 

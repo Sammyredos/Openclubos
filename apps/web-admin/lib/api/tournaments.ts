@@ -26,6 +26,10 @@ export interface Tournament {
   lockedGroupingsDays?: number[];
   bannerUrl?: string | null;
   description?: string | null;
+  autoGrouping?: boolean;
+  startType?: 'TEE_TIMES' | 'SHOTGUN';
+  teeStartTime?: string | null;
+  teeIntervalMinutes?: number;
 }
 
 export type UpdateTournamentPayload = {
@@ -62,6 +66,7 @@ export type UpdateTournamentPayload = {
   paymentDeadline?: string | null;
   isRefundable?: boolean | null;
   autoGrouping?: boolean;
+  startType?: 'TEE_TIMES' | 'SHOTGUN';
   teeStartTime?: string | null;
   teeIntervalMinutes?: number;
   enableLiveScoring?: boolean;
@@ -360,6 +365,7 @@ export async function generateGroupings(
   let maxPerGroup = 4;
   let interval = 10;
   let startTimeStr = "08:00";
+  let startType = "TEE_TIMES";
   try {
     const tRes = await authedFetch(`/tournaments/${tournamentId}`, {
       method: 'GET',
@@ -369,6 +375,7 @@ export async function generateGroupings(
       maxPerGroup = t.maxPlayersPerGroup || 4;
       interval = t.teeIntervalMinutes || 10;
       startTimeStr = t.teeStartTime || "08:00";
+      startType = t.startType || "TEE_TIMES";
     }
   } catch {
     // fallback to defaults
@@ -514,25 +521,29 @@ export async function generateGroupings(
     const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
     
     // Fast forward time if appending
-    currentMin += startingGroupIndex * interval;
-    currentHour += Math.floor(currentMin / 60);
-    currentMin = currentMin % 60;
+    if (startType !== "SHOTGUN") {
+      currentMin += startingGroupIndex * interval;
+      currentHour += Math.floor(currentMin / 60);
+      currentMin = currentMin % 60;
+    }
 
     for (let i = 0; i < totalGroups; i++) {
       const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-      const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
+      const timeStr = startType === "SHOTGUN" ? startTimeStr : `${pad(currentHour)}:${pad(currentMin)}`;
 
       groups.push({
         id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
-        name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
+        name: startType === "SHOTGUN" ? `Hole ${i + 1 + startingGroupIndex}` : `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
         startTime: timeStr,
         registrations: [],
       });
 
-      currentMin += interval;
-      if (currentMin >= 60) {
-        currentHour += Math.floor(currentMin / 60);
-        currentMin = currentMin % 60;
+      if (startType !== "SHOTGUN") {
+        currentMin += interval;
+        if (currentMin >= 60) {
+          currentHour += Math.floor(currentMin / 60);
+          currentMin = currentMin % 60;
+        }
       }
     }
   } else {
@@ -548,27 +559,31 @@ export async function generateGroupings(
       const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
       
       // Fast forward time if appending
-      currentMin += startingGroupIndex * interval;
-      currentHour += Math.floor(currentMin / 60);
-      currentMin = currentMin % 60;
+      if (startType !== "SHOTGUN") {
+        currentMin += startingGroupIndex * interval;
+        currentHour += Math.floor(currentMin / 60);
+        currentMin = currentMin % 60;
+      }
 
       for (let i = 0; i < totalGroups; i++) {
         const groupPlayers = sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
         
         const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-        const timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
+        const timeStr = startType === "SHOTGUN" ? startTimeStr : `${pad(currentHour)}:${pad(currentMin)}`;
 
         groups.push({
           id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
-          name: `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
+          name: startType === "SHOTGUN" ? `Hole ${i + 1 + startingGroupIndex}` : `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
           startTime: timeStr,
           registrations: groupPlayers,
         });
 
-        currentMin += interval;
-        if (currentMin >= 60) {
-          currentHour += Math.floor(currentMin / 60);
-          currentMin = currentMin % 60;
+        if (startType !== "SHOTGUN") {
+          currentMin += interval;
+          if (currentMin >= 60) {
+            currentHour += Math.floor(currentMin / 60);
+            currentMin = currentMin % 60;
+          }
         }
       }
     }

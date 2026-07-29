@@ -4,6 +4,7 @@ import {
   ScoringType,
   TournamentVisibility,
   GenderRestriction,
+  TournamentStartType,
 } from '@openclubos/types';
 import {
   IsString,
@@ -168,6 +169,10 @@ export class CreateTournamentDto {
   @IsOptional()
   @IsBoolean()
   autoGrouping?: boolean;
+
+  @IsOptional()
+  @IsEnum(TournamentStartType)
+  startType?: TournamentStartType;
 
   @IsOptional()
   @IsString()

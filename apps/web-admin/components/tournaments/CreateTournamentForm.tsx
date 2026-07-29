@@ -103,6 +103,7 @@ const DEFAULT_FORM = {
   paymentDeadline: "",
   isRefundable: false,
   autoGrouping: true,
+  startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN",
   teeStartTime: "",
   teeIntervalMinutes: 10,
   enableLiveScoring: false,
@@ -176,8 +177,10 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
   }
   if (step === 6) {
     if (f.autoGrouping) {
-      if (!f.teeStartTime) return "Tee off start time is required.";
-      if (!f.teeIntervalMinutes || Number(f.teeIntervalMinutes) <= 0) return "Tee interval must be greater than zero.";
+      if (!f.teeStartTime) return "Tee start time is required.";
+      if (f.startType === "TEE_TIMES" && (!f.teeIntervalMinutes || Number(f.teeIntervalMinutes) <= 0)) {
+        return "Tee interval must be greater than zero.";
+      }
     }
   }
   return null;
@@ -241,18 +244,19 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   }, [user]);
 
   const isAiLocked = useMemo(() => {
+    if (user?.role === "SUPER_ADMIN") return false;
     if (aiUsageCount >= 2 && aiUsageResetAt) {
       if (new Date() < aiUsageResetAt) return true;
     }
     return false;
-  }, [aiUsageCount, aiUsageResetAt]);
+  }, [aiUsageCount, aiUsageResetAt, user?.role]);
 
-  const remainingUses = isAiLocked ? 0 : 2 - (aiUsageCount >= 2 ? 0 : aiUsageCount);
+  const remainingUses = user?.role === "SUPER_ADMIN" ? "Unlimited" : (isAiLocked ? 0 : 2 - (aiUsageCount >= 2 ? 0 : aiUsageCount));
 
   const generateAIDescription = async () => {
     if (isAiLocked) return;
     setIsGeneratingDesc(true);
-    
+
     try {
       const res = await incrementAIUsage();
       setAiUsageCount(res.aiTournamentDescCount);
@@ -316,12 +320,12 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       ];
 
       const randomElement = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-      
+
       let hook = randomElement(hooks);
       if (formData.name) {
         hook = hook.replace("this highly anticipated event", formData.name).replace("our premier tournament", formData.name);
       }
-      
+
       const atmosphere = randomElement(atmospheres);
       const community = randomElement(communities);
       const closing = randomElement(closings);
@@ -454,6 +458,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 paymentDeadline: t.paymentDeadline ? t.paymentDeadline.slice(0, 10) : "",
                 isRefundable: t.isRefundable ?? false,
                 autoGrouping: t.autoGrouping ?? true,
+                startType: t.startType || "TEE_TIMES",
                 teeStartTime: t.teeStartTime || "",
                 teeIntervalMinutes: t.teeIntervalMinutes || 10,
                 enableLiveScoring: t.enableLiveScoring ?? false,
@@ -593,21 +598,25 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         currency: f.requiresPayment ? f.currency : "NGN",
         paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
         isRefundable: f.requiresPayment ? f.isRefundable : false,
-        autoGrouping: f.autoGrouping,
-        teeStartTime: f.teeStartTime || null,
-        teeIntervalMinutes: Number(f.teeIntervalMinutes) || 10,
-        enableLiveScoring: f.enableLiveScoring,
-        requireMarkerVerification: f.requireMarkerVerification,
-        enableHoleScoring: f.enableHoleScoring,
-        publishImmediately: f.publishImmediately,
-        visibility: f.visibility,
-        status: tournamentId
-          ? (f.publishImmediately
-            ? (originalStatus === "DRAFT" ? "REGISTRATION_OPEN" : undefined)
-            : "DRAFT")
-          : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT"),
       };
 
+      if (formData.autoGrouping) {
+        basePayload.autoGrouping = f.autoGrouping;
+        basePayload.startType = f.startType;
+        basePayload.teeStartTime = f.teeStartTime;
+        basePayload.teeIntervalMinutes = f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10;
+      }
+
+      basePayload.enableLiveScoring = f.enableLiveScoring;
+      basePayload.requireMarkerVerification = f.requireMarkerVerification;
+      basePayload.enableHoleScoring = f.enableHoleScoring;
+      basePayload.publishImmediately = f.publishImmediately;
+      basePayload.visibility = f.visibility;
+      basePayload.status = tournamentId
+        ? (f.publishImmediately
+          ? (originalStatus === "DRAFT" ? "REGISTRATION_OPEN" : undefined)
+          : "DRAFT")
+        : (f.publishImmediately ? "REGISTRATION_OPEN" : "DRAFT");
       if (tournamentId) {
         await updateTournament(tournamentId, basePayload);
         toast.success("Tournament updated successfully", { id: toastId });
@@ -778,7 +787,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         ) : (
                           <>
                             <Sparkles className="w-3 h-3 mr-1.5" />
-                            Write with AI ({remainingUses} left)
+                            Write with AI ({remainingUses === "Unlimited" ? "Unlimited" : `${remainingUses} left`})
                           </>
                         )}
                       </Button>
@@ -1493,36 +1502,73 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
 
               <div className="p-5 animate-in slide-in-from-top-2 fade-in duration-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Players Per Tee Flight" required>
-                    <Input
-                      type="number"
-                      value={formData.maxPlayersPerGroup}
-                      min={1}
-                      onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
-                    />
-                  </Field>
-                  <Field label="Tee Off Start Time" required>
-                    <TimePicker
-                      value={formData.teeStartTime}
-                      onValueChange={(v) => set("teeStartTime", v)}
-                      placeholder="--:--  "
-                    />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <Field label="Tee Interval (min)" required>
-                    <Input
-                      type="number"
-                      value={formData.teeIntervalMinutes}
-                      min={1}
-                      onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))}
-                    />
-                  </Field>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div>
+                      <h4 className="text-[13px] font-medium text-gray-900">
+                        Start Type <span className="text-red-500">*</span>
+                      </h4>
+                      <p className="text-[11px] text-gray-500 mt-0.5">Specify if this tournament uses sequential tee times or a shotgun start.</p>
+                    </div>
+                    <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden mt-2">
+                      <button
+                        type="button"
+                        onClick={() => set("startType", "TEE_TIMES")}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        Standard Tee Times Start
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => set("startType", "SHOTGUN")}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        Shotgun Tee Start
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <Field label="Players Per Tee Flight" required>
+                      <Input
+                        type="number"
+                        value={formData.maxPlayersPerGroup}
+                        min={1}
+                        onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
+                      />
+                    </Field>
+                    {formData.startType === "TEE_TIMES" && (
+                      <Field label="Tee Interval (min)" required>
+                        <Input
+                          type="number"
+                          value={formData.teeIntervalMinutes}
+                          min={1}
+                          onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))}
+                        />
+                      </Field>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <Field label="Tee Off Start Time" required>
+                      <TimePicker
+                        value={formData.teeStartTime}
+                        onValueChange={(v) => set("teeStartTime", v)}
+                        placeholder="--:--  "
+                      />
+                    </Field>
+                  </div>
                 </div>
                 <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5" />
-                  Players will be assigned sequential tee times based on these settings.
+                  <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                  {formData.startType === "TEE_TIMES"
+                    ? "Players will be assigned sequential tee times based on these settings."
+                    : "All flights will be assigned the Tee Off Start Time and placed on different holes."}
                 </p>
               </div>
             </div>

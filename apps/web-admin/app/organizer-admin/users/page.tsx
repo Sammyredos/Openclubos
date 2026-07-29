@@ -761,7 +761,7 @@ export default function OrganizerAdminMembersPage() {
                     "users-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
@@ -781,7 +781,7 @@ export default function OrganizerAdminMembersPage() {
                     "Users Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -1042,7 +1042,7 @@ export default function OrganizerAdminMembersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openStatusModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                 !canManageUser(dropdownUser)
                   ? "text-gray-300 cursor-not-allowed"
                   : dropdownUser.status === "SUSPENDED"
@@ -1068,7 +1068,7 @@ export default function OrganizerAdminMembersPage() {
                   closeDropdown();
                 }}
                 className={cn(
-                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                   !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
                 )}
               >
@@ -1085,7 +1085,7 @@ export default function OrganizerAdminMembersPage() {
                   closeDropdown();
                 }}
                 className={cn(
-                  "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-background flex items-center gap-3",
+                  "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
                   !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
                 )}
               >
@@ -1104,7 +1104,7 @@ export default function OrganizerAdminMembersPage() {
                   setIsRemoveAdminModalOpen(true);
                   closeDropdown();
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3 text-gray-700"
+                className="w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3 text-gray-700"
               >
                 <Ban className="w-4 h-4 text-red-500" />
                 Remove Organizer Admin
@@ -1115,7 +1115,7 @@ export default function OrganizerAdminMembersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("delete", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-normal hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >

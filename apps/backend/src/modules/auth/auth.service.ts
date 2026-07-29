@@ -661,10 +661,14 @@ export class AuthService {
   async incrementAITournamentDescUsage(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { aiTournamentDescCount: true, aiTournamentDescResetAt: true },
+      select: { role: true, aiTournamentDescCount: true, aiTournamentDescResetAt: true },
     });
 
     if (!user) throw new UnauthorizedException();
+
+    if (user.role === 'SUPER_ADMIN') {
+      return { aiTournamentDescCount: 0, aiTournamentDescResetAt: null };
+    }
 
     const now = new Date();
     let currentCount = user.aiTournamentDescCount;

@@ -131,6 +131,7 @@ type TournamentRow = {
   type?: string;
   minHandicap?: number;
   maxHandicap?: number;
+  startType?: string;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -1565,6 +1566,10 @@ function ViewTournamentPageInner() {
           <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
             {TABS.map((tab, index) => {
               const isActive = activeTab === tab.id;
+              const isShotgun = selectedTournament?.startType === "SHOTGUN";
+              const label = tab.id === "groupings" 
+                ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
+                : tab.label;
               return (
                 <button
                   key={tab.id}
@@ -1586,7 +1591,7 @@ function ViewTournamentPageInner() {
                       {index + 1}
                     </div>
                     <span className="text-[13px] font-normal leading-tight">
-                      {tab.label}
+                      {label}
                     </span>
                   </div>
                   {isActive && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
@@ -2531,7 +2536,7 @@ function ViewTournamentPageInner() {
                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
                             <Calendar className="w-4 h-4 text-emerald-800" />
                           </div>
-                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">Flights & Tee Times For</span>
+                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
                           <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
                         </div>
                       </div>
@@ -2556,8 +2561,8 @@ function ViewTournamentPageInner() {
                             <Mail className="w-5 h-5" />
                           </div>
                           <div>
-                            <h4 className="text-[15px] font-medium text-gray-900">Send Tee Times via Email</h4>
-                            <p className="text-[13px] text-gray-500 mt-0.5">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+                            <h4 className="text-[15px] font-medium text-gray-900">{selectedTournament?.startType === 'SHOTGUN' ? 'Send Hole Assignments' : 'Send Tee Times'} via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-0.5">{selectedTournament?.startType === 'SHOTGUN' ? 'Hole assignments' : 'Flights & Tee Times'} have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2586,13 +2591,13 @@ function ViewTournamentPageInner() {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
-                          Manage Flights & Tee Times
+                          Manage {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
                         </h3>
-                        <p className="text-[13px] text-gray-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
+                        <p className="text-[13px] text-gray-500">Pair players into {selectedTournament?.startType === 'SHOTGUN' ? 'Holes and assign start times' : 'Tee Flights and assign tee times'} for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -3654,7 +3659,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isResetGroupingsModalOpen}
         onClose={() => setIsResetGroupingsModalOpen(false)}
-        title="Reset All Flights & Tee Times?"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Reset All Holes & Start Times?" : "Reset All Flights & Tee Times?"}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-normal">
@@ -3673,7 +3678,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">{selectedTournament?.startType === 'SHOTGUN' ? 'Reset Holes & Start Times?' : 'Reset Flights & Tee Times?'}</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
           </p>
@@ -3813,7 +3818,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isPublishEmailModalOpen}
         onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
-        title={`Send Day ${selectedDay} Flights & Tee Times`}
+        title={selectedTournament?.startType === 'SHOTGUN' ? `Send Day ${selectedDay} Hole Assignments` : `Send Day ${selectedDay} Flights & Tee Times`}
         className="max-w-xl"
       >
         <div className="space-y-6 pt-4">
@@ -3884,7 +3889,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isDayLockModalOpen}
         onClose={() => setIsDayLockModalOpen(false)}
-        title="Flights & Tee Times Not Locked"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Holes & Start Times Not Locked" : "Flights & Tee Times Not Locked"}
         footer={
           <>
             <Button
@@ -3983,7 +3988,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isUngroupedPlayersModalOpen}
         onClose={() => setIsUngroupedPlayersModalOpen(false)}
-        title="Incomplete Flights & Tee Times"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Incomplete Holes & Start Times" : "Incomplete Flights & Tee Times"}
         footer={
           <>
             <Button

@@ -227,6 +227,7 @@ export class JobsProcessor extends WorkerHost {
           data.groupName || 'Flight A',
           data.groupMembers || [],
           data.organizerName,
+          data.startType,
         );
 
       case 'TOURNAMENT_CUT_PASSED':

@@ -89,3 +89,8 @@ export const GenderRestriction = {
 } as const;
 export type GenderRestriction = (typeof GenderRestriction)[keyof typeof GenderRestriction];
 
+export const TournamentStartType = {
+  TEE_TIMES: 'TEE_TIMES',
+  SHOTGUN: 'SHOTGUN',
+} as const;
+export type TournamentStartType = (typeof TournamentStartType)[keyof typeof TournamentStartType];
