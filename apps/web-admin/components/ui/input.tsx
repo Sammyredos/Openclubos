@@ -130,7 +130,7 @@ function SearchableSelect({
           anchorEl={ref.current}
           placement={openUpwards ? "top-end" : "bottom-end"}
           align="start"
-          className="z-[9999] min-w-full overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl"
+          className="z-[9999] overflow-hidden rounded-lg border border-[#e1efe5] bg-white shadow-xl"
           style={{ width: ref.current?.offsetWidth }}
         >
           {searchable && (
