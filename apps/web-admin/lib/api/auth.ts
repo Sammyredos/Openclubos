@@ -14,6 +14,8 @@ export interface AuthUser {
   role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
   clubId?: string;
   managerScope?: string;
+  aiTournamentDescCount?: number;
+  aiTournamentDescResetAt?: string;
   club?: {
     name: string;
     logo?: string;
@@ -223,6 +225,21 @@ export async function validateAdminRequest(adminEmail?: string, adminPhone?: str
   });
   if (!res.ok) {
     throw new Error('Failed to validate admin details');
+  }
+  return res.json();
+}
+
+export async function incrementAIUsage(): Promise<{ aiTournamentDescCount: number; aiTournamentDescResetAt: string | null }> {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/auth/me/ai-usage/tournament-desc/increment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    throw new Error('Failed to increment AI usage');
   }
   return res.json();
 }

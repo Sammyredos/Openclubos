@@ -43,6 +43,10 @@ model User {
   emailVerificationToken   String?
   emailVerificationExpires DateTime?
 
+  // AI Usage Tracking
+  aiTournamentDescCount   Int       @default(0)
+  aiTournamentDescResetAt DateTime?
+
   // Relations
   club          Club?          @relation(fields: [clubId], references: [id])
   clubId        String?

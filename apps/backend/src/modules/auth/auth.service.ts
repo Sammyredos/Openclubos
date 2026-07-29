@@ -657,4 +657,44 @@ export class AuthService {
     // Auto-login: return JWT tokens
     return this.login(updatedUser);
   }
+
+  async incrementAITournamentDescUsage(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { aiTournamentDescCount: true, aiTournamentDescResetAt: true },
+    });
+
+    if (!user) throw new UnauthorizedException();
+
+    const now = new Date();
+    let currentCount = user.aiTournamentDescCount;
+    let resetAt = user.aiTournamentDescResetAt;
+
+    // Reset if penalty time has passed
+    if (resetAt && now >= resetAt) {
+      currentCount = 0;
+      resetAt = null;
+    }
+
+    if (currentCount >= 2) {
+      throw new BadRequestException('AI usage limit reached. Try again later.');
+    }
+
+    currentCount++;
+
+    if (currentCount >= 2) {
+      resetAt = new Date(now.getTime() + 8 * 60 * 60 * 1000); // 8 hours from now
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        aiTournamentDescCount: currentCount,
+        aiTournamentDescResetAt: resetAt,
+      },
+      select: { aiTournamentDescCount: true, aiTournamentDescResetAt: true },
+    });
+
+    return updatedUser;
+  }
 }

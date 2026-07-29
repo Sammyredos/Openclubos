@@ -102,6 +102,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           ? `${user.firstName} ${user.lastName}`.trim()
           : undefined,
       managerScope: user.managerScope || undefined,
+      aiTournamentDescCount: user.aiTournamentDescCount,
+      aiTournamentDescResetAt: user.aiTournamentDescResetAt,
     };
   }
 }

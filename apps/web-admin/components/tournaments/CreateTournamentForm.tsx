@@ -13,6 +13,7 @@ import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { incrementAIUsage } from "@/lib/api/auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,8 @@ import {
   AlertTriangle,
   ChevronRight,
   Check,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 type FormProps = {
@@ -77,8 +80,8 @@ const DEFAULT_FORM = {
   endDate: "",
   registrationOpenAt: "",
   registrationCloseAt: "",
-  format: "STROKE_PLAY" as const,
-  scoringType: "BOTH" as const,
+  format: "STROKE_PLAY" as "STROKE_PLAY" | "MATCH_PLAY" | "STABLEFORD" | "SCRAMBLE" | "BEST_BALL",
+  scoringType: "BOTH" as "GROSS" | "NET" | "BOTH",
   holes: 18,
   divisions: [] as string[],
   allowRegisteredPlayers: true,
@@ -226,6 +229,109 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [aiUsageCount, setAiUsageCount] = useState(0);
+  const [aiUsageResetAt, setAiUsageResetAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setAiUsageCount(user.aiTournamentDescCount || 0);
+      setAiUsageResetAt(user.aiTournamentDescResetAt ? new Date(user.aiTournamentDescResetAt) : null);
+    }
+  }, [user]);
+
+  const isAiLocked = useMemo(() => {
+    if (aiUsageCount >= 2 && aiUsageResetAt) {
+      if (new Date() < aiUsageResetAt) return true;
+    }
+    return false;
+  }, [aiUsageCount, aiUsageResetAt]);
+
+  const remainingUses = isAiLocked ? 0 : 2 - (aiUsageCount >= 2 ? 0 : aiUsageCount);
+
+  const generateAIDescription = async () => {
+    if (isAiLocked) return;
+    setIsGeneratingDesc(true);
+    
+    try {
+      const res = await incrementAIUsage();
+      setAiUsageCount(res.aiTournamentDescCount);
+      if (res.aiTournamentDescResetAt) {
+        setAiUsageResetAt(new Date(res.aiTournamentDescResetAt));
+      }
+    } catch (e) {
+      toast.error("Failed to verify AI usage limit.");
+      setIsGeneratingDesc(false);
+      return;
+    }
+
+    setTimeout(() => {
+      const hooks = [
+        "Join us for an extraordinary day of golf at this highly anticipated event.",
+        "We proudly present our premier tournament of the season.",
+        "Prepare yourself for a spectacular showcase of talent and dedication.",
+        "Step onto the course for an event that celebrates the true spirit of the game.",
+        "Welcome to a remarkable gathering of enthusiasts and competitors alike.",
+        "Experience the thrill of competition in a truly breathtaking setting.",
+        "Take part in a tradition of excellence and unforgettable moments on the green.",
+        "Set your sights on victory at our upcoming flagship event.",
+        "Embrace the challenge and elegance of one of our most distinguished tournaments.",
+        "Mark your calendars for an exceptional day of sportsmanship and camaraderie."
+      ];
+      const atmospheres = [
+        "Experience meticulously manicured greens and a standard of excellence.",
+        "Prepare for a test of skill on a championship-level layout.",
+        "Enjoy pristine fairways and world-class amenities designed for your comfort.",
+        "Immerse yourself in a beautifully prepared course that demands precision.",
+        "Navigate challenging bunkers and sweeping vistas throughout your round.",
+        "Delight in exceptional course conditions maintained to the highest standards.",
+        "Feel the prestige of a venue crafted for memorable experiences.",
+        "Take in the spectacular scenery while tackling a brilliantly designed layout.",
+        "Savor the perfect blend of natural beauty and rigorous course design.",
+        "Appreciate the dedication to quality that makes this venue truly special."
+      ];
+      const communities = [
+        "Forge new rivalries and celebrate the spirit of the game.",
+        "Compete alongside fellow golf enthusiasts in an atmosphere of pure sportsmanship.",
+        "Connect with players who share your passion for excellence and integrity.",
+        "Build lasting memories with colleagues, friends, and competitors.",
+        "Showcase your abilities in a respectful and fiercely competitive environment.",
+        "Enjoy a vibrant community atmosphere that elevates every moment.",
+        "Challenge yourself against a diverse and talented field of participants.",
+        "Share the joy of the game with a welcoming and passionate community.",
+        "Elevate your game in the company of dedicated and inspiring individuals.",
+        "Experience the camaraderie that makes our events truly one of a kind."
+      ];
+      const closings = [
+        "Secure your spot today and be part of our legacy.",
+        "Register now to cement your place on the leaderboard.",
+        "Don't miss out on this opportunity—reserve your tee time today.",
+        "Join the roster and prepare for an exceptional experience.",
+        "Sign up early to guarantee your participation in this stellar event.",
+        "We look forward to welcoming you—confirm your entry now.",
+        "Take the first step toward victory and register today.",
+        "Claim your place in the field and get ready to tee off.",
+        "Reserve your slot and join us for a day to remember.",
+        "Act quickly to secure your registration before the field fills up."
+      ];
+
+      const randomElement = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+      
+      let hook = randomElement(hooks);
+      if (formData.name) {
+        hook = hook.replace("this highly anticipated event", formData.name).replace("our premier tournament", formData.name);
+      }
+      
+      const atmosphere = randomElement(atmospheres);
+      const community = randomElement(communities);
+      const closing = randomElement(closings);
+
+      const desc = `${hook} ${atmosphere} ${community} ${closing}`;
+      set("description", desc);
+      setIsGeneratingDesc(false);
+    }, 1200);
+  };
+
   const isSubmittingRef = useRef(false);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
@@ -644,15 +750,39 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
                 <div className="grid grid-cols-1 gap-4">
                   <Field label="Description" required>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => set("description", e.target.value)}
-                      placeholder="Brief description of the tournament..."
-                      className={cn(
-                        "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
-                        req(formData.description)
-                      )}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => set("description", e.target.value)}
+                        placeholder="Brief description of the tournament..."
+                        className={cn(
+                          "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-background/50 px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:bg-white focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
+                          req(formData.description)
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={generateAIDescription}
+                        disabled={isGeneratingDesc || !!tournamentId || isAiLocked || !formData.name?.trim()}
+                        className="absolute bottom-3 right-3 h-7 px-2.5 text-[11px] font-medium bg-openclub-50 hover:bg-openclub-100 text-openclub-700 border border-openclub-200 flex items-center shadow-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isGeneratingDesc ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                            Writing...
+                          </>
+                        ) : isAiLocked ? (
+                          <>Limit Reached</>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3 mr-1.5" />
+                            Write with AI ({remainingUses} left)
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </Field>
                 </div>
               </div>
@@ -803,7 +933,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   <p className="text-[13px] font-medium text-gray-600">
                     Tournament Format <span className="text-red-500">*</span>
                   </p>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2 ">
                     {[
                       {
                         value: "STROKE_PLAY",
@@ -1369,7 +1499,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       type="number"
                       value={formData.maxPlayersPerGroup}
                       min={1}
-                      onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))}
+                      onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
                     />
                   </Field>
                   <Field label="Tee Off Start Time" required>
@@ -1386,7 +1516,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       type="number"
                       value={formData.teeIntervalMinutes}
                       min={1}
-                      onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))}
+                      onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))}
                     />
                   </Field>
                 </div>

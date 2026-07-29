@@ -150,7 +150,6 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
   { id: "invite", label: "Invite a Player", icon: UserPlus },
-  { id: "register", label: "Register a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
@@ -191,7 +190,8 @@ function ViewTournamentPageInner() {
   const pathname = usePathname();
 
   // Tab Sync with search parameters
-  const activeTab = (searchParams.get("tab") || "players") as TabId;
+  const paramTab = searchParams.get("tab") || "players";
+  const activeTab = (paramTab === "register" ? "players" : paramTab) as TabId;
 
   const setActiveTab = (tabId: TabId) => {
     router.push(`${pathname}?tab=${tabId}`);
@@ -312,14 +312,7 @@ function ViewTournamentPageInner() {
     }
   };
 
-  // Manual register options
-  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
-  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
-  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
-  const [registeredUserIdsForSearch, setRegisteredUserIdsForSearch] = useState<string[]>([]);
-  const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
+  // Manual register options removed
 
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
@@ -1028,76 +1021,7 @@ function ViewTournamentPageInner() {
       )
       : registrations;
 
-  // Search & Register Logic inside tab
-  useEffect(() => {
-    if (activeTab !== "register" || !selectedTournament?.id) {
-      setRegisterPlayerResults([]);
-      return;
-    }
-    const tId = selectedTournament.id;
-    const q = registerPlayerSearch.trim();
-    if (q.length < 2) {
-      setRegisterPlayerResults([]);
-      return;
-    }
 
-    let cancelled = false;
-    setIsSearchingPlayers(true);
-    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
-      .then(async ({ items }) => {
-        if (cancelled) return;
-
-        try {
-          const { items: regItems } = await getRegistrations({
-            tournamentId: tId,
-            q,
-            take: 50,
-          });
-          if (cancelled) return;
-          const registeredIds = regItems.map(r => r.user?.id).filter((id): id is string => !!id);
-          setRegisteredUserIdsForSearch(registeredIds);
-        } catch (err) {
-          console.error("Failed to fetch registrations for search", err);
-        }
-
-        setRegisterPlayerResults(Array.isArray(items) ? items : []);
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          console.error("Player search failed", e);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsSearchingPlayers(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, registerPlayerSearch]);
-
-  const handleRegisterPlayer = async (userId: string) => {
-    if (!selectedTournament?.id) return;
-    setIsRegistering(true);
-    try {
-      const { registerForTournament } = await import("@/lib/api/registrations");
-      await registerForTournament({
-        tournamentId: selectedTournament.id,
-        userId,
-        paymentStatus: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "PAID" : "UNPAID",
-        status: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "APPROVED" : "PENDING",
-      });
-      toast.success("Player registered successfully");
-      setNewlyRegisteredUserIds(prev => [...prev, userId]);
-
-      await reloadSingleTournament();
-      setRegistrationsRefreshTrigger(prev => prev + 1);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to register player");
-    } finally {
-      setIsRegistering(false);
-    }
-  };
 
   // Waitlist Action methods
   const handleApproveWaitlist = async (regIds: string[]) => {
@@ -1953,199 +1877,6 @@ function ViewTournamentPageInner() {
               );
             })()}
 
-            {/* TABS 2: Register Player Inline */}
-            {activeTab === "register" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Manual Player Registration</h2>
-                  <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Quick Registration</h3>
-                    <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      Register members directly into <span className="text-openclub-800 font-normal">{selectedTournament.name}</span>. Flights & Tee Times and pairing calculations will be recalculated dynamically.
-                    </p>
-                  </div>
-                </div>
-
-                {selectedTournament?.requiresPayment && (
-                  <div className="space-y-3">
-                    <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Initial Payment Status</Label>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setManualPaymentType('UNPAID')}
-                        className={cn(
-                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                          manualPaymentType === 'UNPAID'
-                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
-                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
-                            manualPaymentType === 'UNPAID' ? "border-openclub-700" : "border-gray-300"
-                          )}>
-                            {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
-                          </div>
-                          <span className="text-[13px] font-medium">Unpaid</span>
-                        </div>
-                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will not be confirmed for grouping until payment is recorded.</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setManualPaymentType('CASH')}
-                        className={cn(
-                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                          manualPaymentType === 'CASH'
-                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
-                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
-                            manualPaymentType === 'CASH' ? "border-openclub-700" : "border-gray-300"
-                          )}>
-                            {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
-                          </div>
-                          <span className="text-[13px] font-medium">Paid (Cash / Direct)</span>
-                        </div>
-                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will be marked as PAID and automatically APPROVED.</p>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      placeholder="Type player name or email to search..."
-                      value={registerPlayerSearch}
-                      onChange={(e) => setRegisterPlayerSearch(e.target.value)}
-                      className="pl-10 h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
-                    />
-                  </div>
-
-                  <div className="min-h-[300px]">
-                    {isSearchingPlayers ? (
-                      <div className="p-12 text-center text-gray-400 space-y-3">
-                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
-                        <p className="text-[12px]">Searching the openclub registry...</p>
-                      </div>
-                    ) : registerPlayerResults.length > 0 ? (
-                      <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
-                          <thead>
-                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                              <th className="px-4 py-4">PLAYER</th>
-                              <th className="px-4 py-4">DETAILS</th>
-                              <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
-                              <th className="px-4 py-4 text-right">ACTIONS</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#efefef] bg-white">
-                            {registerPlayerResults.map((player) => {
-                              const isAlreadyRegistered =
-                                registrationsAll.some(x => x.user?.id === player.id) ||
-                                registrations.some(x => x.user?.id === player.id) ||
-                                registeredUserIdsForSearch.includes(player.id) ||
-                                newlyRegisteredUserIds.includes(player.id);
-                              return (
-                                <tr key={player.id} className="transition-all hover:bg-background/50">
-                                  <td className="px-4 py-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
-                                        <img
-                                          src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
-                                          alt=""
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="text-[15px] font-medium text-gray-900 truncate">
-                                          {fullName(player.firstName ?? null, player.lastName ?? null)}
-                                        </p>
-                                        <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <div className="flex items-center gap-1.5">
-                                      {player.gender && (
-                                        <span className={cn(
-                                          "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
-                                          player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                        )}>
-                                          {player.gender}
-                                        </span>
-                                      )}
-                                      {player.dob && (
-                                        <span className="text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
-                                          {(() => {
-                                            const birthDate = new Date(player.dob);
-                                            const today = new Date();
-                                            let age = today.getFullYear() - birthDate.getFullYear();
-                                            const m = today.getMonth() - birthDate.getMonth();
-                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                            return `${age} YRS`;
-                                          })()}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                      HCP {player.handicap ?? 0}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-right">
-                                    <Button
-                                      disabled={isAlreadyRegistered || isRegistering}
-                                      size="sm"
-                                      onClick={() => handleRegisterPlayer(player.id)}
-                                      className={cn(
-                                        "rounded-xl font-normal text-[12px] px-4 h-9",
-                                        isAlreadyRegistered
-                                          ? "bg-gray-100 text-gray-400 border border-gray-200"
-                                          : "bg-[#15803D] hover:bg-[#166534] text-white"
-                                      )}
-                                    >
-                                      {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
-                                    </Button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : registerPlayerSearch.trim().length >= 2 ? (
-                      <EmptyState
-                        variant="minimal"
-                        icon={Search}
-                        title="No players found"
-                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
-                      />
-                    ) : (
-                      <EmptyState
-                        variant="minimal"
-                        icon={Users}
-                        title="Start Enrolling"
-                        description="Type 2 or more characters of a member's name or email to retrieve matches."
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (

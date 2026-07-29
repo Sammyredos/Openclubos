@@ -13,6 +13,7 @@ import { getCourses, Course } from "@/lib/api/courses";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle } from "lucide-react";
@@ -148,6 +149,8 @@ const Field = ({ label, required, children, error, optional }: { label: string; 
 
 export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentId }: WizardProps) {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const isOrganizerDashboard = pathname?.includes("/organizer-admin");
   const [step, setStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
@@ -499,7 +502,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               </p>
             </div>
 
-            {user?.role === "SUPER_ADMIN" && (
+            {user?.role === "SUPER_ADMIN" && !isOrganizerDashboard && (
               <div className="pt-1">
                 <Field label="Organizer" required>
                   <SearchableSelect value={formData.clubId} onValueChange={handleClubChange}
@@ -851,7 +854,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   </p>
                 </div>
                 <Field label="Players Per Tee Flight" required>
-                  <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", Number(e.target.value))} />
+                  <Input type="number" value={formData.maxPlayersPerGroup} min={1} onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))} />
                 </Field>
               </div>
 
@@ -1106,7 +1109,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 />
               </Field>
               <Field label="Tee Interval (min)" required>
-                <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", Number(e.target.value))} className="bg-white" />
+                <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))} className="bg-white" />
               </Field>
             </div>
             <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">

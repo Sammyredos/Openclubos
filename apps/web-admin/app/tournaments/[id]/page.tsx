@@ -331,7 +331,11 @@ export default function TournamentDetailPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />
-                  <span>Day 1 tee times will be published upon closing of registrations. No late entries will be accepted once tournament groupings are finalised.</span>
+                  <span>
+                    {("enableWaitlist" in tournament && (tournament as any).enableWaitlist)
+                      ? "Day One Tee Flights will be published upon the closing of registrations. Once tournament groupings are finalized, the field is set, no late entries will be accepted and the waitlist will be closed."
+                      : "Day 1 tee times will be published upon closing of registrations. No late entries will be accepted once tournament groupings are finalised."}
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-openclub-500 mt-2 flex-shrink-0" />

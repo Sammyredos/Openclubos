@@ -34,6 +34,12 @@ export class AuthController {
     return req.user;
   }
 
+  @Post('me/ai-usage/tournament-desc/increment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async incrementAITournamentDescUsage(@Request() req: any) {
+    return this.authService.incrementAITournamentDescUsage(req.user.id);
+  }
+
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
