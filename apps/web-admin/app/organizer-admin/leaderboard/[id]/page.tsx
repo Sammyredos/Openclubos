@@ -3117,7 +3117,7 @@ function ViewTournamentPageInner() {
                     <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-[16px] font-normal text-gray-900">{formatNaira(selectedTournament.entryFee)}</p>
+                        <p className="text-[16px] font-normal text-gray-900">{selectedTournament.entryFee && selectedTournament.entryFee > 0 ? formatNaira(selectedTournament.entryFee) : "Free"}</p>
                         <p className="text-[11px] text-gray-550 font-normal mt-0.5">Per Registration</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">

@@ -1669,7 +1669,7 @@ export default function SuperAdminUsersPage() {
                             paginatedPayments.map((r) => (
                               <tr key={r.id} className="hover:bg-background/50 transition-colors">
                                 <td className="px-5 py-4 font-normal text-gray-900">{r.tournament.name}</td>
-                                <td className="px-5 py-4 font-normal text-gray-700">{formatCurrency(r.tournament.entryFee ?? 0)}</td>
+                                <td className="px-5 py-4 font-normal text-gray-700">{r.tournament.entryFee && r.tournament.entryFee > 0 ? formatCurrency(r.tournament.entryFee) : "Free"}</td>
                                 <td className="px-5 py-4 font-normal text-gray-500">{r.paymentReference || "—"}</td>
                                 <td className="px-5 py-4">
                                   <span className={cn(
@@ -1728,7 +1728,7 @@ export default function SuperAdminUsersPage() {
                                     {r.status}
                                   </span>
                                 </td>
-                                <td className="px-5 py-4 text-right font-normal text-gray-700">{formatCurrency(r.tournament.entryFee ?? 0)}</td>
+                                <td className="px-5 py-4 text-right font-normal text-gray-700">{r.tournament.entryFee && r.tournament.entryFee > 0 ? formatCurrency(r.tournament.entryFee) : "Free"}</td>
                               </tr>
                             ))
                           ) : (

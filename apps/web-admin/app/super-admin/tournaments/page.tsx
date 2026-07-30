@@ -1249,7 +1249,7 @@ export default function TournamentsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{formatNaira(t.entryFee)}</span>
+                          <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{t.entryFee && t.entryFee > 0 ? formatNaira(t.entryFee) : "Free"}</span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">
