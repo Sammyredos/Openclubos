@@ -182,18 +182,7 @@ export class CreateTournamentDto {
   @IsNumber()
   teeIntervalMinutes?: number;
 
-  // Step 9: Scoring Settings
-  @IsOptional()
-  @IsBoolean()
-  enableLiveScoring?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  requireMarkerVerification?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  enableHoleScoring?: boolean;
+  // Step 9: Scoring Settings removed
 
   // Step 10: Publication Settings
   @IsOptional()

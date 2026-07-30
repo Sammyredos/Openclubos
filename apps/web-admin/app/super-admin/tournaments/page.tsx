@@ -1253,14 +1253,31 @@ export default function TournamentsPage() {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => openView(t)}
-                              className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
-                              title="Manage Tournament"
-                            >
-                              <Settings className="w-3.5 h-3.5" />
-                              <span className="textw-full text-left px-4 py-2 text-[12px] font-medium leading-none">Manage tournament</span>
-                            </button>
+                            <div className="inline-flex rounded-md shadow-sm h-8">
+                              <button
+                                onClick={() => openView(t)}
+                                className="h-8 pl-3 pr-2.5 inline-flex items-center justify-center gap-1.5 rounded-l-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-r-[rgba(255,255,255,0.2)]"
+                                title="Manage Tournament"
+                              >
+                                <Settings className="w-3.5 h-3.5" />
+                                <span className="text-[12px] font-medium leading-none whitespace-nowrap">Manage Tournament</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  if (activeManageDropdown === t.id) {
+                                    closeManageDropdown();
+                                  } else {
+                                    setActiveManageDropdown(t.id);
+                                    setManageDropdownAnchorEl(e.currentTarget);
+                                    setManageDropdownTournament(t);
+                                  }
+                                }}
+                                className="h-8 px-1.5 inline-flex items-center justify-center rounded-r-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-l-0"
+                                title="Manage Options"
+                              >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                             <div className="relative">
                               <button
                                 onClick={(e) => {
@@ -1320,8 +1337,6 @@ export default function TournamentsPage() {
       <FloatingMenu open={activeManageDropdown != null} anchorEl={manageDropdownAnchorEl} onClose={closeManageDropdown} placement="bottom-end" className="w-56 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 py-2">
         {manageDropdownTournament && [
           { id: "players", label: "Players & Registrations", icon: Users },
-          { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
-          { id: "scoring", label: "Scorecards & Verification", icon: Award },
           { id: "invite", label: "Invite a Player", icon: UserPlus },
           { id: "register", label: "Register a Player", icon: UserPlus },
           { id: "waitlist", label: "Waitlisted Players", icon: Clock },

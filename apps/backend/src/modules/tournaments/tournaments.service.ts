@@ -97,9 +97,9 @@ export class TournamentsService {
       teeStartTime: dto.teeStartTime ?? null,
       teeIntervalMinutes: dto.teeIntervalMinutes ?? 10,
       // Scoring
-      enableLiveScoring: dto.enableLiveScoring ?? false,
-      requireMarkerVerification: dto.requireMarkerVerification ?? false,
-      enableHoleScoring: dto.enableHoleScoring ?? true,
+      
+      
+      
       // Publish
       publishImmediately: dto.publishImmediately ?? false,
       visibility: dto.visibility ?? 'PUBLIC',
@@ -437,12 +437,9 @@ export class TournamentsService {
     if (dto.teeIntervalMinutes !== undefined)
       data.teeIntervalMinutes = dto.teeIntervalMinutes;
 
-    if (dto.enableLiveScoring !== undefined)
-      data.enableLiveScoring = dto.enableLiveScoring;
-    if (dto.requireMarkerVerification !== undefined)
-      data.requireMarkerVerification = dto.requireMarkerVerification;
-    if (dto.enableHoleScoring !== undefined)
-      data.enableHoleScoring = dto.enableHoleScoring;
+    
+    
+    
 
     if (dto.publishImmediately !== undefined)
       data.publishImmediately = dto.publishImmediately;

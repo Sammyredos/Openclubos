@@ -25,7 +25,7 @@ type WizardProps = {
   tournamentId?: string | null;
 };
 
-const STEPS = ["Basic Details", "Schedule", "Format & Divisions", "Eligibility", "Payments", "Grouping", "Scoring", "Publish"];
+const STEPS = ["Basic Details", "Schedule", "Format & Divisions", "Eligibility", "Payments", "Grouping", "Publish"];
 
 
 function getErrorMessage(e: unknown) {
@@ -49,7 +49,7 @@ const DEFAULT_FORM = {
   enableCut: false, cutAfterRound: "", cutFormat: "" as "" | "NUMBER" | "PERCENTAGE", cutLine: "",
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
   autoGrouping: true, startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN", teeStartTime: "", teeIntervalMinutes: 10,
-  enableLiveScoring: false, requireMarkerVerification: false, enableHoleScoring: true,
+    
   publishImmediately: false, visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
 };
@@ -292,9 +292,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               autoGrouping: t.autoGrouping ?? false,
               teeStartTime: t.teeStartTime || "",
               teeIntervalMinutes: t.teeIntervalMinutes || 10,
-              enableLiveScoring: t.enableLiveScoring ?? false,
-              requireMarkerVerification: t.requireMarkerVerification ?? false,
-              enableHoleScoring: t.enableHoleScoring ?? true,
+              
+              
+              
               publishImmediately: t.status !== "DRAFT",
               visibility: t.visibility || "PUBLIC",
               genderRestriction: t.genderRestriction || "MIXED",
@@ -424,9 +424,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         startType: f.autoGrouping ? f.startType : "TEE_TIMES",
         teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : null,
         teeIntervalMinutes: f.autoGrouping ? (f.startType === "TEE_TIMES" ? Number(f.teeIntervalMinutes) : 10) : 10,
-        enableLiveScoring: f.enableLiveScoring,
-        requireMarkerVerification: f.requireMarkerVerification,
-        enableHoleScoring: f.enableHoleScoring,
+        
+        
+        
         publishImmediately: f.publishImmediately,
         visibility: f.visibility,
         status: tournamentId
@@ -1161,36 +1161,6 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         </div>
       );
       case 7: return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
-              <Activity className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-[14px] font-medium text-gray-900">Scoring Rules</h4>
-              <p className="text-[12px] text-gray-500">Configure how scores are recorded and verified</p>
-            </div>
-          </div>
-
-          <div className="p-5 space-y-4">
-            <Toggle label="Enable Live Scoring" checked={formData.enableLiveScoring} onChange={(v) => set("enableLiveScoring", v)} />
-            <div className="pl-12">
-              <p className="text-[12px] text-gray-500 -mt-2 mb-2">Players can input scores directly via the app during the round.</p>
-            </div>
-
-            <Toggle label="Require Marker Verification" checked={formData.requireMarkerVerification} onChange={(v) => set("requireMarkerVerification", v)} />
-            <div className="pl-12">
-              <p className="text-[12px] text-gray-500 -mt-2 mb-2">Another player in the group must verify and sign the scorecard.</p>
-            </div>
-
-            <Toggle label="Enable Hole-by-Hole Scoring" checked={formData.enableHoleScoring} onChange={(v) => set("enableHoleScoring", v)} />
-            <div className="pl-12">
-              <p className="text-[12px] text-gray-500 -mt-2">Record scores for every single hole rather than just the final total.</p>
-            </div>
-          </div>
-        </div>
-      );
-      case 8: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ── Visibility Settings ── */}
           <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">

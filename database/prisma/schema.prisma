@@ -270,9 +270,6 @@ model Tournament {
   teeIntervalMinutes Int     @default(10)
 
   // Step 9: Scoring Settings
-  enableLiveScoring         Boolean @default(false)
-  requireMarkerVerification Boolean @default(false)
-  enableHoleScoring         Boolean @default(true)
 
   // Step 10: Publication Settings
   publishImmediately Boolean              @default(false)

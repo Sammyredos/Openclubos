@@ -312,8 +312,8 @@ function ViewTournamentPageInner() {
     }
   };
 
-  // Manual register options removed
-
+  // Manual register options
+  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
@@ -1489,6 +1489,10 @@ function ViewTournamentPageInner() {
           <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
             {TABS.map((tab, index) => {
               const isActive = activeTab === tab.id;
+              const isShotgun = (selectedTournament as any)?.startType === "SHOTGUN";
+              const label = tab.id === "groupings" 
+                ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
+                : tab.label;
               return (
                 <button
                   key={tab.id}
@@ -1510,7 +1514,7 @@ function ViewTournamentPageInner() {
                       {index + 1}
                     </div>
                     <span className="text-[13px] font-normal leading-tight">
-                      {tab.label}
+                      {label}
                     </span>
                   </div>
                   {isActive && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
