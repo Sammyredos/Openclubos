@@ -24,6 +24,7 @@ import {
   FileText,
   FileSpreadsheet,
   TrendingUp,
+  ChevronDown,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -226,7 +227,7 @@ export default function SuperAdminGolfCoursesPage() {
       ) : (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            
+
             {/* Stat 1: Total Courses */}
             <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
               <div className="flex justify-start items-center gap-3.5">
@@ -295,8 +296,8 @@ export default function SuperAdminGolfCoursesPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
           <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Courses</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
               className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
             >
@@ -357,7 +358,7 @@ export default function SuperAdminGolfCoursesPage() {
             </FloatingMenu>
             <Button
               onClick={() => router.push("/super-admin/golf-courses/create")}
-              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
             >
               <Plus className="w-4 h-4" /> Add Golf Course
             </Button>
@@ -489,8 +490,8 @@ export default function SuperAdminGolfCoursesPage() {
                             <span className="text-[13px] text-gray-600 font-medium truncate">{course.city}, {course.state}</span>
                             <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                               <div className="w-4 h-3 relative overflow-hidden rounded-[2px] bg-gray-100 flex-shrink-0 shadow-sm">
-                                <img 
-                                  src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`} 
+                                <img
+                                  src={`https://flagcdn.com/w40/${course.country.toLowerCase()}.png`}
                                   alt={course.country}
                                   className="w-full h-full object-cover"
                                 />
@@ -519,42 +520,36 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => router.push(`/super-admin/golf-courses/${course.id}`)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
-                            title="View Course"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">View</span>
-                          </button>
-                          <button
-                            onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
-                            title="Edit Course"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">Edit</span>
-                          </button>
-                          <div className="relative">
+                          <div className="inline-flex rounded-md shadow-sm h-8">
                             <button
-                              onClick={(e) => {
-                                if (activeDropdown === course.id) {
-                                  closeDropdown();
-                                } else {
-                                  if (closeTimeoutRef.current != null) {
-                                    window.clearTimeout(closeTimeoutRef.current);
-                                    closeTimeoutRef.current = null;
-                                  }
-                                  setActiveDropdown(course.id);
-                                  setDropdownAnchorEl(e.currentTarget);
-                                  setDropdownCourse(course);
-                                }
-                              }}
-                              className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
-                              title="More Actions"
+                              onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
+                              className="h-8 pl-3 pr-2.5 inline-flex items-center justify-center gap-1.5 rounded-l-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-r-[rgba(255,255,255,0.2)]"
+                              title="Edit Course"
                             >
-                              <MoreHorizontal className="w-4 h-4" />
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span className="text-[12px] font-medium leading-none whitespace-nowrap">Edit Course</span>
                             </button>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  if (activeDropdown === course.id) {
+                                    closeDropdown();
+                                  } else {
+                                    if (closeTimeoutRef.current != null) {
+                                      window.clearTimeout(closeTimeoutRef.current);
+                                      closeTimeoutRef.current = null;
+                                    }
+                                    setActiveDropdown(course.id);
+                                    setDropdownAnchorEl(e.currentTarget);
+                                    setDropdownCourse(course);
+                                  }
+                                }}
+                                className="h-8 px-2 inline-flex items-center justify-center rounded-r-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-l-transparent"
+                                title="More Actions"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -589,9 +584,9 @@ export default function SuperAdminGolfCoursesPage() {
       </Card>
 
 
-      <Modal 
-        isOpen={isViewModalOpen} 
-        onClose={() => setIsViewModalOpen(false)} 
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
         title=""
         size="lg"
         footer={
@@ -626,19 +621,19 @@ export default function SuperAdminGolfCoursesPage() {
                   selectedCourse.status === "ACTIVE" ? "bg-openclub-700" : "bg-red-500"
                 )} />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
                   <h4 className="text-[16px] font-normal text-gray-900 truncate">{selectedCourse.name}</h4>
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border ${selectedCourse.status === "ACTIVE"
-                            ? "bg-[#f5faf6] text-[#15803D] border-[#e1efe5]"
-                            : "bg-red-50 text-red-600 border-red-200"
-                            }`}>
-                          <span className={cn("w-1.5 h-1.5 rounded-full", selectedCourse.status === "ACTIVE" ? "bg-[#15803D]" : "bg-red-500")} />
-                          {selectedCourse.status}
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap uppercase border ${selectedCourse.status === "ACTIVE"
+                    ? "bg-[#f5faf6] text-[#15803D] border-[#e1efe5]"
+                    : "bg-red-50 text-red-600 border-red-200"
+                    }`}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", selectedCourse.status === "ACTIVE" ? "bg-[#15803D]" : "bg-red-500")} />
+                    {selectedCourse.status}
                   </span>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
                   <div className="flex items-center gap-2 text-[13px] text-gray-500 font-normal">
                     <MapPin className="w-4 h-4 text-gray-400" />
@@ -766,8 +761,8 @@ export default function SuperAdminGolfCoursesPage() {
             onClick={() => openStatusModal(dropdownCourse)}
             className={cn(
               "w-full text-left px-4 py-2 text-[12px] font-medium rounded-lg flex items-center gap-3 text-gray-700",
-              dropdownCourse.status === "INACTIVE" 
-                ? "hover:bg-emerald-50" 
+              dropdownCourse.status === "INACTIVE"
+                ? "hover:bg-emerald-50"
                 : "hover:bg-red-50"
             )}
           >
@@ -779,15 +774,6 @@ export default function SuperAdminGolfCoursesPage() {
             {dropdownCourse.status === "INACTIVE" ? "Activate Course" : "Deactivate Course"}
           </button>
           <div className="h-px bg-background my-1 mx-2" />
-          <button
-            onClick={() => {
-              closeDropdown();
-              router.push(`/super-admin/golf-courses/${dropdownCourse.id}/edit`);
-            }}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
-          >
-            <Edit2 className="w-4 h-4 text-gray-400" /> Edit Course
-          </button>
           <button
             onClick={() => {
               closeDropdown();
@@ -817,9 +803,9 @@ export default function SuperAdminGolfCoursesPage() {
       )}
 
       {/* Status Confirm Modal */}
-      <Modal 
-        isOpen={isStatusModalOpen} 
-        onClose={() => setIsStatusModalOpen(false)} 
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
         title=""
         footer={
           <>
@@ -886,9 +872,9 @@ export default function SuperAdminGolfCoursesPage() {
       </Modal>
 
       {/* Delete Confirm Modal */}
-      <Modal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)} 
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
         title=""
         footer={
           <>

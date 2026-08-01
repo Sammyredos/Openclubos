@@ -49,7 +49,7 @@ const DEFAULT_FORM = {
   enableCut: false, cutAfterRound: "", cutFormat: "" as "" | "NUMBER" | "PERCENTAGE", cutLine: "",
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
   autoGrouping: true, startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN", teeStartTime: "", teeIntervalMinutes: 10,
-    
+
   publishImmediately: false, visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
 };
@@ -292,9 +292,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               autoGrouping: t.autoGrouping ?? false,
               teeStartTime: t.teeStartTime || "",
               teeIntervalMinutes: t.teeIntervalMinutes || 10,
-              
-              
-              
+
+
+
               publishImmediately: t.status !== "DRAFT",
               visibility: t.visibility || "PUBLIC",
               genderRestriction: t.genderRestriction || "MIXED",
@@ -424,9 +424,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         startType: f.autoGrouping ? f.startType : "TEE_TIMES",
         teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : null,
         teeIntervalMinutes: f.autoGrouping ? (f.startType === "TEE_TIMES" ? Number(f.teeIntervalMinutes) : 10) : 10,
-        
-        
-        
+
+
+
         publishImmediately: f.publishImmediately,
         visibility: f.visibility,
         status: tournamentId
@@ -540,7 +540,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           <div className="p-5 space-y-6">
 
             {/* ── Tournament Duration ── */}
-            <div className="rounded-2xl border border-[#e1efe5] bg-background/50 shadow-sm p-5">
+            <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
               <div className="space-y-4">
                 <div>
                   <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration</h4>
@@ -835,7 +835,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
           {/* ── Player Limits ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="bg-background rounded-xl border border-[#e1efe5]">
             <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                 <Users className="w-4 h-4" />
@@ -878,7 +878,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Gender Restrictions ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm p-5">
+          <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
             <div className="space-y-3">
               <div>
                 <h4 className="text-[14px] font-medium text-gray-900">Gender Restriction</h4>
@@ -910,7 +910,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Handicap Restrictions ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="bg-background rounded-xl border border-[#e1efe5]">
             <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
               onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}>
               <div className="flex items-center gap-3">
@@ -944,7 +944,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Cut Rules ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="bg-background rounded-xl border border-[#e1efe5]">
             <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
               onClick={() => {
                 if (!isMultiDay) {
@@ -1105,34 +1105,35 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
           <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <div>
-                  <p className="text-[13px] font-medium text-gray-900">
-                    Start Type <span className="text-red-500">*</span>
-                  </p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">Specify if this tournament uses sequential tee times or a shotgun start.</p>
-                </div>
-                <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => set("startType", "TEE_TIMES")}
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                      formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                    )}
-                  >
-                    Standard Tee Times Start
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => set("startType", "SHOTGUN")}
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                      formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                    )}
-                  >
-                    Shotgun Start
-                  </button>
+              {/* ── Start Type ── */}
+              <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-[14px] font-medium text-gray-900">Start Type</h4>
+                    <p className="text-[12px] text-gray-500">Specify if this tournament uses sequential tee times or a shotgun start.</p>
+                  </div>
+                  <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => set("startType", "TEE_TIMES")}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                        formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      Sequential Tee Start
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set("startType", "SHOTGUN")}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                        formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      Shotgun Start
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1153,7 +1154,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
             </div>
             <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 flex-shrink-0" />
-              {formData.startType === "TEE_TIMES" 
+              {formData.startType === "TEE_TIMES"
                 ? "Players will be assigned sequential tee times based on these settings."
                 : "All flights will be assigned the Tee Off Start Time and placed on different holes."}
             </p>
@@ -1163,7 +1164,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       case 7: return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ── Visibility Settings ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="bg-background rounded-xl border border-[#e1efe5]">
             <div className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
                 <Eye className="w-4 h-4" />
@@ -1188,8 +1189,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       type="button"
                       onClick={() => set("visibility", value)}
                       className={cn(
-                        "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
-                        active ? "border-openclub-700 bg-emerald-50/60" : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50"
+                        "w-full text-left rounded-xl border px-4 py-3 flex items-start gap-3 transition-all",
+                        active ? "border-openclub-700 bg-emerald-50/60" : "border-[#e1efe5] bg-background hover:border-gray-300"
                       )}
                     >
                       <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5", active ? "border-openclub-700 bg-openclub-700" : "border-gray-300")}>
@@ -1207,7 +1208,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Publishing ── */}
-          <div className="rounded-2xl border border-[#e1efe5] bg-white shadow-sm">
+          <div className="bg-background rounded-xl border border-[#e1efe5]">
             <div className={cn("px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between", (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
               onClick={() => {
                 if (originalStatus !== "DRAFT" && originalStatus !== undefined) return;
@@ -1287,7 +1288,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       <div className="min-h-[350px]">
         {loading ? (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="rounded-2xl border border-[#e1efe5] bg-white p-6 space-y-6">
+            <div className="bg-background rounded-xl border border-[#e1efe5] p-6 space-y-6">
               <div className="space-y-2">
                 <div className="h-4.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
                 <div className="h-12 w-full bg-background/50 rounded-xl border border-[#e1efe5] animate-pulse" />

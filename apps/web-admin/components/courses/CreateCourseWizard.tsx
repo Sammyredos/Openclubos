@@ -251,7 +251,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
       
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email) return "Email is required";
-      if (!emailRegex.test(formData.email)) return "Please enter a valid email address";
+      if (!emailRegex.test(formData.email.trim())) return "Please enter a valid email address";
       
       const phoneRegex = /^\+?[\d\s-]{8,}$/;
       if (!formData.phone) return "Phone number is required";
@@ -503,7 +503,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                       <div className="relative flex-1">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input 
-                          className={cn("pl-10 h-11", req(!formData.phone))} 
+                          className={cn("pl-10 h-11", req(formData.phone && /^\+?[\d\s-]{8,}$/.test(formData.phone)))} 
                           value={formData.phone} 
                           onChange={(e) => set("phone", e.target.value.replace(/\D/g, ""))} 
                           placeholder="812 345 6789" 
@@ -514,7 +514,7 @@ export function CreateCourseWizard({ isOpen, onClose, onSuccess, courseId, isPag
                   <Field label="Email" required>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input className={cn("pl-10 h-11", req(!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)))} value={formData.email} onChange={(e) => set("email", e.target.value)} placeholder="info@club.com" />
+                      <Input className={cn("pl-10 h-11", req(formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)))} value={formData.email} onChange={(e) => set("email", e.target.value.trim())} placeholder="info@club.com" />
                     </div>
                   </Field>
                 </div>

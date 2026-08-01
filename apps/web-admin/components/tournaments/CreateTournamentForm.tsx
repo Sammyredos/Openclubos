@@ -105,9 +105,9 @@ const DEFAULT_FORM = {
   startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN",
   teeStartTime: "",
   teeIntervalMinutes: 10,
-  
-  
-  
+
+
+
   publishImmediately: false,
   visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
@@ -460,9 +460,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 startType: t.startType || "TEE_TIMES",
                 teeStartTime: t.teeStartTime || "",
                 teeIntervalMinutes: t.teeIntervalMinutes || 10,
-                
-                
-                
+
+
+
                 publishImmediately: t.publishImmediately ?? false,
                 visibility: t.visibility || "PUBLIC",
                 genderRestriction: t.genderRestriction || "MIXED",
@@ -606,9 +606,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         basePayload.teeIntervalMinutes = f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10;
       }
 
-      
-      
-      
+
+
+
       basePayload.publishImmediately = f.publishImmediately;
       basePayload.visibility = f.visibility;
       basePayload.status = tournamentId
@@ -813,7 +813,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
               <div className="p-5 space-y-6">
                 {/* ── Tournament Duration ── */}
-                <div className="rounded-2xl border border-[#e1efe5] bg-background/50 shadow-sm p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
                   <div className="space-y-4">
                     <div>
                       <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration</h4>
@@ -1502,36 +1502,37 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
               <div className="p-5 animate-in slide-in-from-top-2 fade-in duration-200">
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div>
-                      <h4 className="text-[13px] font-medium text-gray-900">
-                        Start Type <span className="text-red-500">*</span>
-                      </h4>
-                      <p className="text-[11px] text-gray-500 mt-0.5">Specify if this tournament uses sequential tee times or a shotgun start.</p>
-                    </div>
-                    <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden mt-2">
-                      <button
-                        type="button"
-                        onClick={() => set("startType", "TEE_TIMES")}
-                        className={cn(
-                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                          formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                        )}
-                      >
-                        Standard Tee Times Start
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => set("startType", "SHOTGUN")}
-                        className={cn(
-                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                          formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                        )}
-                      >
-                        Shotgun Tee Start
-                      </button>
-                    </div>
+              {/* ── Start Type ── */}
+              <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-[14px] font-medium text-gray-900">Start Type</h4>
+                    <p className="text-[12px] text-gray-500">Specify if this tournament uses sequential tee times or a shotgun start.</p>
                   </div>
+                  <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => set("startType", "TEE_TIMES")}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                        formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      Sequential Tee Start
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set("startType", "SHOTGUN")}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                        formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      Shotgun Tee Start
+                    </button>
+                  </div>
+                </div>
+              </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <Field label="Players Per Tee Flight" required>
@@ -1612,10 +1613,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       type="button"
                       onClick={() => set("visibility", value)}
                       className={cn(
-                        "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                        "w-full text-left rounded-xl border px-4 py-3 flex items-start gap-3 transition-all",
                         active
                           ? "border-openclub-700 bg-emerald-50/60"
-                          : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-background/50"
+                          : "border-[#e1efe5] bg-background hover:border-gray-300"
                       )}
                     >
                       <div
@@ -1759,7 +1760,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
           <div className="min-h-[400px]">
             {loading ? (
-              <div className="space-y-6 bg-white border border-[#e1efe5] rounded-2xl p-6 animate-pulse">
+              <div className="space-y-6 bg-background border border-[#e1efe5] rounded-xl p-6 animate-pulse">
                 <div className="h-5 w-32 bg-gray-100 rounded-lg" />
                 <div className="h-12 w-full bg-background rounded-xl" />
                 <div className="grid grid-cols-2 gap-4">

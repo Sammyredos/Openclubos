@@ -270,18 +270,12 @@ export default function OrganizerAdminDashboard() {
           <div className="flex-1 w-full min-h-[300px]">
             {isMounted ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={registrationData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorFunnelReg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#15803D" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#15803D" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={registrationData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#a1a1aa" }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} width={80} tick={{ fontSize: 12, fill: "#a1a1aa" }} />
                   <Tooltip
-                    cursor={{ stroke: '#15803D', strokeWidth: 1, strokeDasharray: '3 3' }}
+                    cursor={{ stroke: 'rgba(21, 128, 61, 0.2)', strokeWidth: 2 }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
@@ -294,16 +288,15 @@ export default function OrganizerAdminDashboard() {
                       return null;
                     }}
                   />
-                  <Area
+                  <Line
                     type="monotone"
                     dataKey="count"
                     stroke="#15803D"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorFunnelReg)"
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: '#15803D', fill: '#fff' }}
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "#15803D", strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 6, fill: "#15803D", strokeWidth: 2, stroke: "#fff" }}
                   />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <Skeleton className="h-full w-full rounded-xl" />
@@ -343,7 +336,13 @@ export default function OrganizerAdminDashboard() {
           <div className="flex-1 w-full min-h-[300px]">
             {isMounted ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
+                <AreaChart data={revenueData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorFunnelRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#15803D" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#15803D" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#a1a1aa" }} dy={10} />
                   <YAxis
@@ -354,7 +353,7 @@ export default function OrganizerAdminDashboard() {
                     tickFormatter={(value) => formatCurrency(value)}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(21, 128, 61, 0.05)' }}
+                    cursor={{ stroke: '#15803D', strokeWidth: 1, strokeDasharray: '3 3' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const val = typeof payload[0].value === "number" ? payload[0].value : Number(payload[0].value);
@@ -368,8 +367,16 @@ export default function OrganizerAdminDashboard() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="amount" fill="#15803D" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#15803D"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorFunnelRev)"
+                    activeDot={{ r: 6, fill: "#15803D", strokeWidth: 2, stroke: "#fff" }}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
               <Skeleton className="h-full w-full rounded-xl" />
@@ -388,13 +395,13 @@ export default function OrganizerAdminDashboard() {
               upcomingTournaments.map((t) => (
                 <div key={t.id} className="flex items-center justify-between">
                   <div className="flex flex-col min-w-0">
-                    <p className="text-[14px] font-normal text-gray-800 truncate">{t.name}</p>
+                    <p className="text-[14px] font-medium text-gray-800 truncate">{t.name}</p>
                     <p className="text-[12px] text-gray-500 font-normal mt-1">
                       {new Date(t.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[12px] font-normal text-gray-900">
+                    <span className="text-[12px] font-medium text-gray-900">
                       {t.entryFee === 0 || !t.entryFee ? "FREE" : formatCurrency(t.entryFee)}
                     </span>
                     <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-emerald-50 text-openclub-800 border border-emerald-100 capitalize">

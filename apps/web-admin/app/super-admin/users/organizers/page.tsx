@@ -321,7 +321,7 @@ export default function SuperAdminUsersPage() {
       { key: "FINANCE_MGR", label: "Finance Managers", color: "bg-amber-500", value: map.CLUB_ADMIN_FINANCE ?? 0 },
       { key: "MARKER", label: "Markers", color: "bg-indigo-500", value: map.MARKER ?? 0 },
     ];
-    
+
     const superAdmins = map.SUPER_ADMIN ?? 0;
     return { rows, superAdmins };
   }, [stats, allUsers]);
@@ -713,7 +713,7 @@ export default function SuperAdminUsersPage() {
             </FloatingMenu>
             <Button
               onClick={() => router.push("/super-admin/users/create")}
-              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
             >
               <UserPlus className="w-4 h-4" /> Add User
             </Button>

@@ -97,6 +97,7 @@ type ApiTournament = {
   registrationDeadline?: string | null;
   playerTypes: string[];
   club: { id: string; name: string; logo?: string | null } | null;
+  course?: { id: string; name: string } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
@@ -109,6 +110,7 @@ type TournamentRow = {
   name: string;
   clubName: string;
   clubLogo: string | null;
+  courseName: string | null;
   types: string[];
   dates: string;
   players: string;
@@ -223,7 +225,7 @@ export default function TournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<ApiTournament[]>([]);
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownTournament, setDropdownTournament] = useState<TournamentRow | null>(null);
 
@@ -351,6 +353,7 @@ export default function TournamentsPage() {
       name: t.name,
       clubName,
       clubLogo,
+      courseName: t.course?.name || null,
       types,
       dates: formatDateRange(t.startDate, t.endDate),
       players: formatPlayers(registrations, t.maxPlayers),
@@ -1078,7 +1081,7 @@ export default function TournamentsPage() {
               </FloatingMenu>
               <Button
                 onClick={() => router.push("/super-admin/tournaments/create")}
-                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
               >
                 <Plus className="w-4 h-4" /> Add Tournament
               </Button>
@@ -1204,7 +1207,7 @@ export default function TournamentsPage() {
                             </div>
                             <div className="flex flex-col min-w-0 gap-0.5">
                               <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
-                              <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.clubName}>{t.clubName}</span>
+                              <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.courseName || t.clubName}>{t.courseName || t.clubName}</span>
                             </div>
                           </div>
                         </td>
@@ -1333,7 +1336,7 @@ export default function TournamentsPage() {
         </Card>
       </div>
 
-      
+
       <FloatingMenu open={activeManageDropdown != null} anchorEl={manageDropdownAnchorEl} onClose={closeManageDropdown} placement="bottom-end" className="w-56 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 py-2">
         {manageDropdownTournament && [
           { id: "players", label: "Players & Registrations", icon: Users },
@@ -1357,7 +1360,7 @@ export default function TournamentsPage() {
           </button>
         ))}
       </FloatingMenu>
-      
+
       <FloatingMenu open={activeDropdown != null} anchorEl={dropdownAnchorEl} onClose={closeDropdown} placement="top-end" className="w-60 bg-white rounded-xl shadow-sm border border-[#efefef] py-2">
         {dropdownTournament ? (
           <>

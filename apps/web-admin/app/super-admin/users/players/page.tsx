@@ -700,7 +700,7 @@ export default function SuperAdminUsersPage() {
             </FloatingMenu>
             <Button
               onClick={() => router.push("/super-admin/users/create")}
-              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
             >
               <UserPlus className="w-4 h-4" /> Add User
             </Button>

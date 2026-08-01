@@ -322,6 +322,7 @@ function ViewTournamentPageInner() {
   const [publishClickCount, setPublishClickCount] = useState(0);
   const [justGrouped, setJustGrouped] = useState(false);
   const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
+  const [selectedAutoTeeRule, setSelectedAutoTeeRule] = useState<string | null>(null);
 
   const fetchWaitlistData = async () => {
     if (!tournamentId) return;
@@ -2115,15 +2116,6 @@ function ViewTournamentPageInner() {
 
                       <div className="flex items-center gap-3">
 
-                        <button
-                          onClick={() => setIsGroupingRulesModalOpen(true)}
-                          className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white border border-[#e1efe5] text-gray-600 hover:bg-slate-50 hover:text-gray-900 transition-all text-[13px] font-normal shadow-sm"
-                          title="Tee off Rules"
-                        >
-                          <Info className="w-4 h-4 text-openclub-800" />
-                          Tee off Rules
-                        </button>
-
                         <Button
                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
                           disabled={
@@ -2139,66 +2131,20 @@ function ViewTournamentPageInner() {
                           Manually Tee Players
                         </Button>
 
-                        <div className="relative inline-block">
-                          <SearchableSelect
-                            value=""
-                            onValueChange={async (val) => {
-                              const rule = val as any;
-                              if (!rule) return;
-                              if (selectedDay > 1 && !selectedTournament?.lockedGroupingsDays?.includes(selectedDay - 1)) {
-                                if (tournamentId) {
-                                  setIsCheckingPreviousDay(true);
-                                  try {
-                                    const prevData = await getGroupings(tournamentId, selectedDay - 1);
-                                    if (prevData && prevData.unassigned.length > 0) {
-                                      setIsUngroupedPlayersModalOpen(true);
-                                      return;
-                                    }
-                                  } catch (err) {
-                                    toast.error("Failed to verify previous day's groupings");
-                                    return;
-                                  } finally {
-                                    setIsCheckingPreviousDay(false);
-                                  }
-                                }
-                                setPendingGroupingRule(rule);
-                                setIsDayLockModalOpen(true);
-                              } else {
-                                if (groupingsData?.groups && groupingsData.groups.length > 0 && groupingsData.rule && groupingsData.rule !== 'MANUAL_EMPTY' && groupingsData.rule !== rule) {
-                                  setPendingGroupingRule(rule);
-                                  setIsAppendGroupingsModalOpen(true);
-                                } else {
-                                  handleGenerateGroupings(rule);
-                                }
-                              }
-                            }}
-                            searchable={false}
+                        <Button
+                          disabled={
+                            selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+                            groupingsGenerating ||
+                            groupingsLoading ||
+                            !groupingsData?.unassigned.length
+                          }
+                          onClick={() => setIsGroupingRulesModalOpen(true)}
+                          className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full md:w-auto"
+                        >
+                          {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                          Auto Tee Players
+                        </Button>
 
-                            trigger={
-                              <Button
-                                disabled={
-                                  selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-                                  groupingsGenerating ||
-                                  groupingsLoading ||
-                                  !groupingsData?.unassigned.length
-                                }
-                                className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full"
-                              >
-                                {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                Auto Tee Players
-                                <ChevronDown className="w-3.5 h-3.5 ml-1" />
-                              </Button>
-                            }
-                            options={[
-                              { value: "RANDOM", label: "Random Grouping", icon: Shuffle },
-                              { value: "CATEGORY_RANDOM", label: "Category Balanced", icon: SlidersHorizontal },
-                              { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reverse (Gross)", icon: ArrowUp, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_REVERSE_NET", label: "Leaderboard Reverse (Net)", icon: ArrowUp, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_DIRECT_GROSS", label: "Leaderboard Direct (Gross)", icon: ArrowDown, disabled: selectedDay === 1 },
-                              { value: "LEADERBOARD_DIRECT_NET", label: "Leaderboard Direct (Net)", icon: ArrowDown, disabled: selectedDay === 1 },
-                            ]}
-                          />
-                        </div>
                         <Button
                           onClick={handleClearGroupings}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
@@ -2276,7 +2222,7 @@ function ViewTournamentPageInner() {
                           <div className="space-y-6">
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                              {groupingsData.groups
+                              {[...groupingsData.groups].reverse()
                                 .filter(group => {
                                   const query = groupingsSearch.trim().toLowerCase();
                                   if (!query) return true;
@@ -2582,23 +2528,25 @@ function ViewTournamentPageInner() {
                                                     </span>
                                                   </div>
                                                 </td>
-                                                <td className="pr-4 py-3 align-middle text-right">
-                                                  <select
-                                                    disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value="unassigned"
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      if (val !== "unassigned") {
-                                                        handleMovePlayer(player.id, val);
-                                                      }
-                                                    }}
-                                                    className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-0 disabled:cursor-not-allowed shadow-sm"
-                                                  >
-                                                    <option value="unassigned">Assign To...</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => (
-                                                      <option key={g.id} value={g.id}>{g.name}</option>
-                                                    ))}
-                                                  </select>
+                                                <td className="px-4 py-3 align-middle text-right">
+                                                  <div className="flex justify-end">
+                                                    <select
+                                                      disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
+                                                      value="unassigned"
+                                                      onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val !== "unassigned") {
+                                                          handleMovePlayer(player.id, val);
+                                                        }
+                                                      }}
+                                                      className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                                    >
+                                                      <option value="unassigned">Assign To...</option>
+                                                      {groupingsData?.groups?.map((g: GroupingItem) => (
+                                                        <option key={g.id} value={g.id}>{g.name}</option>
+                                                      ))}
+                                                    </select>
+                                                  </div>
                                                 </td>
                                               </tr>
                                             ))
@@ -3827,48 +3775,95 @@ function ViewTournamentPageInner() {
         </div>
       </Modal>
 
-      {/* Grouping Rules Info Modal */}
+      {/* Auto Tee Rule Selection Modal */}
       <Modal
         isOpen={isGroupingRulesModalOpen}
         onClose={() => setIsGroupingRulesModalOpen(false)}
-        title="Auto Tee Off Selection Explained"
+        title="Select Auto Tee Rule"
         className="max-w-xl"
       >
-        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <Shuffle className="w-4 h-4 text-openclub-800" /> Random Grouping
-            </h4>
-            <p className="text-[13px] text-gray-600">Assigns players into groups completely at random. Good for social play.</p>
-          </div>
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-blue-600" /> Category Balanced
-            </h4>
-            <p className="text-[13px] text-gray-600">Attempts to balance groups by mixing handicap categories (A, B, C) so each group has a mix of skill levels.</p>
-          </div>
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <ArrowUp className="w-4 h-4 text-orange-600" /> Leaderboard Reverse (Gross / Net)
-            </h4>
-            <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players last (latest tee times).</p>
-          </div>
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <ArrowDown className="w-4 h-4 text-purple-600" /> Leaderboard Direct (Gross / Net)
-            </h4>
-            <p className="text-[13px] text-gray-600">Only available after Day 1. Groups players based on their standings, putting the leading players first (earliest tee times).</p>
-          </div>
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-gray-900 mb-1 flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-emerald-600" /> Manually Tee Players
-            </h4>
-            <p className="text-[13px] text-gray-600">Allows you to freely drag and drop players between groups to completely customize flights and tee times.</p>
-          </div>
-          <div className="p-4 bg-background rounded-xl border border-gray-100">
-            <h4 className="font-normal text-red-600 mb-1">Reset All</h4>
-            <p className="text-[13px] text-gray-600">Clears all current groupings for the selected day, moving all players back to the unassigned list so you can start over.</p>
-          </div>
+        <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          {[
+            { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
+            { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Mixes different skill levels together so every group is balanced and fair.", icon: SlidersHorizontal },
+            { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reverse (Gross)", desc: "The top players tee off last. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowUp },
+            { value: "LEADERBOARD_REVERSE_NET", label: "Leaderboard Reverse (Net)", desc: "The top players tee off last. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowUp },
+            { value: "LEADERBOARD_DIRECT_GROSS", label: "Leaderboard Direct (Gross)", desc: "The top players tee off first. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowDown },
+            { value: "LEADERBOARD_DIRECT_NET", label: "Leaderboard Direct (Net)", desc: "The top players tee off first. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowDown },
+          ].map((rule) => {
+            const Icon = rule.icon;
+            return (
+            <button
+              key={rule.value}
+              disabled={rule.disabled}
+              onClick={() => setSelectedAutoTeeRule(rule.value)}
+              className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${
+                selectedAutoTeeRule === rule.value
+                  ? "border-openclub-600 bg-openclub-50/50 ring-1 ring-openclub-600"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-start gap-4 flex-1 pr-4">
+                <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                  selectedAutoTeeRule === rule.value 
+                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700' 
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                }`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="text-left flex-1 min-w-0">
+                  <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
+                  <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                </div>
+              </div>
+              <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
+                {selectedAutoTeeRule === rule.value && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+        </div>
+        
+        <div className="mt-2 flex justify-end">
+          <Button
+            disabled={!selectedAutoTeeRule}
+            onClick={async () => {
+              const val = selectedAutoTeeRule as any;
+              if (!val) return;
+              setIsGroupingRulesModalOpen(false);
+              if (selectedDay > 1 && !selectedTournament?.lockedGroupingsDays?.includes(selectedDay - 1)) {
+                if (tournamentId) {
+                  setIsCheckingPreviousDay(true);
+                  try {
+                    const prevData = await getGroupings(tournamentId, selectedDay - 1);
+                    if (prevData && prevData.unassigned.length > 0) {
+                      setIsUngroupedPlayersModalOpen(true);
+                      return;
+                    }
+                  } catch (err) {
+                    toast.error("Failed to verify previous day's groupings");
+                    return;
+                  } finally {
+                    setIsCheckingPreviousDay(false);
+                  }
+                }
+                setPendingGroupingRule(val);
+                setIsDayLockModalOpen(true);
+              } else {
+                if (groupingsData?.groups && groupingsData.groups.length > 0 && groupingsData.rule && groupingsData.rule !== 'MANUAL_EMPTY' && groupingsData.rule !== val) {
+                  setPendingGroupingRule(val);
+                  setIsAppendGroupingsModalOpen(true);
+                } else {
+                  handleGenerateGroupings(val);
+                }
+              }
+            }}
+            className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-8 text-[13px] font-normal shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+          >
+            Confirm Selection
+          </Button>
         </div>
       </Modal>
 

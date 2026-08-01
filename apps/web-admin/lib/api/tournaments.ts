@@ -269,13 +269,7 @@ async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
 }
 
 function indexToFlightLetters(index: number): string {
-  let result = '';
-  let i = index;
-  while (i >= 0) {
-    result = String.fromCharCode(65 + (i % 26)) + result;
-    i = Math.floor(i / 26) - 1;
-  }
-  return result;
+  return String(index + 1);
 }
 
 function upgradeGroupNames(data: GroupingData): GroupingData {
