@@ -92,6 +92,7 @@ async function bootstrap() {
   }
 }
 bootstrap();
+// Trigger restart for Prisma client
 
 async function listenWithFallback(
   app: INestApplication,

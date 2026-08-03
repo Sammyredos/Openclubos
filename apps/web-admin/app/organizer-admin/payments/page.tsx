@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   CreditCard,
   Download,
@@ -11,26 +11,20 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   FileText,
-  DollarSign
+  DollarSign,
+  Settings
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
-
-// Mock Data
-const MOCK_PAYMENTS = [
-  { id: "TXN-1029", date: "2026-08-01T10:30:00Z", player: "James Wilson", tournament: "Summer Classic 2026", amount: 150.00, method: "Credit Card", status: "PAID" },
-  { id: "TXN-1028", date: "2026-08-01T09:15:00Z", player: "Sarah Connor", tournament: "Summer Classic 2026", amount: 150.00, method: "Bank Transfer", status: "PENDING" },
-  { id: "TXN-1027", date: "2026-07-30T14:20:00Z", player: "Michael Scott", tournament: "Members Invitational", amount: 200.00, method: "Credit Card", status: "PAID" },
-  { id: "TXN-1026", date: "2026-07-29T11:45:00Z", player: "Dwight Schrute", tournament: "Members Invitational", amount: 200.00, method: "Credit Card", status: "REFUNDED" },
-  { id: "TXN-1025", date: "2026-07-28T16:10:00Z", player: "Jim Halpert", tournament: "Summer Classic 2026", amount: 150.00, method: "Credit Card", status: "PAID" },
-  { id: "TXN-1024", date: "2026-07-27T08:30:00Z", player: "Pam Beesly", tournament: "Summer Classic 2026", amount: 150.00, method: "Credit Card", status: "PAID" },
-  { id: "TXN-1023", date: "2026-07-26T13:20:00Z", player: "Ryan Howard", tournament: "Members Invitational", amount: 200.00, method: "Bank Transfer", status: "PENDING" },
-  { id: "TXN-1022", date: "2026-07-25T15:40:00Z", player: "Kelly Kapoor", tournament: "Members Invitational", amount: 200.00, method: "Credit Card", status: "PAID" },
-];
+import { getRegistrations, type RegistrationListItem } from "@/lib/api/registrations";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { toast } from "sonner";
+import { Modal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -59,27 +53,52 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default function PaymentsPage() {
+  const { user } = useAuth();
+  const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
+  const [selectedTxn, setSelectedTxn] = useState<RegistrationListItem | null>(null);
   const perPage = 10;
 
+  useEffect(() => {
+    async function loadData() {
+      if (!user?.clubId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const data = await getRegistrations({ clubId: user.clubId, take: 50 });
+        setRegistrations(data.items);
+      } catch (err: any) {
+        toast.error("Failed to load payments");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [user?.clubId]);
+
   const filteredData = useMemo(() => {
-    return MOCK_PAYMENTS.filter(txn => {
-      if (statusFilter !== "ALL" && txn.status !== statusFilter) return false;
+    return registrations.filter(txn => {
+      if (statusFilter !== "ALL" && txn.paymentStatus !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
-        if (!txn.player.toLowerCase().includes(q) && !txn.id.toLowerCase().includes(q) && !txn.tournament.toLowerCase().includes(q)) {
+        const playerName = `${txn.user?.firstName} ${txn.user?.lastName}`.toLowerCase();
+        const tourneyName = txn.tournament?.name?.toLowerCase() || "";
+        if (!playerName.includes(q) && !txn.id.toLowerCase().includes(q) && !tourneyName.includes(q)) {
           return false;
         }
       }
       return true;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, registrations]);
 
-  const totalRevenue = MOCK_PAYMENTS.filter(t => t.status === "PAID").reduce((sum, t) => sum + t.amount, 0);
-  const pendingAmount = MOCK_PAYMENTS.filter(t => t.status === "PENDING").reduce((sum, t) => sum + t.amount, 0);
-  const refundsAmount = MOCK_PAYMENTS.filter(t => t.status === "REFUNDED").reduce((sum, t) => sum + t.amount, 0);
+  const totalRevenue = registrations.filter(t => t.paymentStatus === "PAID").reduce((sum, t) => sum + (t.tournament?.entryFee || 0), 0);
+  const pendingAmount = registrations.filter(t => t.paymentStatus === "UNPAID").reduce((sum, t) => sum + (t.tournament?.entryFee || 0), 0);
+  const refundsAmount = registrations.filter(t => t.paymentStatus === "REFUNDED").reduce((sum, t) => sum + (t.tournament?.entryFee || 0), 0);
+  const totalTransactions = registrations.length;
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
@@ -88,9 +107,31 @@ export default function PaymentsPage() {
           
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Revenue</div>
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Transactions</div>
+              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                </svg>
+                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+              </div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(totalTransactions)}</div>
+            <div className="text-zinc-500 text-sm font-normal">All Time</div>
+          </div>
+
+          <div className="w-px h-16 bg-slate-200" />
+          
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Revenue</div>
+              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                </svg>
+                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+              </div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatCurrency(totalRevenue)}</div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
@@ -100,15 +141,15 @@ export default function PaymentsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payments</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(pendingAmount)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Awaiting Transfer</div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatCurrency(pendingAmount)}</div>
+            <div className="text-zinc-500 text-sm font-normal">Action Required</div>
           </div>
 
           <div className="w-px h-16 bg-slate-200" />
 
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Refunds Issued</div>
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Refunds</div>
             </div>
             <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(refundsAmount)}</div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
@@ -120,11 +161,10 @@ export default function PaymentsPage() {
       <div className="w-full space-y-6">
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Payments</CardTitle>
+            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">Transaction History</CardTitle>
             <div className="flex flex-wrap items-center gap-3">
-              <Button variant="outline" className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal">
-                <Download className="w-4 h-4" />
-                Export CSV
+              <Button variant="outline" className="h-10 text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-medium">
+                <Download className="w-4 h-4" /> Export CSV
               </Button>
             </div>
           </CardHeader>
@@ -134,7 +174,7 @@ export default function PaymentsPage() {
               <div className="relative flex-1 min-w-[240px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
-                  placeholder="Search player, tournament, or ID..."
+                  placeholder="Search player, tournament, or TXN ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
@@ -147,10 +187,10 @@ export default function PaymentsPage() {
                   options={[
                     { value: "ALL", label: "All Statuses" },
                     { value: "PAID", label: "Paid" },
-                    { value: "PENDING", label: "Pending" },
+                    { value: "UNPAID", label: "Unpaid" },
                     { value: "REFUNDED", label: "Refunded" },
                   ]}
-                  className="min-w-[140px]"
+                  className="min-w-[160px]"
                   triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
                 />
               </div>
@@ -158,53 +198,69 @@ export default function PaymentsPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#f5faf6] border-b border-[#e1efe5]">
+              <thead className="bg-[#f5faf6] border-y border-[#e1efe5]">
                 <tr>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Transaction ID</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Transaction</th>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Player</th>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Tournament</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Method</th>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-right text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e1efe5] bg-white">
-                {filteredData.slice((page - 1) * perPage, page * perPage).map((txn) => (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`sk-${i}`} className="border-b border-[#e1efe5]">
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16 mt-2" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-40" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : filteredData.slice((page - 1) * perPage, page * perPage).map((txn) => (
                   <tr key={txn.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4">
-                      <span className="text-[13px] font-medium text-gray-900">{txn.id}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[14px] font-medium text-gray-900 group-hover:text-[#15803D] transition-colors">{txn.id.substring(0, 8).toUpperCase()}</span>
+                        <span className="text-[12px] text-gray-500">Credit Card</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[14px] text-gray-600">{formatDate(txn.date)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-gray-900">{txn.user?.firstName} {txn.user?.lastName}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[14px] font-medium text-gray-900">{txn.player}</span>
+                      <span className="text-[13px] text-gray-600 font-medium">{txn.tournament?.name}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[14px] text-gray-600">{txn.tournament}</span>
+                      <span className="text-[13px] text-gray-900 font-medium">{formatCurrency(txn.tournament?.entryFee || 0)}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[14px] text-gray-600">{txn.method}</span>
+                      <div className="flex items-center text-[13px] text-gray-600">
+                        <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                        {formatDate(txn.registeredAt)}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[14px] font-medium text-gray-900">{formatCurrency(txn.amount)}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusPill status={txn.status} />
+                      <StatusPill status={txn.paymentStatus} />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="h-8 text-[#15803D] hover:text-[#15803D] hover:bg-[#e1efe5] text-[13px]">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Receipt
-                      </Button>
+                      <button onClick={() => setSelectedTxn(txn)} className="h-8 pl-3 pr-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm ml-auto">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span className="text-[12px] font-medium leading-none whitespace-nowrap">View Receipt</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
-                {filteredData.length === 0 && (
+                {filteredData.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-500">
                         <CreditCard className="w-12 h-12 mb-4 text-gray-300" />
                         <p className="text-base font-medium text-gray-900">No transactions found</p>
@@ -232,6 +288,51 @@ export default function PaymentsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <Modal isOpen={!!selectedTxn} onClose={() => setSelectedTxn(null)} title="Transaction Receipt" size="md">
+        {selectedTxn && (
+          <div className="p-4 space-y-5 text-sm text-gray-800 font-sans">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 bg-[#15803D]/10 text-[#15803D] rounded-full flex items-center justify-center mb-3">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-2xl font-semibold text-gray-900">{formatCurrency(selectedTxn.tournament?.entryFee || 0)}</h3>
+              <p className="text-gray-500 font-normal uppercase tracking-wider text-[11px] mt-1">
+                {selectedTxn.paymentStatus === 'PAID' ? 'Payment Successful' : selectedTxn.paymentStatus}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-md p-4 space-y-3 border border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-[13px]">Transaction ID</span>
+                <span className="font-medium text-gray-900 text-[13px]">{selectedTxn.id.substring(0, 8).toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-[13px]">Date</span>
+                <span className="font-medium text-gray-900 text-[13px]">{formatDate(selectedTxn.registeredAt)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-[13px]">Player</span>
+                <span className="font-medium text-gray-900 text-[13px]">{selectedTxn.user?.firstName} {selectedTxn.user?.lastName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-[13px]">Tournament</span>
+                <span className="font-medium text-gray-900 text-[13px]">{selectedTxn.tournament?.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-[13px]">Method</span>
+                <span className="font-medium text-gray-900 text-[13px]">Credit Card</span>
+              </div>
+            </div>
+            
+            <div className="pt-2">
+               <Button onClick={() => setSelectedTxn(null)} className="w-full bg-[#15803D] hover:bg-[#166534] text-white rounded-md font-medium h-10">
+                 Done
+               </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

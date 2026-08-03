@@ -128,6 +128,7 @@ model Club {
   users        User[]
   tournaments  Tournament[]
   subscriptions Subscription[]
+  reports      Report[]
 
   @@index([createdAt])
   @@index([deletedAt])
@@ -481,4 +482,19 @@ enum SubscriptionStatus {
   TRIALING
   PAST_DUE
   CANCELLED
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // "Tournament Results", "Financial", "Player List", "Analysis"
+  status      String   @default("GENERATED")
+  url         String?
+  sizeBytes   Int      @default(0)
+  generatedAt DateTime @default(now())
+
+  clubId      String
+  club        Club     @relation(fields: [clubId], references: [id])
+
+  @@index([clubId])
 }

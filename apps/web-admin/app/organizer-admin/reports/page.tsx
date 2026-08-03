@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   FileText,
   Download,
@@ -14,7 +14,8 @@ import {
   FileArchive,
   Database,
   Trash2,
-  Settings2
+  Settings2,
+  ArrowUpRight
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,18 +24,13 @@ import { Input, SearchableSelect } from "@/components/ui/input";
 import { cn, formatNumber } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Modal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 
-// Mock Data
-const MOCK_REPORTS = [
-  { id: "RPT-4029", name: "Summer Classic 2026 Results", type: "Tournament Results", format: "PDF", size: "2.4 MB", generatedAt: "2026-08-01T15:30:00Z", status: "READY" },
-  { id: "RPT-4028", name: "July Revenue Summary", type: "Financial", format: "CSV", size: "145 KB", generatedAt: "2026-08-01T09:00:00Z", status: "READY" },
-  { id: "RPT-4027", name: "Player Roster - Members Inv.", type: "Player List", format: "CSV", size: "56 KB", generatedAt: "2026-07-28T14:20:00Z", status: "READY" },
-  { id: "RPT-4026", name: "Members Invitational Scorecards", type: "Tournament Results", format: "PDF", size: "4.1 MB", generatedAt: "2026-07-25T18:45:00Z", status: "READY" },
-  { id: "RPT-4025", name: "Annual Handicap Review", type: "Analysis", format: "PDF", size: "1.2 MB", generatedAt: "2026-07-20T10:15:00Z", status: "READY" },
-  { id: "RPT-4024", name: "June Revenue Summary", type: "Financial", format: "CSV", size: "132 KB", generatedAt: "2026-07-01T09:00:00Z", status: "READY" },
-  { id: "RPT-4023", name: "Spring Open 2026 Results", type: "Tournament Results", format: "PDF", size: "3.5 MB", generatedAt: "2026-06-15T16:30:00Z", status: "FAILED" },
-];
+import { getReports, generateReport, deleteReport, Report } from "@/lib/api/reports";
+import { getTournaments, Tournament } from "@/lib/api/tournaments";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { toast } from "sonner";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -65,7 +61,7 @@ function TrophyIcon(props: any) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "READY") {
+  if (status === "GENERATED" || status === "READY") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-medium uppercase whitespace-nowrap bg-emerald-50 text-emerald-700 border-emerald-100">
         <span className="w-1.5 h-1.5 rounded-full bg-openclub-700" />
@@ -90,27 +86,86 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ReportsPage() {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<Report[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const perPage = 10;
+  
+  // Modal form state
+  const [reportName, setReportName] = useState("");
+  const [reportType, setReportType] = useState("Tournament Results");
+
+  useEffect(() => {
+    async function loadData() {
+      if (!user) return;
+      try {
+        const [reportsData, tournamentsData] = await Promise.all([
+          getReports(user.clubId),
+          getTournaments({ clubId: user.clubId })
+        ]);
+        setReports(reportsData);
+        setTournaments(tournamentsData as Tournament[]);
+      } catch (err: any) {
+        toast.error("Failed to load data");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [user]);
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const activeClubId = user?.clubId;
+      if (!activeClubId) throw new Error("No active club selected");
+      const newReport = await generateReport({
+        name: reportName,
+        type: reportType,
+        clubId: activeClubId
+      });
+      setReports([newReport, ...reports]);
+      toast.success("Report generation started");
+      setShowGenerateModal(false);
+      setReportName("");
+      setReportType("Tournament Results");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate report");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteReportId) return;
+    try {
+      await deleteReport(deleteReportId);
+      setReports(reports.filter(r => r.id !== deleteReportId));
+      toast.success("Report deleted");
+      setDeleteReportId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete report");
+    }
+  };
 
   const filteredData = useMemo(() => {
-    return MOCK_REPORTS.filter(rpt => {
-      if (typeFilter !== "ALL" && rpt.type !== typeFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (!rpt.name.toLowerCase().includes(q) && !rpt.id.toLowerCase().includes(q)) {
-          return false;
-        }
-      }
-      return true;
+    return reports.filter(rpt => {
+      const matchesSearch = rpt.name.toLowerCase().includes(search.toLowerCase()) || 
+                            rpt.id.toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === "ALL" || rpt.type === typeFilter;
+      return matchesSearch && matchesType;
     });
-  }, [search, typeFilter]);
+  }, [search, typeFilter, reports]);
 
-  const totalReports = MOCK_REPORTS.length;
-  const recentReports = MOCK_REPORTS.filter(r => new Date(r.generatedAt).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000).length;
+  const totalReports = reports.length;
+  const totalSizeBytes = reports.reduce((acc, rpt) => acc + (rpt.sizeBytes || 0), 0);
+  const storageUsedMB = (totalSizeBytes / (1024 * 1024)).toFixed(1);
+  const tournamentReports = reports.filter(r => r.type === "Tournament Results").length;
+  const financialReports = reports.filter(r => r.type === "Financial").length;
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
@@ -120,8 +175,14 @@ export default function ReportsPage() {
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
+              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                </svg>
+                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+              </div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(totalReports)}</div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(totalReports)}</div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
@@ -130,9 +191,35 @@ export default function ReportsPage() {
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Storage Used</div>
+              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                </svg>
+                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+              </div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">11.6 MB</div>
+            <div className="text-[#15803D] text-3xl font-semibold">{storageUsedMB} MB</div>
             <div className="text-zinc-500 text-sm font-normal">Available capacity: 1.2 GB</div>
+          </div>
+          
+          <div className="w-px h-16 bg-slate-200" />
+
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Tournament Reports</div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(tournamentReports)}</div>
+            <div className="text-zinc-500 text-sm font-normal">All Time</div>
+          </div>
+
+          <div className="w-px h-16 bg-slate-200" />
+
+          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+            <div className="flex justify-start items-center gap-3.5">
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Financial Reports</div>
+            </div>
+            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(financialReports)}</div>
+            <div className="text-zinc-500 text-sm font-normal">All Time</div>
           </div>
 
           <div className="w-px h-16 bg-slate-200" />
@@ -141,8 +228,8 @@ export default function ReportsPage() {
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Scheduled Reports</div>
             </div>
-            <div className="text-[#15803D] text-3xl font-bold">2</div>
-            <div className="text-zinc-500 text-sm font-normal">Next run tomorrow 9:00 AM</div>
+            <div className="text-[#15803D] text-3xl font-bold">0</div>
+            <div className="text-zinc-500 text-sm font-normal">Coming soon</div>
           </div>
 
         </div>
@@ -192,7 +279,7 @@ export default function ReportsPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#f5faf6] border-b border-[#e1efe5]">
+              <thead className="bg-[#f5faf6] border-y border-[#e1efe5]">
                 <tr>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Report Name</th>
                   <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Type</th>
@@ -204,17 +291,24 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e1efe5] bg-white">
-                {filteredData.slice((page - 1) * perPage, page * perPage).map((rpt) => (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`sk-${i}`} className="border-b border-[#e1efe5]">
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-16 mt-2" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : filteredData.slice((page - 1) * perPage, page * perPage).map((rpt) => (
                   <tr key={rpt.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
-                          {rpt.format === "PDF" ? <FileText className="h-4 w-4 text-rose-500" /> : <FileSpreadsheet className="h-4 w-4 text-emerald-600" />}
-                        </div>
-                        <div>
-                          <div className="text-[14px] font-medium text-gray-900 leading-tight">{rpt.name}</div>
-                          <div className="text-[12px] text-gray-500 mt-0.5">{rpt.id}</div>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-[14px] font-medium text-gray-900 group-hover:text-[#15803D] transition-colors">{rpt.name}</span>
+                        <span className="text-[12px] text-gray-500">{rpt.id}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -224,36 +318,48 @@ export default function ReportsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[13px] font-medium text-gray-700">{rpt.format}</span>
+                      <span className="text-[13px] text-gray-600 uppercase font-medium">{rpt.url ? (rpt.url.endsWith('pdf') ? 'PDF' : 'CSV') : 'PDF'}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[13px] text-gray-600">{rpt.size}</span>
+                      <span className="text-[13px] text-gray-600">{(rpt.sizeBytes / 1024).toFixed(1)} KB</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[13px] text-gray-600">{formatDate(rpt.generatedAt)}</span>
+                      <div className="flex items-center text-[13px] text-gray-600">
+                        <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                        {formatDate(rpt.generatedAt)}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={rpt.status} />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-[#15803D] hover:bg-[#e1efe5]">
-                          <Download className="w-4 h-4" />
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            if (rpt.url) window.open(rpt.url, '_blank');
+                            else toast.error("Report URL not available yet");
+                          }}
+                          disabled={!rpt.url}
+                          className="h-8 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-1.5 rounded-lg px-3 text-[13px] font-medium"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50">
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteReportId(rpt.id)} className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {filteredData.length === 0 && (
+                {!isLoading && filteredData.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-500">
-                        <FileText className="w-12 h-12 mb-4 text-gray-300" />
+                        <FileArchive className="w-12 h-12 mb-4 text-gray-300" />
                         <p className="text-base font-medium text-gray-900">No reports found</p>
-                        <p className="text-sm mt-1">Generate a new report or adjust your filters</p>
+                        <p className="text-sm mt-1">Try adjusting your search or generate a new report</p>
                       </div>
                     </td>
                   </tr>
@@ -279,45 +385,66 @@ export default function ReportsPage() {
       </div>
 
       <Modal isOpen={showGenerateModal} onClose={() => setShowGenerateModal(false)} title="Generate Report" size="md">
-        <div className="p-6 space-y-5">
-          <div className="space-y-2">
-            <Label>Report Type</Label>
-            <SearchableSelect
-              value="Tournament Results"
-              onValueChange={() => {}}
-              options={[
-                { value: "Tournament Results", label: "Tournament Results" },
-                { value: "Financial", label: "Financial Summary" },
-                { value: "Player List", label: "Player List" },
-              ]}
-              className="w-full"
-              triggerClassName="h-11 bg-white border-gray-200"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Tournament</Label>
-            <SearchableSelect
-              value="Summer Classic 2026"
-              onValueChange={() => {}}
-              options={[
-                { value: "Summer Classic 2026", label: "Summer Classic 2026" },
-                { value: "Members Invitational", label: "Members Invitational" },
-              ]}
-              className="w-full"
-              triggerClassName="h-11 bg-white border-gray-200"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Export Format</Label>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 h-11 border-openclub-600 bg-openclub-50 text-openclub-800 font-medium">PDF Document</Button>
-              <Button variant="outline" className="flex-1 h-11 border-gray-200 text-gray-600">CSV Excel</Button>
+        <form onSubmit={handleGenerate}>
+          <div className="p-6 space-y-5">
+            <div className="space-y-2">
+              <Label>Report Name</Label>
+              <SearchableSelect
+                value={reportName}
+                onValueChange={setReportName}
+                options={tournaments.map(t => ({
+                  value: `${t.name} Results`,
+                  label: `${t.name} Results`
+                }))}
+                className="w-full"
+                triggerClassName="h-11 bg-white border-gray-200"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Report Type</Label>
+              <SearchableSelect
+                value={reportType}
+                onValueChange={setReportType}
+                options={[
+                  { value: "Tournament Results", label: "Tournament Results" },
+                  { value: "Financial", label: "Financial Summary" },
+                  { value: "Player List", label: "Player List" },
+                  { value: "Analysis", label: "Analysis" },
+                ]}
+                className="w-full"
+                triggerClassName="h-11 bg-white border-gray-200"
+              />
             </div>
           </div>
-        </div>
-        <div className="p-4 border-t border-[#e1efe5] bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-          <Button variant="outline" onClick={() => setShowGenerateModal(false)}>Cancel</Button>
-          <Button className="bg-[#15803D] hover:bg-[#166534] text-white">Generate Now</Button>
+          <div className="p-4 border-t border-[#e1efe5] bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+            <Button type="button" variant="outline" onClick={() => setShowGenerateModal(false)}>Cancel</Button>
+            <Button type="submit" className="bg-[#15803D] hover:bg-[#166534] text-white">Generate Now</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteReportId}
+        onClose={() => setDeleteReportId(null)}
+        title="Delete Report"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteReportId(null)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button 
+              className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-normal px-8"
+              onClick={confirmDelete}
+            >
+              Delete Report
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col py-2">
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to delete this report? This action cannot be undone.
+          </p>
         </div>
       </Modal>
     </div>
