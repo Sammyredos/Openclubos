@@ -82,7 +82,7 @@ export default function TVDisplayPage() {
   // Show Loading state initially
   if (loading && !tournament) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="min-h-screen bg-background flex flex-col font-sans">
         <header className="bg-white shadow-sm border-b border-gray-200 px-10 py-6 flex justify-between items-center z-10 relative">
           <div>
             <Skeleton className="h-10 w-96 mb-2 rounded-lg" />
@@ -141,7 +141,7 @@ export default function TVDisplayPage() {
   // Show Error state if we never got data
   if (error && !tournament) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-red-50 text-red-600 p-8 rounded-2xl max-w-xl text-center shadow-sm">
           <h2 className="text-3xl font-semibold mb-2">Connection Error</h2>
           <p className="text-xl opacity-90">{error}</p>
@@ -156,7 +156,7 @@ export default function TVDisplayPage() {
   ) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="bg-white px-10 py-6 border-b border-gray-200 shadow-sm flex items-center justify-between shrink-0">
         <div>

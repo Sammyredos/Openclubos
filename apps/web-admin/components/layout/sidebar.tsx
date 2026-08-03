@@ -138,11 +138,11 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Tournaments", href: "/organizer-admin/tournaments", icon: Trophy },
+      { name: "Leaderboard", href: "/organizer-admin/leaderboard", icon: BarChart3 },
     ],
   },
   {
     items: [
-      { name: "Leaderboard", href: "/organizer-admin/leaderboard", icon: BarChart3 },
       { name: "Payments", href: "/organizer-admin/payments", icon: CreditCard },
       { name: "Reports", href: "/organizer-admin/reports", icon: FileText },
     ],
@@ -150,8 +150,6 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Handicaps", href: "/organizer-admin/handicaps", icon: ShieldCheck },
-      { name: "Notifications", href: "/organizer-admin/notifications", icon: Bell },
-      { name: "Settings", href: "/organizer-admin/settings", icon: Settings },
     ],
   },
 ];
@@ -295,9 +293,9 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-hide relative flex flex-col gap-4">
+      <nav className="flex-1 py-4 overflow-y-auto scrollbar-hide relative flex flex-col">
         {sidebarGroups.map((group, groupIndex) => (
-          <div key={groupIndex} className="flex flex-col gap-4">
+          <div key={groupIndex} className="flex flex-col">
             <div className="space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -355,7 +353,7 @@ export function Sidebar() {
               })}
             </div>
             {groupIndex < sidebarGroups.length - 1 && (
-              <div className="mx-5 border-t border-[#e1efe5]" />
+              <div className="mx-5 my-4 border-t border-[#e1efe5]" />
             )}
           </div>
         ))}

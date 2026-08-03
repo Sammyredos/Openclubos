@@ -16,7 +16,7 @@ export const getTournamentScores = async (tournamentId: string) => {
   try {
     let allScores: any[] = [];
     let skip = 0;
-    const take = 100;
+    const take = 5000;
     let hasMore = true;
 
     while (hasMore) {

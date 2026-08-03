@@ -228,7 +228,7 @@ function LoginPageInner() {
                 The Leaderboard,<br />Digitized.
               </h1>
               <p className="text-lg max-w-[400px] text-zinc-200 font-medium">
-                Sign in to manage your tournaments, track live scoring, and oversee your entire event operations.
+                Sign in to manage your Golf tournaments, track live scoring, and oversee your entire event operations.
               </p>
             </div>
           </div>

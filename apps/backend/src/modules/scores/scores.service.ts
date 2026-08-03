@@ -9,7 +9,7 @@ import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
 import { CreateScoreDto } from './dto/create-score.dto';
 
-const MAX_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 10000;
 
 @Injectable()
 export class ScoresService {
@@ -194,6 +194,7 @@ export class ScoresService {
           tournamentId,
         },
       },
+      orderBy: { id: 'asc' },
       skip,
       take: safeTake,
       select: {

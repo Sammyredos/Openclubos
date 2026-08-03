@@ -29,6 +29,7 @@ import {
   Flag,
   Activity,
   Award,
+  Medal,
   Sparkles,
   RefreshCcw,
   Send,
@@ -133,6 +134,13 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
   PUBLIC: { label: "Public", badge: "bg-emerald-50 text-openclub-800", icon: Globe },
   PRIVATE: { label: "Private", badge: "bg-gray-100 text-gray-600", icon: Eye },
   INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
+};
+
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case "Professional": return "bg-gray-900 text-yellow-400 border-gray-800";
+    default: return "bg-slate-100 text-slate-700 border-slate-200";
+  }
 };
 
 const TABS = [
@@ -496,22 +504,45 @@ function ViewTournamentPageInner() {
     try {
       const scores = await getTournamentScores(tournamentId);
 
-      // Get all approved & paid registrations, plus any disqualified players
-      const [approvedRes, dqRes] = await Promise.all([
-        getRegistrations({
-          tournamentId,
-          status: "APPROVED",
-          paymentStatus: "PAID",
-          take: 100,
-        }),
-        getRegistrations({
-          tournamentId,
-          status: "DISQUALIFIED",
-          take: 100,
-        })
+      const fetchAllRegs = async (status: "APPROVED" | "DISQUALIFIED", paymentStatus?: "PAID") => {
+        let allItems: any[] = [];
+        let skip = 0;
+        const take = 5000;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const res = await getRegistrations({
+            tournamentId,
+            status,
+            paymentStatus,
+            skip,
+            take,
+          });
+          
+          if (res && res.items) {
+            allItems = allItems.concat(res.items);
+            if (res.items.length < take) {
+              hasMore = false;
+            } else {
+              skip += take;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+        return allItems;
+      };
+
+      const [approvedRegs, dqRegs] = await Promise.all([
+        fetchAllRegs("APPROVED", "PAID"),
+        fetchAllRegs("DISQUALIFIED")
       ]);
 
-      const allRegs = [...(approvedRes.items || []), ...(dqRes.items || [])];
+      const allRegs = [...approvedRegs, ...dqRegs];
+      console.log('--- DEBUG LEADERBOARD ---');
+      console.log('Scores fetched:', scores.length);
+      console.log('Approved Regs fetched:', approvedRegs.length);
+      console.log('All Regs:', allRegs.length);
 
       const playersMap: Record<string, any> = {};
 
@@ -1199,17 +1230,15 @@ function ViewTournamentPageInner() {
   if (loading) {
     return (
       <div className="w-full max-w-full font-sans space-y-6">
-        <div className="flex items-center">
+        <div className="flex items-center mb-6">
           <button
-            onClick={() => router.push('/organizer-admin/leaderboard')}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
-          >
-            <ArrowLeft className="w-4 h-4 text-white" />
-            Back to Leaderboards
-          </button>
-        </div>
-
-        {/* Premium Header Skeleton */}
+              onClick={() => router.push('/organizer-admin/leaderboard')}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+              Back to Leaderboards
+            </button>
+          </div>
         <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
           <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
             <div className="flex items-start md:items-center gap-5">
@@ -1342,18 +1371,17 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full font-sans space-y-6">
-
-
-
-      {/* Page Header */}
+        <div className="flex items-center mb-6">
+          <button
+              onClick={() => router.push('/organizer-admin/leaderboard')}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+              Back to Leaderboards
+            </button>
+          </div>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-6 gap-4">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/organizer-admin/leaderboard")}
-            className="w-10 h-10 shrink-0 border border-[#e1efe5] hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
               <h1 className="text-[16px] font-medium text-gray-900">{selectedTournament.name}</h1>
@@ -2733,6 +2761,7 @@ function ViewTournamentPageInner() {
                           { value: "Category 3", label: "Category 3" },
                           { value: "Category 4", label: "Category 4" },
                           { value: "Category 5/6", label: "Category 5/6" },
+                          { value: "Professional", label: "Professional" },
                           { value: "Open", label: "Open" },
                         ]}
                         className="min-w-[140px]"
@@ -2819,7 +2848,7 @@ function ViewTournamentPageInner() {
                         `${entry.user.firstName} ${entry.user.lastName}`.toLowerCase().includes(q);
                       if (!matchesSearch) return false;
                     }
-                    if (leaderboardGenderFilter !== "ALL" && entry.user.gender !== leaderboardGenderFilter) return false;
+                    if (leaderboardGenderFilter !== "ALL" && entry.user?.gender?.toUpperCase() !== leaderboardGenderFilter.toUpperCase()) return false;
                     if (leaderboardCategoryFilter !== "ALL" && getGolfCategory(entry.user.handicap) !== leaderboardCategoryFilter) return false;
                     return true;
                   });
@@ -2888,25 +2917,25 @@ function ViewTournamentPageInner() {
                                         {entry.status === "DISQUALIFIED" ? (
                                           <span className="text-[11px] font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase tracking-tight">DQ</span>
                                         ) : rank === 1 ? (
-                                          <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center border border-yellow-200 shadow-sm">
+                                          <div className="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center border border-yellow-300 shadow-sm">
                                             <Trophy className="w-5 h-5 text-yellow-600" />
                                           </div>
                                         ) : rank === 2 ? (
-                                          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
-                                            <Award className="w-5 h-5 text-gray-400" />
+                                          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-300 shadow-sm">
+                                            <Medal className="w-5 h-5 text-slate-500" />
                                           </div>
                                         ) : rank === 3 ? (
-                                          <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-200 shadow-sm">
-                                            <Award className="w-5 h-5 text-orange-600" />
+                                          <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center border border-orange-300 shadow-sm">
+                                            <Medal className="w-5 h-5 text-orange-600" />
                                           </div>
                                         ) : (
-                                          <span className="text-[15px] font-normal text-gray-500">{rank}</span>
+                                          <span className="text-[14px] font-normal text-gray-500">{rank}</span>
                                         )}
                                       </div>
                                     </td>
                                     <td className="px-6 py-4">
                                       <div className="flex items-center gap-3.5">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
                                           <img
                                             src={entry.user.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(entry.user.email)}`}
                                             className="w-full h-full object-cover"
@@ -2914,7 +2943,7 @@ function ViewTournamentPageInner() {
                                           />
                                         </div>
                                         <div className="min-w-0">
-                                          <div className="text-[15px] font-medium text-gray-900 truncate">
+                                          <div className="text-[14px] font-medium text-gray-900 truncate">
                                             {entry.user.firstName} {entry.user.lastName}
                                           </div>
                                           <div className="text-[12px] text-gray-500 font-normal truncate mt-0.5">
@@ -2924,7 +2953,10 @@ function ViewTournamentPageInner() {
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      <span className="text-[12px] font-medium text-gray-700 bg-background px-2.5 py-1 rounded-lg border border-[#e1efe5] uppercase tracking-tight whitespace-nowrap">
+                                      <span className={cn(
+                                        "text-[11px] font-medium px-2 py-0.5 rounded-lg border uppercase tracking-tight whitespace-nowrap",
+                                        getCategoryColor(getGolfCategory(entry.user.handicap))
+                                      )}>
                                         {getGolfCategory(entry.user.handicap)}
                                       </span>
                                     </td>
@@ -2943,7 +2975,7 @@ function ViewTournamentPageInner() {
 
                                       return (
                                         <td key={`r-${i}`} className="px-6 py-4 text-center">
-                                          <span className="text-[15px] font-normal text-gray-800">{entry.rounds[day] || "-"}</span>
+                                          <span className="text-[14px] font-normal text-gray-800">{entry.rounds[day] || "-"}</span>
                                         </td>
                                       );
                                     })}
@@ -2964,7 +2996,7 @@ function ViewTournamentPageInner() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                       <div className="flex flex-col items-center justify-center gap-1">
-                                        <span className="text-[15px] font-medium text-gray-900">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
+                                        <span className="text-[14px] font-medium text-gray-900">{entry.grossStrokes > 0 ? entry.grossStrokes : "-"}</span>
                                         {entry.extraStrokes > 0 && (
                                           <span className="text-[10px] font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md uppercase border border-red-100 tracking-tight whitespace-nowrap" title={`${entry.extraStrokes} Penalty Strokes`}>
                                             +{entry.extraStrokes} Pen
@@ -2973,18 +3005,18 @@ function ViewTournamentPageInner() {
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      <span className="text-[12px] font-normal text-gray-500 bg-background px-2.5 py-1 rounded-lg border border-[#e1efe5]">
+                                      <span className="text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
                                         {entry.user.handicap || 0}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                      <span className="text-[16px] font-medium text-gray-900">
+                                      <span className="text-[13px] font-medium text-gray-900">
                                         {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                       <span className={cn(
-                                        "text-[16px] font-semibold",
+                                        "text-[14px] font-semibold",
                                         entry.toPar < 0 ? "text-red-600" : entry.toPar > 0 ? "text-gray-900" : "text-openclub-800"
                                       )}>
                                         {entry.grossStrokes > 0 ? (entry.toPar > 0 ? `+${entry.toPar}` : entry.toPar === 0 ? "E" : entry.toPar) : "-"}

@@ -67,7 +67,7 @@ export default function OrganizerAdminDashboard() {
       setLoading(true);
       Promise.all([
         getClubStats(user.clubId),
-        getTournaments({ clubId: user.clubId, take: 5, status: "REGISTRATION_OPEN" })
+        getTournaments({ clubId: user.clubId, take: 3, status: "REGISTRATION_OPEN" })
       ])
         .then(([statsData, tournamentsData]: [any, any]) => {
           setStats(statsData);
@@ -81,8 +81,8 @@ export default function OrganizerAdminDashboard() {
     }
   }, [user?.clubId]);
 
-  const [registrationsRange, setRegistrationsRange] = useState("This Month");
-  const [revenueRange, setRevenueRange] = useState("This Month");
+  const [registrationsRange, setRegistrationsRange] = useState("This Year");
+  const [revenueRange, setRevenueRange] = useState("This Year");
   const [registrationData, setRegistrationData] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
 
@@ -252,7 +252,7 @@ export default function OrganizerAdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
-              {["This Month", "This Year", "Last Year"].map(range => (
+              {["This Year", "Last Year"].map(range => (
                 <button
                   key={range}
                   onClick={() => setRegistrationsRange(range)}
@@ -270,12 +270,12 @@ export default function OrganizerAdminDashboard() {
           <div className="flex-1 w-full min-h-[300px]">
             {isMounted ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={registrationData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
+                <BarChart data={registrationData} margin={{ top: 20, right: 0, left: 20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#a1a1aa" }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} width={80} tick={{ fontSize: 12, fill: "#a1a1aa" }} />
                   <Tooltip
-                    cursor={{ stroke: 'rgba(21, 128, 61, 0.2)', strokeWidth: 2 }}
+                    cursor={{ fill: 'rgba(21, 128, 61, 0.05)' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
@@ -288,15 +288,13 @@ export default function OrganizerAdminDashboard() {
                       return null;
                     }}
                   />
-                  <Line
-                    type="monotone"
+                  <Bar
                     dataKey="count"
-                    stroke="#15803D"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: "#15803D", strokeWidth: 2, stroke: "#fff" }}
-                    activeDot={{ r: 6, fill: "#15803D", strokeWidth: 2, stroke: "#fff" }}
+                    fill="#15803D"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={40}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <Skeleton className="h-full w-full rounded-xl" />
@@ -318,7 +316,7 @@ export default function OrganizerAdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
-              {["This Month", "This Year", "Last Year"].map(range => (
+              {["This Year", "Last Year"].map(range => (
                 <button
                   key={range}
                   onClick={() => setRevenueRange(range)}
