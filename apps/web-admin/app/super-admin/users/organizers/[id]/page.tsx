@@ -1755,7 +1755,7 @@ export default function SuperAdminTeamPage() {
         isOpen={isInviteManagerModalOpen}
         onClose={() => setIsInviteManagerModalOpen(false)}
         title="Invite Manager"
-        size="md"
+        size="lg"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
@@ -1794,27 +1794,19 @@ export default function SuperAdminTeamPage() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
-            <Input
-              type="email"
-              placeholder="manager@example.com"
-              value={inviteEmail}
-              onChange={(e: any) => setInviteEmail(e.target.value)}
-              className="mt-1 h-11 border-gray-200"
-            />
-          </div>
-          <div>
-            <Label className="text-sm font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
-            <Input
-              placeholder="Doe"
-              value={inviteLastName}
-              onChange={(e: any) => setInviteLastName(e.target.value)}
-              className="mt-1 h-11 border-gray-200"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left Column: Personal Information */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+              <Input
+                type="email"
+                placeholder="manager@example.com"
+                value={inviteEmail}
+                onChange={(e: any) => setInviteEmail(e.target.value)}
+                className="mt-1 h-11 border-gray-200"
+              />
+            </div>
             <div>
               <Label className="text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
               <Input
@@ -1833,9 +1825,19 @@ export default function SuperAdminTeamPage() {
                 className="mt-1 h-11 border-gray-200"
               />
             </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
+              <Input
+                placeholder="Doe"
+                value={inviteLastName}
+                onChange={(e: any) => setInviteLastName(e.target.value)}
+                className="mt-1 h-11 border-gray-200"
+              />
+            </div>
           </div>
 
-          <div className="pt-2">
+          {/* Right Column: Access Scope */}
+          <div>
             <Label className="text-sm font-medium text-gray-700 mb-3 block">Access Scope</Label>
             <div className="space-y-3">
               {/* Full Access Card */}
@@ -1908,7 +1910,6 @@ export default function SuperAdminTeamPage() {
               </div>
             </div>
           </div>
-
         </div>
       </Modal>
     </div>

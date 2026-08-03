@@ -50,12 +50,12 @@ function ReportTypeIcon({ type }: { type: string }) {
 function TrophyIcon(props: any) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-      <path d="M4 22h16"/>
-      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
     </svg>
   );
 }
@@ -93,10 +93,11 @@ export default function ReportsPage() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [reportFormat, setReportFormat] = useState("CSV");
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const perPage = 10;
-  
+
   // Modal form state
   const [reportName, setReportName] = useState("");
   const [reportType, setReportType] = useState("Tournament Results");
@@ -128,13 +129,15 @@ export default function ReportsPage() {
       const newReport = await generateReport({
         name: reportName,
         type: reportType,
-        clubId: activeClubId
+        clubId: activeClubId,
+        format: reportFormat
       });
       setReports([newReport, ...reports]);
       toast.success("Report generation started");
       setShowGenerateModal(false);
       setReportName("");
       setReportType("Tournament Results");
+      setReportFormat("CSV");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate report");
     }
@@ -154,8 +157,8 @@ export default function ReportsPage() {
 
   const filteredData = useMemo(() => {
     return reports.filter(rpt => {
-      const matchesSearch = rpt.name.toLowerCase().includes(search.toLowerCase()) || 
-                            rpt.id.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = rpt.name.toLowerCase().includes(search.toLowerCase()) ||
+        rpt.id.toLowerCase().includes(search.toLowerCase());
       const matchesType = typeFilter === "ALL" || rpt.type === typeFilter;
       return matchesSearch && matchesType;
     });
@@ -171,7 +174,7 @@ export default function ReportsPage() {
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
       <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
         <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-          
+
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
             <div className="flex justify-start items-center gap-3.5">
               <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
@@ -201,7 +204,7 @@ export default function ReportsPage() {
             <div className="text-[#15803D] text-3xl font-semibold">{storageUsedMB} MB</div>
             <div className="text-zinc-500 text-sm font-normal">Available capacity: 1.2 GB</div>
           </div>
-          
+
           <div className="w-px h-16 bg-slate-200" />
 
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
@@ -240,7 +243,7 @@ export default function ReportsPage() {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
             <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Reports</CardTitle>
             <div className="flex flex-wrap items-center gap-3">
-              <Button 
+              <Button
                 onClick={() => setShowGenerateModal(true)}
                 className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
               >
@@ -277,116 +280,143 @@ export default function ReportsPage() {
               </div>
             </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#f5faf6] border-y border-[#e1efe5]">
-                <tr>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Report Name</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Format</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Size</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Generated</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e1efe5] bg-white">
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className="border-b border-[#e1efe5]">
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-16 mt-2" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                      <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : filteredData.slice((page - 1) * perPage, page * perPage).map((rpt) => (
-                  <tr key={rpt.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-gray-900 group-hover:text-[#15803D] transition-colors">{rpt.name}</span>
-                        <span className="text-[12px] text-gray-500">{rpt.id}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <ReportTypeIcon type={rpt.type} />
-                        <span className="text-[13px] text-gray-700">{rpt.type}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[13px] text-gray-600 uppercase font-medium">{rpt.url ? (rpt.url.endsWith('pdf') ? 'PDF' : 'CSV') : 'PDF'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[13px] text-gray-600">{(rpt.sizeBytes / 1024).toFixed(1)} KB</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-[13px] text-gray-600">
-                        <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
-                        {formatDate(rpt.generatedAt)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={rpt.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => {
-                            if (rpt.url) window.open(rpt.url, '_blank');
-                            else toast.error("Report URL not available yet");
-                          }}
-                          disabled={!rpt.url}
-                          className="h-8 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-1.5 rounded-lg px-3 text-[13px] font-medium"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteReportId(rpt.id)} className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!isLoading && filteredData.length === 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#f5faf6] border-y border-[#e1efe5]">
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <FileArchive className="w-12 h-12 mb-4 text-gray-300" />
-                        <p className="text-base font-medium text-gray-900">No reports found</p>
-                        <p className="text-sm mt-1">Try adjusting your search or generate a new report</p>
-                      </div>
-                    </td>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Report Name</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Format</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Size</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Generated</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredData.length > 0 && (
-            <div className="px-6 py-4 border-t border-[#e1efe5] bg-gray-50 flex items-center justify-between">
-              <span className="text-[13px] text-gray-500 font-medium">
-                Showing {Math.min((page - 1) * perPage + 1, filteredData.length)} to {Math.min(page * perPage, filteredData.length)} of {filteredData.length} entries
-              </span>
-              <Pagination
-                currentPage={page}
-                totalPages={Math.ceil(filteredData.length / perPage)}
-                onPageChange={setPage}
-              />
+                </thead>
+                <tbody className="divide-y divide-[#e1efe5] bg-white">
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={`sk-${i}`} className="border-b border-[#e1efe5]">
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-16 mt-2" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                        <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto" /></td>
+                      </tr>
+                    ))
+                  ) : filteredData.slice((page - 1) * perPage, page * perPage).map((rpt) => (
+                    <tr key={rpt.id} className="hover:bg-gray-50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-[14px] font-medium text-gray-900 group-hover:text-[#15803D] transition-colors">{rpt.name}</span>
+                          <span className="text-[12px] text-gray-500">{rpt.id}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <ReportTypeIcon type={rpt.type} />
+                          <span className="text-[13px] text-gray-700">{rpt.type}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[13px] text-gray-600 uppercase font-medium">{rpt.url ? (rpt.url.endsWith('pdf') ? 'PDF' : 'CSV') : 'PDF'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[13px] text-gray-600">{(rpt.sizeBytes / 1024).toFixed(1)} KB</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center text-[13px] text-gray-600">
+                          <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                          {formatDate(rpt.generatedAt)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={rpt.status} />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (rpt.url) {
+                                if (rpt.url.startsWith('data:')) {
+                                  const a = document.createElement('a');
+                                  a.href = rpt.url;
+                                  a.download = `${rpt.name}.csv`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                } else {
+                                  window.open(rpt.url, '_blank');
+                                }
+                              } else {
+                                toast.error("Report URL not available yet");
+                              }
+                            }}
+                            disabled={!rpt.url}
+                            className="h-8 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-1.5 rounded-lg px-3 text-[13px] font-medium"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteReportId(rpt.id)} className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!isLoading && filteredData.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <FileArchive className="w-12 h-12 mb-4 text-gray-300" />
+                          <p className="text-base font-medium text-gray-900">No reports found</p>
+                          <p className="text-sm mt-1">Try adjusting your search or generate a new report</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {filteredData.length > 0 && (
+              <div className="px-6 py-4 border-t border-[#e1efe5] bg-gray-50 flex items-center justify-between">
+                <span className="text-[13px] text-gray-500 font-medium">
+                  Showing {Math.min((page - 1) * perPage + 1, filteredData.length)} to {Math.min(page * perPage, filteredData.length)} of {filteredData.length} entries
+                </span>
+                <Pagination
+                  currentPage={page}
+                  totalPages={Math.ceil(filteredData.length / perPage)}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Modal isOpen={showGenerateModal} onClose={() => setShowGenerateModal(false)} title="Generate Report" size="md">
-        <form onSubmit={handleGenerate}>
-          <div className="p-6 space-y-5">
+      <Modal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        title="Generate Report"
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setShowGenerateModal(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button type="submit" form="generate-form" className="bg-[#15803D] hover:bg-[#166534] text-white rounded-lg font-normal px-8">
+              Generate Now
+            </Button>
+          </>
+        }
+      >
+        <form id="generate-form" onSubmit={handleGenerate}>
+          <div className="flex flex-col space-y-5 py-2">
             <div className="space-y-2">
               <Label>Report Name</Label>
               <SearchableSelect
@@ -415,10 +445,28 @@ export default function ReportsPage() {
                 triggerClassName="h-11 bg-white border-gray-200"
               />
             </div>
-          </div>
-          <div className="p-4 border-t border-[#e1efe5] bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-            <Button type="button" variant="outline" onClick={() => setShowGenerateModal(false)}>Cancel</Button>
-            <Button type="submit" className="bg-[#15803D] hover:bg-[#166534] text-white">Generate Now</Button>
+            <div className="space-y-1.5 pt-2">
+              <Label className="text-[15px] font-medium text-gray-900">File Format</Label>
+              <p className="text-[13px] text-gray-500 mb-3">Select the format you want your report to be generated in.</p>
+              <div className="flex w-full bg-white border border-gray-200 rounded-lg overflow-hidden h-10">
+                <button
+                  type="button"
+                  onClick={() => setReportFormat("CSV")}
+                  className={`flex-1 text-sm transition-colors ${reportFormat === "CSV" ? "bg-[#15803D] text-white" : "bg-transparent text-gray-600 hover:bg-gray-50"
+                    }`}
+                >
+                  CSV (Spreadsheet)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportFormat("PDF")}
+                  className={`flex-1 text-sm transition-colors border-l border-gray-200 ${reportFormat === "PDF" ? "bg-[#15803D] text-white border-transparent" : "bg-transparent text-gray-600 hover:bg-gray-50"
+                    }`}
+                >
+                  PDF Document
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </Modal>
@@ -432,7 +480,7 @@ export default function ReportsPage() {
             <Button variant="outline" onClick={() => setDeleteReportId(null)} className="rounded-lg font-normal">
               Cancel
             </Button>
-            <Button 
+            <Button
               className="bg-red-500 hover:bg-red-600 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
