@@ -168,19 +168,66 @@ export default function PublicLeaderboard({ tournamentId, tournamentStartDate }:
 
   if (isLoading) {
     return (
-      <div className="space-y-4 mt-4">
-        <div className="bg-white rounded-lg p-4 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col md:flex-row gap-4 justify-between items-center md:h-[68px]">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-9 w-full md:w-64" />
-        </div>
-        <div className="bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] p-6">
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-14 w-full rounded-md" />
-            <Skeleton className="h-14 w-full rounded-md" />
-            <Skeleton className="h-14 w-full rounded-md" />
-            <Skeleton className="h-14 w-full rounded-md" />
-            <Skeleton className="h-14 w-full rounded-md" />
+      <div className="mt-4">
+        <div className="bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
+          <div className="px-6 pt-6 pb-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center border-b border-gray-100">
+            <h2 className="text-[17px] font-medium text-gray-900 flex items-center gap-2.5">
+              <Trophy className="w-5 h-5 text-openclub-600" />
+              Tournament Leaderboard
+            </h2>
+            <div className="relative w-full md:w-80 opacity-60 pointer-events-none">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search players..."
+                className="pl-10 h-11 text-[14px] rounded-lg bg-gray-50 text-gray-400"
+                disabled
+              />
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                  <th className="px-6 py-4 text-center w-16">POS</th>
+                  <th className="px-6 py-4">PLAYER</th>
+                  <th className="px-6 py-4 text-center">HOLES</th>
+                  <th className="px-6 py-4 text-center">GROSS</th>
+                  <th className="px-6 py-4 text-center">HCP</th>
+                  <th className="px-6 py-4 text-center">NET</th>
+                  <th className="px-6 py-4 text-center">TO PAR</th>
+                  <th className="px-6 py-4 text-center">STATUS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-4 mx-auto" /></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-6 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-10 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Pagination Skeleton */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <Skeleton className="w-9 h-9 rounded-lg" />
+            </div>
           </div>
         </div>
       </div>

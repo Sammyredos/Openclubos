@@ -101,6 +101,7 @@ export async function getRegistrations(params?: {
   waitlistOnly?: boolean;
   skip?: number;
   take?: number;
+  orderBy?: 'registeredAt' | 'updatedAt';
 }): Promise<{ items: RegistrationListItem[]; total: number }> {
   const token = getAuthToken();
   const searchParams = new URLSearchParams();
@@ -116,6 +117,7 @@ export async function getRegistrations(params?: {
   if (params?.waitlistOnly) searchParams.append('waitlistOnly', 'true');
   if (params?.skip != null) searchParams.append('skip', String(params.skip));
   if (params?.take != null) searchParams.append('take', String(params.take));
+  if (params?.orderBy) searchParams.append('orderBy', params.orderBy);
 
   const qs = searchParams.toString();
   const res = await fetch(`${API_BASE}/registrations${qs ? `?${qs}` : ''}`, {
@@ -128,6 +130,26 @@ export async function getRegistrations(params?: {
     await handleAuthFailure(res);
     const error: unknown = await res.json().catch(() => null);
     throw new Error(getErrorMessage(error) || 'Failed to fetch registrations');
+  }
+  return res.json();
+}
+
+export async function getRegistrationStats(params?: { clubId?: string }) {
+  const token = getAuthToken();
+  const searchParams = new URLSearchParams();
+  if (params?.clubId) searchParams.append('clubId', params.clubId);
+
+  const qs = searchParams.toString();
+  const res = await fetch(`${API_BASE}/registrations/stats${qs ? `?${qs}` : ''}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
+    },
+  });
+
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error: unknown = await res.json().catch(() => null);
+    throw new Error(getErrorMessage(error) || 'Failed to fetch stats');
   }
   return res.json();
 }

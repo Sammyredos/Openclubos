@@ -8,13 +8,8 @@ import {
   CheckCircle2,
   Clock,
   Ban,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  DollarSign,
-  Settings
+  FileText
 } from "lucide-react";
-import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -40,6 +35,7 @@ function TrendBadge({ value = 0 }: { value?: number }) {
     </div>
   );
 }
+
 import { useAuth } from "@/lib/auth/AuthContext";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
@@ -87,14 +83,10 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!user?.clubId) {
-        setIsLoading(false);
-        return;
-      }
       try {
         const [data, statsData] = await Promise.all([
-          getRegistrations({ clubId: user.clubId, take: 50, orderBy: 'updatedAt' }),
-          getRegistrationStats({ clubId: user.clubId })
+          getRegistrations({ take: 100, orderBy: 'updatedAt' }),
+          getRegistrationStats()
         ]);
         setRegistrations(data.items);
         setStats(statsData);
@@ -105,7 +97,7 @@ export default function PaymentsPage() {
       }
     }
     loadData();
-  }, [user?.clubId]);
+  }, []);
 
   const filteredData = useMemo(() => {
     return registrations.filter(txn => {

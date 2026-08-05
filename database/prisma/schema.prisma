@@ -335,6 +335,7 @@ enum TournamentVisibility {
 model Registration {
   id               String             @id @default(uuid())
   registeredAt     DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt @default(now())
   status           RegistrationStatus @default(PENDING)
   paymentStatus    PaymentStatus      @default(UNPAID)
   playerType       String? // MEMBER, EXTERNAL, GUEST

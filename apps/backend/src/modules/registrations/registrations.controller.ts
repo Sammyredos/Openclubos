@@ -54,6 +54,18 @@ export class RegistrationsController {
     );
   }
 
+  @Get('stats')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
+  getStats(
+    @Request() req: any,
+    @Query('clubId') clubId?: string,
+  ) {
+    const role = req.user?.role as UserRole | undefined;
+    const userClubId = req.user?.clubId as string | undefined;
+    const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    return this.registrationsService.getStats(effectiveClubId);
+  }
+
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   findAll(
@@ -70,6 +82,7 @@ export class RegistrationsController {
     @Query('waitlistOnly') waitlistOnly?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
+    @Query('orderBy') orderBy?: 'registeredAt' | 'updatedAt',
   ) {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
@@ -92,6 +105,7 @@ export class RegistrationsController {
       waitlistOnly: waitlistOnly === 'true',
       skip,
       take,
+      orderBy,
     });
   }
 

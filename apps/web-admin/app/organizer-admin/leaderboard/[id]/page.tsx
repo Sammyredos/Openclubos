@@ -1266,20 +1266,7 @@ function ViewTournamentPageInner() {
 
         {/* Main Layout Grid Skeleton */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Navigation Tabs Skeleton */}
-          <div className="w-full lg:w-[280px] shrink-0">
-            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-3.5 bg-white border border-[#e1efe5] rounded-xl">
-                  <div className="flex items-center gap-3.5">
-                    <Skeleton className="w-[18px] h-[18px] rounded" />
-                    <Skeleton className="h-4 w-32 rounded" />
-                  </div>
-                  <Skeleton className="w-4 h-4 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Left Column - Removed for full width */}
 
           {/* Right Column - Active Panel Skeleton */}
           <div className="flex-1 min-w-0 space-y-6">

@@ -348,6 +348,7 @@ export class RegistrationsService {
     waitlistOnly?: boolean;
     skip?: number;
     take?: number;
+    orderBy?: 'registeredAt' | 'updatedAt';
   }) {
     const where: any = {};
     if (query.status) {
@@ -405,7 +406,7 @@ export class RegistrationsService {
         where,
         skip: query.skip ? +query.skip : 0,
         take: query.take ? Math.min(+query.take, MAX_PAGE_SIZE) : 10,
-        orderBy: { registeredAt: 'desc' },
+        orderBy: (query.orderBy === 'updatedAt' ? { updatedAt: 'desc' } : { registeredAt: 'desc' }) as any,
         include: {
           user: {
             select: {
@@ -434,6 +435,73 @@ export class RegistrationsService {
     ]);
 
     return { items, total };
+  }
+
+  async getStats(clubId?: string) {
+    const where = clubId ? { tournament: { clubId } } : {};
+    
+    // Total transactions
+    const totalTransactions = await this.prisma.registration.count({ where });
+
+    // Aggregate entry fees
+    const registrations = await this.prisma.registration.findMany({
+      where,
+      select: {
+        paymentStatus: true,
+        registeredAt: true,
+        tournament: {
+          select: {
+            entryFee: true,
+          }
+        }
+      }
+    });
+
+    let totalRevenue = 0;
+    let pendingAmount = 0;
+    let refundsAmount = 0;
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(thirtyDaysAgo.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    let currentPeriodTxns = 0;
+    let previousPeriodTxns = 0;
+    let currentPeriodRev = 0;
+    let previousPeriodRev = 0;
+
+    for (const reg of registrations) {
+      const fee = reg.tournament?.entryFee || 0;
+      if (reg.paymentStatus === 'PAID') totalRevenue += fee;
+      if (reg.paymentStatus === 'UNPAID') pendingAmount += fee;
+      if (reg.paymentStatus === 'REFUNDED') refundsAmount += fee;
+
+      // Trend calculations
+      const isCurrentPeriod = reg.registeredAt >= thirtyDaysAgo;
+      const isPreviousPeriod = reg.registeredAt >= sixtyDaysAgo && reg.registeredAt < thirtyDaysAgo;
+
+      if (isCurrentPeriod) {
+        currentPeriodTxns++;
+        if (reg.paymentStatus === 'PAID') currentPeriodRev += fee;
+      } else if (isPreviousPeriod) {
+        previousPeriodTxns++;
+        if (reg.paymentStatus === 'PAID') previousPeriodRev += fee;
+      }
+    }
+
+    const calcChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    return {
+      totalTransactions,
+      totalRevenue,
+      pendingAmount,
+      refundsAmount,
+      transactionsChange: parseFloat(calcChange(currentPeriodTxns, previousPeriodTxns).toFixed(1)),
+      revenueChange: parseFloat(calcChange(currentPeriodRev, previousPeriodRev).toFixed(1)),
+    };
   }
 
   async updateStatus(registrationId: string, status: RegistrationStatus) {

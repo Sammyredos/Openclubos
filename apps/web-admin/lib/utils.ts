@@ -216,8 +216,12 @@ export function formatCurrency(amount: number): string {
   const absValue = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
 
-  if (absValue > 11_000_000) {
-    return `${sign} ₦11m and above`;
+  if (absValue >= 1_000_000_000) {
+    const val = absValue / 1_000_000_000;
+    const formatted = new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 1,
+    }).format(val);
+    return `${sign} ₦${formatted}b`;
   }
 
   if (absValue >= 1_000_000) {

@@ -39,6 +39,7 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/players") return "Subscribed Players";
     if (pathname === "/super-admin/subscriptions/plans") return "Subscription Plans";
     if (pathname === "/super-admin/subscriptions") return "Subscriptions";
+    if (pathname === "/super-admin/payments") return "Payments";
     if (pathname === "/super-admin/golf-courses") return "Golf Courses";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Course Details";
     if (pathname === "/super-admin/settings") return "Settings";
@@ -53,6 +54,7 @@ export function TopNav() {
     || pathname === "/super-admin/users/organizers"
     || pathname === "/super-admin/tournaments"
     || pathname === "/super-admin/leaderboard"
+    || pathname === "/super-admin/payments"
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
     || pathname === "/super-admin/settings"
@@ -94,6 +96,7 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/players") return "Monitor billing, plans, and player subscription statuses.";
     if (pathname === "/super-admin/subscriptions/plans") return "Create and manage subscription plans and pricing.";
     if (pathname === "/super-admin/subscriptions") return "Monitor billing, plans, and subscription statuses.";
+    if (pathname === "/super-admin/payments") return "Track all platform transactions, entry fees and refunds.";
     if (pathname === "/super-admin/golf-courses") return "Manage the database of available golf courses.";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Detailed view and settings for the selected course.";
     if (pathname === "/super-admin/settings") return "Configure global platform preferences and settings.";
