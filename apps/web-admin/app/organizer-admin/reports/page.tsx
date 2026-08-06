@@ -254,7 +254,7 @@ export default function ReportsPage() {
 
           <CardContent className="p-0">
             <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px]">
+              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
                   placeholder="Search reports..."

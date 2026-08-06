@@ -149,7 +149,7 @@ function SearchableSelect({
           )}
           <div className="max-h-60 overflow-auto py-1 custom-scrollbar">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-[12px] text-gray-400 text-center">No results found</div>
+              <div className="px-3 py-2 text-[13px] text-gray-400 text-center">No results found</div>
             ) : (
               filtered.map((o) => (
                 <button
@@ -162,7 +162,7 @@ function SearchableSelect({
                     setQuery("")
                   }}
                   className={cn(
-                    "flex w-full items-center gap-3 px-3 py-2 text-left text-[12px] transition-colors",
+                    "flex w-full items-center gap-3 px-3 py-2 text-left text-[13px] transition-colors",
                     o.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-emerald-50/50",
                     o.value === value ? "bg-emerald-50/80 font-normal text-emerald-900" : "text-gray-700"
                   )}

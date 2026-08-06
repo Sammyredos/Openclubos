@@ -55,6 +55,8 @@ import {
   ArrowDown,
   Settings2,
   MonitorPlay,
+  Banknote,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -1210,12 +1212,19 @@ function ViewTournamentPageInner() {
   };
 
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [activeMarkPaidDropdown, setActiveMarkPaidDropdown] = useState<string | null>(null);
+  const [markPaidDropdownAnchorEl, setMarkPaidDropdownAnchorEl] = useState<HTMLElement | null>(null);
 
-  const handleMarkPaid = async (registrationId: string) => {
+  const closeMarkPaidDropdown = () => {
+    setActiveMarkPaidDropdown(null);
+    setMarkPaidDropdownAnchorEl(null);
+  };
+
+  const handleMarkPaid = async (registrationId: string, paymentMethod: "CASH" | "BANK_TRANSFER") => {
     if (markingPaidId) return;
     setMarkingPaidId(registrationId);
     try {
-      await confirmRegistrationPayment(registrationId, "MANUAL_ADMIN_" + Date.now());
+      await confirmRegistrationPayment(registrationId, paymentMethod + "_" + Date.now());
       toast.success("Player payment confirmed successfully!");
       await reloadSingleTournament();
       // Refresh groupings data so the newly paid player appears in the Ungrouped Players
@@ -1414,7 +1423,7 @@ function ViewTournamentPageInner() {
 
               {/* Tab Filters Bar Skeleton */}
               <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px]">
+                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                   <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
                 </div>
                 <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
@@ -1568,7 +1577,7 @@ function ViewTournamentPageInner() {
             {TABS.map((tab, index) => {
               const isActive = activeTab === tab.id;
               const isShotgun = selectedTournament?.startType === "SHOTGUN";
-              const label = tab.id === "groupings" 
+              const label = tab.id === "groupings"
                 ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
                 : tab.label;
               return (
@@ -1658,7 +1667,7 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative flex-1 min-w-[240px]">
+                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
@@ -1837,20 +1846,71 @@ function ViewTournamentPageInner() {
                                   {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && (
                                     <div className="flex items-center justify-end gap-2">
                                       {selectedTournament.entryFee !== null && !isPaid && new Date(selectedTournament.startDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) && (
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => handleMarkPaid(r.id)}
-                                          disabled={markingPaidId === r.id}
-                                          title="Mark as Paid"
-                                          className="h-9 px-2.5 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5"
-                                        >
-                                          {markingPaidId === r.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-openclub-800" />
-                                          ) : (
-                                            <Wallet className="w-4 h-4" />
-                                          )}
-                                          <span className="text-[12px] font-normal">Mark Paid</span>
-                                        </Button>
+                                        <div className="inline-flex rounded-md shadow-sm h-8">
+                                          <button
+                                            onClick={(e) => {
+                                              if (activeMarkPaidDropdown === r.id) {
+                                                closeMarkPaidDropdown();
+                                              } else {
+                                                setActiveMarkPaidDropdown(r.id);
+                                                setMarkPaidDropdownAnchorEl(e.currentTarget);
+                                              }
+                                            }}
+                                            disabled={markingPaidId === r.id}
+                                            className="h-8 pl-3 pr-2.5 inline-flex items-center justify-center gap-1.5 rounded-l-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-r-[rgba(255,255,255,0.2)] disabled:opacity-50"
+                                            title="Mark as Paid"
+                                          >
+                                            {markingPaidId === r.id ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                                            ) : (
+                                              <Wallet className="w-3.5 h-3.5" />
+                                            )}
+                                            <span className="text-[12px] font-medium leading-none whitespace-nowrap">Mark Paid</span>
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              if (activeMarkPaidDropdown === r.id) {
+                                                closeMarkPaidDropdown();
+                                              } else {
+                                                setActiveMarkPaidDropdown(r.id);
+                                                setMarkPaidDropdownAnchorEl(e.currentTarget);
+                                              }
+                                            }}
+                                            disabled={markingPaidId === r.id}
+                                            className="h-8 px-1.5 inline-flex items-center justify-center rounded-r-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-l-0 disabled:opacity-50"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                          <FloatingMenu
+                                            open={activeMarkPaidDropdown === r.id}
+                                            anchorEl={markPaidDropdownAnchorEl}
+                                            onClose={closeMarkPaidDropdown}
+                                            placement="bottom-end"
+                                          >
+                                            <div className="w-40 py-1 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-200 flex flex-col">
+                                              <button
+                                                className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                                onClick={() => {
+                                                  handleMarkPaid(r.id, "CASH");
+                                                  closeMarkPaidDropdown();
+                                                }}
+                                              >
+                                                <Banknote className="w-4 h-4 text-emerald-600" />
+                                                Cash Payment
+                                              </button>
+                                              <button
+                                                className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                                onClick={() => {
+                                                  handleMarkPaid(r.id, "BANK_TRANSFER");
+                                                  closeMarkPaidDropdown();
+                                                }}
+                                              >
+                                                <Landmark className="w-4 h-4 text-blue-500" />
+                                                Bank Transfer
+                                              </button>
+                                            </div>
+                                          </FloatingMenu>
+                                        </div>
                                       )}
                                       <Button
                                         size="sm"
@@ -3115,7 +3175,7 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="relative flex-1 min-w-[240px]">
+                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
@@ -3734,39 +3794,37 @@ function ViewTournamentPageInner() {
           ].map((rule) => {
             const Icon = rule.icon;
             return (
-            <button
-              key={rule.value}
-              disabled={rule.disabled}
-              onClick={() => setSelectedAutoTeeRule(rule.value)}
-              className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${
-                selectedAutoTeeRule === rule.value
+              <button
+                key={rule.value}
+                disabled={rule.disabled}
+                onClick={() => setSelectedAutoTeeRule(rule.value)}
+                className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${selectedAutoTeeRule === rule.value
                   ? "border-openclub-600 bg-openclub-50/50 ring-1 ring-openclub-600"
                   : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-start gap-4 flex-1 pr-4">
-                <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
-                  selectedAutoTeeRule === rule.value 
-                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700' 
+                  }`}
+              >
+                <div className="flex items-start gap-4 flex-1 pr-4">
+                  <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${selectedAutoTeeRule === rule.value
+                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}>
-                  <Icon className="w-4 h-4" />
+                    }`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
+                    <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                  </div>
                 </div>
-                <div className="text-left flex-1 min-w-0">
-                  <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
-                  <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
+                  {selectedAutoTeeRule === rule.value && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
+                  )}
                 </div>
-              </div>
-              <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
-                {selectedAutoTeeRule === rule.value && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
-                )}
-              </div>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
         </div>
-        
+
         <div className="mt-2 flex justify-end">
           <Button
             disabled={!selectedAutoTeeRule}

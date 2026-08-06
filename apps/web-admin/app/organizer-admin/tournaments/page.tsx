@@ -1036,7 +1036,7 @@ export default function TournamentsPage() {
                       "tournaments-export.csv"
                     );
                   }}
-                  className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                   Export CSV
@@ -1057,7 +1057,7 @@ export default function TournamentsPage() {
                       "Tournaments Export"
                     );
                   }}
-                  className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <FileText className="w-4 h-4 text-rose-600" />
                   Export PDF
@@ -1074,7 +1074,7 @@ export default function TournamentsPage() {
           <CardContent className="p-0">
             {/* Filters */}
             <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px]">
+              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
                   placeholder="Search tournament name, organizer..."
@@ -1316,11 +1316,12 @@ export default function TournamentsPage() {
 
       <FloatingMenu open={activeManageDropdown != null} anchorEl={manageDropdownAnchorEl} onClose={closeManageDropdown} placement="bottom-end" className="w-56 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 py-2">
         {manageDropdownTournament && [
-          { id: "players", label: "Players & Registrations", icon: Users },
-          { id: "invite", label: "Invite a Player", icon: UserPlus },
-          { id: "waitlist", label: "Waitlisted Players", icon: Clock },
-          { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
-          { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
+          { id: "players", label: "Players & Registrations", icon: Users, color: "text-blue-500" },
+          { id: "invite", label: "Invite a Player", icon: UserPlus, color: "text-emerald-600" },
+          { id: "register", label: "Register a Player", icon: UserPlus, color: "text-emerald-500" },
+          { id: "waitlist", label: "Waitlisted Players", icon: Clock, color: "text-orange-500" },
+          { id: "groupings", label: "Flights & Tee Times", icon: Calendar, color: "text-indigo-500" },
+          { id: "penalize", label: "Penalize a Player", icon: AlertTriangle, color: "text-red-500" },
         ].map(tab => (
           <button
             key={tab.id}
@@ -1329,9 +1330,9 @@ export default function TournamentsPage() {
               router.push(`/${prefix}/tournaments/${manageDropdownTournament.id}?tab=${tab.id}`);
               closeManageDropdown();
             }}
-            className="w-full text-left px-4 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-3 transition-colors"
           >
-            <tab.icon className="w-4 h-4 text-gray-400" />
+            <tab.icon className={cn("w-4 h-4", tab.color)} />
             {tab.label}
           </button>
         ))}
@@ -1343,7 +1344,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("edit", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] flex items-center gap-3 transition-colors",
                 dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-background"
@@ -1355,14 +1356,14 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             >
               <Download className="w-4 h-4 text-gray-400" />
               Export Tournament Data
             </button>
             <button
               onClick={() => handleMoreAction("copy-link", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             >
               <Link className="w-4 h-4 text-openclub-700" />
               Copy Tournament Link
@@ -1371,7 +1372,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("register", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] flex items-center gap-3 transition-colors",
                 dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700"
@@ -1384,7 +1385,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("waitlist", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-emerald-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] flex items-center gap-3 transition-colors",
                 !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
               )}
               disabled={!dropdownTournament.enableWaitlist}
@@ -1396,7 +1397,7 @@ export default function TournamentsPage() {
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] font-normal transition-colors hover:bg-red-50 flex items-center gap-3",
                 dropdownTournament.statusKey === "COMPLETED" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.registrations > 0
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700",
@@ -1415,7 +1416,7 @@ export default function TournamentsPage() {
             </button>
             <button
               onClick={() => handleMoreAction("delete", dropdownTournament)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[13px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3 transition-colors"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               Delete Tournament
@@ -1439,7 +1440,7 @@ export default function TournamentsPage() {
             {[1, 2, 3, 4].map((delta) => (
               <button
                 key={delta}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 onClick={() => {
                   const reg = strokesMenuRegistration;
                   setStrokesMenuRegistration(null);

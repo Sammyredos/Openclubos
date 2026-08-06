@@ -25,6 +25,13 @@ import {
   FileSpreadsheet,
   TrendingUp,
   ChevronDown,
+  SlidersHorizontal,
+  Check,
+  Trees,
+  Waves,
+  Sun,
+  Leaf,
+  Layers,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -87,7 +94,14 @@ export default function SuperAdminGolfCoursesPage() {
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [dropdownCourse, setDropdownCourse] = useState<Course | null>(null);
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
+  const [activeMasterFilterDropdown, setActiveMasterFilterDropdown] = useState(false);
+  const [masterFilterDropdownAnchorEl, setMasterFilterDropdownAnchorEl] = useState<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
+
+  const closeMasterFilterDropdown = () => {
+    setActiveMasterFilterDropdown(false);
+    setMasterFilterDropdownAnchorEl(null);
+  };
 
   const closeDropdown = () => {
     setActiveDropdown(null);
@@ -329,7 +343,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "courses-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
@@ -350,7 +364,7 @@ export default function SuperAdminGolfCoursesPage() {
                     "Golf Courses Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -366,10 +380,10 @@ export default function SuperAdminGolfCoursesPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-[240px] max-w-[500px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search courses by name, LGA, or country..."
+                placeholder="Search Golf courses..."
                 className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
                 value={searchQuery}
                 onChange={(e) => {
@@ -378,34 +392,146 @@ export default function SuperAdminGolfCoursesPage() {
                 }}
               />
             </div>
-            <SearchableSelect
-              value={countryFilter}
-              onValueChange={setCountryFilter}
-              options={countries}
-              className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Countries"
-            />
-            <SearchableSelect
-              value={typeFilter}
-              onValueChange={setTypeFilter}
-              options={courseTypes}
-              className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Types"
-            />
-            <SearchableSelect
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              options={[
-                { value: "All Status", label: "All Status" },
-                { value: "ACTIVE", label: "Active" },
-                { value: "INACTIVE", label: "Inactive" },
-              ]}
-              className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Status"
-            />
+            <div className="flex flex-wrap items-center gap-3 ml-auto">
+              <SearchableSelect
+                value={countryFilter}
+                onValueChange={setCountryFilter}
+                options={countries}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Countries"
+              />
+              
+              <div className="relative">
+              <button
+                onClick={(e) => {
+                  if (activeMasterFilterDropdown) {
+                    closeMasterFilterDropdown();
+                  } else {
+                    setActiveMasterFilterDropdown(true);
+                    setMasterFilterDropdownAnchorEl(e.currentTarget);
+                  }
+                }}
+                className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-[#f5faf6] border border-[#e1efe5] text-[#15803D] font-medium text-[14px] transition-colors hover:bg-[#e1efe5]"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>Filters</span>
+                {(statusFilter !== "All Status" || typeFilter !== "All Types") && (
+                  <span className="flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-[#15803D] text-white text-[10px]">
+                    {(statusFilter !== "All Status" ? 1 : 0) + (typeFilter !== "All Types" ? 1 : 0)}
+                  </span>
+                )}
+              </button>
+              <FloatingMenu
+                open={activeMasterFilterDropdown}
+                anchorEl={masterFilterDropdownAnchorEl}
+                onClose={closeMasterFilterDropdown}
+                placement="bottom-end"
+              >
+                <div className="w-48 py-1.5 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col max-h-80 overflow-y-auto">
+                  <div className="px-3 pt-1.5 pb-1 text-[12px] font-semibold text-gray-400 uppercase tracking-wider">Status</div>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setStatusFilter("All Status");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Layers className="w-4 h-4 text-gray-400" />
+                      All Status
+                    </span>
+                    {statusFilter === "All Status" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setStatusFilter("ACTIVE");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      Active
+                    </span>
+                    {statusFilter === "ACTIVE" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setStatusFilter("INACTIVE");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Ban className="w-4 h-4 text-red-500" />
+                      Inactive
+                    </span>
+                    {statusFilter === "INACTIVE" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  
+                  <div className="px-3 pt-2 pb-1 mt-1 text-[12px] font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-100">Course Type</div>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setTypeFilter("All Types");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Layers className="w-4 h-4 text-gray-400" />
+                      All Types
+                    </span>
+                    {typeFilter === "All Types" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setTypeFilter("Parkland");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Trees className="w-4 h-4 text-emerald-600" />
+                      Parkland
+                    </span>
+                    {typeFilter === "Parkland" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setTypeFilter("Links");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Waves className="w-4 h-4 text-blue-500" />
+                      Links
+                    </span>
+                    {typeFilter === "Links" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setTypeFilter("Desert");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Sun className="w-4 h-4 text-orange-500" />
+                      Desert
+                    </span>
+                    {typeFilter === "Desert" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
+                    onClick={() => {
+                      setTypeFilter("Heathland");
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Leaf className="w-4 h-4 text-green-500" />
+                      Heathland
+                    </span>
+                    {typeFilter === "Heathland" && <Check className="w-4 h-4 text-[#15803D]" />}
+                  </button>
+                </div>
+              </FloatingMenu>
+            </div>
+            </div>
 
           </div>
 
@@ -788,14 +914,14 @@ export default function SuperAdminGolfCoursesPage() {
               URL.revokeObjectURL(url);
               toast.success("Course exported");
             }}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
           >
             <Download className="w-4 h-4 text-gray-400" /> Export Data
           </button>
           <div className="h-px bg-background my-1 mx-2" />
           <button
             onClick={() => openDeleteModal(dropdownCourse)}
-            className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-red-50 flex items-center gap-3"
+            className="w-full text-left px-4 py-2 text-[13px] font-normal text-gray-700 hover:bg-red-50 flex items-center gap-3 transition-colors"
           >
             <Trash2 className="w-4 h-4 text-red-500" /> Delete Course
           </button>

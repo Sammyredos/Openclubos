@@ -6,7 +6,13 @@ import {
   Trophy,
   Search,
   Eye,
+  SlidersHorizontal,
+  Layers,
+  Check,
+  CalendarDays,
+  Calendar,
 } from "lucide-react";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, SearchableSelect } from "@/components/ui/input";
@@ -94,7 +100,9 @@ function getCurrentRound(startDateISO: string, endDateISO: string | null): strin
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
   let currentRound = 1;
-  if (diffDays >= 0) {
+  if (diffDays < 0) {
+    currentRound = 0;
+  } else {
     currentRound = diffDays + 1;
   }
   
@@ -132,6 +140,14 @@ export default function LeaderboardDirectoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [activeMasterFilterDropdown, setActiveMasterFilterDropdown] = useState(false);
+  const [masterFilterDropdownAnchorEl, setMasterFilterDropdownAnchorEl] = useState<HTMLElement | null>(null);
+
+  const closeMasterFilterDropdown = () => {
+    setActiveMasterFilterDropdown(false);
+    setMasterFilterDropdownAnchorEl(null);
+  };
+
   useEffect(() => {
     if (!user?.clubId) return;
     setLoading(true);
@@ -148,9 +164,8 @@ export default function LeaderboardDirectoryPage() {
   }, [user?.clubId]);
 
   const uniqueStatuses = useMemo(() => {
-    const s = new Set(tournaments.map(t => STATUS_META[t.status].label));
-    return Array.from(s).sort();
-  }, [tournaments]);
+    return Array.from(new Set(Object.values(STATUS_META).map((m) => m.label))).sort();
+  }, []);
 
   const uniqueYears = useMemo(() => {
     const y = new Set(tournaments.map(t => new Date(t.startDate).getFullYear()));
@@ -158,10 +173,8 @@ export default function LeaderboardDirectoryPage() {
   }, [tournaments]);
 
   const uniqueMonths = useMemo(() => {
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const m = new Set(tournaments.map(t => months[new Date(t.startDate).getMonth()]));
-    return Array.from(m).sort((a, b) => months.indexOf(a) - months.indexOf(b));
-  }, [tournaments]);
+    return ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  }, []);
 
   const filteredTournaments: TournamentRow[] = useMemo(() => {
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -169,7 +182,7 @@ export default function LeaderboardDirectoryPage() {
       .filter((t) => {
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
-          if (!t.name.toLowerCase().includes(q) && !t.club?.name.toLowerCase().includes(q)) return false;
+          if (!t.name.toLowerCase().includes(q)) return false;
         }
         if (statusFilter !== "All Status" && STATUS_META[t.status].label !== statusFilter) return false;
         
@@ -210,41 +223,48 @@ export default function LeaderboardDirectoryPage() {
           </CardHeader>
           <CardContent className="p-0">
             {/* Filters */}
-            <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                <Input
-                  placeholder="Search tournament name..."
-                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            <div className="px-6 pb-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                  <Input
+                    placeholder="Search tournament name..."
+                    className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <SearchableSelect
-                value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v)}
-                options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Status"
-              />
-              <SearchableSelect
-                value={monthFilter}
-                onValueChange={(v) => setMonthFilter(v)}
-                options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Months"
-              />
-              <SearchableSelect
-                value={yearFilter}
-                onValueChange={(v) => setYearFilter(v)}
-                options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Years"
-              />
+              <div className="flex items-center gap-4">
+                <SearchableSelect
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v)}
+                  options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
+                  className="w-[160px]"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  placeholder="All Status"
+                />
+                
+                <SearchableSelect
+                  value={monthFilter}
+                  onValueChange={(v) => setMonthFilter(v)}
+                  options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
+                  className="w-[150px]"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  placeholder="All Months"
+                />
+                
+                <SearchableSelect
+                  value={yearFilter}
+                  onValueChange={(v) => setYearFilter(v)}
+                  options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
+                  className="w-[130px]"
+                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  placeholder="All Years"
+                  searchable={false}
+                />
+              </div>
             </div>
 
             {/* Table */}

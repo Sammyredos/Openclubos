@@ -672,7 +672,7 @@ export default function SuperAdminUsersPage() {
                     "users-export.csv"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
                 Export CSV
@@ -692,7 +692,7 @@ export default function SuperAdminUsersPage() {
                     "Users Export"
                   );
                 }}
-                className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
               >
                 <FileText className="w-4 h-4 text-rose-600" />
                 Export PDF
@@ -708,7 +708,7 @@ export default function SuperAdminUsersPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-[240px] max-w-[500px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search users by name or email..."
@@ -868,20 +868,13 @@ export default function SuperAdminUsersPage() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openViewModal(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#f5faf6] text-[#15803D] hover:bg-[#e1efe5] transition-colors border border-[#e1efe5]"
+                            className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
                             title="View User"
                           >
-                            <Eye className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">View</span>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="text-[13px] font-normal leading-none">View</span>
                           </button>
-                          <button
-                            onClick={() => openEditModal(u)}
-                            className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100"
-                            title="Edit User"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span className="text-[11px] font-medium leading-none">Edit</span>
-                          </button>
+
                           <div className="relative">
                             <button
                               onClick={(e) => {
@@ -897,10 +890,10 @@ export default function SuperAdminUsersPage() {
                                   setDropdownUser(u);
                                 }
                               }}
-                              className="h-7 px-2 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
+                              className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200"
                               title="More Actions"
                             >
-                              <MoreHorizontal className="w-3.5 h-3.5" />
+                              <MoreHorizontal className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -1012,7 +1005,7 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openStatusModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser)
                   ? "text-gray-300 cursor-not-allowed"
                   : dropdownUser.status === "SUSPENDED"
@@ -1032,62 +1025,63 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => openEditModal(dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <Edit2 className="w-4 h-4 text-gray-400" />
+              <Edit2 className="w-4 h-4 text-blue-500" />
               Edit User
             </button>
+
             <button
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("view-analytics", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <BarChart3 className="w-4 h-4 text-gray-400" />
+              <BarChart3 className="w-4 h-4 text-indigo-500" />
               View Analytics
             </button>
             <button
               disabled={!canManageUser(dropdownUser) || mutating}
               onClick={() => handleMoreAction("force-logout", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <LogOut className="w-4 h-4 text-gray-400" />
+              <LogOut className="w-4 h-4 text-orange-500" />
               Force Logout
             </button>
             <button
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("reset-password", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <KeyRound className="w-4 h-4 text-gray-400" />
+              <KeyRound className="w-4 h-4 text-amber-500" />
               Reset Password
             </button>
             <button
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("audit-logs", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-background flex items-center gap-3",
+                "w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors hover:bg-gray-50 flex items-center gap-3",
                 !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
               )}
             >
-              <Clock className="w-4 h-4 text-gray-400" />
+              <Clock className="w-4 h-4 text-emerald-500" />
               Audit Logs
             </button>
             <button
               onClick={() => handleMoreAction("export", dropdownUser)}
-              className="w-full text-left px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-background flex items-center gap-3"
+              className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
             >
-              <Download className="w-4 h-4 text-gray-400" />
+              <Download className="w-4 h-4 text-teal-500" />
               Export User
             </button>
             <div className="h-px bg-background my-1" />
@@ -1095,8 +1089,8 @@ export default function SuperAdminUsersPage() {
               disabled={!canManageUser(dropdownUser)}
               onClick={() => handleMoreAction("delete", dropdownUser)}
               className={cn(
-                "w-full text-left px-4 py-2 text-[12px] font-medium hover:bg-red-50 flex items-center gap-3",
-                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                "w-full text-left px-4 py-2 text-[13px] font-normal transition-colors hover:bg-red-50 flex items-center gap-3",
+                !canManageUser(dropdownUser) ? "text-gray-300 cursor-not-allowed" : "text-red-600",
               )}
             >
               <Trash2 className="w-4 h-4 text-red-500" />

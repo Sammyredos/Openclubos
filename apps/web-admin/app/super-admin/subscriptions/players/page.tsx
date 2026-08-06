@@ -214,7 +214,7 @@ export default function SubscriptionsPage() {
 
           {/* Filters */}
           <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-[240px] max-w-[500px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search by player, email or plan..."

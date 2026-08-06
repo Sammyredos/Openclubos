@@ -1285,7 +1285,7 @@ function ViewTournamentPageInner() {
 
               {/* Tab Filters Bar Skeleton */}
               <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px]">
+                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                   <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
                 </div>
                 <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
@@ -1529,7 +1529,7 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative flex-1 min-w-[240px]">
+                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       value={registrationsSearch}
@@ -1788,7 +1788,7 @@ function ViewTournamentPageInner() {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="relative flex-1 min-w-[240px]">
+                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       placeholder="Search waitlist by name or email..."
@@ -2714,7 +2714,7 @@ function ViewTournamentPageInner() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="relative flex-1 min-w-[240px]">
+                    <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                       <Input
                         placeholder="Type player name or email to search..."
@@ -3249,7 +3249,7 @@ function ViewTournamentPageInner() {
                     <h2 className="text-[15px] font-medium text-gray-900">Penalize Player</h2>
                     <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                      <div className="relative flex-1 min-w-[240px]">
+                      <div className="relative flex-1 min-w-[240px] max-w-[500px]">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                         <Input
                           value={registrationsSearch}
