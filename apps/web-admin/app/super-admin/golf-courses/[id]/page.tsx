@@ -265,7 +265,7 @@ export default function GolfCourseDetailPage() {
                 <button
                   onClick={openStatusModal}
                   className={cn(
-                    "w-full text-left px-4 py-2 text-[12px] font-normal rounded-lg flex items-center gap-3 text-gray-700",
+                    "w-full text-left px-4 py-2 text-[12px] font-medium rounded-lg flex items-center gap-3 text-gray-700",
                     course.status === "INACTIVE" 
                       ? "hover:bg-emerald-50" 
                       : "hover:bg-red-50"

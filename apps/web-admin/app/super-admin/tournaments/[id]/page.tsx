@@ -152,8 +152,8 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
+  { id: "register", label: "Quick Player Registration", icon: UserPlus },
   { id: "invite", label: "Invite a Player", icon: UserPlus },
-  { id: "register", label: "Register a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
@@ -1422,8 +1422,8 @@ function ViewTournamentPageInner() {
               </div>
 
               {/* Tab Filters Bar Skeleton */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative flex-1">
                   <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
                 </div>
                 <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
@@ -1666,57 +1666,61 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      value={registrationsSearch}
-                      onChange={(e) => {
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={registrationsStatusFilter}
+                      onValueChange={(v: any) => {
                         setRegistrationsPage(1);
                         if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsSearch(e.target.value);
+                        setRegistrationsStatusFilter(v);
                       }}
-                      placeholder="Search name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                      options={[
+                        { value: "All Status", label: "All Status" },
+                        { value: "PENDING", label: "Pending" },
+                        { value: "APPROVED", label: "Approved" },
+                        { value: "REJECTED", label: "Rejected" },
+                        { value: "WAITLISTED", label: "Waitlisted" },
+                        { value: "DISQUALIFIED", label: "Disqualified" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Status"
+                    />
+                    <SearchableSelect
+                      value={registrationsPaymentFilter}
+                      onValueChange={(v: any) => {
+                        setRegistrationsPage(1);
+                        if (registrationsMode === "server") setRegistrationsLoading(true);
+                        setRegistrationsPaymentFilter(v);
+                      }}
+                      options={[
+                        { value: "All Payments", label: "All Payments" },
+                        { value: "PAID", label: "Paid" },
+                        { value: "UNPAID", label: "Unpaid" },
+                        { value: "REFUNDED", label: "Refunded" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Payments"
                     />
                   </div>
-                  <SearchableSelect
-                    value={registrationsStatusFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsStatusFilter(v);
-                    }}
-                    options={[
-                      { value: "All Status", label: "All Status" },
-                      { value: "PENDING", label: "Pending" },
-                      { value: "APPROVED", label: "Approved" },
-                      { value: "REJECTED", label: "Rejected" },
-                      { value: "WAITLISTED", label: "Waitlisted" },
-                      { value: "DISQUALIFIED", label: "Disqualified" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Status"
-                  />
-                  <SearchableSelect
-                    value={registrationsPaymentFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsPaymentFilter(v);
-                    }}
-                    options={[
-                      { value: "All Payments", label: "All Payments" },
-                      { value: "PAID", label: "Paid" },
-                      { value: "UNPAID", label: "Unpaid" },
-                      { value: "REFUNDED", label: "Refunded" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Payments"
-                  />
                 </div>
+              </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
@@ -1865,7 +1869,7 @@ function ViewTournamentPageInner() {
                                             ) : (
                                               <Wallet className="w-3.5 h-3.5" />
                                             )}
-                                            <span className="text-[12px] font-medium leading-none whitespace-nowrap">Mark Paid</span>
+                                            <span className="text-[12px] font-normal leading-none whitespace-nowrap">Mark Paid</span>
                                           </button>
                                           <button
                                             onClick={(e) => {
@@ -1969,23 +1973,7 @@ function ViewTournamentPageInner() {
                     <p className="text-[12px] text-gray-500 mt-1">Send an invitation email directly to a player to join this tournament.</p>
                   </div>
 
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 shadow-sm space-y-6">
-                    {/* Banner box */}
-                    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-emerald-50/40 border border-emerald-100/60">
-                      <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center shrink-0 shadow-xs">
-                        <UserPlus className="w-6 h-6" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Invite via Email</h3>
-                        <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                          Invite a player directly to{" "}
-                          <span className="text-openclub-800 font-medium">
-                            {selectedTournament.name}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
                     {/* Form */}
                     <div className="space-y-2">
                       <label className="text-[13px] font-medium text-gray-700 block">
@@ -1997,7 +1985,7 @@ function ViewTournamentPageInner() {
                         onChange={(e) => setInviteEmail(e.target.value)}
                         placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
                         disabled={isSubmittingInvite || isConcluded}
-                        className="h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
                             handleSendInvite();
@@ -2022,83 +2010,57 @@ function ViewTournamentPageInner() {
             {/* TABS 2: Register Player Inline */}
             {activeTab === "register" && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Manual Player Registration</h2>
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Quick Player Registration</h2>
                   <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Quick Registration</h3>
-                    <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      Register members directly into <span className="text-openclub-800 font-normal">{selectedTournament.name}</span>. Flights & Tee Times and pairing calculations will be recalculated dynamically.
-                    </p>
-                  </div>
-                </div>
 
-                {selectedTournament?.requiresPayment && (
-                  <div className="space-y-3">
-                    <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Initial Payment Status</Label>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setManualPaymentType('UNPAID')}
-                        className={cn(
-                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                          manualPaymentType === 'UNPAID'
-                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
-                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
-                            manualPaymentType === 'UNPAID' ? "border-openclub-700" : "border-gray-300"
-                          )}>
-                            {manualPaymentType === 'UNPAID' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
-                          </div>
-                          <span className="text-[13px] font-medium">Unpaid</span>
-                        </div>
-                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will not be confirmed for grouping until payment is recorded.</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setManualPaymentType('CASH')}
-                        className={cn(
-                          "flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 text-center",
-                          manualPaymentType === 'CASH'
-                            ? "border-openclub-700 bg-emerald-50 text-emerald-700"
-                            : "border-[#e1efe5] bg-white text-gray-550 hover:border-gray-250"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-4 h-4 rounded-lg border-2 flex items-center justify-center",
-                            manualPaymentType === 'CASH' ? "border-openclub-700" : "border-gray-300"
-                          )}>
-                            {manualPaymentType === 'CASH' && <div className="w-2 h-2 rounded-lg bg-openclub-700" />}
-                          </div>
-                          <span className="text-[13px] font-medium">Paid (Cash / Direct)</span>
-                        </div>
-                        <p className="text-[10px] opacity-70 leading-tight mt-1">Player will be marked as PAID and automatically APPROVED.</p>
-                      </button>
+
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {selectedTournament?.requiresPayment && (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Initial Payment Status</h4>
+                        <p className="text-[12px] text-gray-500">Specify the payment status for this player upon registration.</p>
+                      </div>
+                      <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('UNPAID')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'UNPAID' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Unpaid
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('CASH')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'CASH' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Paid (Cash / Direct)
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="space-y-4">
                   <div className="relative">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                     <Input
                       placeholder="Type player name or email to search..."
                       value={registerPlayerSearch}
                       onChange={(e) => setRegisterPlayerSearch(e.target.value)}
-                      className="pl-10 h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
+                      className="pl-10 h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-4">
 
                   <div className="min-h-[300px]">
                     {isSearchingPlayers ? (
@@ -2216,26 +2178,18 @@ function ViewTournamentPageInner() {
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
-                    <h4 className="text-[15px] font-medium text-gray-900 truncate">Waitlist Queue</h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(pendingWaitlistTotal)}</p>
-                    <p className="text-[11px] text-emerald-650 font-normal uppercase tracking-widest mt-1">Waiting</p>
-                  </div>
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Waitlist Queue</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Manage and approve players currently on the waitlist.</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      placeholder="Search waitlist by name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        placeholder="Search waitlist by name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       value={waitlistSearch}
                       onChange={(e) => {
                         setWaitlistSearch(e.target.value);
@@ -2243,74 +2197,67 @@ function ViewTournamentPageInner() {
                       }}
                     />
                   </div>
-                  {selectedWaitlistIds.length > 0 && (
-                    <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100">
-                      <span className="text-[12px] font-normal text-emerald-700 mr-2">
-                        {selectedWaitlistIds.length} selected
-                      </span>
-                      <Button
-                        onClick={() => setIsApproveWaitlistModalOpen(true)}
-                        className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Approve All
-                      </Button>
-                      <Button
-                        onClick={() => setIsRemoveWaitlistModalOpen(true)}
-                        variant="ghost"
-                        className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Remove All
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={waitlistFilter}
+                      onValueChange={(v: any) => {
+                        setWaitlistFilter(v);
+                        setWaitlistPage(1);
+                        setSelectedWaitlistIds([]);
+                      }}
+                      options={[
+                        { value: "PENDING", label: "Pending Queue" },
+                        { value: "REJECTED", label: "Rejected Players" },
+                      ]}
+                      className="min-w-[170px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                    />
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
-                    <button
-                      onClick={() => setWaitlistFilter("PENDING")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "PENDING"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Pending Queue
-                    </button>
-                    <button
-                      onClick={() => setWaitlistFilter("REJECTED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "REJECTED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Rejected Players
-                    </button>
+                    {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                      <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
+                        <input
+                          type="checkbox"
+                          id="selectAllWaitlist"
+                          className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                          checked={selectedWaitlistIds.length === waitlist.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedWaitlistIds(waitlist.map(i => i.id));
+                            } else {
+                              setSelectedWaitlistIds([]);
+                            }
+                          }}
+                        />
+                        <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                      </div>
+                    )}
                   </div>
-                  {waitlistFilter === "PENDING" && waitlist.length > 0 && (
-                    <div className="flex items-center gap-2 px-2">
-                      <input
-                        type="checkbox"
-                        id="selectAllWaitlist"
-                        className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
-                        checked={selectedWaitlistIds.length === waitlist.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedWaitlistIds(waitlist.map(i => i.id));
-                          } else {
-                            setSelectedWaitlistIds([]);
-                          }
-                        }}
-                      />
-                      <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
-                    </div>
-                  )}
                 </div>
+              </div>
+
+                {selectedWaitlistIds.length > 0 && (
+                  <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
+                    <span className="text-[12px] font-normal text-emerald-700 mr-2">
+                      {selectedWaitlistIds.length} selected
+                    </span>
+                    <Button
+                      onClick={() => setIsApproveWaitlistModalOpen(true)}
+                      className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Approve All
+                    </Button>
+                    <Button
+                      onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                      variant="ghost"
+                      className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove All
+                    </Button>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {waitlistLoading ? (
@@ -2474,7 +2421,7 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center">
+                    <div className="p-12 text-center">
                       <EmptyState
                         icon={Clock}
                         title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
@@ -3147,60 +3094,51 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 mb-2">
-                  <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                    <button
-                      onClick={() => setPenalizeFilter("APPROVED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        penalizeFilter === "APPROVED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Active Players
-                    </button>
-                    <button
-                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        penalizeFilter === "DISQUALIFIED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Disqualified Players
-                    </button>
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={penalizeFilter}
+                        onValueChange={(v: any) => {
+                          setPenalizeFilter(v);
+                          setRegistrationsPage(1);
+                        }}
+                        options={[
+                          { value: "APPROVED", label: "Active Players" },
+                          { value: "DISQUALIFIED", label: "Disqualified Players" },
+                        ]}
+                        className="min-w-[170px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                      <SearchableSelect
+                        value={penalizeStrokesFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          setPenalizeStrokesFilter(v);
+                        }}
+                        options={[
+                          { value: "ALL", label: "All Players" },
+                          { value: "WITH_STROKES", label: "With Strokes" },
+                        ]}
+                        className="min-w-[160px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      value={registrationsSearch}
-                      onChange={(e) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsSearch(e.target.value);
-                      }}
-                      placeholder="Search name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                    />
-                  </div>
-                  <SearchableSelect
-                    value={penalizeStrokesFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      setPenalizeStrokesFilter(v);
-                    }}
-                    options={[
-                      { value: "ALL", label: "All Players" },
-                      { value: "WITH_STROKES", label: "With Strokes" },
-                    ]}
-                    className="min-w-[160px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                  />
                 </div>
 
                 <div className="space-y-4">

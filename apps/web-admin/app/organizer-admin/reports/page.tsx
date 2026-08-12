@@ -107,7 +107,7 @@ export default function ReportsPage() {
       if (!user) return;
       try {
         const [reportsData, tournamentsData] = await Promise.all([
-          getReports(user.clubId),
+          getReports(user.clubId!),
           getTournaments({ clubId: user.clubId })
         ]);
         setReports(reportsData);
@@ -253,8 +253,12 @@ export default function ReportsPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+            {/* Main Container */}
+          <div className="px-6 pb-6">
+            <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+              <div className="p-5 border-b border-[#e1efe5]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
                   placeholder="Search reports..."
@@ -279,6 +283,7 @@ export default function ReportsPage() {
                 />
               </div>
             </div>
+              </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -324,12 +329,12 @@ export default function ReportsPage() {
                         <span className="text-[13px] text-gray-600 uppercase font-medium">{rpt.url ? (rpt.url.endsWith('pdf') ? 'PDF' : 'CSV') : 'PDF'}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-[13px] text-gray-600">{(rpt.sizeBytes / 1024).toFixed(1)} KB</span>
+                        <span className="text-[13px] text-gray-600">{((rpt.sizeBytes || 0) / 1024).toFixed(1)} KB</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center text-[13px] text-gray-600">
                           <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
-                          {formatDate(rpt.generatedAt)}
+                          {formatDate(rpt.createdAt)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -395,7 +400,9 @@ export default function ReportsPage() {
                 />
               </div>
             )}
-          </CardContent>
+            </div>
+          </div>
+        </CardContent>
         </Card>
       </div>
 

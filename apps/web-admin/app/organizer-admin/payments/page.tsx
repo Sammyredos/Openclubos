@@ -244,8 +244,12 @@ export default function PaymentsPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="px-6 pb-6 flex flex-wrap items-center gap-4 pt-6">
-              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+            {/* Main Container */}
+          <div className="px-6 pb-6">
+            <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+              <div className="p-5 border-b border-[#e1efe5]">
+                <div className="flex flex-wrap items-center gap-4 pt-6">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
                   placeholder="Search player, or TXN ID..."
@@ -387,6 +391,7 @@ export default function PaymentsPage() {
                 </div>
               </div>
             </div>
+              </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -477,7 +482,9 @@ export default function PaymentsPage() {
                 />
               </div>
             )}
-          </CardContent>
+            </div>
+          </div>
+        </CardContent>
         </Card>
       </div>
 

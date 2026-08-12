@@ -707,12 +707,16 @@ export default function SuperAdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+          {/* Main Container */}
+          <div className="px-6 pb-6">
+            <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+              <div className="p-5 border-b border-[#e1efe5]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search users by name or email..."
-                className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5]"
+                className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -757,6 +761,7 @@ export default function SuperAdminUsersPage() {
               placeholder="All Handicaps"
             />
           </div>
+              </div>
 
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
@@ -921,6 +926,8 @@ export default function SuperAdminUsersPage() {
             </p>
             <Pagination currentPage={pageSafe} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
+          </div>
+        </div>
         </CardContent>
       </Card>
 
@@ -988,7 +995,7 @@ export default function SuperAdminUsersPage() {
             ) : (
               <p className="text-[13px] text-gray-400 font-normal">No users</p>
             )}
-          </CardContent>
+        </CardContent>
         </Card>
       </div>
 

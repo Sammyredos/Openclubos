@@ -97,7 +97,7 @@ type ApiTournament = {
   registrationDeadline?: string | null;
   playerTypes: string[];
   club: { id: string; name: string; logo?: string | null } | null;
-  course?: { id: string; name: string } | null;
+  course?: { id: string; name: string; coverImage?: string | null } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
@@ -111,6 +111,7 @@ type TournamentRow = {
   clubName: string;
   clubLogo: string | null;
   courseName: string | null;
+  courseCoverImage: string | null;
   types: string[];
   dates: string;
   players: string;
@@ -360,6 +361,7 @@ export default function TournamentsPage() {
       clubName,
       clubLogo,
       courseName: t.course?.name || null,
+      courseCoverImage: t.course?.coverImage || null,
       types,
       dates: formatDateRange(t.startDate, t.endDate),
       players: formatPlayers(registrations, t.maxPlayers),
@@ -1072,47 +1074,52 @@ export default function TournamentsPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {/* Filters */}
-            <div className="px-6 pb-6 flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                <Input
-                  placeholder="Search tournament name, organizer..."
-                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            {/* Main Container */}
+            <div className="px-6 pb-6">
+              <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+                <div className="p-5 border-b border-[#e1efe5]">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                    <Input
+                      placeholder="Search tournament name, organizer..."
+                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={statusFilter}
+                      onValueChange={(v) => setStatusFilter(v)}
+                      options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
+                      className="min-w-[160px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Status"
+                    />
+                    <SearchableSelect
+                      value={monthFilter}
+                      onValueChange={(v) => setMonthFilter(v)}
+                      options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
+                      className="min-w-[160px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Months"
+                    />
+                    <SearchableSelect
+                      value={yearFilter}
+                      onValueChange={(v) => setYearFilter(v)}
+                      options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
+                      className="min-w-[160px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Years"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <SearchableSelect
-                value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v)}
-                options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Status"
-              />
-              <SearchableSelect
-                value={monthFilter}
-                onValueChange={(v) => setMonthFilter(v)}
-                options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Months"
-              />
-              <SearchableSelect
-                value={yearFilter}
-                onValueChange={(v) => setYearFilter(v)}
-                options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
-                className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                placeholder="All Years"
-              />
-
-            </div>
-
-            {/* Table */}
-            <div className="w-full overflow-x-auto min-h-[400px]">
+                {/* Table */}
+                <div className="w-full overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                 <thead>
                   <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
@@ -1179,9 +1186,15 @@ export default function TournamentsPage() {
                       <tr key={t.id} className="hover:bg-background/50 transition-colors group">
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3 min-w-[220px]">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
-                              <Trophy className="w-4 h-4" />
-                            </div>
+                            {t.courseCoverImage ? (
+                              <img src={t.courseCoverImage} alt={t.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]" />
+                            ) : t.clubLogo ? (
+                              <img src={t.clubLogo} alt={t.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5] font-semibold text-[13px]">
+                                {t.courseName?.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "OG"}
+                              </div>
+                            )}
                             <div className="flex flex-col min-w-0 gap-0.5">
                               <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
                               <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.courseName || t.clubName}>{t.courseName || t.clubName}</span>
@@ -1191,10 +1204,10 @@ export default function TournamentsPage() {
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             {t.clubLogo ? (
-                              <img src={t.clubLogo} alt={t.clubName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
+                              <img src={t.clubLogo} alt={t.clubName} className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
-                                {t.clubName.substring(0, 2)}
+                              <div className="w-10 h-10 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
+                                {t.clubName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                               </div>
                             )}
                             <div className="flex flex-col min-w-0 gap-1.5">
@@ -1309,6 +1322,8 @@ export default function TournamentsPage() {
                 onPageChange={setCurrentPage}
               />
             </div>
+          </div>
+        </div>
           </CardContent>
         </Card>
       </div>

@@ -4,39 +4,45 @@ import React, { useState, useEffect, Suspense, useMemo } from "react";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
-  Trophy,
+  Trophy, Medal,
   Users,
   UserPlus,
   Calendar,
   Wallet,
   Search,
   Plus,
+  Download,
+  Filter,
   Eye,
   Edit2,
   MoreHorizontal,
+  ArrowUpRight,
   Ban,
   CheckCircle2,
   Trash2,
   AlertTriangle,
-  RotateCcw,
+  Link,
   Globe,
   Lock,
   Shield,
+  Check,
+  Eraser,
+  RotateCcw,
   UserMinus,
   Clock,
+  X,
   ArrowLeft,
   Loader2,
   Flag,
+  Route,
   Activity,
   Award,
-  Medal,
   Sparkles,
   RefreshCcw,
+  Home,
   Send,
   ChevronDown,
-  ArrowUpRight,
   Mail,
-  Filter,
   ArrowUpDown,
   Layers,
   Info,
@@ -48,9 +54,13 @@ import {
   ArrowUp,
   ArrowDown,
   Settings2,
+  MonitorPlay,
+  Banknote,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
@@ -58,6 +68,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PlayerActionDropdown } from "@/components/player-action-dropdown";
 import {
   cancelTournament,
   deleteTournament,
@@ -75,6 +86,7 @@ import {
   type GroupingPlayer,
 } from "@/lib/api/tournaments";
 import { getTournamentScores } from "@/lib/api/scores";
+import { getAdminUsers } from "@/lib/api/members";
 import { getCourse, type Course } from "@/lib/api/courses";
 import { getClub, type Club } from "@/lib/api/clubs";
 import {
@@ -103,6 +115,7 @@ type TournamentRow = {
   status: string;
   badge: string;
   entryFee: number | null;
+  requiresPayment: boolean;
   startDate: string;
   endDate: string | null;
   maxPlayers: number | null;
@@ -114,12 +127,13 @@ type TournamentRow = {
   createdAt: string;
   registrations: number;
   scoringType: "NET" | "GROSS" | "BOTH";
-  lockedGroupingsDays: number[];
   enableCut?: boolean;
   cutAfterRound?: number;
+  lockedGroupingsDays: number[];
   type?: string;
   minHandicap?: number;
   maxHandicap?: number;
+  startType?: string;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -136,20 +150,14 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
   INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case "Professional": return "bg-gray-900 text-yellow-400 border-gray-800";
-    default: return "bg-slate-100 text-slate-700 border-slate-200";
-  }
-};
-
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
-  { id: "waitlist", label: "Waitlist Settings", icon: Clock },
+  { id: "register", label: "Quick Player Registration", icon: UserPlus },
+  { id: "invite", label: "Invite a Player", icon: UserPlus },
+  { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
   { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
   { id: "leaderboard", label: "Live Leaderboard", icon: Trophy },
-  { id: "overview", label: "Overview", icon: Eye },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -187,7 +195,7 @@ function ViewTournamentPageInner() {
   const pathname = usePathname();
 
   // Tab Sync with search parameters
-  const activeTab = "leaderboard" as TabId;
+  const activeTab = (searchParams.get("tab") || "leaderboard") as TabId;
 
   const setActiveTab = (tabId: TabId) => {
     router.push(`${pathname}?tab=${tabId}`);
@@ -221,7 +229,7 @@ function ViewTournamentPageInner() {
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
   >("All Status");
   const [registrationsPaymentFilter, setRegistrationsPaymentFilter] = useState<"All Payments" | "PAID" | "UNPAID" | "REFUNDED">("All Payments");
-  const [registrationsDisqualifiedFilter] = useState<
+  const [registrationsDisqualifiedFilter, setRegistrationsDisqualifiedFilter] = useState<
     "All Players" | "Enabled Players" | "Disqualified Players"
   >("All Players");
   const [penalizeFilter, setPenalizeFilter] = useState<"APPROVED" | "DISQUALIFIED">("APPROVED");
@@ -265,9 +273,67 @@ function ViewTournamentPageInner() {
     setStrokeModalAction(null);
   };
 
+  // Invite Player options
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
+
+  const handleSendInvite = async () => {
+    if (!selectedTournament?.id) {
+      toast.error("Tournament information not loaded.");
+      return;
+    }
+    const isConcluded = selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || (selectedTournament as any).status === "COMPLETED" || (selectedTournament as any).status === "CANCELLED";
+    if (isConcluded) {
+      toast.error("Invitations are disabled because this tournament has concluded or been cancelled.");
+      return;
+    }
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error("Please enter a player's email address.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    const toastId = toast.loading("Sending invitation...");
+    try {
+      setIsSubmittingInvite(true);
+      const { invitePlayerToTournament } = await import("@/lib/api/registrations");
+      await invitePlayerToTournament({
+        tournamentId: selectedTournament.id,
+        email: email,
+      });
+      toast.success(`Invitation sent successfully to ${email}`, { id: toastId });
+      setInviteEmail("");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to send invitation";
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsSubmittingInvite(false);
+    }
+  };
+
+  // Manual register options
+  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
+  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
+  const [registeredUserIdsForSearch, setRegisteredUserIdsForSearch] = useState<string[]>([]);
+  const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
+
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
+  const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
+  const [attemptedDayIndex, setAttemptedDayIndex] = useState<number | null>(null);
+  const [pendingGroupingRule, setPendingGroupingRule] = useState<any>(null);
+  const [isUngroupedPlayersModalOpen, setIsUngroupedPlayersModalOpen] = useState(false);
+  const [isAppendGroupingsModalOpen, setIsAppendGroupingsModalOpen] = useState(false);
+  const [isCheckingPreviousDay, setIsCheckingPreviousDay] = useState(false);
   const [actionRegistration, setActionRegistration] = useState<RegistrationListItem | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
@@ -275,8 +341,17 @@ function ViewTournamentPageInner() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [waitlistSearch, setWaitlistSearch] = useState("");
+  const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
+  const [waitlistPage, setWaitlistPage] = useState(1);
+  const [waitlistTotal, setWaitlistTotal] = useState(0);
+  const waitlistPerPage = 6;
   const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
   const [waitlistFilter, setWaitlistFilter] = useState<"PENDING" | "REJECTED">("PENDING");
+
+  // Waitlist Multi-Select and Modals
+  const [selectedWaitlistIds, setSelectedWaitlistIds] = useState<string[]>([]);
+  const [isApproveWaitlistModalOpen, setIsApproveWaitlistModalOpen] = useState(false);
+  const [isRemoveWaitlistModalOpen, setIsRemoveWaitlistModalOpen] = useState(false);
 
   // Groupings (Tee Times) Management States
   const [groupingsData, setGroupingsData] = useState<GroupingData | null>(null);
@@ -286,17 +361,18 @@ function ViewTournamentPageInner() {
   const [groupingsGenerating, setGroupingsGenerating] = useState(false);
   const [isManualGenerating, setIsManualGenerating] = useState(false);
   const [isPublishEmailModalOpen, setIsPublishEmailModalOpen] = useState(false);
+  const [editingGroupTimeId, setEditingGroupTimeId] = useState<string | null>(null);
+  const [editingGroupTimeValue, setEditingGroupTimeValue] = useState("");
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
   const [editingGroupNameValue, setEditingGroupNameValue] = useState("");
-  const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
-  const [isUngroupedPlayersModalOpen, setIsUngroupedPlayersModalOpen] = useState(false);
-  const [pendingGroupingRule, setPendingGroupingRule] = useState<any>(null);
-  const [isAppendGroupingsModalOpen, setIsAppendGroupingsModalOpen] = useState(false);
-  const [isCheckingPreviousDay, setIsCheckingPreviousDay] = useState(false);
-
+  const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
+  const [selectedAutoTeeRule, setSelectedAutoTeeRule] = useState<string | null>(null);
   // Groupings Search/Filter
+  const [publishClickCount, setPublishClickCount] = useState(0);
+  const [justGrouped, setJustGrouped] = useState(false);
   const [groupingsSearch, setGroupingsSearch] = useState("");
   const [groupsSearch, setGroupsSearch] = useState("");
+  const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
   const unassignedPerPage = 5;
@@ -307,11 +383,12 @@ function ViewTournamentPageInner() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedLeaderboardDay, setSelectedLeaderboardDay] = useState<number | "all">("all");
   const [leaderboardSortBy, setLeaderboardSortBy] = useState<"NET" | "GROSS">("NET");
-  const [leaderboardSearch, setLeaderboardSearch] = useState("");
   const [leaderboardCategoryFilter, setLeaderboardCategoryFilter] = useState<string>("ALL");
   const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [leaderboardSearch, setLeaderboardSearch] = useState("");
   const leaderboardPerPage = 10;
+  const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
   const getTournamentDays = () => {
     if (!selectedTournament?.startDate) return 1;
@@ -327,24 +404,38 @@ function ViewTournamentPageInner() {
     setDropdownAnchorEl(null);
   };
 
-  const [publishClickCount, setPublishClickCount] = useState(0);
-  const [justGrouped, setJustGrouped] = useState(false);
-  const [isGroupingRulesModalOpen, setIsGroupingRulesModalOpen] = useState(false);
-  const [selectedAutoTeeRule, setSelectedAutoTeeRule] = useState<string | null>(null);
-
   const fetchWaitlistData = async () => {
     if (!tournamentId) return;
     setWaitlistLoading(true);
     try {
-      const { items } = await getRegistrations({
+      const skip = (waitlistPage - 1) * waitlistPerPage;
+      const { items, total } = await getRegistrations({
         tournamentId,
-        waitlistOnly: true,
+        status: waitlistFilter === "PENDING" ? "WAITLISTED" : "REJECTED",
+        q: waitlistDebouncedSearch || undefined,
+        skip,
+        take: waitlistPerPage,
       });
       setWaitlist(items || []);
+      setWaitlistTotal(typeof total === "number" ? total : 0);
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch waitlist queue");
     } finally {
       setWaitlistLoading(false);
+    }
+  };
+
+  const fetchPendingWaitlistCount = async () => {
+    if (!tournamentId) return;
+    try {
+      const { total } = await getRegistrations({
+        tournamentId,
+        status: "WAITLISTED",
+        take: 1,
+      });
+      setPendingWaitlistTotal(typeof total === "number" ? total : 0);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -423,9 +514,17 @@ function ViewTournamentPageInner() {
     try {
       const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId, selectedDay);
       setGroupingsData(data);
-      toast.success("Player reassigned successfully");
+      if (targetGroupId === null) {
+        toast.success("Player has been removed from flight");
+      } else {
+        toast.success("Player has been moved successfully");
+      }
     } catch (err) {
-      toast.error((err instanceof Error ? err.message : null) || "Failed to reassign player");
+      if (targetGroupId === null) {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to remove player");
+      } else {
+        toast.error((err instanceof Error ? err.message : null) || "Failed to move player");
+      }
     }
   };
 
@@ -434,6 +533,7 @@ function ViewTournamentPageInner() {
     try {
       const data = await updateGroupingTime(tournamentId, groupId, payload, selectedDay);
       setGroupingsData(data);
+      setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
       toast.success("Flight updated successfully");
     } catch (err) {
@@ -465,22 +565,6 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleLockGroupings = async () => {
-    if (!selectedTournament) return;
-    try {
-      setMutating(true);
-      const currentLocks = selectedTournament.lockedGroupingsDays || [];
-      const newLocks = Array.from(new Set([...currentLocks, selectedDay]));
-      await updateTournament(selectedTournament.id, { lockedGroupingsDays: newLocks });
-      toast.success(`Day ${selectedDay} groupings locked successfully`);
-      await reloadSingleTournament();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to lock groupings");
-    } finally {
-      setMutating(false);
-    }
-  };
-
   const [applyingCut, setApplyingCut] = useState(false);
   const [showCutModal, setShowCutModal] = useState(false);
   const handleApplyCut = async () => {
@@ -497,48 +581,28 @@ function ViewTournamentPageInner() {
     }
   };
 
-
   const loadLeaderboardData = async () => {
     if (!tournamentId || !selectedTournament) return;
     setLeaderboardLoading(true);
     try {
       const scores = await getTournamentScores(tournamentId);
 
-      const fetchAllRegs = async (status: "APPROVED" | "DISQUALIFIED", paymentStatus?: "PAID") => {
-        let allItems: any[] = [];
-        let skip = 0;
-        const take = 5000;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const res = await getRegistrations({
-            tournamentId,
-            status,
-            paymentStatus,
-            skip,
-            take,
-          });
-          
-          if (res && res.items) {
-            allItems = allItems.concat(res.items);
-            if (res.items.length < take) {
-              hasMore = false;
-            } else {
-              skip += take;
-            }
-          } else {
-            hasMore = false;
-          }
-        }
-        return allItems;
-      };
-
-      const [approvedRegs, dqRegs] = await Promise.all([
-        fetchAllRegs("APPROVED", "PAID"),
-        fetchAllRegs("DISQUALIFIED")
+      // Get all approved & paid registrations, plus any disqualified players
+      const [approvedRes, dqRes] = await Promise.all([
+        getRegistrations({
+          tournamentId,
+          status: "APPROVED",
+          paymentStatus: "PAID",
+          take: 100,
+        }),
+        getRegistrations({
+          tournamentId,
+          status: "DISQUALIFIED",
+          take: 100,
+        })
       ]);
 
-      const allRegs = [...approvedRegs, ...dqRegs];
+      const allRegs = [...(approvedRes.items || []), ...(dqRes.items || [])];
 
       const playersMap: Record<string, any> = {};
 
@@ -576,7 +640,7 @@ function ViewTournamentPageInner() {
         const roundNum = p.holeCounts[holeKey];
 
         // Filter by selected day if not "all"
-        if (selectedLeaderboardDay !== "all" && roundNum > (selectedLeaderboardDay as number)) {
+        if (selectedLeaderboardDay !== "all" && roundNum !== selectedLeaderboardDay) {
           return;
         }
 
@@ -656,10 +720,9 @@ function ViewTournamentPageInner() {
       if (selectedTournament?.enableCut) {
         loadLeaderboardData();
       }
-    } else if (activeTab === "leaderboard") {
-      loadLeaderboardData();
     }
-  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
+    fetchPendingWaitlistCount();
+  }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
 
   const isCutPending = useMemo(() => {
     if (!selectedTournament?.enableCut || selectedTournament.cutAfterRound == null) return false;
@@ -721,6 +784,7 @@ function ViewTournamentPageInner() {
         status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
         badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
         entryFee: t.entryFee ?? null,
+        requiresPayment: t.requiresPayment ?? false,
         startDate: t.startDate,
         endDate: t.endDate ?? null,
         maxPlayers: t.maxPlayers ?? null,
@@ -732,9 +796,9 @@ function ViewTournamentPageInner() {
         createdAt: t.createdAt,
         registrations,
         scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
-        lockedGroupingsDays: t.lockedGroupingsDays ?? [],
         enableCut: t.enableCut,
         cutAfterRound: t.cutAfterRound,
+        lockedGroupingsDays: t.lockedGroupingsDays || [],
       };
       setSelectedTournament(mapped);
       setRegistrationsTournamentTotal(registrations);
@@ -786,6 +850,7 @@ function ViewTournamentPageInner() {
           status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
           badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
           entryFee: t.entryFee ?? null,
+          requiresPayment: t.requiresPayment ?? false,
           startDate: t.startDate,
           endDate: t.endDate ?? null,
           maxPlayers: t.maxPlayers ?? null,
@@ -794,12 +859,12 @@ function ViewTournamentPageInner() {
           visibility: VISIBILITY_META[t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY"]?.label ?? t.visibility,
           visibilityKey: t.visibility as "PUBLIC" | "PRIVATE" | "INVITE_ONLY",
           enableWaitlist: t.enableWaitlist,
+          enableCut: t.enableCut,
+          cutAfterRound: t.cutAfterRound,
           createdAt: t.createdAt,
           registrations,
           scoringType: t.scoringType as "NET" | "GROSS" | "BOTH",
-          lockedGroupingsDays: t.lockedGroupingsDays ?? [],
-          enableCut: t.enableCut,
-          cutAfterRound: t.cutAfterRound,
+          lockedGroupingsDays: t.lockedGroupingsDays || [],
         };
         setSelectedTournament(mapped);
         setRegistrationsTournamentTotal(registrations);
@@ -822,6 +887,11 @@ function ViewTournamentPageInner() {
   useEffect(() => {
     setRegistrationsDebouncedSearch(registrationsSearch.trim());
   }, [registrationsSearch]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setWaitlistDebouncedSearch(waitlistSearch.trim()), 300);
+    return () => clearTimeout(handler);
+  }, [waitlistSearch]);
 
   useEffect(() => {
     if (!selectedTournament?.id) return;
@@ -919,7 +989,6 @@ function ViewTournamentPageInner() {
     registrationsMode,
     registrationsPage,
     registrationsDebouncedSearch,
-    registrationsStatusFilter,
     registrationsDisqualifiedFilter,
     registrationsPaymentFilter,
     registrationsRefreshTrigger,
@@ -943,9 +1012,7 @@ function ViewTournamentPageInner() {
           searchableFields.some(field => field?.toLowerCase().includes(token))
         );
 
-        const matchesStatus = registrationsStatusFilter === "All Status"
-          ? (r.status !== "WAITLISTED" && r.status !== "REJECTED")
-          : r.status === registrationsStatusFilter;
+        const matchesStatus = registrationsStatusFilter === "All Status" ? (r.status !== "WAITLISTED" && r.status !== "REJECTED") : r.status === registrationsStatusFilter;
         const matchesPayment =
           registrationsPaymentFilter === "All Payments" || r.paymentStatus === registrationsPaymentFilter;
         const matchesDisqualified =
@@ -966,53 +1033,117 @@ function ViewTournamentPageInner() {
       )
       : registrations;
 
+  // Search & Register Logic inside tab
+  useEffect(() => {
+    if (activeTab !== "register" || !selectedTournament?.id) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+    const tId = selectedTournament.id;
+    const q = registerPlayerSearch.trim();
+    if (q.length < 2) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingPlayers(true);
+    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
+      .then(async ({ items }) => {
+        if (cancelled) return;
+
+        try {
+          const { items: regItems } = await getRegistrations({
+            tournamentId: tId,
+            q,
+            take: 50,
+          });
+          if (cancelled) return;
+          const registeredIds = regItems.map(r => r.user?.id).filter((id): id is string => !!id);
+          setRegisteredUserIdsForSearch(registeredIds);
+        } catch (err) {
+          console.error("Failed to fetch registrations for search", err);
+        }
+
+        setRegisterPlayerResults(Array.isArray(items) ? items : []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          console.error("Player search failed", e);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearchingPlayers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, registerPlayerSearch]);
+
+  const handleRegisterPlayer = async (userId: string) => {
+    if (!selectedTournament?.id) return;
+    setIsRegistering(true);
+    try {
+      const { registerForTournament } = await import("@/lib/api/registrations");
+      await registerForTournament({
+        tournamentId: selectedTournament.id,
+        userId,
+        paymentStatus: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "PAID" : "UNPAID",
+        status: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "APPROVED" : "PENDING",
+      });
+      toast.success("Player registered successfully");
+      setNewlyRegisteredUserIds(prev => [...prev, userId]);
+
+      await reloadSingleTournament();
+      setRegistrationsRefreshTrigger(prev => prev + 1);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to register player");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   // Waitlist Action methods
-  const handleApproveWaitlist = async (regId: string) => {
-    setWaitlistActionId(regId);
+  const handleApproveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await updateRegistrationStatus(regId, "APPROVED");
-      toast.success("Player approved from waitlist successfully");
-      setWaitlist(prev => prev.filter(item => item.id !== regId));
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "APPROVED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players approved from waitlist successfully` : "Player approved from waitlist successfully");
+      setSelectedWaitlistIds([]);
+      setIsApproveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to approve player");
+      toast.error(err.message || "Failed to approve player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
 
-  const handleRemoveWaitlist = async (regId: string) => {
-    if (!confirm("Are you sure you want to remove this player from the waitlist?")) return;
-    setWaitlistActionId(regId);
+  const handleRemoveWaitlist = async (regIds: string[]) => {
+    if (!selectedTournament?.id) return;
+    setWaitlistActionId("processing");
     try {
-      await updateRegistrationStatus(regId, "REJECTED");
-      toast.success("Player removed from waitlist");
-      await fetchWaitlistData();
+      for (const regId of regIds) {
+        await updateRegistrationStatus(regId, "REJECTED");
+      }
+      toast.success(regIds.length > 1 ? `${regIds.length} players removed from waitlist` : "Player removed from waitlist");
+      setSelectedWaitlistIds([]);
+      setIsRemoveWaitlistModalOpen(false);
+      fetchWaitlistData();
       await reloadSingleTournament();
       setRegistrationsRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove player");
+      toast.error(err.message || "Failed to remove player(s)");
     } finally {
       setWaitlistActionId(null);
     }
   };
-
-  const filteredWaitlist = waitlist.filter(item => {
-    const query = waitlistSearch.trim().toLowerCase();
-    const tokens = query.split(/[\s-]+/).filter(Boolean);
-    const searchableFields = [
-      item.user?.firstName,
-      item.user?.lastName,
-      item.user?.email,
-      `${item.user?.firstName} ${item.user?.lastName}`,
-      `${item.user?.lastName} ${item.user?.firstName}`
-    ];
-
-    return tokens.length === 0 || tokens.every(token =>
-      searchableFields.some(field => field?.toLowerCase().includes(token))
-    );
-  });
 
   const updateTournamentRegistrationStatus = async (
     registrationId: string,
@@ -1082,12 +1213,19 @@ function ViewTournamentPageInner() {
   };
 
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [activeMarkPaidDropdown, setActiveMarkPaidDropdown] = useState<string | null>(null);
+  const [markPaidDropdownAnchorEl, setMarkPaidDropdownAnchorEl] = useState<HTMLElement | null>(null);
 
-  const handleMarkPaid = async (registrationId: string) => {
+  const closeMarkPaidDropdown = () => {
+    setActiveMarkPaidDropdown(null);
+    setMarkPaidDropdownAnchorEl(null);
+  };
+
+  const handleMarkPaid = async (registrationId: string, paymentMethod: "CASH" | "BANK_TRANSFER") => {
     if (markingPaidId) return;
     setMarkingPaidId(registrationId);
     try {
-      await confirmRegistrationPayment(registrationId, "MANUAL_ADMIN_" + Date.now());
+      await confirmRegistrationPayment(registrationId, paymentMethod + "_" + Date.now());
       toast.success("Player payment confirmed successfully!");
       await reloadSingleTournament();
       // Refresh groupings data so the newly paid player appears in the Ungrouped Players
@@ -1120,7 +1258,7 @@ function ViewTournamentPageInner() {
     router.push(`/super-admin/tournaments/${tournament.id}/edit`);
   };
 
-  const openCancel = () => {
+  const openCancel = (tournament: TournamentRow) => {
     closeDropdown();
     setIsCancelModalOpen(true);
   };
@@ -1138,7 +1276,7 @@ function ViewTournamentPageInner() {
   const handleMenuAction = (tournament: TournamentRow, action: string) => {
     closeDropdown();
     if (action === "cancel") {
-      openCancel();
+      openCancel(tournament);
       return;
     }
     if (action === "delete") {
@@ -1226,15 +1364,7 @@ function ViewTournamentPageInner() {
   if (loading) {
     return (
       <div className="w-full max-w-full font-sans space-y-6">
-        <div className="flex items-center mb-6">
-          <button
-              onClick={() => router.push('/super-admin/leaderboard')}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
-            >
-              <ArrowLeft className="w-4 h-4 text-white" />
-              Back to Leaderboards
-            </button>
-          </div>
+        {/* Premium Header Skeleton */}
         <div className="relative overflow-hidden rounded-[20px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2 border border-gray-100 bg-white">
           <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-6">
             <div className="flex items-start md:items-center gap-5">
@@ -1262,7 +1392,20 @@ function ViewTournamentPageInner() {
 
         {/* Main Layout Grid Skeleton */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Removed for full width */}
+          {/* Left Column - Navigation Tabs Skeleton */}
+          <div className="w-full lg:w-[280px] shrink-0">
+            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3.5 bg-white border border-[#e1efe5] rounded-xl">
+                  <div className="flex items-center gap-3.5">
+                    <Skeleton className="w-[18px] h-[18px] rounded" />
+                    <Skeleton className="h-4 w-32 rounded" />
+                  </div>
+                  <Skeleton className="w-4 h-4 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Right Column - Active Panel Skeleton */}
           <div className="flex-1 min-w-0 space-y-6">
@@ -1280,8 +1423,8 @@ function ViewTournamentPageInner() {
               </div>
 
               {/* Tab Filters Bar Skeleton */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative flex-1">
                   <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
                 </div>
                 <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
@@ -1354,17 +1497,15 @@ function ViewTournamentPageInner() {
 
   return (
     <div className="w-full max-w-full font-sans space-y-6">
-        <div className="flex items-center mb-6">
-          <button
-              onClick={() => router.push('/super-admin/leaderboard')}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-[#15803D] text-white hover:bg-[#166534] transition-colors text-[13px] font-medium shadow-sm"
-            >
-              <ArrowLeft className="w-4 h-4 text-white" />
-              Back to Leaderboards
-            </button>
-          </div>
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-6 gap-4">
+      {/* Page Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-2 gap-4">
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/super-admin/tournaments")}
+            className="w-10 h-10 shrink-0 border border-[#e1efe5] hover:border-openclub-700 hover:bg-emerald-50/20 text-gray-500 hover:text-openclub-800 rounded-xl flex items-center justify-center transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
               <h1 className="text-[16px] font-medium text-gray-900">{selectedTournament.name}</h1>
@@ -1378,36 +1519,11 @@ function ViewTournamentPageInner() {
                 </span>
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-gray-600 font-normal mt-1">
-              <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                  <MapPin className="w-3.5 h-3.5" />
-                </div>
-                {selectedTournament.clubName}
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                  <Calendar className="w-3.5 h-3.5" />
-                </div>
-                {selectedTournament.dates}
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                  <Trophy className="w-3.5 h-3.5" />
-                </div>
-                {selectedTournament.type || "Stroke Play"}
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/80 shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
-                <div className="w-5 h-5 rounded flex items-center justify-center text-gray-400">
-                  <span className="text-[9px] uppercase tracking-wider">HCP</span>
-                </div>
-                {selectedTournament.minHandicap ?? 0} - {selectedTournament.maxHandicap ?? 36}
-              </div>
-            </div>
+            <p className="text-[13px] text-gray-500 font-normal">Manage tournament details, registrations, tee times and scores</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 xl:pl-6 xl:border-l border-gray-100 ml-14 lg:ml-0">
+        <div className="flex items-center gap-3 ml-14 lg:ml-0">
           {selectedTournament.statusKey === "DRAFT" && (
             <Button
               onClick={async () => {
@@ -1430,6 +1546,16 @@ function ViewTournamentPageInner() {
             </Button>
           )}
 
+          <NextLink
+            href={`/tv/tournaments/${selectedTournament.id}`}
+            target="_blank"
+            className="bg-white h-11 border border-gray-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-800 font-normal underline text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            title="Launch TV Display"
+          >
+            <MonitorPlay className="w-4 h-4 text-emerald-600" />
+            TV Display
+          </NextLink>
+
           <Button
             onClick={() => openEdit(selectedTournament)}
             disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
@@ -1440,56 +1566,51 @@ function ViewTournamentPageInner() {
             Edit Tournament
           </Button>
 
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={(e) => {
-                setActiveDropdown(activeDropdown ? null : selectedTournament.id);
-                setDropdownAnchorEl(e.currentTarget);
-              }}
-              className="bg-white h-11 w-11 p-0 rounded-[12px] border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all flex items-center justify-center"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </Button>
-            {activeDropdown === selectedTournament.id && (
-              <FloatingMenu
-                open={activeDropdown === selectedTournament.id}
-                anchorEl={dropdownAnchorEl}
-                onClose={closeDropdown}
-                placement="bottom-end"
-                className="w-52 bg-white rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-[#efefef] py-2 overflow-hidden"
-              >
-                <button
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-[12px] font-normal flex items-center gap-3",
-                    selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || selectedTournament.registrations > 0
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-700 hover:bg-background"
-                  )}
-                  onClick={() => {
-                    if (selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && selectedTournament.registrations === 0) {
-                      handleMenuAction(selectedTournament, "cancel");
-                    }
-                  }}
-                >
-                  <Ban className="w-4 h-4 text-gray-450" /> Cancel Tournament
-                </button>
-                <div className="h-px bg-background my-1 mx-2" />
-                <button
-                  className="w-full text-left px-4 py-2.5 text-[12px] font-medium text-red-650 hover:bg-red-50 flex items-center gap-3 rounded-lg capitalize"
-                  onClick={() => handleMenuAction(selectedTournament, "delete")}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" /> Delete Tournament
-                </button>
-              </FloatingMenu>
-            )}
-          </div>
+
         </div>
       </div>
 
       {/* Main Layout Grid */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left Column - Removed for full width */}
+        {/* Left Column - Navigation */}
+        <div className="w-full lg:w-[280px] shrink-0">
+          <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
+            {TABS.map((tab, index) => {
+              const isActive = activeTab === tab.id;
+              const isShotgun = selectedTournament?.startType === "SHOTGUN";
+              const label = tab.id === "groupings"
+                ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
+                : tab.label;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
+                    isActive
+                      ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                      : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
+                  )}
+                >
+                  <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                    <div className={cn(
+                      "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
+                      isActive
+                        ? "bg-[#15803D] text-white"
+                        : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <span className="text-[13px] font-normal leading-tight">
+                      {label}
+                    </span>
+                  </div>
+                  {isActive && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Right Column - Active Panel */}
         <div className="flex-1 min-w-0 space-y-6">
@@ -1513,7 +1634,7 @@ function ViewTournamentPageInner() {
             </div>
           )}
 
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8">
+          <div className="rounded-xl border-none bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden min-h-[600px] p-6 sm:p-8">
             {/* TABS 1: Registered Players */}
             {activeTab === "players" && (
               <div className="space-y-6">
@@ -1522,59 +1643,85 @@ function ViewTournamentPageInner() {
                     <h2 className="text-[15px] font-medium text-gray-900">Registered Players</h2>
                     <p className="text-[13px] text-gray-500 mt-0.5">Manage participation, handicap indices, and add extra strokes.</p>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => setActiveTab("waitlist")}
+                      variant="outline"
+                      className="h-9 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 rounded-md px-4 text-[12px] font-normal.
+                       capitalize tracking-wider transition-all shadow-sm"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-openclub-800" /> Waitlist Queue
+                      {pendingWaitlistTotal > 0 && (
+                        <span className="flex items-center justify-center bg-emerald-100 text-emerald-700 text-[10px] font-medium px-1.5 h-4 min-w-[16px] rounded-full ml-1">
+                          {pendingWaitlistTotal}
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
+                      onClick={() => setActiveTab("invite")}
+                      className="h-9 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white gap-1.5 rounded-md px-4 text-[12px] font-normal capitalize tracking-wider transition-all shadow-sm"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" /> Invite a Player
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      value={registrationsSearch}
-                      onChange={(e) => {
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={registrationsStatusFilter}
+                      onValueChange={(v: any) => {
                         setRegistrationsPage(1);
                         if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsSearch(e.target.value);
+                        setRegistrationsStatusFilter(v);
                       }}
-                      placeholder="Search name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                      options={[
+                        { value: "All Status", label: "All Status" },
+                        { value: "PENDING", label: "Pending" },
+                        { value: "APPROVED", label: "Approved" },
+                        { value: "REJECTED", label: "Rejected" },
+                        { value: "WAITLISTED", label: "Waitlisted" },
+                        { value: "DISQUALIFIED", label: "Disqualified" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Status"
+                    />
+                    <SearchableSelect
+                      value={registrationsPaymentFilter}
+                      onValueChange={(v: any) => {
+                        setRegistrationsPage(1);
+                        if (registrationsMode === "server") setRegistrationsLoading(true);
+                        setRegistrationsPaymentFilter(v);
+                      }}
+                      options={[
+                        { value: "All Payments", label: "All Payments" },
+                        { value: "PAID", label: "Paid" },
+                        { value: "UNPAID", label: "Unpaid" },
+                        { value: "REFUNDED", label: "Refunded" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Payments"
                     />
                   </div>
-                  <SearchableSelect
-                    value={registrationsStatusFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsStatusFilter(v);
-                    }}
-                    options={[
-                      { value: "All Status", label: "All Status" },
-                      { value: "PENDING", label: "Pending" },
-                      { value: "APPROVED", label: "Approved" },
-                      { value: "REJECTED", label: "Rejected" },
-                      { value: "WAITLISTED", label: "Waitlisted" },
-                      { value: "DISQUALIFIED", label: "Disqualified" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Status"
-                  />
-                  <SearchableSelect
-                    value={registrationsPaymentFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsPaymentFilter(v);
-                    }}
-                    options={[
-                      { value: "All Payments", label: "All Payments" },
-                      { value: "PAID", label: "Paid" },
-                      { value: "UNPAID", label: "Unpaid" },
-                      { value: "REFUNDED", label: "Refunded" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Payments"
-                  />
                 </div>
+              </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
@@ -1605,12 +1752,12 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                            <th className="px-4 py-4">PLAYER</th>
-                            <th className="px-4 py-4">STATUS & PAYMENT</th>
-                            <th className="px-4 py-4">DETAILS</th>
-                            <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
-                            <th className="px-4 py-4 text-right">ACTIONS</th>
+                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS & PAYMENT</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DETAILS</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-center">HANDICAP / PENALTY</th>
+                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
@@ -1704,20 +1851,71 @@ function ViewTournamentPageInner() {
                                   {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && (
                                     <div className="flex items-center justify-end gap-2">
                                       {selectedTournament.entryFee !== null && !isPaid && new Date(selectedTournament.startDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) && (
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => handleMarkPaid(r.id)}
-                                          disabled={markingPaidId === r.id}
-                                          title="Mark as Paid"
-                                          className="h-9 px-2.5 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5"
-                                        >
-                                          {markingPaidId === r.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-openclub-800" />
-                                          ) : (
-                                            <Wallet className="w-4 h-4" />
-                                          )}
-                                          <span className="text-[12px] font-normal">Mark Paid</span>
-                                        </Button>
+                                        <div className="inline-flex rounded-md shadow-sm h-8">
+                                          <button
+                                            onClick={(e) => {
+                                              if (activeMarkPaidDropdown === r.id) {
+                                                closeMarkPaidDropdown();
+                                              } else {
+                                                setActiveMarkPaidDropdown(r.id);
+                                                setMarkPaidDropdownAnchorEl(e.currentTarget);
+                                              }
+                                            }}
+                                            disabled={markingPaidId === r.id}
+                                            className="h-8 pl-3 pr-2.5 inline-flex items-center justify-center gap-1.5 rounded-l-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-r-[rgba(255,255,255,0.2)] disabled:opacity-50"
+                                            title="Mark as Paid"
+                                          >
+                                            {markingPaidId === r.id ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                                            ) : (
+                                              <Wallet className="w-3.5 h-3.5" />
+                                            )}
+                                            <span className="text-[12px] font-normal leading-none whitespace-nowrap">Mark Paid</span>
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              if (activeMarkPaidDropdown === r.id) {
+                                                closeMarkPaidDropdown();
+                                              } else {
+                                                setActiveMarkPaidDropdown(r.id);
+                                                setMarkPaidDropdownAnchorEl(e.currentTarget);
+                                              }
+                                            }}
+                                            disabled={markingPaidId === r.id}
+                                            className="h-8 px-1.5 inline-flex items-center justify-center rounded-r-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-l-0 disabled:opacity-50"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                          <FloatingMenu
+                                            open={activeMarkPaidDropdown === r.id}
+                                            anchorEl={markPaidDropdownAnchorEl}
+                                            onClose={closeMarkPaidDropdown}
+                                            placement="bottom-end"
+                                          >
+                                            <div className="w-40 py-1 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-200 flex flex-col">
+                                              <button
+                                                className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                                onClick={() => {
+                                                  handleMarkPaid(r.id, "CASH");
+                                                  closeMarkPaidDropdown();
+                                                }}
+                                              >
+                                                <Banknote className="w-4 h-4 text-emerald-600" />
+                                                Cash Payment
+                                              </button>
+                                              <button
+                                                className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                                onClick={() => {
+                                                  handleMarkPaid(r.id, "BANK_TRANSFER");
+                                                  closeMarkPaidDropdown();
+                                                }}
+                                              >
+                                                <Landmark className="w-4 h-4 text-blue-500" />
+                                                Bank Transfer
+                                              </button>
+                                            </div>
+                                          </FloatingMenu>
+                                        </div>
                                       )}
                                       <Button
                                         size="sm"
@@ -1766,58 +1964,301 @@ function ViewTournamentPageInner() {
               </div>
             )}
 
-            {/* TABS 3: Waitlist Management */}
-            {activeTab === "waitlist" && (
+            {/* TABS: Invite Player */}
+            {activeTab === "invite" && selectedTournament && (() => {
+              const isConcluded = selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED" || (selectedTournament as any).status === "COMPLETED" || (selectedTournament as any).status === "CANCELLED";
+              return (
+                <div className="space-y-6 w-full">
+                  <div className="border-b border-[#e1efe5] pb-4">
+                    <h2 className="text-[15px] font-medium text-gray-900 font-sans">Invite Player</h2>
+                    <p className="text-[12px] text-gray-500 mt-1">Send an invitation email directly to a player to join this tournament.</p>
+                  </div>
+
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                    {/* Form */}
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-medium text-gray-700 block">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
+                        disabled={isSubmittingInvite || isConcluded}
+                        className="h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
+                            handleSendInvite();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Button */}
+                    <Button
+                      onClick={handleSendInvite}
+                      disabled={isSubmittingInvite || isConcluded || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())}
+                      className="w-full h-11 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white font-medium text-[13px] rounded-lg transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:border-transparent disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingInvite ? "Sending Invitation..." : isConcluded ? "Tournament Concluded" : "Send Invitation"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* TABS 2: Register Player Inline */}
+            {activeTab === "register" && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
-                    <h4 className="text-[15px] font-medium text-gray-900 truncate">Waitlist Queue</h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(waitlist.filter(w => w.status === "WAITLISTED").length)}</p>
-                    <p className="text-[11px] text-emerald-650 font-normal uppercase tracking-widest mt-1">Waiting</p>
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Quick Player Registration</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
+                </div>
+
+
+
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {selectedTournament?.requiresPayment && (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Initial Payment Status</h4>
+                        <p className="text-[12px] text-gray-500">Specify the payment status for this player upon registration.</p>
+                      </div>
+                      <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('UNPAID')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'UNPAID' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Unpaid
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('CASH')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'CASH' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Paid (Cash / Direct)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                    <Input
+                      placeholder="Type player name or email to search..."
+                      value={registerPlayerSearch}
+                      onChange={(e) => setRegisterPlayerSearch(e.target.value)}
+                      className="pl-10 h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
+                    />
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      placeholder="Search waitlist by name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                      value={waitlistSearch}
-                      onChange={(e) => setWaitlistSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                    <button
-                      onClick={() => setWaitlistFilter("PENDING")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "PENDING"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Pending Queue
-                    </button>
-                    <button
-                      onClick={() => setWaitlistFilter("REJECTED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "REJECTED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Rejected Players
-                    </button>
+                <div className="space-y-4">
+
+                  <div className="min-h-[300px]">
+                    {isSearchingPlayers ? (
+                      <div className="p-12 text-center text-gray-400 space-y-3">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
+                        <p className="text-[12px]">Searching the openclub registry...</p>
+                      </div>
+                    ) : registerPlayerResults.length > 0 ? (
+                      <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                              <th className="px-4 py-4">PLAYER</th>
+                              <th className="px-4 py-4">DETAILS</th>
+                              <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                              <th className="px-4 py-4 text-right">ACTIONS</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#efefef] bg-white">
+                            {registerPlayerResults.map((player) => {
+                              const isAlreadyRegistered =
+                                registrationsAll.some(x => x.user?.id === player.id) ||
+                                registrations.some(x => x.user?.id === player.id) ||
+                                registeredUserIdsForSearch.includes(player.id) ||
+                                newlyRegisteredUserIds.includes(player.id);
+                              return (
+                                <tr key={player.id} className="transition-all hover:bg-background/50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
+                                        <img
+                                          src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-[15px] font-medium text-gray-900 truncate">
+                                          {fullName(player.firstName ?? null, player.lastName ?? null)}
+                                        </p>
+                                        <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-1.5">
+                                      {player.gender && (
+                                        <span className={cn(
+                                          "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                          player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                        )}>
+                                          {player.gender}
+                                        </span>
+                                      )}
+                                      {player.dob && (
+                                        <span className="text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                          {(() => {
+                                            const birthDate = new Date(player.dob);
+                                            const today = new Date();
+                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                            const m = today.getMonth() - birthDate.getMonth();
+                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                            return `${age} YRS`;
+                                          })()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      HCP {player.handicap ?? 0}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <Button
+                                      disabled={isAlreadyRegistered || isRegistering}
+                                      size="sm"
+                                      onClick={() => handleRegisterPlayer(player.id)}
+                                      className={cn(
+                                        "rounded-xl font-normal text-[12px] px-4 h-9",
+                                        isAlreadyRegistered
+                                          ? "bg-gray-100 text-gray-400 border border-gray-200"
+                                          : "bg-[#15803D] hover:bg-[#166534] text-white"
+                                      )}
+                                    >
+                                      {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : registerPlayerSearch.trim().length >= 2 ? (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Search}
+                        title="No players found"
+                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
+                      />
+                    ) : (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Users}
+                        title="Start Enrolling"
+                        description="Type 2 or more characters of a member's name or email to retrieve matches."
+                      />
+                    )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TABS 3: Waitlist Management */}
+            {activeTab === "waitlist" && (
+              <div className="space-y-6">
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Waitlist Queue</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Manage and approve players currently on the waitlist.</p>
+                </div>
+
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        placeholder="Search waitlist by name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      value={waitlistSearch}
+                      onChange={(e) => {
+                        setWaitlistSearch(e.target.value);
+                        setWaitlistPage(1);
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={waitlistFilter}
+                      onValueChange={(v: any) => {
+                        setWaitlistFilter(v);
+                        setWaitlistPage(1);
+                        setSelectedWaitlistIds([]);
+                      }}
+                      options={[
+                        { value: "PENDING", label: "Pending Queue" },
+                        { value: "REJECTED", label: "Rejected Players" },
+                      ]}
+                      className="min-w-[170px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                    />
+
+                    {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                      <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
+                        <input
+                          type="checkbox"
+                          id="selectAllWaitlist"
+                          className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                          checked={selectedWaitlistIds.length === waitlist.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedWaitlistIds(waitlist.map(i => i.id));
+                            } else {
+                              setSelectedWaitlistIds([]);
+                            }
+                          }}
+                        />
+                        <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+                {selectedWaitlistIds.length > 0 && (
+                  <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
+                    <span className="text-[12px] font-normal text-emerald-700 mr-2">
+                      {selectedWaitlistIds.length} selected
+                    </span>
+                    <Button
+                      onClick={() => setIsApproveWaitlistModalOpen(true)}
+                      className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Approve All
+                    </Button>
+                    <Button
+                      onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                      variant="ghost"
+                      className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove All
+                    </Button>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {waitlistLoading ? (
@@ -1844,23 +2285,55 @@ function ViewTournamentPageInner() {
                         ))}
                       </div>
                     </div>
-                  ) : filteredWaitlist.length > 0 ? (
+                  ) : waitlist.length > 0 ? (
                     <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                            <th className="px-4 py-4">PLAYER</th>
+                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                            {waitlistFilter === "PENDING" && (
+                              <th className="w-12 px-4 py-4 text-center">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                                  checked={selectedWaitlistIds.length > 0 && waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedWaitlistIds(waitlist.map(i => i.id));
+                                    } else {
+                                      setSelectedWaitlistIds([]);
+                                    }
+                                  }}
+                                />
+                              </th>
+                            )}
+                            <th className={cn("px-4 py-4", waitlistFilter !== "PENDING" && "pl-6")}>PLAYER</th>
                             <th className="px-4 py-4">DETAILS</th>
                             <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
                             <th className="px-4 py-4 text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
-                          {filteredWaitlist
+                          {waitlist
                             .filter(w => waitlistFilter === "PENDING" ? w.status === "WAITLISTED" : w.status === "REJECTED")
                             .map((item) => (
-                              <tr key={item.id} className="transition-all hover:bg-background/50">
-                                <td className="px-4 py-3">
+                              <tr key={item.id} className={cn("transition-all hover:bg-background/50", selectedWaitlistIds.includes(item.id) ? "bg-emerald-50/30" : "")}>
+                                {waitlistFilter === "PENDING" && (
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                                      checked={selectedWaitlistIds.includes(item.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedWaitlistIds(prev => [...prev, item.id]);
+                                        } else {
+                                          setSelectedWaitlistIds(prev => prev.filter(id => id !== item.id));
+                                        }
+                                      }}
+                                    />
+                                  </td>
+                                )}
+                                <td className={cn("px-4 py-3", waitlistFilter !== "PENDING" && "pl-6")}>
                                   <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                       <img
@@ -1915,7 +2388,10 @@ function ViewTournamentPageInner() {
                                   <div className="flex items-center justify-end gap-2">
                                     {item.status !== "REJECTED" && (
                                       <Button
-                                        onClick={() => handleApproveWaitlist(item.id)}
+                                        onClick={() => {
+                                          if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                          setIsApproveWaitlistModalOpen(true);
+                                        }}
                                         disabled={waitlistActionId === item.id}
                                         title="Approve"
                                         className="h-9 w-9 p-0 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-emerald-50 flex items-center justify-center"
@@ -1928,7 +2404,10 @@ function ViewTournamentPageInner() {
                                       </Button>
                                     )}
                                     <Button
-                                      onClick={() => handleRemoveWaitlist(item.id)}
+                                      onClick={() => {
+                                        if (!selectedWaitlistIds.includes(item.id)) setSelectedWaitlistIds([item.id]);
+                                        setIsRemoveWaitlistModalOpen(true);
+                                      }}
                                       disabled={waitlistActionId === item.id || item.status === "REJECTED"}
                                       title={item.status === "REJECTED" ? "Rejected" : "Reject"}
                                       className="h-9 w-9 p-0 bg-white rounded-lg border-red-100 text-red-650 hover:bg-red-50 flex items-center justify-center"
@@ -1943,15 +2422,25 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center">
+                    <div className="p-12 text-center">
                       <EmptyState
                         icon={Clock}
-                        title="Waitlist is empty"
-                        description="No players currently in the queue for this tournament."
+                        title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
+                        description={waitlistSearch ? "Try adjusting your search terms." : "No players currently in the queue for this tournament."}
                       />
                     </div>
                   )}
                 </div>
+
+                {waitlistTotal > waitlistPerPage && (
+                  <div className="mt-4 flex justify-end">
+                    <Pagination
+                      currentPage={waitlistPage}
+                      totalPages={Math.ceil(waitlistTotal / waitlistPerPage)}
+                      onPageChange={setWaitlistPage}
+                    />
+                  </div>
+                )}
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
@@ -2043,7 +2532,7 @@ function ViewTournamentPageInner() {
                         {selectedDay > 1 && (
                           <button
                             onClick={() => setSelectedDay(selectedDay - 1)}
-                            className="px-6 py-2.5 text-[13px] font-normal rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[14px] font-normal rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
                           >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Day {selectedDay - 1}
@@ -2052,12 +2541,12 @@ function ViewTournamentPageInner() {
                       </div>
 
                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-xl px-5 py-2 shadow-sm">
+                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
-                            <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+                            <Calendar className="w-4 h-4 text-emerald-800" />
                           </div>
-                          <span className="text-emerald-800 text-[13px] font-normal tracking-wide capitalize">Flights & Tee Times for</span>
-                          <span className="text-emerald-950 text-[13px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
+                          <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
                         </div>
                       </div>
 
@@ -2065,22 +2554,24 @@ function ViewTournamentPageInner() {
                         {selectedDay < getTournamentDays() && (
                           <button
                             onClick={() => setSelectedDay(selectedDay + 1)}
-                            className="px-6 py-2.5 text-[13px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                            className="px-6 py-2.5 text-[14px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
                           >
                             Proceed to Day {selectedDay + 1}
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRight className="w-4.5 h-4.5" />
                           </button>
                         )}
                       </div>
                     </div>
 
                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <div className="flex gap-3">
-                          <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
+                      <div className="bg-emerald-50/40 border border-emerald-100/60 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                        <div className="flex gap-4 items-center">
+                          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 text-[#15803D] flex items-center justify-center shrink-0 shadow-xs">
+                            <Mail className="w-5 h-5" />
+                          </div>
                           <div>
-                            <h4 className="text-[16px] font-medium text-gray-900">Send Tee Times via Email</h4>
-                            <p className="text-[13px] text-gray-500 mt-1">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+                            <h4 className="text-[15px] font-medium text-gray-900">{selectedTournament?.startType === 'SHOTGUN' ? 'Send Hole Assignments' : 'Send Tee Times'} via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-0.5">{selectedTournament?.startType === 'SHOTGUN' ? 'Hole assignments' : 'Flights & Tee Times'} have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2090,8 +2581,8 @@ function ViewTournamentPageInner() {
                           }}
                           disabled={groupingsGenerating || groupingsLoading}
                           className={cn(
-                            "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
-                            justGrouped && "animate-pulse ring-4 ring-gray-200"
+                            "bg-[#15803D] hover:bg-[#166534] text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
+                            justGrouped && "animate-pulse ring-4 ring-[#15803D]/20"
                           )}
                         >
                           <Mail className="w-4 h-4" />
@@ -2109,13 +2600,13 @@ function ViewTournamentPageInner() {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
-                          Manage Flights & Tee Times
+                          Manage {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
                         </h3>
-                        <p className="text-[13px] text-gray-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
+                        <p className="text-[13px] text-gray-500">Pair players into {selectedTournament?.startType === 'SHOTGUN' ? 'Holes and assign start times' : 'Tee Flights and assign tee times'} for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -2126,6 +2617,8 @@ function ViewTournamentPageInner() {
                       </div>
 
                       <div className="flex items-center gap-3">
+
+
 
                         <Button
                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
@@ -2168,7 +2661,7 @@ function ViewTournamentPageInner() {
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                       <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                         <Input
                           placeholder="Search groups or players..."
                           value={groupingsSearch}
@@ -2177,7 +2670,7 @@ function ViewTournamentPageInner() {
                             setGroupsPage(1);
                             setUnassignedPage(1);
                           }}
-                          className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+                          className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
                         />
                       </div>
                     </div>
@@ -2199,7 +2692,7 @@ function ViewTournamentPageInner() {
                         Unassigned Tee Players
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
-                          groupingsSubTab === "unassigned" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "unassigned" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
                         )}>
                           {groupingsData?.unassigned.length || 0}
                         </Badge>
@@ -2219,7 +2712,7 @@ function ViewTournamentPageInner() {
                         Assigned Tee Flights
                         <Badge variant="outline" className={cn(
                           "ml-2 font-normal px-1.5 py-0 transition-all",
-                          groupingsSubTab === "grouped" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-400 border-gray-200"
+                          groupingsSubTab === "grouped" ? "bg-[#e0fbea] text-[#15803D] border-[#e1efe5]" : "bg-[#f5faf6] text-[#15803D]/60 border-[#e1efe5]"
                         )}>
                           {groupingsData?.groups.length || 0}
                         </Badge>
@@ -2372,19 +2865,14 @@ function ViewTournamentPageInner() {
                                                   </div>
                                                 </td>
                                                 <td className="pr-3 py-2 align-middle text-right w-[40px]">
-                                                  <select
+                                                  <PlayerActionDropdown
+                                                    player={player}
+                                                    group={group}
+                                                    groupingsData={groupingsData}
                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                    value={group.id}
-                                                    onChange={(e) => {
-                                                      const val = e.target.value;
-                                                      handleMovePlayer(player.id, val === "unassigned" ? null : val);
-                                                    }}
-                                                    className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
-                                                  >
-                                                    <option value={group.id}>☰</option>
-                                                    <option value="unassigned">Unassign</option>
-                                                    {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-                                                  </select>
+                                                    onMovePlayer={handleMovePlayer}
+                                                    capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                  />
                                                 </td>
                                               </tr>
                                             ))}
@@ -2409,7 +2897,7 @@ function ViewTournamentPageInner() {
                                                       value: p.id,
                                                       label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
                                                     }))}
-                                                    triggerClassName="bg-transparent border-none shadow-none h-9 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
+                                                    triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
                                                     className="w-full"
                                                   />
                                                 </td>
@@ -2474,7 +2962,7 @@ function ViewTournamentPageInner() {
                                     <div className="overflow-x-auto">
                                       <table className="w-full text-left">
                                         <thead>
-                                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
@@ -2540,22 +3028,14 @@ function ViewTournamentPageInner() {
                                                 </td>
                                                 <td className="px-4 py-3 align-middle text-right">
                                                   <div className="flex justify-end">
-                                                    <select
+                                                    <PlayerActionDropdown
+                                                      player={player}
+                                                      groupingsData={groupingsData}
                                                       disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
-                                                      value="unassigned"
-                                                      onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val !== "unassigned") {
-                                                          handleMovePlayer(player.id, val);
-                                                        }
-                                                      }}
-                                                      className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                                                    >
-                                                      <option value="unassigned">Assign To...</option>
-                                                      {groupingsData?.groups?.map((g: GroupingItem) => (
-                                                        <option key={g.id} value={g.id}>{g.name}</option>
-                                                      ))}
-                                                    </select>
+                                                      onMovePlayer={handleMovePlayer}
+                                                      variant="assign"
+                                                      capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                    />
                                                   </div>
                                                 </td>
                                               </tr>
@@ -2605,6 +3085,278 @@ function ViewTournamentPageInner() {
                 )}
               </div>
             )}
+
+            {activeTab === "penalize" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
+                  <div>
+                    <h2 className="text-[15px] font-medium text-gray-900">Penalize Player</h2>
+                    <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
+                  </div>
+                </div>
+
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={penalizeFilter}
+                        onValueChange={(v: any) => {
+                          setPenalizeFilter(v);
+                          setRegistrationsPage(1);
+                        }}
+                        options={[
+                          { value: "APPROVED", label: "Active Players" },
+                          { value: "DISQUALIFIED", label: "Disqualified Players" },
+                        ]}
+                        className="min-w-[170px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                      <SearchableSelect
+                        value={penalizeStrokesFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          setPenalizeStrokesFilter(v);
+                        }}
+                        options={[
+                          { value: "ALL", label: "All Players" },
+                          { value: "WITH_STROKES", label: "With Strokes" },
+                        ]}
+                        className="min-w-[160px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const penalizeSearchQuery = registrationsSearch.trim().toLowerCase();
+                    const penalizeListAll = registrationsMode === "client" ? registrationsAll.filter(r => {
+                      const matchesStatus = r.status === penalizeFilter;
+                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
+                      const tokens = penalizeSearchQuery.split(/[\s-]+/).filter(Boolean);
+                      const searchableFields = [r.user?.firstName, r.user?.lastName, r.user?.email, `${r.user?.firstName} ${r.user?.lastName}`, `${r.user?.lastName} ${r.user?.firstName}`];
+                      const matchesSearch = tokens.length === 0 || tokens.every(token => searchableFields.some(field => field?.toLowerCase().includes(token)));
+                      return matchesStatus && matchesSearch && matchesStrokes;
+                    }) : registrationsPageItems.filter(r => {
+                      const matchesStatus = r.status === penalizeFilter;
+                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
+                      return matchesStatus && matchesStrokes;
+                    });
+
+                    const penalizePageItems = registrationsMode === "client"
+                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage)
+                      : penalizeListAll;
+
+                    const penalizeTotalPages = registrationsMode === "client"
+                      ? Math.max(1, Math.ceil(penalizeListAll.length / registrationsPerPage))
+                      : Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage));
+
+                    return (
+                      <>
+                        {registrationsLoading ? (
+                          <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
+                            <div className="flex flex-col">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
+                                  <div className="flex items-center gap-4 w-1/3">
+                                    <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                                    <div className="space-y-2 flex-1">
+                                      <Skeleton className="h-4 w-3/4" />
+                                      <Skeleton className="h-3 w-1/2" />
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 w-1/4 hidden sm:flex">
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 w-1/4 text-right">
+                                    <Skeleton className="h-9 w-9 rounded-lg" />
+                                    <Skeleton className="h-9 w-9 rounded-lg" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : penalizePageItems.length > 0 ? (
+                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                              <thead>
+                                <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                                  <th className="px-4 py-4">PLAYER</th>
+                                  <th className="px-4 py-4">STATUS</th>
+                                  <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                                  <th className="px-4 py-4 text-right">ACTIONS</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#efefef] bg-white">
+                                {penalizePageItems.map((r) => {
+                                  const isDisqualified = r.status === "DISQUALIFIED";
+                                  return (
+                                    <tr
+                                      key={r.id}
+                                      className={cn(
+                                        "transition-all hover:bg-background/50",
+                                        isDisqualified ? "bg-red-50/10 opacity-75" : ""
+                                      )}
+                                    >
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
+                                            <img
+                                              src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <NextLink href={`/super-admin/users/${r.user?.id}`} className="block no-underline hover:no-underline">
+                                              <p className="text-[14px] font-medium text-gray-900 truncate hover:text-openclub-800 transition-colors no-underline">
+                                                {r.user?.firstName} {r.user?.lastName}
+                                              </p>
+                                            </NextLink>
+                                            <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-1.5">
+                                          {isDisqualified && (
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
+                                              Disqualified
+                                            </span>
+                                          )}
+                                          {!isDisqualified && r.status === "APPROVED" && (
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                              Active
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            HCP {r.user?.handicap ?? 0}
+                                          </span>
+                                          {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                                              +{r.extraStrokes} Penalty
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && !isDisqualified && (
+                                          <div className="flex flex-wrap items-center justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              disabled={(r.extraStrokes ?? 0) === 1}
+                                              onClick={() => openStrokeModal(r, "ADD_1")}
+                                              title="Add 1-Stroke Penalty"
+                                              className={cn(
+                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
+                                                (r.extraStrokes ?? 0) === 1
+                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
+                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                                              )}
+                                            >
+                                              +1 Stroke
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              disabled={(r.extraStrokes ?? 0) === 2}
+                                              onClick={() => openStrokeModal(r, "ADD_2")}
+                                              title="Add 2-Stroke Penalty"
+                                              className={cn(
+                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
+                                                (r.extraStrokes ?? 0) === 2
+                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
+                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                                              )}
+                                            >
+                                              +2 Strokes
+                                            </Button>
+                                            {(r.extraStrokes ?? 0) > 0 && (
+                                              <Button
+                                                variant="outline"
+                                                onClick={() => openStrokeModal(r, "CLEAR")}
+                                                title="Clear Penalties"
+                                                className="h-8 w-8 p-0 bg-white rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
+                                              >
+                                                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
+                                              </Button>
+                                            )}
+                                            <Button
+                                              onClick={() => openDisqualify(r)}
+                                              title="Disqualify Player"
+                                              className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white border border-red-700 rounded-lg text-[11px] font-normal transition-colors flex items-center gap-1.5 shadow-sm"
+                                            >
+                                              <Ban className="w-3.5 h-3.5" />
+                                              Disqualify Player
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && isDisqualified && (
+                                          <div className="flex flex-wrap items-center justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => openEnablePlayer(r)}
+                                              title="Restore Player"
+                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-openclub-800 hover:text-white transition-colors flex items-center justify-center text-[11px] font-normal gap-1.5"
+                                            >
+                                              <CheckCircle2 className="w-3.5 h-3.5" />
+                                              Restore
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <EmptyState
+                            icon={AlertTriangle}
+                            title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
+                            description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
+                          />
+                        )}
+
+                        {/* Pagination */}
+                        {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
+                          <div className="mt-8">
+                            <Pagination
+                              currentPage={registrationsPage}
+                              totalPages={penalizeTotalPages}
+                              onPageChange={setRegistrationsPage}
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
             {/* TABS 5: Leaderboard */}
             {activeTab === "leaderboard" && (
@@ -2709,7 +3461,7 @@ function ViewTournamentPageInner() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+                    <div className="relative flex-1">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                       <Input
                         placeholder="Type player name or email to search..."
@@ -3057,464 +3809,6 @@ function ViewTournamentPageInner() {
               </div>
             )}
 
-            {/* TABS 6: Overview */}
-            {activeTab === "overview" && (
-              <div className="space-y-8">
-                {/* Statistics Cards Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Registrations</p>
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-[16px] font-normal text-gray-900">{formatWithCommas(registrationsTournamentTotal)}</p>
-                        <p className="text-[11px] text-gray-505 font-normal mt-0.5">Total Players</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                        <Users className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Entry Fee</p>
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-[16px] font-normal text-gray-900">{selectedTournament.entryFee && selectedTournament.entryFee > 0 ? formatNaira(selectedTournament.entryFee) : "Free"}</p>
-                        <p className="text-[11px] text-gray-550 font-normal mt-0.5">Per Registration</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-openclub-800">
-                        <Wallet className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-4 border border-[#e1efe5] flex flex-col justify-between shadow-sm">
-                    <p className="text-[10px] font-normal text-gray-400 uppercase tracking-widest mb-3">Capacity</p>
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-[16px] font-normal text-gray-900">
-                          {selectedTournament.maxPlayers ? formatWithCommas(selectedTournament.maxPlayers) : "∞"}
-                        </p>
-                        <p className="text-[11px] text-gray-550 font-normal mt-0.5">Player Limit</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                        <Lock className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course & Organiser Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Golf Course Box */}
-                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
-                        {courseDetails?.coverImage ? (
-                          <img src={courseDetails.coverImage} className="w-full h-full object-cover" />
-                        ) : (
-                          <Flag className="w-7 h-7 text-openclub-800" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
-                          {courseDetails?.name || "Golf Course details"}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {courseDetails?.address || "No address listed"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Holes</span>
-                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.holes || "—"} Holes</span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Par</span>
-                        <span className="text-[15px] font-normal text-gray-800">Par {courseDetails?.par || "—"}</span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Slope Rating</span>
-                        <span className="text-[15px] font-normal text-gray-800">{courseDetails?.slopeRating || "—"}</span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Architect</span>
-                        <span className="text-[15px] font-normal text-gray-800 truncate block">{courseDetails?.architect || "—"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scoring Rules Box */}
-                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-sm text-blue-600">
-                        <Activity className="w-7 h-7" />
-                      </div>
-                      <div>
-                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
-                          Scoring Rules
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          Configuration for format and scoring verification
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Format</span>
-                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).format?.replace('_', ' ') || "STROKE PLAY"}</span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-medium text-gray-400 uppercase block">Scoring Type</span>
-                        <span className="text-[14px] font-normal text-gray-800">{(selectedTournament as any).scoringType || "GROSS"}</span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Live Scoring</span>
-                        <span className={cn(
-                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
-                          (selectedTournament as any).enableLiveScoring ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
-                        )}>
-                          {(selectedTournament as any).enableLiveScoring ? "ENABLED" : "DISABLED"}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Marker Verification</span>
-                        <span className={cn(
-                          "text-[12px] font-normal px-2 py-0.5 rounded-full mt-1 inline-block",
-                          (selectedTournament as any).requireMarkerVerification ? "bg-emerald-50 text-openclub-800 border border-emerald-100" : "bg-gray-100 text-gray-500 border border-gray-200"
-                        )}>
-                          {(selectedTournament as any).requireMarkerVerification ? "REQUIRED" : "NOT REQUIRED"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Organiser Box */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-xl border border-[#e1efe5] bg-white space-y-6">
-                    <div className="flex items-center gap-4 border-b border-[#e1efe5] pb-4">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0 shadow-sm">
-                        {clubDetails?.logo ? (
-                          <img src={clubDetails.logo} className="w-full h-full object-cover" />
-                        ) : (
-                          <Trophy className="w-7 h-7 text-emerald-650" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-[16px] font-normal text-gray-900 leading-tight">
-                          {clubDetails?.name || selectedTournament.clubName}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {clubDetails?.address || "No address listed"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Status</span>
-                        <span className="text-[13px] font-normal text-openclub-800 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
-                          {clubDetails?.status || "ACTIVE"}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5]">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Plan tier</span>
-                        <span className="text-[13px] font-normal text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mt-1.5 inline-block">
-                          {clubDetails?.plan || "PRO"}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-background/60 rounded-xl border border-[#e1efe5] col-span-2">
-                        <span className="text-[10px] font-normal text-gray-400 uppercase block">Admin Email</span>
-                        <span className="text-[14px] font-normal text-gray-800 truncate block mt-0.5">{clubDetails?.adminEmail || "—"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "penalize" && (
-              <div className="space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
-                  <div>
-                    <h2 className="text-[15px] font-medium text-gray-900">Penalize Player</h2>
-                    <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
-                    <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
-                      <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                        <Input
-                          value={registrationsSearch}
-                          onChange={(e) => {
-                            setRegistrationsPage(1);
-                            if (registrationsMode === "server") setRegistrationsLoading(true);
-                            setRegistrationsSearch(e.target.value);
-                          }}
-                          placeholder="Search name or email..."
-                          className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                        />
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <SearchableSelect
-                          value={penalizeStrokesFilter}
-                          onValueChange={(v: any) => {
-                            setRegistrationsPage(1);
-                            setPenalizeStrokesFilter(v);
-                          }}
-                          options={[
-                            { value: "ALL", label: "All Players" },
-                            { value: "WITH_STROKES", label: "With Strokes" },
-                          ]}
-                          className="min-w-[160px]"
-                          triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                        />
-                        <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                          <button
-                            onClick={() => setPenalizeFilter("APPROVED")}
-                            className={cn(
-                              "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                              penalizeFilter === "APPROVED"
-                                ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                                : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                            )}
-                          >
-                            Active Players
-                          </button>
-                          <button
-                            onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                            className={cn(
-                              "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                              penalizeFilter === "DISQUALIFIED"
-                                ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                                : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                            )}
-                          >
-                            Disqualified Players
-                          </button>
-                        </div>
-                      </div>
-                    </div>             </div>
-                </div>
-
-                <div className="space-y-4">
-                  {(() => {
-                    const penalizeSearchQuery = registrationsSearch.trim().toLowerCase();
-                    const penalizeListAll = registrationsMode === "client" ? registrationsAll.filter(r => {
-                      const matchesStatus = r.status === penalizeFilter;
-                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
-                      const tokens = penalizeSearchQuery.split(/[\s-]+/).filter(Boolean);
-                      const searchableFields = [r.user?.firstName, r.user?.lastName, r.user?.email, `${r.user?.firstName} ${r.user?.lastName}`, `${r.user?.lastName} ${r.user?.firstName}`];
-                      const matchesSearch = tokens.length === 0 || tokens.every(token => searchableFields.some(field => field?.toLowerCase().includes(token)));
-                      return matchesStatus && matchesSearch && matchesStrokes;
-                    }) : registrationsPageItems.filter(r => {
-                      const matchesStatus = r.status === penalizeFilter;
-                      const matchesStrokes = penalizeStrokesFilter === "WITH_STROKES" ? (r.extraStrokes ?? 0) > 0 : true;
-                      return matchesStatus && matchesStrokes;
-                    });
-
-                    const penalizePageItems = registrationsMode === "client"
-                      ? penalizeListAll.slice((registrationsPage - 1) * registrationsPerPage, registrationsPage * registrationsPerPage)
-                      : penalizeListAll;
-
-                    const penalizeTotalPages = registrationsMode === "client"
-                      ? Math.max(1, Math.ceil(penalizeListAll.length / registrationsPerPage))
-                      : Math.max(1, Math.ceil(registrationsFilteredTotal / registrationsPerPage));
-
-                    return (
-                      <>
-                        {registrationsLoading ? (
-                          <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
-                            <div className="flex flex-col">
-                              {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
-                                  <div className="flex items-center gap-4 w-1/3">
-                                    <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
-                                    <div className="space-y-2 flex-1">
-                                      <Skeleton className="h-4 w-3/4" />
-                                      <Skeleton className="h-3 w-1/2" />
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 w-1/4 hidden sm:flex">
-                                    <Skeleton className="h-5 w-16 rounded-full" />
-                                    <Skeleton className="h-5 w-16 rounded-full" />
-                                  </div>
-                                  <div className="flex items-center justify-end gap-2 w-1/4 text-right">
-                                    <Skeleton className="h-9 w-9 rounded-lg" />
-                                    <Skeleton className="h-9 w-9 rounded-lg" />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : penalizePageItems.length > 0 ? (
-                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
-                            <table className="w-full text-left border-collapse min-w-[800px]">
-                              <thead>
-                                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-                                  <th className="px-4 py-4">PLAYER</th>
-                                  <th className="px-4 py-4">STATUS</th>
-                                  <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
-                                  <th className="px-4 py-4 text-right">ACTIONS</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[#efefef] bg-white">
-                                {penalizePageItems.map((r) => {
-                                  const isDisqualified = r.status === "DISQUALIFIED";
-                                  return (
-                                    <tr
-                                      key={r.id}
-                                      className={cn(
-                                        "transition-all hover:bg-background/50",
-                                        isDisqualified ? "bg-red-50/10 opacity-75" : ""
-                                      )}
-                                    >
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
-                                            <img
-                                              src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                            />
-                                          </div>
-                                          <div className="min-w-0">
-                                            <NextLink href={`/super-admin/users/${r.user?.id}`} className="block no-underline hover:no-underline">
-                                              <p className="text-[14px] font-medium text-gray-900 truncate hover:text-openclub-800 transition-colors no-underline hover:no-underline">
-                                                {r.user?.firstName} {r.user?.lastName}
-                                              </p>
-                                            </NextLink>
-                                            <p className="text-[12px] text-gray-500 truncate mt-0.5">{r.user?.email}</p>
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center gap-1.5">
-                                          {isDisqualified && (
-                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
-                                              Disqualified
-                                            </span>
-                                          )}
-                                          {!isDisqualified && r.status === "APPROVED" && (
-                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                              Active
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3 text-center">
-                                        <div className="flex items-center justify-center gap-1.5">
-                                          <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                            HCP {r.user?.handicap ?? 0}
-                                          </span>
-                                          {typeof r.extraStrokes === "number" && r.extraStrokes > 0 && (
-                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
-                                              +{r.extraStrokes} Penalty
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3 text-right">
-                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && !isDisqualified && (
-                                          <div className="flex flex-wrap items-center justify-end gap-2">
-                                            <Button
-                                              variant="outline"
-                                              disabled={(r.extraStrokes ?? 0) === 1}
-                                              onClick={() => openStrokeModal(r, "ADD_1")}
-                                              title="Add 1-Stroke Penalty"
-                                              className={cn(
-                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
-                                                (r.extraStrokes ?? 0) === 1
-                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
-                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-                                              )}
-                                            >
-                                              +1 Stroke
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              disabled={(r.extraStrokes ?? 0) === 2}
-                                              onClick={() => openStrokeModal(r, "ADD_2")}
-                                              title="Add 2-Stroke Penalty"
-                                              className={cn(
-                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
-                                                (r.extraStrokes ?? 0) === 2
-                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
-                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-                                              )}
-                                            >
-                                              +2 Strokes
-                                            </Button>
-                                            {(r.extraStrokes ?? 0) > 0 && (
-                                              <Button
-                                                variant="outline"
-                                                onClick={() => openStrokeModal(r, "CLEAR")}
-                                                title="Clear Penalties"
-                                                className="h-8 w-8 p-0 bg-white rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
-                                              >
-                                                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
-                                              </Button>
-                                            )}
-                                            <Button
-                                              variant="outline"
-                                              onClick={() => openDisqualify(r)}
-                                              title="Disqualify Player"
-                                              className="h-8 w-8 p-0 bg-white rounded-lg border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
-                                            >
-                                              <Ban className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
-                                        )}
-                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && isDisqualified && (
-                                          <div className="flex flex-wrap items-center justify-end gap-2">
-                                            <Button
-                                              variant="outline"
-                                              onClick={() => openEnablePlayer(r)}
-                                              title="Restore Player"
-                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-openclub-800 hover:text-white transition-colors flex items-center justify-center text-[11px] font-normal gap-1.5"
-                                            >
-                                              <CheckCircle2 className="w-3.5 h-3.5" />
-                                              Restore
-                                            </Button>
-                                          </div>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <EmptyState
-                            icon={AlertTriangle}
-                            title={penalizeFilter === "APPROVED" ? "No Active Players" : "No Disqualified Players"}
-                            description={penalizeFilter === "APPROVED" ? "There are currently no active players matching your search." : "There are currently no disqualified players matching your search."}
-                          />
-                        )}
-
-                        {/* Pagination */}
-                        {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
-                          <div className="mt-8">
-                            <Pagination
-                              currentPage={registrationsPage}
-                              totalPages={penalizeTotalPages}
-                              onPageChange={setRegistrationsPage}
-                            />
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Helper Modals */}
       <Modal
         isOpen={strokeModalRegistration !== null && strokeModalAction !== null}
@@ -3568,7 +3862,7 @@ function ViewTournamentPageInner() {
               Close
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-650 border-red-650/30"
               onClick={confirmCancel}
               disabled={mutating}
             >
@@ -3599,7 +3893,7 @@ function ViewTournamentPageInner() {
             </Button>
             <Button
               disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-medium px-8 capitalize"
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
               onClick={confirmDelete}
             >
               Delete
@@ -3645,7 +3939,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
               onClick={confirmDisqualify}
             >
               Confirm
@@ -3678,7 +3972,7 @@ function ViewTournamentPageInner() {
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-medium px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30 capitalize"
+                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -3693,7 +3987,7 @@ function ViewTournamentPageInner() {
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30 capitalize"
+                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
                 onClick={confirmRemovePlayer}
               >
                 Remove
@@ -3740,7 +4034,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
               onClick={confirmEnablePlayer}
             >
               Enable
@@ -3762,14 +4056,14 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isResetGroupingsModalOpen}
         onClose={() => setIsResetGroupingsModalOpen(false)}
-        title="Reset All Flights & Tee Times?"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Reset All Holes & Start Times?" : "Reset All Flights & Tee Times?"}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-normal">
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
               onClick={confirmResetGroupings}
             >
               Yes, Reset All
@@ -3781,9 +4075,93 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">{selectedTournament?.startType === 'SHOTGUN' ? 'Reset Holes & Start Times?' : 'Reset Flights & Tee Times?'}</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Waitlist Approve Modal */}
+      <Modal
+        isOpen={isApproveWaitlistModalOpen}
+        onClose={() => setIsApproveWaitlistModalOpen(false)}
+        title={(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Action Restricted" : (selectedWaitlistIds.length > 1 ? "Approve Players?" : "Approve Player?")}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsApproveWaitlistModalOpen(false)} className="rounded-lg font-normal">
+              {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Close" : "Cancel"}
+            </Button>
+            {!(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) && (
+              <Button
+                className="rounded-lg font-normal px-8 text-white border bg-openclub-700 hover:bg-openclub-800 border-openclub-800/30"
+                onClick={() => handleApproveWaitlist(selectedWaitlistIds)}
+                disabled={waitlistActionId === "processing"}
+              >
+                {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Approve
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+                <Ban className="h-10 w-10" />
+              </div>
+              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Tournament In Progress</h4>
+              <p className="text-gray-500 max-w-sm">
+                Cannot approve waitlist. The tournament has already started.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-openclub-700 border border-emerald-100">
+                <CheckCircle2 className="h-10 w-10" />
+              </div>
+              <h4 className="text-[14px] font-normal text-gray-900 mb-2">
+                Approve {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+              </h4>
+              <p className="text-gray-500 max-w-sm">
+                Are you sure you want to approve {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This will move them to the registered players list.
+              </p>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* Waitlist Remove Modal */}
+      <Modal
+        isOpen={isRemoveWaitlistModalOpen}
+        onClose={() => setIsRemoveWaitlistModalOpen(false)}
+        title={selectedWaitlistIds.length > 1 ? "Remove Players?" : "Remove Player?"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsRemoveWaitlistModalOpen(false)} className="rounded-lg font-normal">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-600/30"
+              onClick={() => handleRemoveWaitlist(selectedWaitlistIds)}
+              disabled={waitlistActionId === "processing"}
+            >
+              {waitlistActionId === "processing" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+            <Trash2 className="h-10 w-10" />
+          </div>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
+            Remove {selectedWaitlistIds.length > 1 ? `${selectedWaitlistIds.length} Players` : "Player"}?
+          </h4>
+          <p className="text-gray-500 max-w-sm">
+            Are you sure you want to remove {selectedWaitlistIds.length > 1 ? "these players" : "this player"} from the waitlist? This action cannot be undone.
           </p>
         </div>
       </Modal>
@@ -3806,39 +4184,37 @@ function ViewTournamentPageInner() {
           ].map((rule) => {
             const Icon = rule.icon;
             return (
-            <button
-              key={rule.value}
-              disabled={rule.disabled}
-              onClick={() => setSelectedAutoTeeRule(rule.value)}
-              className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${
-                selectedAutoTeeRule === rule.value
+              <button
+                key={rule.value}
+                disabled={rule.disabled}
+                onClick={() => setSelectedAutoTeeRule(rule.value)}
+                className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${selectedAutoTeeRule === rule.value
                   ? "border-openclub-600 bg-openclub-50/50 ring-1 ring-openclub-600"
                   : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-start gap-4 flex-1 pr-4">
-                <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
-                  selectedAutoTeeRule === rule.value 
-                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700' 
+                  }`}
+              >
+                <div className="flex items-start gap-4 flex-1 pr-4">
+                  <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${selectedAutoTeeRule === rule.value
+                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}>
-                  <Icon className="w-4 h-4" />
+                    }`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
+                    <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                  </div>
                 </div>
-                <div className="text-left flex-1 min-w-0">
-                  <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
-                  <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
+                  {selectedAutoTeeRule === rule.value && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
+                  )}
                 </div>
-              </div>
-              <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
-                {selectedAutoTeeRule === rule.value && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
-                )}
-              </div>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
         </div>
-        
+
         <div className="mt-2 flex justify-end">
           <Button
             disabled={!selectedAutoTeeRule}
@@ -3884,7 +4260,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isPublishEmailModalOpen}
         onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
-        title={`Send Day ${selectedDay} Flights & Tee Times`}
+        title={selectedTournament?.startType === 'SHOTGUN' ? `Send Day ${selectedDay} Hole Assignments` : `Send Day ${selectedDay} Flights & Tee Times`}
         className="max-w-xl"
       >
         <div className="space-y-6 pt-4">
@@ -3942,7 +4318,7 @@ function ViewTournamentPageInner() {
             <Button
               onClick={confirmPublishGroupingsEmail}
               disabled={groupingsGenerating}
-              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-medium shadow-sm capitalize"
+              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-normal shadow-sm"
             >
               {groupingsGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
               Send Emails to {groupingsData?.groups.reduce((acc, g) => acc + g.registrations.length, 0)} Players
@@ -3955,7 +4331,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isDayLockModalOpen}
         onClose={() => setIsDayLockModalOpen(false)}
-        title="Flights & Tee Times Not Locked"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Holes & Start Times Not Locked" : "Flights & Tee Times Not Locked"}
         footer={
           <>
             <Button
@@ -4054,7 +4430,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isUngroupedPlayersModalOpen}
         onClose={() => setIsUngroupedPlayersModalOpen(false)}
-        title="Incomplete Flights & Tee Times"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Incomplete Holes & Start Times" : "Incomplete Flights & Tee Times"}
         footer={
           <>
             <Button
@@ -4097,7 +4473,7 @@ function ViewTournamentPageInner() {
               Cancel
             </Button>
             <Button
-              className="rounded-lg font-medium px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30 capitalize"
+              className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
               onClick={() => {
                 setShowCutModal(false);
                 handleApplyCut();
@@ -4123,6 +4499,17 @@ function ViewTournamentPageInner() {
   );
 }
 
+
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case 'Men': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'Women': return 'bg-pink-100 text-pink-800 border-pink-200';
+    case 'Seniors': return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'Juniors': return 'bg-green-100 text-green-800 border-green-200';
+    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
 export default function ViewTournamentPage() {
   return (
     <Suspense fallback={
@@ -4145,4 +4532,3 @@ export default function ViewTournamentPage() {
     </Suspense>
   );
 }
-

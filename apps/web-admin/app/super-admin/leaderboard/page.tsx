@@ -35,7 +35,7 @@ type ApiTournament = {
   registrationDeadline?: string | null;
   playerTypes: string[];
   club: { id: string; name: string; logo?: string | null } | null;
-  course?: { id: string; name: string } | null;
+  course?: { id: string; name: string; coverImage?: string | null } | null;
   visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
   enableWaitlist?: boolean;
   createdAt: string;
@@ -54,6 +54,7 @@ type TournamentRow = {
   clubName: string;
   clubLogo: string | null;
   courseName: string;
+  courseCoverImage: string | null;
   dates: string;
   status: string;
   badge: string;
@@ -203,6 +204,7 @@ export default function LeaderboardDirectoryPage() {
         clubName: t.club?.name || "Unknown Club",
         clubLogo: t.club?.logo || null,
         courseName: t.course?.name || "TBA",
+        courseCoverImage: t.course?.coverImage || null,
         dates: formatDateRange(t.startDate, t.endDate),
         status: STATUS_META[t.status].label,
         badge: STATUS_META[t.status].badge,
@@ -228,12 +230,16 @@ export default function LeaderboardDirectoryPage() {
           </CardHeader>
           <CardContent className="p-0">
             {/* Filters */}
-            <div className="px-6 pb-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+            {/* Main Container */}
+          <div className="px-6 pb-6">
+            <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+              <div className="p-5 border-b border-[#e1efe5]">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                 <Input
                   placeholder="Search tournament name..."
-                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -278,6 +284,7 @@ export default function LeaderboardDirectoryPage() {
                 />
               </div>
             </div>
+              </div>
 
             {/* Table */}
             <div className="w-full overflow-x-auto min-h-[400px]">
@@ -285,7 +292,7 @@ export default function LeaderboardDirectoryPage() {
                 <thead>
                   <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
                     <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">TOURNAMENT</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">GOLF COURSE</th>
+                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ORGANIZER</th>
                     <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DATES</th>
                     <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">FORMAT</th>
                     <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ROUNDS</th>
@@ -336,9 +343,15 @@ export default function LeaderboardDirectoryPage() {
                       <tr key={t.id} className="hover:bg-background/50 transition-colors group cursor-pointer" onClick={() => openView(t)}>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3 min-w-[220px]">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
-                              <Trophy className="w-4 h-4" />
-                            </div>
+                            {t.courseCoverImage ? (
+                              <img src={t.courseCoverImage} alt={t.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]" />
+                            ) : t.clubLogo ? (
+                              <img src={t.clubLogo} alt={t.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5] font-semibold text-[13px]">
+                                {t.courseName?.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "OG"}
+                              </div>
+                            )}
                             <div className="flex flex-col min-w-0 gap-0.5">
                               <div className="flex items-center gap-2">
                                 <span className="text-slate-900 text-[14px] font-medium truncate leading-tight" title={t.name}>{t.name}</span>
@@ -346,20 +359,21 @@ export default function LeaderboardDirectoryPage() {
                                   <span className="inline-flex items-center bg-[#22c55e] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-sm tracking-wide">Live</span>
                                 )}
                               </div>
+                              <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5" title={t.courseName || t.clubName}>{t.courseName || t.clubName}</span>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             {t.clubLogo ? (
-                              <img src={t.clubLogo} alt={t.courseName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
+                              <img src={t.clubLogo} alt={t.courseName} className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#e1efe5]" />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
-                                {t.clubName.substring(0, 2)}
+                              <div className="w-10 h-10 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center text-xs font-semibold border border-[#e1efe5] flex-shrink-0 uppercase">
+                                {t.clubName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                               </div>
                             )}
                             <div className="flex flex-col min-w-0 gap-1.5">
-                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.courseName}</span>
+                              <span className="text-[13px] text-gray-600 font-medium truncate leading-tight">{t.clubName}</span>
                             </div>
                           </div>
                         </td>
@@ -431,7 +445,9 @@ export default function LeaderboardDirectoryPage() {
                 onPageChange={setCurrentPage}
               />
             </div>
-          </CardContent>
+            </div>
+          </div>
+        </CardContent>
         </Card>
       </div>
     </div>

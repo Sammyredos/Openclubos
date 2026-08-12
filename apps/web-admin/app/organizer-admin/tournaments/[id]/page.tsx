@@ -133,6 +133,7 @@ type TournamentRow = {
   type?: string;
   minHandicap?: number;
   maxHandicap?: number;
+  startType?: string;
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string; badge: string }> = {
@@ -151,6 +152,7 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
 
 const TABS = [
   { id: "players", label: "Registered Players", icon: Users },
+  { id: "register", label: "Quick Player Registration", icon: UserPlus },
   { id: "invite", label: "Invite a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
@@ -192,8 +194,7 @@ function ViewTournamentPageInner() {
   const pathname = usePathname();
 
   // Tab Sync with search parameters
-  const paramTab = searchParams.get("tab") || "players";
-  const activeTab = (paramTab === "register" ? "players" : paramTab) as TabId;
+  const activeTab = (searchParams.get("tab") || "players") as TabId;
 
   const setActiveTab = (tabId: TabId) => {
     router.push(`${pathname}?tab=${tabId}`);
@@ -315,7 +316,14 @@ function ViewTournamentPageInner() {
   };
 
   // Manual register options
+  const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
+  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [manualPaymentType, setManualPaymentType] = useState<"UNPAID" | "CASH">("UNPAID");
+  const [registeredUserIdsForSearch, setRegisteredUserIdsForSearch] = useState<string[]>([]);
+  const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
+
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
@@ -1024,7 +1032,76 @@ function ViewTournamentPageInner() {
       )
       : registrations;
 
+  // Search & Register Logic inside tab
+  useEffect(() => {
+    if (activeTab !== "register" || !selectedTournament?.id) {
+      setRegisterPlayerResults([]);
+      return;
+    }
+    const tId = selectedTournament.id;
+    const q = registerPlayerSearch.trim();
+    if (q.length < 2) {
+      setRegisterPlayerResults([]);
+      return;
+    }
 
+    let cancelled = false;
+    setIsSearchingPlayers(true);
+    getAdminUsers({ search: q, take: 10, role: "PLAYER" })
+      .then(async ({ items }) => {
+        if (cancelled) return;
+
+        try {
+          const { items: regItems } = await getRegistrations({
+            tournamentId: tId,
+            q,
+            take: 50,
+          });
+          if (cancelled) return;
+          const registeredIds = regItems.map(r => r.user?.id).filter((id): id is string => !!id);
+          setRegisteredUserIdsForSearch(registeredIds);
+        } catch (err) {
+          console.error("Failed to fetch registrations for search", err);
+        }
+
+        setRegisterPlayerResults(Array.isArray(items) ? items : []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          console.error("Player search failed", e);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearchingPlayers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, registerPlayerSearch]);
+
+  const handleRegisterPlayer = async (userId: string) => {
+    if (!selectedTournament?.id) return;
+    setIsRegistering(true);
+    try {
+      const { registerForTournament } = await import("@/lib/api/registrations");
+      await registerForTournament({
+        tournamentId: selectedTournament.id,
+        userId,
+        paymentStatus: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "PAID" : "UNPAID",
+        status: (!selectedTournament.requiresPayment || manualPaymentType === "CASH") ? "APPROVED" : "PENDING",
+      });
+      toast.success("Player registered successfully");
+      setNewlyRegisteredUserIds(prev => [...prev, userId]);
+
+      await reloadSingleTournament();
+      setRegistrationsRefreshTrigger(prev => prev + 1);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to register player");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   // Waitlist Action methods
   const handleApproveWaitlist = async (regIds: string[]) => {
@@ -1345,8 +1422,8 @@ function ViewTournamentPageInner() {
               </div>
 
               {/* Tab Filters Bar Skeleton */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[240px] max-w-[500px]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative flex-1">
                   <Skeleton className="h-11 w-full rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
                 </div>
                 <Skeleton className="h-11 w-[150px] rounded-lg bg-[#f5faf6] border border-[#e1efe5]" />
@@ -1499,7 +1576,7 @@ function ViewTournamentPageInner() {
           <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
             {TABS.map((tab, index) => {
               const isActive = activeTab === tab.id;
-              const isShotgun = (selectedTournament as any)?.startType === "SHOTGUN";
+              const isShotgun = selectedTournament?.startType === "SHOTGUN";
               const label = tab.id === "groupings"
                 ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
                 : tab.label;
@@ -1589,57 +1666,61 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      value={registrationsSearch}
-                      onChange={(e) => {
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={registrationsStatusFilter}
+                      onValueChange={(v: any) => {
                         setRegistrationsPage(1);
                         if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsSearch(e.target.value);
+                        setRegistrationsStatusFilter(v);
                       }}
-                      placeholder="Search name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                      options={[
+                        { value: "All Status", label: "All Status" },
+                        { value: "PENDING", label: "Pending" },
+                        { value: "APPROVED", label: "Approved" },
+                        { value: "REJECTED", label: "Rejected" },
+                        { value: "WAITLISTED", label: "Waitlisted" },
+                        { value: "DISQUALIFIED", label: "Disqualified" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Status"
+                    />
+                    <SearchableSelect
+                      value={registrationsPaymentFilter}
+                      onValueChange={(v: any) => {
+                        setRegistrationsPage(1);
+                        if (registrationsMode === "server") setRegistrationsLoading(true);
+                        setRegistrationsPaymentFilter(v);
+                      }}
+                      options={[
+                        { value: "All Payments", label: "All Payments" },
+                        { value: "PAID", label: "Paid" },
+                        { value: "UNPAID", label: "Unpaid" },
+                        { value: "REFUNDED", label: "Refunded" },
+                      ]}
+                      className="min-w-[150px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                      placeholder="All Payments"
                     />
                   </div>
-                  <SearchableSelect
-                    value={registrationsStatusFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsStatusFilter(v);
-                    }}
-                    options={[
-                      { value: "All Status", label: "All Status" },
-                      { value: "PENDING", label: "Pending" },
-                      { value: "APPROVED", label: "Approved" },
-                      { value: "REJECTED", label: "Rejected" },
-                      { value: "WAITLISTED", label: "Waitlisted" },
-                      { value: "DISQUALIFIED", label: "Disqualified" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Status"
-                  />
-                  <SearchableSelect
-                    value={registrationsPaymentFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      if (registrationsMode === "server") setRegistrationsLoading(true);
-                      setRegistrationsPaymentFilter(v);
-                    }}
-                    options={[
-                      { value: "All Payments", label: "All Payments" },
-                      { value: "PAID", label: "Paid" },
-                      { value: "UNPAID", label: "Unpaid" },
-                      { value: "REFUNDED", label: "Refunded" },
-                    ]}
-                    className="min-w-[150px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                    placeholder="All Payments"
-                  />
                 </div>
+              </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
@@ -1788,7 +1869,7 @@ function ViewTournamentPageInner() {
                                             ) : (
                                               <Wallet className="w-3.5 h-3.5" />
                                             )}
-                                            <span className="text-[12px] font-medium leading-none whitespace-nowrap">Mark Paid</span>
+                                            <span className="text-[12px] font-normal leading-none whitespace-nowrap">Mark Paid</span>
                                           </button>
                                           <button
                                             onClick={(e) => {
@@ -1892,23 +1973,7 @@ function ViewTournamentPageInner() {
                     <p className="text-[12px] text-gray-500 mt-1">Send an invitation email directly to a player to join this tournament.</p>
                   </div>
 
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 shadow-sm space-y-6">
-                    {/* Banner box */}
-                    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-emerald-50/40 border border-emerald-100/60">
-                      <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-openclub-800 flex items-center justify-center shrink-0 shadow-xs">
-                        <UserPlus className="w-6 h-6" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-[15px] font-medium text-gray-900 leading-tight">Invite via Email</h3>
-                        <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                          Invite a player directly to{" "}
-                          <span className="text-openclub-800 font-medium">
-                            {selectedTournament.name}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
                     {/* Form */}
                     <div className="space-y-2">
                       <label className="text-[13px] font-medium text-gray-700 block">
@@ -1920,7 +1985,7 @@ function ViewTournamentPageInner() {
                         onChange={(e) => setInviteEmail(e.target.value)}
                         placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
                         disabled={isSubmittingInvite || isConcluded}
-                        className="h-11 border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
                             handleSendInvite();
@@ -1942,30 +2007,189 @@ function ViewTournamentPageInner() {
               );
             })()}
 
+            {/* TABS 2: Register Player Inline */}
+            {activeTab === "register" && (
+              <div className="space-y-6">
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Quick Player Registration</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Directly search and enrol members into this tournament.</p>
+                </div>
+
+
+
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {selectedTournament?.requiresPayment && (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Initial Payment Status</h4>
+                        <p className="text-[12px] text-gray-500">Specify the payment status for this player upon registration.</p>
+                      </div>
+                      <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('UNPAID')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'UNPAID' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Unpaid
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setManualPaymentType('CASH')}
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                            manualPaymentType === 'CASH' ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          Paid (Cash / Direct)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                    <Input
+                      placeholder="Type player name or email to search..."
+                      value={registerPlayerSearch}
+                      onChange={(e) => setRegisterPlayerSearch(e.target.value)}
+                      className="pl-10 h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+
+                  <div className="min-h-[300px]">
+                    {isSearchingPlayers ? (
+                      <div className="p-12 text-center text-gray-400 space-y-3">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-650" />
+                        <p className="text-[12px]">Searching the openclub registry...</p>
+                      </div>
+                    ) : registerPlayerResults.length > 0 ? (
+                      <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                              <th className="px-4 py-4">PLAYER</th>
+                              <th className="px-4 py-4">DETAILS</th>
+                              <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                              <th className="px-4 py-4 text-right">ACTIONS</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#efefef] bg-white">
+                            {registerPlayerResults.map((player) => {
+                              const isAlreadyRegistered =
+                                registrationsAll.some(x => x.user?.id === player.id) ||
+                                registrations.some(x => x.user?.id === player.id) ||
+                                registeredUserIdsForSearch.includes(player.id) ||
+                                newlyRegisteredUserIds.includes(player.id);
+                              return (
+                                <tr key={player.id} className="transition-all hover:bg-background/50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
+                                        <img
+                                          src={player.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.email || player.id)}`}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-[15px] font-medium text-gray-900 truncate">
+                                          {fullName(player.firstName ?? null, player.lastName ?? null)}
+                                        </p>
+                                        <p className="text-[12px] text-gray-550 truncate mt-0.5">{player.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-1.5">
+                                      {player.gender && (
+                                        <span className={cn(
+                                          "text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                          player.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                        )}>
+                                          {player.gender}
+                                        </span>
+                                      )}
+                                      {player.dob && (
+                                        <span className="text-[12px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                          {(() => {
+                                            const birthDate = new Date(player.dob);
+                                            const today = new Date();
+                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                            const m = today.getMonth() - birthDate.getMonth();
+                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                            return `${age} YRS`;
+                                          })()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      HCP {player.handicap ?? 0}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <Button
+                                      disabled={isAlreadyRegistered || isRegistering}
+                                      size="sm"
+                                      onClick={() => handleRegisterPlayer(player.id)}
+                                      className={cn(
+                                        "rounded-xl font-normal text-[12px] px-4 h-9",
+                                        isAlreadyRegistered
+                                          ? "bg-gray-100 text-gray-400 border border-gray-200"
+                                          : "bg-[#15803D] hover:bg-[#166534] text-white"
+                                      )}
+                                    >
+                                      {isRegistering ? "Registering..." : isAlreadyRegistered ? "Registered" : "Enrol Player"}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : registerPlayerSearch.trim().length >= 2 ? (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Search}
+                        title="No players found"
+                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
+                      />
+                    ) : (
+                      <EmptyState
+                        variant="minimal"
+                        icon={Users}
+                        title="Start Enrolling"
+                        description="Type 2 or more characters of a member's name or email to retrieve matches."
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* TABS 3: Waitlist Management */}
             {activeTab === "waitlist" && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-openclub-800 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 animate-spin" style={{ animationDuration: '6s' }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] text-openclub-800 font-normal uppercase tracking-wider">Queue Management</p>
-                    <h4 className="text-[15px] font-medium text-gray-900 truncate">Waitlist Queue</h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[16px] font-normal text-openclub-800 leading-none">{formatWithCommas(pendingWaitlistTotal)}</p>
-                    <p className="text-[11px] text-emerald-650 font-normal uppercase tracking-widest mt-1">Waiting</p>
-                  </div>
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">Waitlist Queue</h2>
+                  <p className="text-[12px] text-gray-500 mt-1">Manage and approve players currently on the waitlist.</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      placeholder="Search waitlist by name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        placeholder="Search waitlist by name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       value={waitlistSearch}
                       onChange={(e) => {
                         setWaitlistSearch(e.target.value);
@@ -1973,74 +2197,67 @@ function ViewTournamentPageInner() {
                       }}
                     />
                   </div>
-                  {selectedWaitlistIds.length > 0 && (
-                    <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100">
-                      <span className="text-[12px] font-normal text-emerald-700 mr-2">
-                        {selectedWaitlistIds.length} selected
-                      </span>
-                      <Button
-                        onClick={() => setIsApproveWaitlistModalOpen(true)}
-                        className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Approve All
-                      </Button>
-                      <Button
-                        onClick={() => setIsRemoveWaitlistModalOpen(true)}
-                        variant="ghost"
-                        className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Remove All
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  
+                  <div className="flex flex-wrap items-center gap-4 ml-auto">
+                    <SearchableSelect
+                      value={waitlistFilter}
+                      onValueChange={(v: any) => {
+                        setWaitlistFilter(v);
+                        setWaitlistPage(1);
+                        setSelectedWaitlistIds([]);
+                      }}
+                      options={[
+                        { value: "PENDING", label: "Pending Queue" },
+                        { value: "REJECTED", label: "Rejected Players" },
+                      ]}
+                      className="min-w-[170px]"
+                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                    />
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl w-fit border border-[#e1efe5]">
-                    <button
-                      onClick={() => setWaitlistFilter("PENDING")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "PENDING"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Pending Queue
-                    </button>
-                    <button
-                      onClick={() => setWaitlistFilter("REJECTED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        waitlistFilter === "REJECTED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Rejected Players
-                    </button>
+                    {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                      <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
+                        <input
+                          type="checkbox"
+                          id="selectAllWaitlist"
+                          className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                          checked={selectedWaitlistIds.length === waitlist.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedWaitlistIds(waitlist.map(i => i.id));
+                            } else {
+                              setSelectedWaitlistIds([]);
+                            }
+                          }}
+                        />
+                        <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                      </div>
+                    )}
                   </div>
-                  {waitlistFilter === "PENDING" && waitlist.length > 0 && (
-                    <div className="flex items-center gap-2 px-2">
-                      <input
-                        type="checkbox"
-                        id="selectAllWaitlist"
-                        className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
-                        checked={selectedWaitlistIds.length === waitlist.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedWaitlistIds(waitlist.map(i => i.id));
-                          } else {
-                            setSelectedWaitlistIds([]);
-                          }
-                        }}
-                      />
-                      <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
-                    </div>
-                  )}
                 </div>
+              </div>
+
+                {selectedWaitlistIds.length > 0 && (
+                  <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
+                    <span className="text-[12px] font-normal text-emerald-700 mr-2">
+                      {selectedWaitlistIds.length} selected
+                    </span>
+                    <Button
+                      onClick={() => setIsApproveWaitlistModalOpen(true)}
+                      className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Approve All
+                    </Button>
+                    <Button
+                      onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                      variant="ghost"
+                      className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove All
+                    </Button>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {waitlistLoading ? (
@@ -2204,7 +2421,7 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="bg-white border border-[#e1efe5] rounded-xl p-12 text-center">
+                    <div className="p-12 text-center">
                       <EmptyState
                         icon={Clock}
                         title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
@@ -2327,7 +2544,7 @@ function ViewTournamentPageInner() {
                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
                             <Calendar className="w-4 h-4 text-emerald-800" />
                           </div>
-                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">Flights & Tee Times For</span>
+                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
                           <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
                         </div>
                       </div>
@@ -2352,8 +2569,8 @@ function ViewTournamentPageInner() {
                             <Mail className="w-5 h-5" />
                           </div>
                           <div>
-                            <h4 className="text-[15px] font-medium text-gray-900">Send Tee Times via Email</h4>
-                            <p className="text-[13px] text-gray-500 mt-0.5">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+                            <h4 className="text-[15px] font-medium text-gray-900">{selectedTournament?.startType === 'SHOTGUN' ? 'Send Hole Assignments' : 'Send Tee Times'} via Email</h4>
+                            <p className="text-[13px] text-gray-500 mt-0.5">{selectedTournament?.startType === 'SHOTGUN' ? 'Hole assignments' : 'Flights & Tee Times'} have been generated. Publish them via email to notify players.</p>
                           </div>
                         </div>
                         <Button
@@ -2382,13 +2599,13 @@ function ViewTournamentPageInner() {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
-                          Manage Flights & Tee Times
+                          Manage {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
                         </h3>
-                        <p className="text-[13px] text-gray-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
+                        <p className="text-[13px] text-gray-500">Pair players into {selectedTournament?.startType === 'SHOTGUN' ? 'Holes and assign start times' : 'Tee Flights and assign tee times'} for Day {selectedDay}.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -2877,60 +3094,51 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 mb-2">
-                  <div className="flex gap-1.5 bg-[#f5faf6] p-1 rounded-xl border border-[#e1efe5]">
-                    <button
-                      onClick={() => setPenalizeFilter("APPROVED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        penalizeFilter === "APPROVED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Active Players
-                    </button>
-                    <button
-                      onClick={() => setPenalizeFilter("DISQUALIFIED")}
-                      className={cn(
-                        "px-4 py-2 text-[13px] font-medium rounded-lg transition-all flex items-center border",
-                        penalizeFilter === "DISQUALIFIED"
-                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                      )}
-                    >
-                      Disqualified Players
-                    </button>
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                      <Input
+                        value={registrationsSearch}
+                        onChange={(e) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsSearch(e.target.value);
+                        }}
+                        placeholder="Search name or email..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={penalizeFilter}
+                        onValueChange={(v: any) => {
+                          setPenalizeFilter(v);
+                          setRegistrationsPage(1);
+                        }}
+                        options={[
+                          { value: "APPROVED", label: "Active Players" },
+                          { value: "DISQUALIFIED", label: "Disqualified Players" },
+                        ]}
+                        className="min-w-[170px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                      <SearchableSelect
+                        value={penalizeStrokesFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          setPenalizeStrokesFilter(v);
+                        }}
+                        options={[
+                          { value: "ALL", label: "All Players" },
+                          { value: "WITH_STROKES", label: "With Strokes" },
+                        ]}
+                        className="min-w-[160px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="relative flex-1 min-w-[240px] max-w-[500px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                    <Input
-                      value={registrationsSearch}
-                      onChange={(e) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsSearch(e.target.value);
-                      }}
-                      placeholder="Search name or email..."
-                      className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
-                    />
-                  </div>
-                  <SearchableSelect
-                    value={penalizeStrokesFilter}
-                    onValueChange={(v: any) => {
-                      setRegistrationsPage(1);
-                      setPenalizeStrokesFilter(v);
-                    }}
-                    options={[
-                      { value: "ALL", label: "All Players" },
-                      { value: "WITH_STROKES", label: "With Strokes" },
-                    ]}
-                    className="min-w-[160px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                  />
                 </div>
 
                 <div className="space-y-4">
@@ -3396,7 +3604,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isResetGroupingsModalOpen}
         onClose={() => setIsResetGroupingsModalOpen(false)}
-        title="Reset All Flights & Tee Times?"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Reset All Holes & Start Times?" : "Reset All Flights & Tee Times?"}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsResetGroupingsModalOpen(false)} className="rounded-lg font-normal">
@@ -3415,7 +3623,7 @@ function ViewTournamentPageInner() {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
             <RefreshCcw className="h-10 w-10 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <h4 className="text-[14px] font-normal text-gray-900 mb-2">Reset Flights & Tee Times?</h4>
+          <h4 className="text-[14px] font-normal text-gray-900 mb-2">{selectedTournament?.startType === 'SHOTGUN' ? 'Reset Holes & Start Times?' : 'Reset Flights & Tee Times?'}</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to reset all groupings for Day {selectedDay}? This will delete all groups and mark all players as unassigned.
           </p>
@@ -3506,7 +3714,6 @@ function ViewTournamentPageInner() {
         </div>
       </Modal>
 
-      {/* Auto Tee Rule Selection Modal */}
       {/* Auto Tee Rule Selection Modal */}
       <Modal
         isOpen={isGroupingRulesModalOpen}
@@ -3601,7 +3808,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isPublishEmailModalOpen}
         onClose={() => !groupingsGenerating && setIsPublishEmailModalOpen(false)}
-        title={`Send Day ${selectedDay} Flights & Tee Times`}
+        title={selectedTournament?.startType === 'SHOTGUN' ? `Send Day ${selectedDay} Hole Assignments` : `Send Day ${selectedDay} Flights & Tee Times`}
         className="max-w-xl"
       >
         <div className="space-y-6 pt-4">
@@ -3672,7 +3879,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isDayLockModalOpen}
         onClose={() => setIsDayLockModalOpen(false)}
-        title="Flights & Tee Times Not Locked"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Holes & Start Times Not Locked" : "Flights & Tee Times Not Locked"}
         footer={
           <>
             <Button
@@ -3771,7 +3978,7 @@ function ViewTournamentPageInner() {
       <Modal
         isOpen={isUngroupedPlayersModalOpen}
         onClose={() => setIsUngroupedPlayersModalOpen(false)}
-        title="Incomplete Flights & Tee Times"
+        title={selectedTournament?.startType === 'SHOTGUN' ? "Incomplete Holes & Start Times" : "Incomplete Flights & Tee Times"}
         footer={
           <>
             <Button
@@ -3862,4 +4069,3 @@ export default function ViewTournamentPage() {
     </Suspense>
   );
 }
-
