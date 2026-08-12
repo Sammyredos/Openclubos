@@ -720,6 +720,8 @@ function ViewTournamentPageInner() {
       if (selectedTournament?.enableCut) {
         loadLeaderboardData();
       }
+    } else if (activeTab === "leaderboard") {
+      loadLeaderboardData();
     }
     fetchPendingWaitlistCount();
   }, [activeTab, tournamentId, selectedDay, selectedLeaderboardDay, waitlistPage, waitlistDebouncedSearch, waitlistFilter, registrationsRefreshTrigger, selectedTournament?.id, selectedTournament?.enableCut, leaderboardSortBy]);
@@ -3354,9 +3356,6 @@ function ViewTournamentPageInner() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </div>
 
             {/* TABS 5: Leaderboard */}
             {activeTab === "leaderboard" && (
@@ -3808,6 +3807,9 @@ function ViewTournamentPageInner() {
                 })()}
               </div>
             )}
+          </div>
+        </div>
+      </div>
 
       {/* Helper Modals */}
       <Modal
