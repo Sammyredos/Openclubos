@@ -3241,8 +3241,7 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="bg-white">
-                  {(() => {
+                                  {(() => {
                     const penalizeSearchQuery = registrationsSearch.trim().toLowerCase();
                     const penalizeListAll = registrationsMode === "client" ? registrationsAll.filter(r => {
                       const matchesStatus = r.status === penalizeFilter;
@@ -3267,6 +3266,7 @@ function ViewTournamentPageInner() {
 
                     return (
                       <>
+                        <div className="bg-white">
                         {registrationsLoading ? (
                           <div className="border-t border-[#e1efe5] bg-white">
                             <div className="flex flex-col">
@@ -3416,9 +3416,15 @@ function ViewTournamentPageInner() {
                           />
                         )}
 
+                        </div>
                         {/* Pagination */}
                         {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
-                          <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-end gap-4 border-t border-[#e1efe5]">
+                          <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-[#e1efe5]">
+                            <p className="text-[13px] text-gray-500 font-normal">
+                              Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
+                              {registrationsMode === "client" ? Math.min(registrationsPage * registrationsPerPage, penalizeListAll.length) : Math.min(registrationsPage * registrationsPerPage, registrationsTotal)} of{" "}
+                              {registrationsMode === "client" ? penalizeListAll.length : registrationsTotal} registrations
+                            </p>
                             <Pagination
                               currentPage={registrationsPage}
                               totalPages={penalizeTotalPages}
@@ -3429,7 +3435,6 @@ function ViewTournamentPageInner() {
                       </>
                     );
                   })()}
-                </div>
               </div>
               </div>
             )}
