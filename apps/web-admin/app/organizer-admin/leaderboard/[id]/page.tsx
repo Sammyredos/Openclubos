@@ -1684,46 +1684,46 @@ function ViewTournamentPageInner() {
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       />
                     </div>
-                  <div className="flex flex-wrap items-center gap-4 ml-auto">
-                    <SearchableSelect
-                      value={registrationsStatusFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsStatusFilter(v);
-                      }}
-                      options={[
-                        { value: "All Status", label: "All Status" },
-                        { value: "PENDING", label: "Pending" },
-                        { value: "APPROVED", label: "Approved" },
-                        { value: "REJECTED", label: "Rejected" },
-                        { value: "WAITLISTED", label: "Waitlisted" },
-                        { value: "DISQUALIFIED", label: "Disqualified" },
-                      ]}
-                      className="min-w-[150px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                      placeholder="All Status"
-                    />
-                    <SearchableSelect
-                      value={registrationsPaymentFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsPaymentFilter(v);
-                      }}
-                      options={[
-                        { value: "All Payments", label: "All Payments" },
-                        { value: "PAID", label: "Paid" },
-                        { value: "UNPAID", label: "Unpaid" },
-                        { value: "REFUNDED", label: "Refunded" },
-                      ]}
-                      className="min-w-[150px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                      placeholder="All Payments"
-                    />
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={registrationsStatusFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsStatusFilter(v);
+                        }}
+                        options={[
+                          { value: "All Status", label: "All Status" },
+                          { value: "PENDING", label: "Pending" },
+                          { value: "APPROVED", label: "Approved" },
+                          { value: "REJECTED", label: "Rejected" },
+                          { value: "WAITLISTED", label: "Waitlisted" },
+                          { value: "DISQUALIFIED", label: "Disqualified" },
+                        ]}
+                        className="min-w-[150px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        placeholder="All Status"
+                      />
+                      <SearchableSelect
+                        value={registrationsPaymentFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsPaymentFilter(v);
+                        }}
+                        options={[
+                          { value: "All Payments", label: "All Payments" },
+                          { value: "PAID", label: "Paid" },
+                          { value: "UNPAID", label: "Unpaid" },
+                          { value: "REFUNDED", label: "Refunded" },
+                        ]}
+                        className="min-w-[150px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        placeholder="All Payments"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
@@ -2193,51 +2193,51 @@ function ViewTournamentPageInner() {
                       <Input
                         placeholder="Search waitlist by name or email..."
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
-                      value={waitlistSearch}
-                      onChange={(e) => {
-                        setWaitlistSearch(e.target.value);
-                        setWaitlistPage(1);
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-4 ml-auto">
-                    <SearchableSelect
-                      value={waitlistFilter}
-                      onValueChange={(v: any) => {
-                        setWaitlistFilter(v);
-                        setWaitlistPage(1);
-                        setSelectedWaitlistIds([]);
-                      }}
-                      options={[
-                        { value: "PENDING", label: "Pending Queue" },
-                        { value: "REJECTED", label: "Rejected Players" },
-                      ]}
-                      className="min-w-[170px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
-                    />
+                        value={waitlistSearch}
+                        onChange={(e) => {
+                          setWaitlistSearch(e.target.value);
+                          setWaitlistPage(1);
+                        }}
+                      />
+                    </div>
 
-                    {waitlistFilter === "PENDING" && waitlist.length > 0 && (
-                      <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
-                        <input
-                          type="checkbox"
-                          id="selectAllWaitlist"
-                          className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
-                          checked={selectedWaitlistIds.length === waitlist.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedWaitlistIds(waitlist.map(i => i.id));
-                            } else {
-                              setSelectedWaitlistIds([]);
-                            }
-                          }}
-                        />
-                        <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={waitlistFilter}
+                        onValueChange={(v: any) => {
+                          setWaitlistFilter(v);
+                          setWaitlistPage(1);
+                          setSelectedWaitlistIds([]);
+                        }}
+                        options={[
+                          { value: "PENDING", label: "Pending Queue" },
+                          { value: "REJECTED", label: "Rejected Players" },
+                        ]}
+                        className="min-w-[170px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+
+                      {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                        <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
+                          <input
+                            type="checkbox"
+                            id="selectAllWaitlist"
+                            className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                            checked={selectedWaitlistIds.length === waitlist.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedWaitlistIds(waitlist.map(i => i.id));
+                              } else {
+                                setSelectedWaitlistIds([]);
+                              }
+                            }}
+                          />
+                          <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
                 {selectedWaitlistIds.length > 0 && (
                   <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
@@ -3112,7 +3112,7 @@ function ViewTournamentPageInner() {
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       />
                     </div>
-                    
+
                     <div className="flex flex-wrap items-center gap-4 ml-auto">
                       <SearchableSelect
                         value={penalizeFilter}

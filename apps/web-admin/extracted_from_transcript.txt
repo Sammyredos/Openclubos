@@ -5,609 +5,1212 @@ Total Lines: 4149
 Total Bytes: 235499
 Showing lines 1950 to 2650
 The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
-1950:                         description="No players currently in the queue for this tournament."
-1951:                       />
-1952:                     </div>
-1953:                   )}
-1954:                 </div>
-1955: 
-1956:                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
-1957:                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-1958:                   <p className="text-[12px] text-amber-700 leading-relaxed font-normal">
-1959:                     <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
-1960:                   </p>
-1961:                 </div>
-1962:               </div>
-1963:             )}
-1964: 
-1965:             {/* TABS 1: Groupings & Tee Times */}
-1966:             {activeTab === "groupings" && (
-1967:               <div className="space-y-8 animate-in fade-in duration-500">
-1968:                 {groupingsLoading ? (
-1969:                   <div className="space-y-8">
-1970:                     {/* Day Selection Linear Flow Skeleton */}
-1971:                     <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
-1972:                       <div className="w-1/3 flex items-center">
-1973:                         <Skeleton className="h-10 w-36 rounded-xl bg-gray-100" />
-1974:                       </div>
-1975:                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none">
-1976:                         <Skeleton className="h-10 w-64 rounded-xl bg-emerald-50/70 border border-emerald-100" />
-1977:                       </div>
-1978:                       <div className="w-1/3 flex justify-end">
-1979:                         <Skeleton className="h-10 w-40 rounded-xl bg-emerald-100/70" />
-1980:                       </div>
-1981:                     </div>
-1982: 
-1983:                     {/* Groupings Dashboard Header Skeleton */}
-1984:                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
-1985:                       <div className="space-y-3">
-1986:                         <div className="flex items-center gap-3">
-1987:                           <div className="w-64 h-7 bg-gray-100 animate-pulse rounded-lg" />
-1988:                           <div className="w-28 h-6 bg-gray-100 animate-pulse rounded-md" />
-1989:                         </div>
-1990:                         <div className="w-96 h-4 bg-gray-100 animate-pulse rounded-md max-w-full" />
-1991:                       </div>
-1992:                       <div className="flex items-center gap-3">
-1993:                         <div className="w-36 h-11 bg-gray-100 animate-pulse rounded-xl" />
-1994:                         <div className="w-44 h-11 bg-gray-100 animate-pulse rounded-xl" />
-1995:                       </div>
-1996:                     </div>
-1997: 
-1998:                     {/* Search & Sub-tabs Skeleton */}
-1999:                     <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-2000:                       <div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-xl" />
-2001:                       <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl border border-[#e1efe5]">
-2002:                         <div className="w-36 h-9 bg-gray-100 animate-pulse rounded-lg" />
-2003:                         <div className="w-32 h-9 bg-gray-100 animate-pulse rounded-lg" />
-2004:                       </div>
-2005:                     </div>
-2006: 
-2007:                     {/* Flights Grid Skeleton */}
-2008:                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-2009:                       {[1, 2, 3, 4, 5, 6].map(i => (
-2010:                         <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-sm">
-2011:                           <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
-2012:                             <div className="flex items-center gap-3">
-2013:                               <div className="w-10 h-10 rounded-xl bg-gray-100 animate-pulse shrink-0" />
-2014:                               <div className="space-y-2">
-2015:                                 <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
-2016:                                 <div className="w-16 h-3 bg-gray-100 animate-pulse rounded" />
-2017:                               </div>
-2018:                             </div>
-2019:                             <div className="flex flex-col items-end space-y-2">
-2020:                               <div className="w-8 h-4 bg-gray-100 animate-pulse rounded" />
-2021:                               <div className="w-14 h-3 bg-gray-100 animate-pulse rounded" />
-2022:                             </div>
-2023:                           </div>
-2024:                           <div className="h-1 w-full bg-background" />
-2025:                           <div className="p-2 space-y-1">
-2026:                             {[1, 2, 3, 4].map(j => (
-2027:                               <div key={j} className="flex items-center gap-3 p-2">
-2028:                                 <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse shrink-0" />
-2029:                                 <div className="w-32 h-3 bg-gray-100 animate-pulse rounded" />
-2030:                                 <div className="w-8 h-3 bg-gray-100 animate-pulse rounded ml-auto" />
-2031:                               </div>
-2032:                             ))}
-2033:                           </div>
-2034:                         </div>
-2035:                       ))}
-2036:                     </div>
-2037:                   </div>
-2038:                 ) : (
-2039:                   <>
-2040:                     {/* Day Selection Linear Flow */}
-2041:                     <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
-2042:                       <div className="flex items-center gap-3 z-10 w-1/3">
-2043:                         {selectedDay > 1 && (
-2044:                           <button
-2045:                             onClick={() => setSelectedDay(selectedDay - 1)}
-2046:                             className="px-6 py-2.5 text-[13px] font-normal rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
-2047:                           >
-2048:                             <ArrowLeft className="w-4 h-4" />
-2049:                             Back to Day {selectedDay - 1}
-2050:                           </button>
-2051:                         )}
-2052:                       </div>
-2053: 
-2054:                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-2055:                         <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-xl px-5 py-2 shadow-sm">
-2056:                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
-2057:                             <Calendar className="w-3.5 h-3.5 text-emerald-800" />
-2058:                           </div>
-2059:                           <span className="text-emerald-800 text-[13px] font-normal tracking-wide capitalize">Flights & Tee Times for</span>
-2060:                           <span className="text-emerald-950 text-[13px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3 py-1 rounded-lg ml-1">Day {selectedDay}</span>
-2061:                         </div>
-2062:                       </div>
-2063: 
-2064:                       <div className="flex items-center justify-end gap-3 z-10 w-1/3">
-2065:                         {selectedDay < getTournamentDays() && (
-2066:                           <button
-2067:                             onClick={() => setSelectedDay(selectedDay + 1)}
-2068:                             className="px-6 py-2.5 text-[13px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
-2069:                           >
-2070:                             Proceed to Day {selectedDay + 1}
-2071:                             <ArrowRight className="w-4 h-4" />
-2072:                           </button>
-2073:                         )}
-2074:                       </div>
-2075:                     </div>
-2076: 
-2077:                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
-2078:                       <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-2079:                         <div className="flex gap-3">
-2080:                           <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
-2081:                           <div>
-2082:                             <h4 className="text-[16px] font-medium text-gray-900">Send Tee Times via Email</h4>
-2083:                             <p className="text-[13px] text-gray-500 mt-1">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
-2084:                           </div>
-2085:                         </div>
-2086:                         <Button
-2087:                           onClick={() => {
-2088:                             setJustGrouped(false);
-2089:                             handlePublishGroupingsEmail();
-2090:                           }}
-2091:                           disabled={groupingsGenerating || groupingsLoading}
-2092:                           className={cn(
-2093:                             "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
-2094:                             justGrouped && "animate-pulse ring-4 ring-gray-200"
-2095:                           )}
-2096:                         >
-2097:                           <Mail className="w-4 h-4" />
-2098:                           Publish Via Email
-2099:                           {publishClickCount > 0 && (
-2100:                             <span className="ml-1 bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px]">
-2101:                               {publishClickCount}
-2102:                             </span>
-2103:                           )}
-2104:                         </Button>
-2105:                       </div>
-2106:                     )}
-2107: 
-2108:                     <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-8 space-y-6">
-2109: {/* Groupings Dashboard Header */}
-2110:                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-2111:                       <div className="space-y-1">
-2112:                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
-2113:                           Manage Flights & Tee Times
-2114:                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
-2115:                             <Calendar className="w-3 h-3" />
-2116:                             {getTournamentDays()} Day Tournament
-2117:                           </span>
-2118:                         </h3>
-2119:                         <p className="text-[13px] text-gray-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
-2120:                         {groupingsData?.rule && (
-2121:                           <div className="mt-2">
-2122:                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
-2123:                               Rule: {groupingsData.rule.replace(/_/g, ' ')}
-2124:                             </span>
-2125:                           </div>
-2126:                         )}
-2127:                       </div>
-2128: 
-2129:                       <div className="flex items-center gap-3">
-2130: 
-2131:                         <Button
-2132:                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
-2133:                           disabled={
-2134:                             selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-2135:                             groupingsGenerating ||
-2136:                             groupingsLoading ||
-2137:                             !groupingsData?.unassigned.length ||
-2138:                             groupingsData.unassigned.length <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0)
-2139:                           }
-2140:                           className="bg-white border border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
-2141:                         >
-2142:                           {isManualGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-2143:                           Manually Tee Players
-2144:                         </Button>
-2145: 
-2146:                         <Button
-2147:                           disabled={
-2148:                             selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
-2149:                             groupingsGenerating ||
-2150:                             groupingsLoading ||
-2151:                             !groupingsData?.unassigned.length
-2152:                           }
-2153:                           onClick={() => setIsGroupingRulesModalOpen(true)}
-2154:                           className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full md:w-auto"
-2155:                         >
-2156:                           {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-2157:                           Auto Tee Players
-2158:                         </Button>
-2159:                         <Button
-2160:                           onClick={handleClearGroupings}
-2161:                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-2162:                           className="bg-red-600 hover:bg-red-700 text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border border-red-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
-2163:                         >
-2164:                           <RefreshCcw className="w-3.5 h-3.5" />
-2165:                           Reset All
-2166:                         </Button>
-2167:                       </div>
-2168:                     </div>
-2169: 
-2170:                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-2171:                       <div className="relative flex-1">
-2172:                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-2173:                         <Input
-2174:                           placeholder="Search groups or players..."
-2175:                           value={groupingsSearch}
-2176:                           onChange={(e) => {
-2177:                             setGroupingsSearch(e.target.value);
-2178:                             setGroupsPage(1);
-2179:                             setUnassignedPage(1);
-2180:                           }}
-2181:                           className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
-2182:                         />
-2183:                       </div>
-2184:                     </div>
-2185: 
-2186:                     {/* Sub-tabs for Unassigned/Grouped */}
-2187:                     <div className="flex mb-6 rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden w-fit shadow-sm">
-2188:                       <button
-2189:                         onClick={() => {
-2190:                           setGroupingsSubTab("unassigned");
-2191:                           setUnassignedPage(1);
-2192:                         }}
-2193:                         className={cn(
-2194:                           "flex items-center justify-center px-6 py-2.5 text-[13px] font-normal transition-all",
-2195:                           groupingsSubTab === "unassigned"
-2196:                             ? "bg-openclub-700 text-white"
-2197:                             : "bg-white text-gray-600 hover:bg-gray-50"
-2198:                         )}
-2199:                       >
-2200:                         Unassigned Tee Players
-2201:                         <Badge variant="outline" className={cn(
-2202:                           "ml-2 font-normal px-1.5 py-0 transition-all border-none",
-2203:                           groupingsSubTab === "unassigned" ? "bg-white/20 text-white" : "bg-[#f5faf6] text-gray-500"
-2204:                         )}>
-2205:                           {groupingsData?.unassigned.length || 0}
-2206:                         </Badge>
-2207:                       </button>
-2208:                       <button
-2209:                         onClick={() => {
-2210:                           setGroupingsSubTab("grouped");
-2211:                           setGroupsPage(1);
-2212:                         }}
-2213:                         className={cn(
-2214:                           "flex items-center justify-center px-6 py-2.5 text-[13px] font-normal transition-all",
-2215:                           groupingsSubTab === "grouped"
-2216:                             ? "bg-openclub-700 text-white"
-2217:                             : "bg-white text-gray-600 hover:bg-gray-50"
-2218:                         )}
-2219:                       >
-2220:                         Assigned Tee Flights
-2221:                         <Badge variant="outline" className={cn(
-2222:                           "ml-2 font-normal px-1.5 py-0 transition-all border-none",
-2223:                           groupingsSubTab === "grouped" ? "bg-white/20 text-white" : "bg-[#f5faf6] text-gray-500"
-2224:                         )}>
-2225:                           {groupingsData?.groups.length || 0}
-2226:                         </Badge>
-2227:                       </button>
-2228:                     </div>
-2229:                     {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
-2230:                       <div className="space-y-6">
-2231:                         {groupingsSubTab === "grouped" && (
-2232:                           <div className="space-y-6">
-2233: 
-2234:                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-2235:                               {[...groupingsData.groups].reverse()
-2236:                                 .filter(group => {
-2237:                                   const query = groupingsSearch.trim().toLowerCase();
-2238:                                   if (!query) return true;
-2239:                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
-2240: 
-2241:                                   const matchesGroupName = tokens.every(token =>
-2242:                                     group.name.toLowerCase().includes(token)
-2243:                                   );
-2244: 
-2245:                                   const matchesPlayer = group.registrations.some(p => {
-2246:                                     const searchableFields = [
-2247:                                       p.user?.firstName,
-2248:                                       p.user?.lastName,
-2249:                                       p.user?.email,
-2250:                                       `${p.user?.firstName} ${p.user?.lastName}`,
-2251:                                       `${p.user?.lastName} ${p.user?.firstName}`
-2252:                                     ];
-2253:                                     return tokens.every(token =>
-2254:                                       searchableFields.some(field => field?.toLowerCase().includes(token))
-2255:                                     );
-2256:                                   });
-2257: 
-2258:                                   return matchesGroupName || matchesPlayer;
-2259:                                 })
-2260:                                 .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
-2261:                                 .map((group: GroupingItem) => {
-2262:                                   const occupancy = group.registrations.length;
-2263:                                   const capacity = selectedTournament?.maxPlayersPerGroup || 4;
-2264:                                   const isFull = occupancy >= capacity;
-2265: 
-2266:                                   return (
-2267:                                     <div
-2268:                                       key={group.id}
-2269:                                       className={cn(
-2270:                                         "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-lg",
-2271:                                         isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
-2272:                                       )}
-2273:                                     >
-2274:                                       <div className="p-5 flex items-start justify-between bg-[#278a4c] rounded-t-xl border-b border-[#1c6437]/50">
-2275:                                         <div className="flex items-start gap-4 min-w-0">
-2276:                                           <div className={cn(
-2277:                                             "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
-2278:                                             isFull ? "bg-[#116630] text-emerald-200" : "bg-[#116630]/70 text-emerald-100"
-2279:                                           )}>
-2280:                                             <Flag className="w-5 h-5" />
-2281:                                           </div>
-2282:                                           <div className="min-w-0 mt-0.5">
-2283:                                             {editingGroupNameId === group.id ? (
-2284:                                               <Input
-2285:                                                 autoFocus
-2286:                                                 value={editingGroupNameValue}
-2287:                                                 onChange={(e) => setEditingGroupNameValue(e.target.value)}
-2288:                                                 onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
-2289:                                                 className="h-8 py-0 px-2 text-base font-medium rounded-md border-gray-300 w-full bg-white text-gray-900"
-2290:                                               />
-2291:                                             ) : (
-2292:                                               <h3
-2293:                                                 onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
-2294:                                                 className="text-base font-medium text-white truncate cursor-pointer hover:text-emerald-100 transition-colors"
-2295:                                               >
-2296:                                                 {group.name}
-2297:                                               </h3>
-2298:                                             )}
-2299:                                             <p className="text-xs text-emerald-100 mt-0.5 flex items-center gap-1.5">
-2300:                                               <Clock className="w-3.5 h-3.5 text-emerald-200" />
-2301:                                               {group.startTime || "Tee time TBD"}
-2302:                                             </p>
-2303:                                           </div>
-2304:                                         </div>
-2305:                                         <div className="text-right flex flex-col items-end mt-0.5">
-2306:                                           <div className="text-sm font-medium text-white">{occupancy}/{capacity}</div>
-2307:                                           <div className="text-xs text-emerald-200 mt-0.5">Players</div>
-2308:                                         </div>
-2309:                                       </div>
-2310:                                       <div className="h-[2px] w-full bg-gray-100">
-2311:                                         <div
-2312:                                           className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-gray-300")}
-2313:                                           style={{ width: `${(occupancy / capacity) * 100}%` }}
-2314:                                         />
-2315:                                       </div>
-2316:                                       {/* Group Players (Tabular) */}
-2317:                                       <div className="flex-1 overflow-visible">
-2318:                                         <table className="w-full text-left">
-2319:                                           <tbody className="divide-y divide-[#efefef]">
-2320:                                             {group.registrations.map((player: GroupingPlayer) => (
-2321:                                               <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player h-[52px]">
-2322:                                                 <td className="pl-4 py-2 w-[44px] align-middle">
-2323:                                                   <div className="w-8 h-8 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
-2324:                                                     <img
-2325:                                                       src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-2326:                                                       alt=""
-2327:                                                       className="w-full h-full object-cover"
-2328:                                                     />
-2329:                                                   </div>
-2330:                                                 </td>
-2331:                                                 <td className="py-2 px-2 align-middle max-w-[130px]">
-2332:                                                   <NextLink href="#" className="block truncate">
-2333:                                                     <div className="text-[12px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
-2334:                                                       {player.user?.firstName} {player.user?.lastName}
-2335:                                                     </div>
-2336:                                                   </NextLink>
-2337:                                                 </td>
-2338:                                                 <td className="py-2 px-2 align-middle">
-2339:                                                   <div className="flex flex-wrap items-center gap-1">
-2340:                                                     {/* Gender Badge */}
-2341:                                                     {player.user?.gender && (
-2342:                                                       <span className={cn(
-2343:                                                         "text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
-2344:                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-2345:                                                       )}>
-2346:                                                         {player.user.gender.substring(0, 1)}
-2347:                                                       </span>
-2348:                                                     )}
-2349:                                                     {/* Category Badge */}
-2350:                                                     {player.user?.handicap !== undefined && (
-2351:                                                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider whitespace-nowrap">
-2352:                                                         {getGolfCategory(player.user.handicap).replace('Category ', 'Cat ')}
-2353:                                                       </span>
-2354:                                                     )}
-2355:                                                     {/* Age Badge */}
-2356:                                                     {player.user?.dob && (
-2357:                                                       <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
-2358:                                                         {(() => {
-2359:                                                           const birthDate = new Date(player.user.dob);
-2360:                                                           const today = new Date();
-2361:                                                           let age = today.getFullYear() - birthDate.getFullYear();
-2362:                                                           const m = today.getMonth() - birthDate.getMonth();
-2363:                                                           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-2364:                                                           return `${age}Y`;
-2365:                                                         })()}
-2366:                                                       </span>
-2367:                                                     )}
-2368:                                                     {/* HCP Badge */}
-2369:                                                     <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
-2370:                                                       HCP {player.user?.handicap ?? 0}
-2371:                                                     </span>
-2372:                                                   </div>
-2373:                                                 </td>
-2374:                                                 <td className="pr-3 py-2 align-middle text-right w-[40px]">
-2375:                                                   <select
-2376:                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-2377:                                                     value={group.id}
-2378:                                                     onChange={(e) => {
-2379:                                                       const val = e.target.value;
-2380:                                                       handleMovePlayer(player.id, val === "unassigned" ? null : val);
-2381:                                                     }}
-2382:                                                     className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
-2383:                                                   >
-2384:                                                     <option value={group.id}>☰</option>
-2385:                                                     <option value="unassigned">Unassign</option>
-2386:                                                     {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
-2387:                                                   </select>
-2388:                                                 </td>
-2389:                                               </tr>
-2390:                                             ))}
-2391:                                             {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-2392:                                               <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity h-[52px]">
-2393:                                                 <td className="pl-4 py-2 w-[44px] align-middle">
-2394:                                                   <div className="w-8 h-8 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
-2395:                                                     <Plus className="w-4 h-4 text-gray-400" />
-2396:                                                   </div>
-2397:                                                 </td>
-2398:                                                 <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
-2399:                                                   <SearchableSelect
-2400:                                                     value=""
-2401:                                                     onValueChange={(playerId) => {
-2402:                                                       if (playerId) {
-2403:                                                         handleMovePlayer(playerId, group.id);
-2404:                                                       }
-2405:                                                     }}
-2406:                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-2407:                                                     placeholder="Available Space (click to assign)"
-2408:                                                     options={groupingsData.unassigned.map((p: any) => ({
-2409:                                                       value: p.id,
-2410:                                                       label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
-2411:                                                     }))}
-2412:                                                     triggerClassName="bg-transparent border-none shadow-none h-9 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
-2413:                                                     className="w-full"
-2414:                                                   />
-2415:                                                 </td>
-2416:                                               </tr>
-2417:                                             ))}
-2418:                                           </tbody>
-2419:                                         </table>
-2420:                                       </div>
-2421:                                     </div>
-2422:                                   );
-2423:                                 })}
-2424:                             </div>
-2425:                             {groupingsData.groups.length > groupsPerPage && (
-2426:                               <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e1efe5]">
-2427:                                 <p className="text-[13px] text-gray-500 font-normal">
-2428:                                   Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
-2429:                                 </p>
-2430:                                 <Pagination
-2431:                                   currentPage={groupsPage}
-2432:                                   totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
-2433:                                   onPageChange={setGroupsPage}
-2434:                                 />
-2435:                               </div>
-2436:                             )}
-2437:                           </div>
-2438:                         )}
-2439: 
-2440:                         {groupingsSubTab === "unassigned" && (
-2441:                           <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-2442:                             <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
-2443:                               <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
-2444:                                 <Users className="w-4 h-4 text-openclub-700" />
-2445:                                 Unassigned Participants
-2446:                               </h4>
-2447:                               <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
-2448:                                 {groupingsData.unassigned.length}
-2449:                               </Badge>
-2450:                             </div>
-2451:                             <div className="p-6">
-2452:                               {(() => {
-2453:                                 const filtered = groupingsData.unassigned.filter(p => {
-2454:                                   const query = groupingsSearch.trim().toLowerCase();
-2455:                                   if (!query) return true;
-2456:                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
-2457:                                   const searchableFields = [
-2458:                                     p.user?.firstName,
-2459:                                     p.user?.lastName,
-2460:                                     p.user?.email,
-2461:                                     `${p.user?.firstName} ${p.user?.lastName}`,
-2462:                                     `${p.user?.lastName} ${p.user?.firstName}`
-2463:                                   ];
-2464: 
-2465:                                   return tokens.every(token =>
-2466:                                     searchableFields.some(field => field?.toLowerCase().includes(token))
-2467:                                   );
-2468:                                 });
-2469: 
-2470:                                 const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
-2471: 
-2472:                                 return (
-2473:                                   <div className="space-y-6">
-2474:                                     <div className="overflow-x-auto">
-2475:                                       <table className="w-full text-left">
-2476:                                         <thead>
-2477:                                           <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
-2478:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
-2479:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
-2480:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
-2481:                                           </tr>
-2482:                                         </thead>
-2483:                                         <tbody className="divide-y divide-[#efefef]">
-2484:                                           {paginated.length > 0 ? (
-2485:                                             paginated.map((player: GroupingPlayer) => (
-2486:                                               <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
-2487:                                                 <td className="pl-4 py-3 align-middle">
-2488:                                                   <div className="flex items-center gap-3 min-w-0">
-2489:                                                     <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e1efe5] bg-white shadow-sm">
-2490:                                                       <img
-2491:                                                         src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-2492:                                                         alt=""
-2493:                                                         className="w-full h-full object-cover"
-2494:                                                       />
-2495:                                                     </div>
-2496:                                                     <div className="min-w-0">
-2497:                                                       <NextLink href="#" className="block truncate">
-2498:                                                         <div className="text-[13px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
-2499:                                                           {player.user?.firstName} {player.user?.lastName}
-2500:                                                         </div>
-2501:                                                       </NextLink>
-2502:                                                     </div>
-2503:                                                   </div>
-2504:                                                 </td>
-2505:                                                 <td className="py-3 px-4 align-middle">
-2506:                                                   <div className="flex flex-wrap items-center gap-1.5">
-2507:                                                     {/* Gender Badge */}
-2508:                                                     {player.user?.gender && (
-2509:                                                       <span className={cn(
-2510:                                                         "text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
-2511:                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-2512:                                                       )}>
-2513:                                                         {player.user.gender}
-2514:                                                       </span>
-2515:                                                     )}
-2516:                                                     {/* Category Badge */}
-2517:                                                     {player.user?.handicap !== undefined && (
-2518:                                                       <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
-2519:                                                         {getGolfCategory(player.user.handicap)}
-2520:                                                       </span>
-2521:                                                     )}
-2522:                                                     {/* Age Badge */}
-2523:                                                     {player.user?.dob && (
-2524:                                                       <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
-2525:                                                         {(() => {
-2526:                                                           const birthDate = new Date(player.user.dob);
-2527:                                                           const today = new Date();
-2528:                                                           let age = today.getFullYear() - birthDate.getFullYear();
-2529:                                                           const m = today.getMonth() - birthDate.getMonth();
-2530:                                                           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-2531:                                                           return `${age} YRS`;
-2532:                                                         })()}
-2533:                                                       </span>
-2534:                                                     )}
-2535:                                                     {/* HCP Badge */}
-2536:                                                     <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
-2537:                                                       HCP {player.user?.handicap ?? 0}
-2538:                                                     </span>
-2539:                                                   </div>
-2540:                                                 </td>
-2541:                                                 <td className="px-4 py-3 align-middle text-right">
-2542:                                                   <div className="flex justify-end">
-2543:                                                     <select
-2544:                                                       disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
-2545:                                                       value="unassigned"
-2546:                                                       onChange={(e) => {
-2547:                                                         const val = e.target.value;
-2548:                                                         if (val !== "unassigned") {
-2549:                                                           handleMovePlayer(player.id, val);
-2550:                                                         }
-2551:                                                       }}
-2552:                                                       className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+1950:                         description="No players currently in the queue for this tournament."
+
+1951:                       />
+
+1952:                     </div>
+
+1953:                   )}
+
+1954:                 </div>
+
+1955: 
+
+1956:                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
+
+1957:                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+
+1958:                   <p className="text-[12px] text-amber-700 leading-relaxed font-normal">
+
+1959:                     <strong>Important Note:</strong> Any rejected player cannot be approved again for this tournament. Please be absolutely certain before you reject a player from the waitlist queue.
+
+1960:                   </p>
+
+1961:                 </div>
+
+1962:               </div>
+
+1963:             )}
+
+1964: 
+
+1965:             {/* TABS 1: Groupings & Tee Times */}
+
+1966:             {activeTab === "groupings" && (
+
+1967:               <div className="space-y-8 animate-in fade-in duration-500">
+
+1968:                 {groupingsLoading ? (
+
+1969:                   <div className="space-y-8">
+
+1970:                     {/* Day Selection Linear Flow Skeleton */}
+
+1971:                     <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
+
+1972:                       <div className="w-1/3 flex items-center">
+
+1973:                         <Skeleton className="h-10 w-36 rounded-xl bg-gray-100" />
+
+1974:                       </div>
+
+1975:                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none">
+
+1976:                         <Skeleton className="h-10 w-64 rounded-xl bg-emerald-50/70 border border-emerald-100" />
+
+1977:                       </div>
+
+1978:                       <div className="w-1/3 flex justify-end">
+
+1979:                         <Skeleton className="h-10 w-40 rounded-xl bg-emerald-100/70" />
+
+1980:                       </div>
+
+1981:                     </div>
+
+1982: 
+
+1983:                     {/* Groupings Dashboard Header Skeleton */}
+
+1984:                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
+
+1985:                       <div className="space-y-3">
+
+1986:                         <div className="flex items-center gap-3">
+
+1987:                           <div className="w-64 h-7 bg-gray-100 animate-pulse rounded-lg" />
+
+1988:                           <div className="w-28 h-6 bg-gray-100 animate-pulse rounded-md" />
+
+1989:                         </div>
+
+1990:                         <div className="w-96 h-4 bg-gray-100 animate-pulse rounded-md max-w-full" />
+
+1991:                       </div>
+
+1992:                       <div className="flex items-center gap-3">
+
+1993:                         <div className="w-36 h-11 bg-gray-100 animate-pulse rounded-xl" />
+
+1994:                         <div className="w-44 h-11 bg-gray-100 animate-pulse rounded-xl" />
+
+1995:                       </div>
+
+1996:                     </div>
+
+1997: 
+
+1998:                     {/* Search & Sub-tabs Skeleton */}
+
+1999:                     <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+
+2000:                       <div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-xl" />
+
+2001:                       <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl border border-[#e1efe5]">
+
+2002:                         <div className="w-36 h-9 bg-gray-100 animate-pulse rounded-lg" />
+
+2003:                         <div className="w-32 h-9 bg-gray-100 animate-pulse rounded-lg" />
+
+2004:                       </div>
+
+2005:                     </div>
+
+2006: 
+
+2007:                     {/* Flights Grid Skeleton */}
+
+2008:                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+2009:                       {[1, 2, 3, 4, 5, 6].map(i => (
+
+2010:                         <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-sm">
+
+2011:                           <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
+
+2012:                             <div className="flex items-center gap-3">
+
+2013:                               <div className="w-10 h-10 rounded-xl bg-gray-100 animate-pulse shrink-0" />
+
+2014:                               <div className="space-y-2">
+
+2015:                                 <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
+
+2016:                                 <div className="w-16 h-3 bg-gray-100 animate-pulse rounded" />
+
+2017:                               </div>
+
+2018:                             </div>
+
+2019:                             <div className="flex flex-col items-end space-y-2">
+
+2020:                               <div className="w-8 h-4 bg-gray-100 animate-pulse rounded" />
+
+2021:                               <div className="w-14 h-3 bg-gray-100 animate-pulse rounded" />
+
+2022:                             </div>
+
+2023:                           </div>
+
+2024:                           <div className="h-1 w-full bg-background" />
+
+2025:                           <div className="p-2 space-y-1">
+
+2026:                             {[1, 2, 3, 4].map(j => (
+
+2027:                               <div key={j} className="flex items-center gap-3 p-2">
+
+2028:                                 <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse shrink-0" />
+
+2029:                                 <div className="w-32 h-3 bg-gray-100 animate-pulse rounded" />
+
+2030:                                 <div className="w-8 h-3 bg-gray-100 animate-pulse rounded ml-auto" />
+
+2031:                               </div>
+
+2032:                             ))}
+
+2033:                           </div>
+
+2034:                         </div>
+
+2035:                       ))}
+
+2036:                     </div>
+
+2037:                   </div>
+
+2038:                 ) : (
+
+2039:                   <>
+
+2040:                     {/* Day Selection Linear Flow */}
+
+2041:                     <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
+
+2042:                       <div className="flex items-center gap-3 z-10 w-1/3">
+
+2043:                         {selectedDay > 1 && (
+
+2044:                           <button
+
+2045:                             onClick={() => setSelectedDay(selectedDay - 1)}
+
+2046:                             className="px-6 py-2.5 text-[13px] font-normal rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
+Manually Tee Players
+2047:                           >
+
+2048:                             <ArrowLeft className="w-4 h-4" />
+
+2049:                             Back to Day {selectedDay - 1}
+
+2050:                           </button>
+
+2051:                         )}
+
+2052:                       </div>
+
+2053: 
+
+2054:                       <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
+
+2055:                         <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-xl px-5 py-2 shadow-sm">
+
+2056:                           <div className="bg-emerald-200/60 p-1.5 rounded-lg">
+
+2057:                             <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+
+2058:                           </div>
+
+2059:                           <span className="text-emerald-800 text-[13px] font-normal tracking-wide capitalize">Flights & Tee Times for</span>
+
+2060:                           <span className="text-emerald-950 text-[13px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+
+2061:                         </div>
+
+2062:                       </div>
+
+2063: 
+
+2064:                       <div className="flex items-center justify-end gap-3 z-10 w-1/3">
+
+2065:                         {selectedDay < getTournamentDays() && (
+
+2066:                           <button
+
+2067:                             onClick={() => setSelectedDay(selectedDay + 1)}
+
+2068:                             className="px-6 py-2.5 text-[13px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+
+2069:                           >
+
+2070:                             Proceed to Day {selectedDay + 1}
+
+2071:                             <ArrowRight className="w-4 h-4" />
+
+2072:                           </button>
+
+2073:                         )}
+
+2074:                       </div>
+
+2075:                     </div>
+
+2076: 
+
+2077:                     {groupingsData?.groups && groupingsData.groups.length > 0 && (
+
+2078:                       <div className="bg-white border border-gray-200 rounded-xl p-4 mt-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+
+2079:                         <div className="flex gap-3">
+
+2080:                           <Mail className="w-5 h-5 text-gray-900 flex-shrink-0 mt-0.5" />
+
+2081:                           <div>
+
+2082:                             <h4 className="text-[16px] font-medium text-gray-900">Send Tee Times via Email</h4>
+
+2083:                             <p className="text-[13px] text-gray-500 mt-1">Flights & Tee Times have been generated. Publish them via email to notify players.</p>
+
+2084:                           </div>
+
+2085:                         </div>
+
+2086:                         <Button
+
+2087:                           onClick={() => {
+
+2088:                             setJustGrouped(false);
+
+2089:                             handlePublishGroupingsEmail();
+
+2090:                           }}
+
+2091:                           disabled={groupingsGenerating || groupingsLoading}
+
+2092:                           className={cn(
+
+2093:                             "bg-gray-900 hover:bg-black text-white h-10 px-6 text-[13px] font-normal rounded-xl shadow-sm transition-all whitespace-nowrap gap-2 relative capitalize",
+
+2094:                             justGrouped && "animate-pulse ring-4 ring-gray-200"
+
+2095:                           )}
+
+2096:                         >
+
+2097:                           <Mail className="w-4 h-4" />
+
+2098:                           Publish Via Email
+
+2099:                           {publishClickCount > 0 && (
+
+2100:                             <span className="ml-1 bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px]">
+
+2101:                               {publishClickCount}
+
+2102:                             </span>
+
+2103:                           )}
+
+2104:                         </Button>
+
+2105:                       </div>
+
+2106:                     )}
+
+2107: 
+
+2108:                     <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-8 space-y-6">
+
+2109: {/* Groupings Dashboard Header */}
+
+2110:                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+
+2111:                       <div className="space-y-1">
+
+2112:                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
+
+2113:                           Manage Flights & Tee Times
+
+2114:                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
+
+2115:                             <Calendar className="w-3 h-3" />
+
+2116:                             {getTournamentDays()} Day Tournament
+
+2117:                           </span>
+
+2118:                         </h3>
+
+2119:                         <p className="text-[13px] text-gray-500">Pair players into Tee Flights and assign tee times for Day {selectedDay}.</p>
+
+2120:                         {groupingsData?.rule && (
+
+2121:                           <div className="mt-2">
+
+2122:                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
+
+2123:                               Rule: {groupingsData.rule.replace(/_/g, ' ')}
+
+2124:                             </span>
+
+2125:                           </div>
+
+2126:                         )}
+
+2127:                       </div>
+
+2128: 
+
+2129:                       <div className="flex items-center gap-3">
+
+2130: 
+
+2131:                         <Button
+
+2132:                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
+
+2133:                           disabled={
+
+2134:                             selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+
+2135:                             groupingsGenerating ||
+
+2136:                             groupingsLoading ||
+
+2137:                             !groupingsData?.unassigned.length ||
+
+2138:                             groupingsData.unassigned.length <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0)
+
+2139:                           }
+
+2140:                           className="bg-white border border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
+
+2141:                         >
+
+2142:                           {isManualGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+
+2143:                           Manually Tee Players
+
+2144:                         </Button>
+
+2145: 
+
+2146:                         <Button
+
+2147:                           disabled={
+
+2148:                             selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
+
+2149:                             groupingsGenerating ||
+
+2150:                             groupingsLoading ||
+
+2151:                             !groupingsData?.unassigned.length
+
+2152:                           }
+
+2153:                           onClick={() => setIsGroupingRulesModalOpen(true)}
+
+2154:                           className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full md:w-auto"
+
+2155:                         >
+
+2156:                           {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+
+2157:                           Auto Tee Players
+
+2158:                         </Button>
+
+2159:                         <Button
+
+2160:                           onClick={handleClearGroupings}
+
+2161:                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
+
+2162:                           className="bg-red-600 hover:bg-red-700 text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border border-red-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
+
+2163:                         >
+
+2164:                           <RefreshCcw className="w-3.5 h-3.5" />
+
+2165:                           Reset All
+
+2166:                         </Button>
+
+2167:                       </div>
+
+2168:                     </div>
+
+2169: 
+
+2170:                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+2171:                       <div className="relative flex-1">
+
+2172:                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+
+2173:                         <Input
+
+2174:                           placeholder="Search groups or players..."
+
+2175:                           value={groupingsSearch}
+
+2176:                           onChange={(e) => {
+
+2177:                             setGroupingsSearch(e.target.value);
+
+2178:                             setGroupsPage(1);
+
+2179:                             setUnassignedPage(1);
+
+2180:                           }}
+
+2181:                           className="pl-10 h-12 bg-background/50 border-gray-200 focus:bg-white rounded-xl text-[14px]"
+
+2182:                         />
+
+2183:                       </div>
+
+2184:                     </div>
+
+2185: 
+
+2186:                     {/* Sub-tabs for Unassigned/Grouped */}
+
+2187:                     <div className="flex mb-6 rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden w-fit shadow-sm">
+
+2188:                       <button
+
+2189:                         onClick={() => {
+
+2190:                           setGroupingsSubTab("unassigned");
+
+2191:                           setUnassignedPage(1);
+
+2192:                         }}
+
+2193:                         className={cn(
+
+2194:                           "flex items-center justify-center px-6 py-2.5 text-[13px] font-normal transition-all",
+
+2195:                           groupingsSubTab === "unassigned"
+
+2196:                             ? "bg-openclub-700 text-white"
+
+2197:                             : "bg-white text-gray-600 hover:bg-gray-50"
+
+2198:                         )}
+
+2199:                       >
+
+2200:                         Unassigned Tee Players
+
+2201:                         <Badge variant="outline" className={cn(
+
+2202:                           "ml-2 font-normal px-1.5 py-0 transition-all border-none",
+
+2203:                           groupingsSubTab === "unassigned" ? "bg-white/20 text-white" : "bg-[#f5faf6] text-gray-500"
+
+2204:                         )}>
+
+2205:                           {groupingsData?.unassigned.length || 0}
+
+2206:                         </Badge>
+
+2207:                       </button>
+
+2208:                       <button
+
+2209:                         onClick={() => {
+
+2210:                           setGroupingsSubTab("grouped");
+
+2211:                           setGroupsPage(1);
+
+2212:                         }}
+
+2213:                         className={cn(
+
+2214:                           "flex items-center justify-center px-6 py-2.5 text-[13px] font-normal transition-all",
+
+2215:                           groupingsSubTab === "grouped"
+
+2216:                             ? "bg-openclub-700 text-white"
+
+2217:                             : "bg-white text-gray-600 hover:bg-gray-50"
+
+2218:                         )}
+
+2219:                       >
+
+2220:                         Assigned Tee Flights
+
+2221:                         <Badge variant="outline" className={cn(
+
+2222:                           "ml-2 font-normal px-1.5 py-0 transition-all border-none",
+
+2223:                           groupingsSubTab === "grouped" ? "bg-white/20 text-white" : "bg-[#f5faf6] text-gray-500"
+
+2224:                         )}>
+
+2225:                           {groupingsData?.groups.length || 0}
+
+2226:                         </Badge>
+
+2227:                       </button>
+
+2228:                     </div>
+
+2229:                     {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
+
+2230:                       <div className="space-y-6">
+
+2231:                         {groupingsSubTab === "grouped" && (
+
+2232:                           <div className="space-y-6">
+
+2233: 
+
+2234:                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+2235:                               {[...groupingsData.groups].reverse()
+
+2236:                                 .filter(group => {
+
+2237:                                   const query = groupingsSearch.trim().toLowerCase();
+
+2238:                                   if (!query) return true;
+
+2239:                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
+
+2240: 
+
+2241:                                   const matchesGroupName = tokens.every(token =>
+
+2242:                                     group.name.toLowerCase().includes(token)
+
+2243:                                   );
+
+2244: 
+
+2245:                                   const matchesPlayer = group.registrations.some(p => {
+
+2246:                                     const searchableFields = [
+
+2247:                                       p.user?.firstName,
+
+2248:                                       p.user?.lastName,
+
+2249:                                       p.user?.email,
+
+2250:                                       `${p.user?.firstName} ${p.user?.lastName}`,
+
+2251:                                       `${p.user?.lastName} ${p.user?.firstName}`
+
+2252:                                     ];
+
+2253:                                     return tokens.every(token =>
+
+2254:                                       searchableFields.some(field => field?.toLowerCase().includes(token))
+
+2255:                                     );
+
+2256:                                   });
+
+2257: 
+
+2258:                                   return matchesGroupName || matchesPlayer;
+
+2259:                                 })
+
+2260:                                 .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
+
+2261:                                 .map((group: GroupingItem) => {
+
+2262:                                   const occupancy = group.registrations.length;
+
+2263:                                   const capacity = selectedTournament?.maxPlayersPerGroup || 4;
+
+2264:                                   const isFull = occupancy >= capacity;
+
+2265: 
+
+2266:                                   return (
+
+2267:                                     <div
+
+2268:                                       key={group.id}
+
+2269:                                       className={cn(
+
+2270:                                         "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-lg",
+
+2271:                                         isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
+
+2272:                                       )}
+
+2273:                                     >
+
+2274:                                       <div className="p-5 flex items-start justify-between bg-[#278a4c] rounded-t-xl border-b border-[#1c6437]/50">
+
+2275:                                         <div className="flex items-start gap-4 min-w-0">
+
+2276:                                           <div className={cn(
+
+2277:                                             "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
+
+2278:                                             isFull ? "bg-[#116630] text-emerald-200" : "bg-[#116630]/70 text-emerald-100"
+
+2279:                                           )}>
+
+2280:                                             <Flag className="w-5 h-5" />
+
+2281:                                           </div>
+
+2282:                                           <div className="min-w-0 mt-0.5">
+
+2283:                                             {editingGroupNameId === group.id ? (
+
+2284:                                               <Input
+
+2285:                                                 autoFocus
+
+2286:                                                 value={editingGroupNameValue}
+
+2287:                                                 onChange={(e) => setEditingGroupNameValue(e.target.value)}
+
+2288:                                                 onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
+
+2289:                                                 className="h-8 py-0 px-2 text-base font-medium rounded-md border-gray-300 w-full bg-white text-gray-900"
+
+2290:                                               />
+
+2291:                                             ) : (
+
+2292:                                               <h3
+
+2293:                                                 onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
+
+2294:                                                 className="text-base font-medium text-white truncate cursor-pointer hover:text-emerald-100 transition-colors"
+
+2295:                                               >
+
+2296:                                                 {group.name}
+
+2297:                                               </h3>
+
+2298:                                             )}
+
+2299:                                             <p className="text-xs text-emerald-100 mt-0.5 flex items-center gap-1.5">
+
+2300:                                               <Clock className="w-3.5 h-3.5 text-emerald-200" />
+
+2301:                                               {group.startTime || "Tee time TBD"}
+
+2302:                                             </p>
+
+2303:                                           </div>
+
+2304:                                         </div>
+
+2305:                                         <div className="text-right flex flex-col items-end mt-0.5">
+
+2306:                                           <div className="text-sm font-medium text-white">{occupancy}/{capacity}</div>
+
+2307:                                           <div className="text-xs text-emerald-200 mt-0.5">Players</div>
+
+2308:                                         </div>
+
+2309:                                       </div>
+
+2310:                                       <div className="h-[2px] w-full bg-gray-100">
+
+2311:                                         <div
+
+2312:                                           className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-gray-300")}
+
+2313:                                           style={{ width: `${(occupancy / capacity) * 100}%` }}
+
+2314:                                         />
+
+2315:                                       </div>
+
+2316:                                       {/* Group Players (Tabular) */}
+
+2317:                                       <div className="flex-1 overflow-visible">
+
+2318:                                         <table className="w-full text-left">
+
+2319:                                           <tbody className="divide-y divide-[#efefef]">
+
+2320:                                             {group.registrations.map((player: GroupingPlayer) => (
+
+2321:                                               <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player h-[52px]">
+
+2322:                                                 <td className="pl-4 py-2 w-[44px] align-middle">
+
+2323:                                                   <div className="w-8 h-8 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+
+2324:                                                     <img
+
+2325:                                                       src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+
+2326:                                                       alt=""
+
+2327:                                                       className="w-full h-full object-cover"
+
+2328:                                                     />
+
+2329:                                                   </div>
+
+2330:                                                 </td>
+
+2331:                                                 <td className="py-2 px-2 align-middle max-w-[130px]">
+
+2332:                                                   <NextLink href="#" className="block truncate">
+
+2333:                                                     <div className="text-[12px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
+
+2334:                                                       {player.user?.firstName} {player.user?.lastName}
+
+2335:                                                     </div>
+
+2336:                                                   </NextLink>
+
+2337:                                                 </td>
+
+2338:                                                 <td className="py-2 px-2 align-middle">
+
+2339:                                                   <div className="flex flex-wrap items-center gap-1">
+
+2340:                                                     {/* Gender Badge */}
+
+2341:                                                     {player.user?.gender && (
+
+2342:                                                       <span className={cn(
+
+2343:                                                         "text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+
+2344:                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+
+2345:                                                       )}>
+
+2346:                                                         {player.user.gender.substring(0, 1)}
+
+2347:                                                       </span>
+
+2348:                                                     )}
+
+2349:                                                     {/* Category Badge */}
+
+2350:                                                     {player.user?.handicap !== undefined && (
+
+2351:                                                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider whitespace-nowrap">
+
+2352:                                                         {getGolfCategory(player.user.handicap).replace('Category ', 'Cat ')}
+
+2353:                                                       </span>
+
+2354:                                                     )}
+
+2355:                                                     {/* Age Badge */}
+
+2356:                                                     {player.user?.dob && (
+
+2357:                                                       <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+
+2358:                                                         {(() => {
+
+2359:                                                           const birthDate = new Date(player.user.dob);
+
+2360:                                                           const today = new Date();
+
+2361:                                                           let age = today.getFullYear() - birthDate.getFullYear();
+
+2362:                                                           const m = today.getMonth() - birthDate.getMonth();
+
+2363:                                                           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+
+2364:                                                           return `${age}Y`;
+
+2365:                                                         })()}
+
+2366:                                                       </span>
+
+2367:                                                     )}
+
+2368:                                                     {/* HCP Badge */}
+
+2369:                                                     <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+
+2370:                                                       HCP {player.user?.handicap ?? 0}
+
+2371:                                                     </span>
+
+2372:                                                   </div>
+
+2373:                                                 </td>
+
+2374:                                                 <td className="pr-3 py-2 align-middle text-right w-[40px]">
+
+2375:                                                   <select
+
+2376:                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+
+2377:                                                     value={group.id}
+
+2378:                                                     onChange={(e) => {
+
+2379:                                                       const val = e.target.value;
+
+2380:                                                       handleMovePlayer(player.id, val === "unassigned" ? null : val);
+
+2381:                                                     }}
+
+2382:                                                     className="bg-emerald-50 text-openclub-800 border border-emerald-100 text-[10px] font-normal rounded-md px-1 py-1 cursor-pointer focus:ring-0 opacity-0 group-hover/player:opacity-100 transition-opacity disabled:opacity-0 disabled:cursor-not-allowed max-w-[20px] overflow-hidden hover:max-w-none"
+
+2383:                                                   >
+
+2384:                                                     <option value={group.id}>☰</option>
+
+2385:                                                     <option value="unassigned">Unassign</option>
+
+2386:                                                     {groupingsData.groups.map((g: GroupingItem) => g.id !== group.id && <option key={g.id} value={g.id}>{g.name}</option>)}
+
+2387:                                                   </select>
+
+2388:                                                 </td>
+
+2389:                                               </tr>
+
+2390:                                             ))}
+
+2391:                                             {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
+
+2392:                                               <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity h-[52px]">
+
+2393:                                                 <td className="pl-4 py-2 w-[44px] align-middle">
+
+2394:                                                   <div className="w-8 h-8 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
+
+2395:                                                     <Plus className="w-4 h-4 text-gray-400" />
+
+2396:                                                   </div>
+
+2397:                                                 </td>
+
+2398:                                                 <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
+
+2399:                                                   <SearchableSelect
+
+2400:                                                     value=""
+
+2401:                                                     onValueChange={(playerId) => {
+
+2402:                                                       if (playerId) {
+
+2403:                                                         handleMovePlayer(playerId, group.id);
+
+2404:                                                       }
+
+2405:                                                     }}
+
+2406:                                                     disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+
+2407:                                                     placeholder="Available Space (click to assign)"
+
+2408:                                                     options={groupingsData.unassigned.map((p: any) => ({
+
+2409:                                                       value: p.id,
+
+2410:                                                       label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
+
+2411:                                                     }))}
+
+2412:                                                     triggerClassName="bg-transparent border-none shadow-none h-9 px-1 text-[13px] font-normal text-gray-500 italic hover:text-openclub-700 disabled:opacity-50 disabled:cursor-not-allowed justify-start"
+
+2413:                                                     className="w-full"
+
+2414:                                                   />
+
+2415:                                                 </td>
+
+2416:                                               </tr>
+
+2417:                                             ))}
+
+2418:                                           </tbody>
+
+2419:                                         </table>
+
+2420:                                       </div>
+
+2421:                                     </div>
+
+2422:                                   );
+
+2423:                                 })}
+
+2424:                             </div>
+
+2425:                             {groupingsData.groups.length > groupsPerPage && (
+
+2426:                               <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e1efe5]">
+
+2427:                                 <p className="text-[13px] text-gray-500 font-normal">
+
+2428:                                   Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
+
+2429:                                 </p>
+
+2430:                                 <Pagination
+
+2431:                                   currentPage={groupsPage}
+
+2432:                                   totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
+
+2433:                                   onPageChange={setGroupsPage}
+
+2434:                                 />
+
+2435:                               </div>
+
+2436:                             )}
+
+2437:                           </div>
+
+2438:                         )}
+
+2439: 
+
+2440:                         {groupingsSubTab === "unassigned" && (
+
+2441:                           <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+2442:                             <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
+
+2443:                               <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
+
+2444:                                 <Users className="w-4 h-4 text-openclub-700" />
+
+2445:                                 Unassigned Participants
+
+2446:                               </h4>
+
+2447:                               <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
+
+2448:                                 {groupingsData.unassigned.length}
+
+2449:                               </Badge>
+
+2450:                             </div>
+
+2451:                             <div className="p-6">
+
+2452:                               {(() => {
+
+2453:                                 const filtered = groupingsData.unassigned.filter(p => {
+
+2454:                                   const query = groupingsSearch.trim().toLowerCase();
+
+2455:                                   if (!query) return true;
+
+2456:                                   const tokens = query.split(/[\s-]+/).filter(Boolean);
+
+2457:                                   const searchableFields = [
+
+2458:                                     p.user?.firstName,
+
+2459:                                     p.user?.lastName,
+
+2460:                                     p.user?.email,
+
+2461:                                     `${p.user?.firstName} ${p.user?.lastName}`,
+
+2462:                                     `${p.user?.lastName} ${p.user?.firstName}`
+
+2463:                                   ];
+
+2464: 
+
+2465:                                   return tokens.every(token =>
+
+2466:                                     searchableFields.some(field => field?.toLowerCase().includes(token))
+
+2467:                                   );
+
+2468:                                 });
+
+2469: 
+
+2470:                                 const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
+
+2471: 
+
+2472:                                 return (
+
+2473:                                   <div className="space-y-6">
+
+2474:                                     <div className="overflow-x-auto">
+
+2475:                                       <table className="w-full text-left">
+
+2476:                                         <thead>
+
+2477:                                           <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+
+2478:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+
+2479:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
+
+2480:                                             <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+
+2481:                                           </tr>
+
+2482:                                         </thead>
+
+2483:                                         <tbody className="divide-y divide-[#efefef]">
+
+2484:                                           {paginated.length > 0 ? (
+
+2485:                                             paginated.map((player: GroupingPlayer) => (
+
+2486:                                               <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
+
+2487:                                                 <td className="pl-4 py-3 align-middle">
+
+2488:                                                   <div className="flex items-center gap-3 min-w-0">
+
+2489:                                                     <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e1efe5] bg-white shadow-sm">
+
+2490:                                                       <img
+
+2491:                                                         src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+
+2492:                                                         alt=""
+
+2493:                                                         className="w-full h-full object-cover"
+
+2494:                                                       />
+
+2495:                                                     </div>
+
+2496:                                                     <div className="min-w-0">
+
+2497:                                                       <NextLink href="#" className="block truncate">
+
+2498:                                                         <div className="text-[13px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
+
+2499:                                                           {player.user?.firstName} {player.user?.lastName}
+
+2500:                                                         </div>
+
+2501:                                                       </NextLink>
+
+2502:                                                     </div>
+
+2503:                                                   </div>
+
+2504:                                                 </td>
+
+2505:                                                 <td className="py-3 px-4 align-middle">
+
+2506:                                                   <div className="flex flex-wrap items-center gap-1.5">
+
+2507:                                                     {/* Gender Badge */}
+
+2508:                                                     {player.user?.gender && (
+
+2509:                                                       <span className={cn(
+
+2510:                                                         "text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+
+2511:                                                         player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+
+2512:                                                       )}>
+
+2513:                                                         {player.user.gender}
+
+2514:                                                       </span>
+
+2515:                                                     )}
+
+2516:                                                     {/* Category Badge */}
+
+2517:                                                     {player.user?.handicap !== undefined && (
+
+2518:                                                       <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
+
+2519:                                                         {getGolfCategory(player.user.handicap)}
+
+2520:                                                       </span>
+
+2521:                                                     )}
+
+2522:                                                     {/* Age Badge */}
+
+2523:                                                     {player.user?.dob && (
+
+2524:                                                       <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+
+2525:                                                         {(() => {
+
+2526:                                                           const birthDate = new Date(player.user.dob);
+
+2527:                                                           const today = new Date();
+
+2528:                                                           let age = today.getFullYear() - birthDate.getFullYear();
+
+2529:                                                           const m = today.getMonth() - birthDate.getMonth();
+
+2530:                                                           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+
+2531:                                                           return `${age} YRS`;
+
+2532:                                                         })()}
+
+2533:                                                       </span>
+
+2534:                                                     )}
+
+2535:                                                     {/* HCP Badge */}
+
+2536:                                                     <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+
+2537:                                                       HCP {player.user?.handicap ?? 0}
+
+2538:                                                     </span>
+
+2539:                                                   </div>
+
+2540:                                                 </td>
+
+2541:                                                 <td className="px-4 py-3 align-middle text-right">
+
+2542:                                                   <div className="flex justify-end">
+
+2543:                                                     <select
+
+2544:                                                       disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
+
+2545:                                                       value="unassigned"
+
+2546:                                                       onChange={(e) => {
+
+2547:                                                         const val = e.target.value;
+
+2548:                                                         if (val !== "unassigned") {
+
+2549:                                                           handleMovePlayer(player.id, val);
+
+2550:                                                         }
+
+2551:                                                       }}
+
+2552:                                                       className="bg-white text-gray-600 border border-[#e1efe5] text-[11px] font-normal rounded-md px-2 py-1.5 cursor-pointer focus:ring-0 hover:border-openclub-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+
 2553:       
 <truncated 6972 bytes>
 

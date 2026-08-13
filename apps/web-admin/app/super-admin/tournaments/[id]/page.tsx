@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -444,6 +445,11 @@ function ViewTournamentPageInner() {
     try {
       const data = await getGroupings(tournamentId, selectedDay);
       setGroupingsData(data);
+      if (data.unassigned.length === 0 && data.groups.length > 0) {
+        setGroupingsSubTab("grouped");
+      } else if (data.unassigned.length > 0 && data.groups.length === 0) {
+        setGroupingsSubTab("unassigned");
+      }
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to load groupings");
     } finally {
@@ -1671,46 +1677,46 @@ function ViewTournamentPageInner() {
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       />
                     </div>
-                  <div className="flex flex-wrap items-center gap-4 ml-auto">
-                    <SearchableSelect
-                      value={registrationsStatusFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsStatusFilter(v);
-                      }}
-                      options={[
-                        { value: "All Status", label: "All Status" },
-                        { value: "PENDING", label: "Pending" },
-                        { value: "APPROVED", label: "Approved" },
-                        { value: "REJECTED", label: "Rejected" },
-                        { value: "WAITLISTED", label: "Waitlisted" },
-                        { value: "DISQUALIFIED", label: "Disqualified" },
-                      ]}
-                      className="min-w-[150px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                      placeholder="All Status"
-                    />
-                    <SearchableSelect
-                      value={registrationsPaymentFilter}
-                      onValueChange={(v: any) => {
-                        setRegistrationsPage(1);
-                        if (registrationsMode === "server") setRegistrationsLoading(true);
-                        setRegistrationsPaymentFilter(v);
-                      }}
-                      options={[
-                        { value: "All Payments", label: "All Payments" },
-                        { value: "PAID", label: "Paid" },
-                        { value: "UNPAID", label: "Unpaid" },
-                        { value: "REFUNDED", label: "Refunded" },
-                      ]}
-                      className="min-w-[150px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
-                      placeholder="All Payments"
-                    />
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={registrationsStatusFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsStatusFilter(v);
+                        }}
+                        options={[
+                          { value: "All Status", label: "All Status" },
+                          { value: "PENDING", label: "Pending" },
+                          { value: "APPROVED", label: "Approved" },
+                          { value: "REJECTED", label: "Rejected" },
+                          { value: "WAITLISTED", label: "Waitlisted" },
+                          { value: "DISQUALIFIED", label: "Disqualified" },
+                        ]}
+                        className="min-w-[150px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        placeholder="All Status"
+                      />
+                      <SearchableSelect
+                        value={registrationsPaymentFilter}
+                        onValueChange={(v: any) => {
+                          setRegistrationsPage(1);
+                          if (registrationsMode === "server") setRegistrationsLoading(true);
+                          setRegistrationsPaymentFilter(v);
+                        }}
+                        options={[
+                          { value: "All Payments", label: "All Payments" },
+                          { value: "PAID", label: "Paid" },
+                          { value: "UNPAID", label: "Unpaid" },
+                          { value: "REFUNDED", label: "Refunded" },
+                        ]}
+                        className="min-w-[150px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        placeholder="All Payments"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
                 <div className="space-y-4">
                   {registrationsLoading ? (
@@ -2180,51 +2186,51 @@ function ViewTournamentPageInner() {
                       <Input
                         placeholder="Search waitlist by name or email..."
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
-                      value={waitlistSearch}
-                      onChange={(e) => {
-                        setWaitlistSearch(e.target.value);
-                        setWaitlistPage(1);
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-4 ml-auto">
-                    <SearchableSelect
-                      value={waitlistFilter}
-                      onValueChange={(v: any) => {
-                        setWaitlistFilter(v);
-                        setWaitlistPage(1);
-                        setSelectedWaitlistIds([]);
-                      }}
-                      options={[
-                        { value: "PENDING", label: "Pending Queue" },
-                        { value: "REJECTED", label: "Rejected Players" },
-                      ]}
-                      className="min-w-[170px]"
-                      triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
-                    />
+                        value={waitlistSearch}
+                        onChange={(e) => {
+                          setWaitlistSearch(e.target.value);
+                          setWaitlistPage(1);
+                        }}
+                      />
+                    </div>
 
-                    {waitlistFilter === "PENDING" && waitlist.length > 0 && (
-                      <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
-                        <input
-                          type="checkbox"
-                          id="selectAllWaitlist"
-                          className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
-                          checked={selectedWaitlistIds.length === waitlist.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedWaitlistIds(waitlist.map(i => i.id));
-                            } else {
-                              setSelectedWaitlistIds([]);
-                            }
-                          }}
-                        />
-                        <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-4 ml-auto">
+                      <SearchableSelect
+                        value={waitlistFilter}
+                        onValueChange={(v: any) => {
+                          setWaitlistFilter(v);
+                          setWaitlistPage(1);
+                          setSelectedWaitlistIds([]);
+                        }}
+                        options={[
+                          { value: "PENDING", label: "Pending Queue" },
+                          { value: "REJECTED", label: "Rejected Players" },
+                        ]}
+                        className="min-w-[170px]"
+                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                      />
+
+                      {waitlistFilter === "PENDING" && waitlist.length > 0 && (
+                        <div className="flex items-center gap-2 px-2 h-11 border-l border-[#e1efe5] pl-4">
+                          <input
+                            type="checkbox"
+                            id="selectAllWaitlist"
+                            className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
+                            checked={selectedWaitlistIds.length === waitlist.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedWaitlistIds(waitlist.map(i => i.id));
+                              } else {
+                                setSelectedWaitlistIds([]);
+                              }
+                            }}
+                          />
+                          <label htmlFor="selectAllWaitlist" className="text-[13px] font-normal text-gray-700 cursor-pointer">Select All</label>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
                 {selectedWaitlistIds.length > 0 && (
                   <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
@@ -2443,6 +2449,14 @@ function ViewTournamentPageInner() {
             {/* TABS 1: Groupings & Tee Times */}
             {activeTab === "groupings" && (
               <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">
+                    {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
+                  </h2>
+                  <p className="text-[12px] text-gray-500 mt-1">
+                    Manage and organize {selectedTournament?.startType === 'SHOTGUN' ? 'hole assignments and start times' : 'flights and tee times'} for the tournament.
+                  </p>
+                </div>
                 {groupingsLoading ? (
                   <div className="space-y-8">
                     {/* Day Selection Linear Flow Skeleton */}
@@ -2515,45 +2529,43 @@ function ViewTournamentPageInner() {
                   </div>
                 ) : (
                   <>
-                    {/* Day Selection Linear Flow */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
-                      <div className="flex items-center gap-3 z-10 w-1/3">
-                        {selectedDay > 1 && (
-                          <button
-                            onClick={() => setSelectedDay(selectedDay - 1)}
-                            className="px-6 py-2.5 text-[14px] font-normal rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-300 flex items-center gap-2"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                            Back to Day {selectedDay - 1}
-                          </button>
-                        )}
-                      </div>
+                    <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-6 space-y-8">
+                      {/* Day Selection Linear Flow */}
+                      <div className="flex items-center justify-between pb-4 mb-12 border-b border-[#e1efe5] relative">
+                        <div className="flex items-center gap-3 z-10 w-1/3">
+                          {selectedDay > 1 && (
+                            <button
+                              onClick={() => setSelectedDay(selectedDay - 1)}
+                              className="px-6 py-2.5 text-[14px] font-medium rounded-xl bg-openclub-800 text-white hover:bg-openclub-900 shadow-sm transition-all duration-300 flex items-center gap-2"
+                            >
+                              <ArrowLeft className="w-4 h-4" />
+                              Back to Day {selectedDay - 1}
+                            </button>
+                          )}
+                        </div>
 
-                      <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
-                          <div className="bg-emerald-200/60 p-1.5 rounded-lg">
-                            <Calendar className="w-4 h-4 text-emerald-800" />
+                        <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
+                          <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
+                            <div className="bg-emerald-200/60 p-1.5 rounded-lg">
+                              <Calendar className="w-4 h-4 text-emerald-800" />
+                            </div>
+                            <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
+                            <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
                           </div>
-                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
-                          <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 z-10 w-1/3">
+                          {selectedDay < getTournamentDays() && (
+                            <button
+                              onClick={() => setSelectedDay(selectedDay + 1)}
+                              className="px-6 py-2.5 text-[14px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                            >
+                              Proceed to Day {selectedDay + 1}
+                              <ArrowRight className="w-4.5 h-4.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex items-center justify-end gap-3 z-10 w-1/3">
-                        {selectedDay < getTournamentDays() && (
-                          <button
-                            onClick={() => setSelectedDay(selectedDay + 1)}
-                            className="px-6 py-2.5 text-[14px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
-                          >
-                            Proceed to Day {selectedDay + 1}
-                            <ArrowRight className="w-4.5 h-4.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-
-                    <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-6 space-y-8">
                       {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3 text-amber-800">
                           <Lock className="w-4 h-4 shrink-0" />
@@ -2592,7 +2604,7 @@ function ViewTournamentPageInner() {
                               !groupingsData?.unassigned.length ||
                               groupingsData.unassigned.length <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0)
                             }
-                            className="bg-white border border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
+                            className="bg-slate-800 border border-transparent text-white hover:bg-slate-900 rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
                           >
                             {isManualGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                             Manually Tee Players
@@ -2632,11 +2644,11 @@ function ViewTournamentPageInner() {
                             variant="outline"
                             size="icon"
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                            className="bg-[#fafafa] border border-slate-200 text-slate-800 hover:bg-slate-100 h-11 w-11 rounded-xl shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed transition-all shrink-0"
+                            className="bg-white border border-[#f0f0f0] text-gray-700 hover:bg-[#fafafa] h-11 w-11 rounded-xl shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed transition-all shrink-0"
                           >
                             <MoreHorizontal className="w-5 h-5 text-gray-600" />
                           </Button>
-                          
+
                           <FloatingMenu
                             open={activeDropdown === "more_actions"}
                             anchorEl={dropdownAnchorEl}
@@ -2686,71 +2698,90 @@ function ViewTournamentPageInner() {
                           </FloatingMenu>
                         </div>
                       </div>
-                      {/* Sub-tabs for Unassigned/Grouped */}
-                      <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden mb-5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGroupingsSubTab("unassigned");
-                            setUnassignedPage(1);
-                          }}
-                          className={cn(
-                            "flex-1 flex flex-row items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                            groupingsSubTab === "unassigned" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                          )}
-                        >
-                          Unassigned Tee Players
-                          <Badge variant="outline" className={cn(
-                            "ml-2 font-normal px-1.5 py-0 transition-all border-0",
-                            groupingsSubTab === "unassigned" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
-                          )}>
-                            {groupingsData?.unassigned.length || 0}
-                          </Badge>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGroupingsSubTab("grouped");
-                            setGroupsPage(1);
-                          }}
-                          className={cn(
-                            "flex-1 flex flex-row items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                            groupingsSubTab === "grouped" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                          )}
-                        >
-                          Assigned Tee Flights
-                          <Badge variant="outline" className={cn(
-                            "ml-2 font-normal px-1.5 py-0 transition-all border-0",
-                            groupingsSubTab === "grouped" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
-                          )}>
-                            {groupingsData?.groups.length || 0}
-                          </Badge>
-                        </button>
-                      </div>
-
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                          <Input
-                            placeholder="Search groups or players..."
-                            value={groupingsSearch}
-                            onChange={(e) => {
-                              setGroupingsSearch(e.target.value);
-                              setGroupsPage(1);
+                      {/* Sticky Header for Tabs and Search */}
+                      <div className="sticky top-0 z-30 bg-[#f9fafb]/95 backdrop-blur-md pb-4 pt-4 -mt-4 mb-6 shadow-sm border-b border-[#e1efe5]">
+                        {/* Sub-tabs for Unassigned/Grouped */}
+                        <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden mb-5" role="tablist" aria-label="Player Assignments">
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={groupingsSubTab === "unassigned"}
+                            id="tab-unassigned"
+                            onKeyDown={(e) => { if (e.key === "ArrowRight") document.getElementById("tab-grouped")?.focus(); }}
+                            onClick={() => {
+                              setGroupingsSubTab("unassigned");
                               setUnassignedPage(1);
                             }}
-                            className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
-                          />
+                            className={cn(
+                              "flex-1 flex flex-row items-center justify-center h-12 text-[13px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-openclub-500",
+                              groupingsSubTab === "unassigned" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                            )}
+                          >
+                            Unassigned Tee Players
+                            <Badge variant="outline" className={cn(
+                              "ml-2 font-normal px-1.5 py-0 transition-all border-0 flex items-center justify-center min-w-[20px] h-[20px]",
+                              groupingsSubTab === "unassigned" ? "bg-white/20 text-white" : (groupingsData?.unassigned.length === 0 ? "bg-gray-100 text-gray-500" : "bg-amber-100 text-amber-700")
+                            )}>
+                              {groupingsData?.unassigned.length === 0 ? <Check className={cn("w-3 h-3", groupingsSubTab === "unassigned" ? "text-white" : "text-green-600")} /> : groupingsData?.unassigned.length || 0}
+                            </Badge>
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={groupingsSubTab === "grouped"}
+                            id="tab-grouped"
+                            onKeyDown={(e) => { if (e.key === "ArrowLeft") document.getElementById("tab-unassigned")?.focus(); }}
+                            onClick={() => {
+                              setGroupingsSubTab("grouped");
+                              setGroupsPage(1);
+                            }}
+                            className={cn(
+                              "flex-1 flex flex-row items-center justify-center h-12 text-[13px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-openclub-500",
+                              groupingsSubTab === "grouped" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                            )}
+                          >
+                            Assigned Tee Flights
+                            <Badge variant="outline" className={cn(
+                              "ml-2 font-normal px-1.5 py-0 transition-all border-0",
+                              groupingsSubTab === "grouped" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+                            )}>
+                              {groupingsData?.groups.length || 0}
+                            </Badge>
+                          </button>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                            <Input
+                              placeholder="Search groups or players..."
+                              value={groupingsSearch}
+                              onChange={(e) => {
+                                setGroupingsSearch(e.target.value);
+                                setGroupsPage(1);
+                                setUnassignedPage(1);
+                              }}
+                              className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                            />
+                          </div>
                         </div>
                       </div>
-                  </div>
+                    </div>
 
                     {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
-                      <div className="space-y-6">
-                        {groupingsSubTab === "grouped" && (
-                          <div className="space-y-6">
+                      <div className="space-y-6 relative">
+                        <AnimatePresence mode="wait">
+                          {groupingsSubTab === "grouped" && (
+                            <motion.div
+                              key="grouped"
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              transition={{ duration: 0.2 }}
+                              className="space-y-6"
+                            >
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {[...groupingsData.groups].reverse()
                                 .filter(group => {
                                   const query = groupingsSearch.trim().toLowerCase();
@@ -2956,11 +2987,18 @@ function ViewTournamentPageInner() {
                                 />
                               </div>
                             )}
-                          </div>
-                        )}
+                            </motion.div>
+                          )}
 
-                        {groupingsSubTab === "unassigned" && (
-                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                          {groupingsSubTab === "unassigned" && (
+                            <motion.div
+                              key="unassigned"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 20 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden"
+                            >
                             <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
                               <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
                                 <Users className="w-4 h-4 text-openclub-700" />
@@ -3108,8 +3146,9 @@ function ViewTournamentPageInner() {
                                 );
                               })()}
                             </div>
-                          </div>
-                        )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     ) : (
                       <EmptyState
@@ -3148,7 +3187,7 @@ function ViewTournamentPageInner() {
                         className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
                       />
                     </div>
-                    
+
                     <div className="flex flex-wrap items-center gap-4 ml-auto">
                       <SearchableSelect
                         value={penalizeFilter}
