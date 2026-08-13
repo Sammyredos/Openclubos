@@ -1383,32 +1383,7 @@ export default function TournamentsPage() {
               <Link className="w-4 h-4 text-openclub-700" />
               Copy Tournament Link
             </button>
-            <div className="h-px bg-background my-1" />
-            <button
-              onClick={() => handleMoreAction("register", dropdownTournament)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[13px] flex items-center gap-3 transition-colors",
-                dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-700"
-              )}
-              disabled={dropdownTournament.statusKey === "DRAFT" || dropdownTournament.statusKey === "CANCELLED" || dropdownTournament.statusKey === "COMPLETED"}
-            >
-              <UserPlus className="w-4 h-4 text-openclub-800" />
-              Invite a Player
-            </button>
-            <button
-              onClick={() => handleMoreAction("waitlist", dropdownTournament)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-[13px] flex items-center gap-3 transition-colors",
-                !dropdownTournament.enableWaitlist ? "text-gray-300 cursor-not-allowed" : "text-gray-700"
-              )}
-              disabled={!dropdownTournament.enableWaitlist}
-            >
-              <Clock className={cn("w-4 h-4", !dropdownTournament.enableWaitlist ? "text-gray-300" : "text-gray-400")} />
-              View Waitlist
-            </button>
-            <div className="h-px bg-background my-1" />
+
             <button
               onClick={() => handleMoreAction("cancel", dropdownTournament)}
               className={cn(
