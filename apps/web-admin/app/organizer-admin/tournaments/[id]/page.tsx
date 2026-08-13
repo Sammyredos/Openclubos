@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
+import { PenalizeActionDropdown } from "@/components/penalize-action-dropdown";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -2952,7 +2953,8 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
+<div className="p-5">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="relative flex-1">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
@@ -2999,7 +3001,7 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="bg-white">
                   {(() => {
                     const penalizeSearchQuery = registrationsSearch.trim().toLowerCase();
                     const penalizeListAll = registrationsMode === "client" ? registrationsAll.filter(r => {
@@ -3026,7 +3028,7 @@ function ViewTournamentPageInner() {
                     return (
                       <>
                         {registrationsLoading ? (
-                          <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
+                          <div className="border-t border-[#e1efe5] bg-white">
                             <div className="flex flex-col">
                               {[1, 2, 3, 4, 5].map((i) => (
                                 <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
@@ -3050,16 +3052,17 @@ function ViewTournamentPageInner() {
                             </div>
                           </div>
                         ) : penalizePageItems.length > 0 ? (
-                          <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden overflow-x-auto">
+                          <div className="overflow-x-auto relative border-t border-[#e1efe5] bg-white">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                               <thead>
-                                <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                                  <th className="px-4 py-4">PLAYER</th>
-                                  <th className="px-4 py-4">STATUS</th>
-                                  <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
-                                  <th className="px-4 py-4 text-right">ACTIONS</th>
-                                </tr>
-                              </thead>
+                                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS & PAYMENT</th>
+                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DETAILS</th>
+                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-center">HANDICAP / PENALTY</th>
+                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                  </tr>
+                                </thead>
                               <tbody className="divide-y divide-[#efefef] bg-white">
                                 {penalizePageItems.map((r) => {
                                   const isDisqualified = r.status === "DISQUALIFIED";
@@ -3075,7 +3078,7 @@ function ViewTournamentPageInner() {
                                         <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-[#e1efe5]">
                                             <img
-                                              src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || "avatar")}`}
+                                              src={r.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.user?.email || r.id)}`}
                                               alt=""
                                               className="w-full h-full object-cover"
                                             />
@@ -3092,14 +3095,46 @@ function ViewTournamentPageInner() {
                                       </td>
                                       <td className="px-4 py-3">
                                         <div className="flex items-center gap-1.5">
-                                          {isDisqualified && (
-                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg bg-red-600 text-white border border-red-700 uppercase tracking-wider">
-                                              Disqualified
+                                          <span className={cn(
+                                            "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                            (r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                              r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                                r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                                  r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                                    r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
+                                                      "bg-background text-gray-600 border border-gray-200"
+                                          )}>
+                                            {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
+                                          </span>
+                                          <span className={cn(
+                                            "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                                            r.paymentStatus === "PAID" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                              "bg-background text-gray-600 border border-gray-250"
+                                          )}>
+                                            {r.paymentStatus || "UNPAID"}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-1.5">
+                                          {r.user?.gender && (
+                                            <span className={cn(
+                                              "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider border",
+                                              r.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                            )}>
+                                              {r.user.gender}
                                             </span>
                                           )}
-                                          {!isDisqualified && r.status === "APPROVED" && (
-                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                              Active
+                                          {r.user?.dob && (
+                                            <span className="text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+                                              {(() => {
+                                                const birthDate = new Date(r.user.dob);
+                                                const today = new Date();
+                                                let age = today.getFullYear() - birthDate.getFullYear();
+                                                const m = today.getMonth() - birthDate.getMonth();
+                                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                return `${age} YRS`;
+                                              })()}
                                             </span>
                                           )}
                                         </div>
@@ -3117,69 +3152,15 @@ function ViewTournamentPageInner() {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3 text-right">
-                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && !isDisqualified && (
-                                          <div className="flex flex-wrap items-center justify-end gap-2">
-                                            <Button
-                                              variant="outline"
-                                              disabled={(r.extraStrokes ?? 0) === 1}
-                                              onClick={() => openStrokeModal(r, "ADD_1")}
-                                              title="Add 1-Stroke Penalty"
-                                              className={cn(
-                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
-                                                (r.extraStrokes ?? 0) === 1
-                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
-                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-                                              )}
-                                            >
-                                              +1 Stroke
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              disabled={(r.extraStrokes ?? 0) === 2}
-                                              onClick={() => openStrokeModal(r, "ADD_2")}
-                                              title="Add 2-Stroke Penalty"
-                                              className={cn(
-                                                "h-8 p-0 px-2 rounded-lg border flex items-center justify-center text-[11px] font-normal transition-colors",
-                                                (r.extraStrokes ?? 0) === 2
-                                                  ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-60"
-                                                  : "bg-white border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-                                              )}
-                                            >
-                                              +2 Strokes
-                                            </Button>
-                                            {(r.extraStrokes ?? 0) > 0 && (
-                                              <Button
-                                                variant="outline"
-                                                onClick={() => openStrokeModal(r, "CLEAR")}
-                                                title="Clear Penalties"
-                                                className="h-8 w-8 p-0 bg-white rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
-                                              >
-                                                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
-                                              </Button>
-                                            )}
-                                            <Button
-                                              onClick={() => openDisqualify(r)}
-                                              title="Disqualify Player"
-                                              className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white border border-red-700 rounded-lg text-[11px] font-normal transition-colors flex items-center gap-1.5 shadow-sm"
-                                            >
-                                              <Ban className="w-3.5 h-3.5" />
-                                              Disqualify Player
-                                            </Button>
-                                          </div>
-                                        )}
-                                        {selectedTournament.statusKey !== "CANCELLED" && selectedTournament.statusKey !== "COMPLETED" && isDisqualified && (
-                                          <div className="flex flex-wrap items-center justify-end gap-2">
-                                            <Button
-                                              variant="outline"
-                                              onClick={() => openEnablePlayer(r)}
-                                              title="Restore Player"
-                                              className="h-8 p-0 px-3 bg-white rounded-lg border-emerald-200 text-openclub-800 hover:bg-openclub-800 hover:text-white transition-colors flex items-center justify-center text-[11px] font-normal gap-1.5"
-                                            >
-                                              <CheckCircle2 className="w-3.5 h-3.5" />
-                                              Restore
-                                            </Button>
-                                          </div>
-                                        )}
+                                        <div className="flex items-center justify-end">
+                                          <PenalizeActionDropdown
+                                            player={r}
+                                            selectedTournament={selectedTournament}
+                                            openStrokeModal={openStrokeModal}
+                                            openDisqualify={openDisqualify}
+                                            openEnablePlayer={openEnablePlayer}
+                                          />
+                                        </div>
                                       </td>
                                     </tr>
                                   );
@@ -3197,7 +3178,7 @@ function ViewTournamentPageInner() {
 
                         {/* Pagination */}
                         {!registrationsLoading && (registrationsMode === "client" ? penalizeListAll.length > 0 : registrationsTotal > 0) && (
-                          <div className="mt-8">
+                          <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-end gap-4 border-t border-[#e1efe5]">
                             <Pagination
                               currentPage={registrationsPage}
                               totalPages={penalizeTotalPages}
@@ -3209,6 +3190,7 @@ function ViewTournamentPageInner() {
                     );
                   })()}
                 </div>
+              </div>
               </div>
             )}
           </div>
