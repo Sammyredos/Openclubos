@@ -2343,7 +2343,8 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
 
-                    <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-6 space-y-8">
+                    <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
+<div className="p-5 space-y-8">
                       {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3 text-amber-800">
                           <Lock className="w-4 h-4 shrink-0" />
@@ -2572,7 +2573,7 @@ function ViewTournamentPageInner() {
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 20 }}
                               transition={{ duration: 0.2 }}
-                              className="space-y-6"
+                              className="space-y-6 px-5 pb-5"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[...groupingsData.groups].reverse()
@@ -2815,8 +2816,9 @@ function ViewTournamentPageInner() {
                                   const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
 
                                   return (
-                                    <div className="space-y-6">
-                                      <div className="overflow-x-auto">
+                                    <>
+                                    <div className="bg-white">
+                                      <div className="overflow-x-auto border-y border-[#e1efe5]">
                                         <table className="w-full text-left">
                                           <thead>
                                             <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
@@ -2911,8 +2913,9 @@ function ViewTournamentPageInner() {
                                           </tbody>
                                         </table>
                                       </div>
+                                      </div>
                                       {filtered.length > unassignedPerPage && (
-                                        <div className="pt-4 flex items-center justify-between border-t border-[#e1efe5]">
+                                        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                           <p className="text-[13px] text-gray-500 font-normal">
                                             Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
                                           </p>
@@ -2923,7 +2926,7 @@ function ViewTournamentPageInner() {
                                           />
                                         </div>
                                       )}
-                                    </div>
+                                    </>
                                   );
                                 })()}
                               </div>
@@ -2938,7 +2941,7 @@ function ViewTournamentPageInner() {
                         description={`Use the Auto Group Players to distribute players into groups for Day ${selectedDay}.`}
                       />
                     )}
-
+                  </div>
                   </>
                 )}
               </div>
