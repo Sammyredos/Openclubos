@@ -2249,26 +2249,24 @@ function ViewTournamentPageInner() {
                   </div>
 
                   {selectedWaitlistIds.length > 0 && (
-                    <div className="mt-4 flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mx-5 mb-5">
-                    <span className="text-[12px] font-normal text-emerald-700 mr-2">
-                      {selectedWaitlistIds.length} selected
-                    </span>
-                    <Button
-                      onClick={() => setIsApproveWaitlistModalOpen(true)}
-                      className="h-9 bg-openclub-800 hover:bg-emerald-700 text-white text-[12px] font-normal px-4 rounded-lg shadow-sm gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Approve All
-                    </Button>
-                    <Button
-                      onClick={() => setIsRemoveWaitlistModalOpen(true)}
-                      variant="ghost"
-                      className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700 text-[12px] font-normal px-4 rounded-lg gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove All
-                    </Button>
-                  </div>
+                    <div className="mx-5 mb-5 mt-4 w-fit">
+                      <div className="flex flex-row rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden shadow-sm">
+                        <button
+                          onClick={() => setIsApproveWaitlistModalOpen(true)}
+                          className="flex items-center justify-center px-6 h-12 text-[13px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-openclub-500 bg-openclub-700 text-white hover:bg-openclub-800"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Approve All
+                        </button>
+                        <button
+                          onClick={() => setIsRemoveWaitlistModalOpen(true)}
+                          className="flex items-center justify-center px-6 h-12 text-[13px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-openclub-500 bg-white text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Remove All
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   <div className="bg-white">
@@ -2302,20 +2300,7 @@ function ViewTournamentPageInner() {
                         <thead>
                           <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
                             {waitlistFilter === "PENDING" && (
-                              <th className="w-12 px-4 py-4 text-center">
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 rounded border-gray-300 text-openclub-800 focus:ring-openclub-700 cursor-pointer"
-                                  checked={selectedWaitlistIds.length > 0 && waitlist.length > 0 && selectedWaitlistIds.length === waitlist.length}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedWaitlistIds(waitlist.map(i => i.id));
-                                    } else {
-                                      setSelectedWaitlistIds([]);
-                                    }
-                                  }}
-                                />
-                              </th>
+                              <th className="w-12 px-4 py-4 text-center"></th>
                             )}
                             <th className={cn("px-4 py-4", waitlistFilter !== "PENDING" && "pl-6")}>PLAYER</th>
                             <th className="px-4 py-4">DETAILS</th>
