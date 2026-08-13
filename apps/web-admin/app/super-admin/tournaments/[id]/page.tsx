@@ -3053,7 +3053,7 @@ function ViewTournamentPageInner() {
 
                                   return (
                                     <>
-                                    <div className="bg-white">
+                                    <div className="bg-white border border-[#e1efe5] rounded-xl overflow-hidden shadow-sm">
                                       <div className="overflow-x-auto border-y border-[#e1efe5]">
                                         <table className="w-full text-left">
                                           <thead>
