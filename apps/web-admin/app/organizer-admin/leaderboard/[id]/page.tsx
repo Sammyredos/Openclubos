@@ -749,22 +749,7 @@ function ViewTournamentPageInner() {
     return () => unsubscribe();
   }, [activeTab, tournamentId]);
 
-  useEffect(() => {
-    if (selectedTournament && selectedLeaderboardDay === "all") {
-      const latestGroupedDay = (selectedTournament.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)
-        ? Math.max(...selectedTournament.lockedGroupingsDays) + 1
-        : 1;
-      const totalDays = selectedTournament.endDate
-        ? Math.round((new Date(selectedTournament.endDate).getTime() - new Date(selectedTournament.startDate).getTime()) / 86400000) + 1
-        : 1;
-      const smartDay = Math.min(totalDays, latestGroupedDay);
-      if (smartDay > 1) {
-        setSelectedLeaderboardDay(smartDay);
-      } else {
-        setSelectedLeaderboardDay(1);
-      }
-    }
-  }, [selectedTournament?.id]);
+
 
   async function reloadSingleTournament() {
     if (!tournamentId) return;
@@ -1344,24 +1329,7 @@ function ViewTournamentPageInner() {
         </div>
 
         {/* Main Layout Grid Skeleton */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Navigation Tabs Skeleton */}
-          <div className="w-full lg:w-[280px] shrink-0">
-            <div className="bg-[#fafafa] border border-[#e1efe5] rounded-xl p-3 shadow-sm space-y-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-3.5 bg-white border border-[#e1efe5] rounded-xl">
-                  <div className="flex items-center gap-3.5">
-                    <Skeleton className="w-[18px] h-[18px] rounded" />
-                    <Skeleton className="h-4 w-32 rounded" />
-                  </div>
-                  <Skeleton className="w-4 h-4 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column - Active Panel Skeleton */}
-          <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex-1 min-w-0 space-y-6">
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-[600px] p-6 sm:p-8 space-y-6">
               {/* Tab Header & Action Bar Skeleton */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
@@ -1432,7 +1400,6 @@ function ViewTournamentPageInner() {
             </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -1523,49 +1490,7 @@ function ViewTournamentPageInner() {
         </div>
       </div>
 
-      {/* Main Layout Grid */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left Column - Navigation */}
-        <div className="w-full lg:w-[280px] shrink-0">
-          <div className="bg-[#fafafa] border-none rounded-xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] space-y-2 sticky top-6">
-            {TABS.map((tab, index) => {
-              const isActive = activeTab === tab.id;
-              const isShotgun = selectedTournament?.startType === "SHOTGUN";
-              const label = tab.id === "groupings"
-                ? (isShotgun ? "Holes & Start Times" : "Flights & Tee Times")
-                : tab.label;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200",
-                    isActive
-                      ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
-                      : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-background"
-                  )}
-                >
-                  <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
-                    <div className={cn(
-                      "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
-                      isActive
-                        ? "bg-[#15803D] text-white"
-                        : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
-                    )}>
-                      {index + 1}
-                    </div>
-                    <span className="text-[13px] font-normal leading-tight">
-                      {label}
-                    </span>
-                  </div>
-                  {isActive && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Column - Active Panel */}
+      {/* Main Layout Grid */}        {/* Right Column - Active Panel */}
         <div className="flex-1 min-w-0 space-y-6">
           {/* Status Alert Banners */}
           {selectedTournament.statusKey === "CANCELLED" && (
@@ -3594,7 +3519,6 @@ function ViewTournamentPageInner() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Helper Modals */}
       <Modal

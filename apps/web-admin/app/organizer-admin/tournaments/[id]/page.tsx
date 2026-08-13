@@ -2388,7 +2388,7 @@ function ViewTournamentPageInner() {
                               !groupingsData?.unassigned.length ||
                               groupingsData.unassigned.length <= groupingsData.groups.reduce((acc, g) => acc + Math.max(0, (selectedTournament?.maxPlayersPerGroup || 4) - g.registrations.length), 0)
                             }
-                            className="bg-slate-800 border border-transparent text-white hover:bg-slate-900 rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize"
+                            className="bg-slate-800 border border-transparent text-white hover:bg-slate-900 rounded-md h-9 px-4 text-[12px] font-normal gap-1.5 shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed capitalize tracking-wider transition-all"
                           >
                             {isManualGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                             Manually Tee Players
@@ -2402,7 +2402,7 @@ function ViewTournamentPageInner() {
                               !groupingsData?.unassigned.length
                             }
                             onClick={() => setIsGroupingRulesModalOpen(true)}
-                            className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-5 text-[13px] font-normal gap-2 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full md:w-auto"
+                            className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-md h-9 px-4 text-[12px] font-normal gap-1.5 shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 w-full md:w-auto capitalize tracking-wider transition-all"
                           >
                             {(groupingsGenerating && !isManualGenerating) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                             Auto Tee Players
@@ -2410,7 +2410,7 @@ function ViewTournamentPageInner() {
                           <Button
                             onClick={handleClearGroupings}
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                            className="bg-red-600 hover:bg-red-700 text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border border-red-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
+                            className="bg-red-600 hover:bg-red-700 text-white rounded-md h-9 px-4 text-[12px] font-normal gap-1.5 shadow-sm border border-red-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 capitalize tracking-wider transition-all"
                           >
                             <RefreshCcw className="w-3.5 h-3.5" />
                             Reset All
@@ -2429,14 +2429,14 @@ function ViewTournamentPageInner() {
                             size="icon"
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
                             className={cn(
-                              "h-11 w-11 rounded-xl shadow-sm transition-all shrink-0 relative flex items-center justify-center disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed",
+                              "h-9 w-9 rounded-md shadow-sm transition-all shrink-0 relative flex items-center justify-center disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed",
                               groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
                                 ? "bg-openclub-700 border-openclub-700 text-white hover:bg-openclub-800"
                                 : "bg-[#fafafa] border border-slate-200 text-slate-800 hover:bg-slate-100"
                             )}
                           >
                             <MoreHorizontal className={cn(
-                              "w-5 h-5",
+                              "w-4 h-4",
                               groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
                                 ? "text-white"
                                 : "text-gray-600"
