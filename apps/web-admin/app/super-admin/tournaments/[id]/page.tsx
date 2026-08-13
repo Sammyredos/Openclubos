@@ -1665,8 +1665,10 @@ function ViewTournamentPageInner() {
                   </div>
                 </div>
 
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
+                  {/* Search/Filters Top Bar */}
+                  <div className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="relative flex-1">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
                       <Input
@@ -1718,13 +1720,14 @@ function ViewTournamentPageInner() {
                         placeholder="All Payments"
                       />
                     </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  {registrationsLoading ? (
-                    <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
-                      <div className="flex flex-col">
+                  {/* Table Area */}
+                  <div className="bg-white">
+                    {registrationsLoading ? (
+                      <div className="border-y border-[#e1efe5] bg-white">
+                        <div className="flex flex-col">
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
                             <div className="flex items-center gap-4 w-1/3">
@@ -1747,7 +1750,7 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
                   ) : registrationsPageItems.length > 0 ? (
-                    <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                    <div className="overflow-x-auto relative border-y border-[#e1efe5] bg-white">
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                           <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
@@ -1935,14 +1938,17 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <EmptyState
-                      title="No registrations found"
-                      description="Try adjusting your filters or search query to find what you're looking for."
-                    />
+                    <div className="border-y border-[#e1efe5] bg-white">
+                      <EmptyState
+                        title="No registrations found"
+                        description="Try adjusting your filters or search query to find what you're looking for."
+                      />
+                    </div>
                   )}
+                  </div>
 
                   {!registrationsLoading && registrationsFilteredTotal > 0 && (
-                    <div className="pt-4 flex items-center justify-between gap-4">
+                    <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <p className="text-[13px] text-gray-500 font-normal">
                         Showing {(registrationsPage - 1) * registrationsPerPage + 1} to{" "}
                         {Math.min(registrationsPage * registrationsPerPage, registrationsFilteredTotal)} of{" "}
@@ -2016,7 +2022,8 @@ function ViewTournamentPageInner() {
 
 
 
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
+                  <div className="p-5 space-y-6">
                   {selectedTournament?.requiresPayment && (
                     <div className="space-y-4">
                       <div>
@@ -2057,9 +2064,9 @@ function ViewTournamentPageInner() {
                       className="pl-10 h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 rounded-xl text-[14px]"
                     />
                   </div>
-                </div>
+                  </div>
 
-                <div className="space-y-4">
+                  <div className="bg-white">
 
                   <div className="min-h-[300px]">
                     {isSearchingPlayers ? (
@@ -2068,7 +2075,7 @@ function ViewTournamentPageInner() {
                         <p className="text-[12px]">Searching the openclub registry...</p>
                       </div>
                     ) : registerPlayerResults.length > 0 ? (
-                      <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                      <div className="overflow-x-auto relative border-y border-[#e1efe5] bg-white">
                         <table className="w-full text-left border-collapse min-w-[700px]">
                           <thead>
                             <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
@@ -2155,20 +2162,25 @@ function ViewTournamentPageInner() {
                         </table>
                       </div>
                     ) : registerPlayerSearch.trim().length >= 2 ? (
-                      <EmptyState
-                        variant="minimal"
-                        icon={Search}
-                        title="No players found"
-                        description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
-                      />
+                      <div className="border-y border-[#e1efe5] bg-white py-6">
+                        <EmptyState
+                          variant="minimal"
+                          icon={Search}
+                          title="No players found"
+                          description={`We couldn't find anyone in OpenClub matching "${registerPlayerSearch}"`}
+                        />
+                      </div>
                     ) : (
-                      <EmptyState
-                        variant="minimal"
-                        icon={Users}
-                        title="Start Enrolling"
-                        description="Type 2 or more characters of a member's name or email to retrieve matches."
-                      />
+                      <div className="border-y border-[#e1efe5] bg-white py-6">
+                        <EmptyState
+                          variant="minimal"
+                          icon={Users}
+                          title="Start Enrolling"
+                          description="Type 2 or more characters of a member's name or email to retrieve matches."
+                        />
+                      </div>
                     )}
+                  </div>
                   </div>
                 </div>
               </div>
@@ -2182,7 +2194,8 @@ function ViewTournamentPageInner() {
                   <p className="text-[12px] text-gray-500 mt-1">Manage and approve players currently on the waitlist.</p>
                 </div>
 
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mb-4">
+                <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
+                  <div className="p-5">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="relative flex-1">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
@@ -2233,10 +2246,10 @@ function ViewTournamentPageInner() {
                       )}
                     </div>
                   </div>
-                </div>
+                  </div>
 
-                {selectedWaitlistIds.length > 0 && (
-                  <div className="flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mb-4">
+                  {selectedWaitlistIds.length > 0 && (
+                    <div className="mt-4 flex items-center gap-2 bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100 mx-5 mb-5">
                     <span className="text-[12px] font-normal text-emerald-700 mr-2">
                       {selectedWaitlistIds.length} selected
                     </span>
@@ -2256,11 +2269,11 @@ function ViewTournamentPageInner() {
                       Remove All
                     </Button>
                   </div>
-                )}
+                  )}
 
-                <div className="space-y-4">
-                  {waitlistLoading ? (
-                    <div className="border border-[#e1efe5] rounded-xl overflow-hidden bg-white">
+                  <div className="bg-white">
+                    {waitlistLoading ? (
+                      <div className="border-y border-[#e1efe5] bg-white">
                       <div className="flex flex-col">
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div key={i} className="flex items-center justify-between p-4 border-b border-[#e1efe5] last:border-0">
@@ -2284,7 +2297,7 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
                   ) : waitlist.length > 0 ? (
-                    <div className="overflow-x-auto relative rounded-xl border border-[#e1efe5]">
+                    <div className="overflow-x-auto relative border-y border-[#e1efe5] bg-white">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                           <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
@@ -2420,7 +2433,7 @@ function ViewTournamentPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="p-12 text-center">
+                    <div className="border-y border-[#e1efe5] bg-white py-12 text-center">
                       <EmptyState
                         icon={Clock}
                         title={waitlistSearch ? "No waitlisted players found" : "Waitlist is empty"}
@@ -2428,17 +2441,18 @@ function ViewTournamentPageInner() {
                       />
                     </div>
                   )}
-                </div>
+                  </div>
 
-                {waitlistTotal > waitlistPerPage && (
-                  <div className="mt-4 flex justify-end">
+                  {waitlistTotal > waitlistPerPage && (
+                    <div className="p-5 flex justify-end">
                     <Pagination
                       currentPage={waitlistPage}
                       totalPages={Math.ceil(waitlistTotal / waitlistPerPage)}
                       onPageChange={setWaitlistPage}
                     />
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-4">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
