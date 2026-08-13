@@ -232,109 +232,16 @@ export interface GroupingData {
   rule?: string;
 }
 
-function getStorageKey(tId: string, day: number = 1) {
-  return `openclub_groupings_${tId}_day_${day}`;
-}
-
-async function getFallbackPlayers(tId: string): Promise<GroupingPlayer[]> {
-  try {
-    const res = await authedFetch(`/registrations?tournamentId=${tId}&paymentStatus=PAID&take=500`, {
-      method: 'GET',
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : data.items || [];
-      return list.map((reg: any) => ({
-        id: reg.id,
-        paymentStatus: reg.paymentStatus,
-        status: reg.status,
-        extraStrokes: reg.extraStrokes || 0,
-        madeCut: reg.madeCut,
-        user: reg.user ? {
-          id: reg.user.id || reg.userId,
-          email: reg.user.email || '',
-          firstName: reg.user.firstName || null,
-          lastName: reg.user.lastName || null,
-          handicap: reg.user.handicap != null ? Number(reg.user.handicap) : null,
-          profilePhoto: reg.user.profilePhoto || null,
-          gender: reg.user.gender || null,
-          dob: reg.user.dob || null,
-        } : null,
-      })).filter((p: any) => p.madeCut !== false && p.status !== "DISQUALIFIED");
-    }
-  } catch {
-    // Ignore and fallback
-  }
-  return [];
-}
-
-function indexToFlightLetters(index: number): string {
-  return String(index + 1);
-}
-
-function upgradeGroupNames(data: GroupingData): GroupingData {
-  let changed = false;
-  const groups = data.groups.map(g => {
-    const match = g.name.match(/^Group\s+(\d+)$/i);
-    if (match) {
-      changed = true;
-      const index = parseInt(match[1], 10) - 1; // 1-based to 0-based
-      return { ...g, name: `Flight ${indexToFlightLetters(index)}` };
-    }
-    return g;
-  });
-  return changed ? { ...data, groups } : data;
-}
-
 export async function getGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings?day=${day}`, {
     method: 'GET',
   }).catch(() => null);
 
   if (res && res.ok) {
-    return upgradeGroupNames(await res.json());
+    return res.json();
   }
 
-  // Local Mock fallback with non-destructive merge
-  const allPaidPlayers = await getFallbackPlayers(tournamentId);
-  
-  if (typeof window !== 'undefined') {
-    const cached = localStorage.getItem(getStorageKey(tournamentId, day));
-    if (cached) {
-      const data: GroupingData = JSON.parse(cached);
-      
-      // Filter out players who no longer exist in the registrations (e.g., deleted or unpaid)
-      const validIds = new Set(allPaidPlayers.map(p => p.id));
-      let wasFiltered = false;
-      
-      data.groups.forEach(g => {
-        const originalLength = g.registrations.length;
-        g.registrations = g.registrations.filter(p => validIds.has(p.id));
-        if (g.registrations.length !== originalLength) wasFiltered = true;
-      });
-      
-      const origUnassignedLen = data.unassigned.length;
-      data.unassigned = data.unassigned.filter(p => validIds.has(p.id));
-      if (data.unassigned.length !== origUnassignedLen) wasFiltered = true;
-      
-      // Identify players who are PAID but not in any group or unassigned list
-      const assignedIds = new Set<string>();
-      data.groups.forEach(g => g.registrations.forEach(p => assignedIds.add(p.id)));
-      data.unassigned.forEach(p => assignedIds.add(p.id));
-      
-      const missingPlayers = allPaidPlayers.filter(p => !assignedIds.has(p.id));
-      
-      if (missingPlayers.length > 0 || wasFiltered) {
-        if (missingPlayers.length > 0) {
-          data.unassigned = [...data.unassigned, ...missingPlayers];
-        }
-        localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(data));
-      }
-      return upgradeGroupNames(data);
-    }
-  }
-
-  return { groups: [], unassigned: allPaidPlayers };
+  return { groups: [], unassigned: [] };
 }
 
 export async function generateGroupings(
@@ -344,250 +251,17 @@ export async function generateGroupings(
 ): Promise<GroupingData> {
   const res = await authedFetch(`/tournaments/${tournamentId}/groupings/generate?day=${day}`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ rule }),
   }).catch(() => null);
 
   if (res && res.ok) {
-    return upgradeGroupNames(await res.json());
+    return res.json();
   }
 
-  // Local Mock fallback
-  const players = await getFallbackPlayers(tournamentId);
-  if (players.length === 0) {
-    throw new Error("No registered players found to generate groupings.");
-  }
-
-  let maxPerGroup = 4;
-  let interval = 10;
-  let startTimeStr = "08:00";
-  let startType = "TEE_TIMES";
-  try {
-    const tRes = await authedFetch(`/tournaments/${tournamentId}`, {
-      method: 'GET',
-    });
-    if (tRes.ok) {
-      const t = await tRes.json();
-      maxPerGroup = t.maxPlayersPerGroup || 4;
-      interval = t.teeIntervalMinutes || 10;
-      startTimeStr = t.teeStartTime || "08:00";
-      startType = t.startType || "TEE_TIMES";
-    }
-  } catch {
-    // fallback to defaults
-  }
-
-  const groups: GroupingItem[] = [];
-  const unassigned: GroupingPlayer[] = [];
-
-  const [startHour, startMin] = startTimeStr.split(':').map(Number);
-  let currentHour = isNaN(startHour) ? 8 : startHour;
-  let currentMin = isNaN(startMin) ? 0 : startMin;
-
-  let existingGroups: GroupingItem[] = [];
-  let playersToProcess = [...players];
-  let startingGroupIndex = 0;
-
-  try {
-    const current = await getGroupings(tournamentId, day);
-    if (current && current.groups && current.groups.length > 0) {
-      existingGroups = current.groups;
-      playersToProcess = current.unassigned;
-      startingGroupIndex = existingGroups.length;
-    }
-  } catch (e) {}
-
-  let sortedPlayers = [...playersToProcess];
-  if (rule === 'RANDOM') {
-    // Shuffle players
-    sortedPlayers.sort(() => Math.random() - 0.5);
-  } else if (rule === 'CATEGORY_RANDOM') {
-    // Balanced groups: Pick one from each category sequentially
-    const getCategory = (hcap: number | null | undefined) => {
-      if (hcap === null || hcap === undefined) return 99;
-      if (hcap >= 0 && hcap <= 5) return 1;
-      if (hcap >= 6 && hcap <= 12) return 2;
-      if (hcap >= 13 && hcap <= 20) return 3;
-      if (hcap >= 21 && hcap <= 28) return 4;
-      return 5;
-    };
-    
-    const buckets: Record<number, any[]> = {};
-    playersToProcess.forEach(p => {
-      const cat = getCategory(p.user?.handicap);
-      if (!buckets[cat]) buckets[cat] = [];
-      buckets[cat].push(p);
-    });
-
-    // Shuffle each bucket internally
-    Object.values(buckets).forEach(b => b.sort(() => Math.random() - 0.5));
-
-    const catKeys = Object.keys(buckets).map(Number).sort((a, b) => a - b);
-    const balancedPlayers: any[] = [];
-    
-    let playersRemaining = true;
-    while (playersRemaining) {
-      playersRemaining = false;
-      for (const cat of catKeys) {
-        if (buckets[cat] && buckets[cat].length > 0) {
-          balancedPlayers.push(buckets[cat].shift());
-          playersRemaining = true;
-        }
-      }
-    }
-    sortedPlayers = balancedPlayers;
-  } else if (rule.startsWith('LEADERBOARD_')) {
-    try {
-      // Fetch scores to sort by leaderboard
-      const scores = await getTournamentScores(tournamentId);
-      const playerScores: Record<string, number> = {};
-      const playerLastRecorded: Record<string, number> = {};
-      const playerHolesCompleted: Record<string, Set<string>> = {};
-      
-      scores.forEach((score: any) => {
-        const uid = score.userId;
-        if (!playerScores[uid]) {
-          playerScores[uid] = 0;
-          playerLastRecorded[uid] = 0;
-          playerHolesCompleted[uid] = new Set();
-        }
-        playerScores[uid] += score.strokes || 0;
-        
-        // Track unique holes played
-        playerHolesCompleted[uid].add(`${score.holeId}-${score.groupId || 'nogroup'}`);
-        
-        const recordedTime = new Date(score.recordedAt).getTime();
-        if (recordedTime > playerLastRecorded[uid]) {
-          playerLastRecorded[uid] = recordedTime;
-        }
-      });
-
-      sortedPlayers.sort((a, b) => {
-        const getNetScore = (p: GroupingPlayer) => {
-            const uid = p.user?.id || '';
-            const gross = playerScores[uid] ?? 9999;
-            if (gross === 9999) return 9999;
-            
-            const holesPlayed = playerHolesCompleted[uid]?.size || 0;
-            const hcap = p.user?.handicap || 0;
-            const extra = (p as any).extraStrokes || 0;
-            const playingHcap = Math.round(hcap);
-            const totalHcap = Math.round(playingHcap * (holesPlayed / 18));
-            return gross - totalHcap + extra;
-        };
-
-        const scoreA = rule.includes('_NET') ? getNetScore(a) : (playerScores[a.user?.id || ''] ?? 9999);
-        const scoreB = rule.includes('_NET') ? getNetScore(b) : (playerScores[b.user?.id || ''] ?? 9999);
-        
-        if (scoreA !== scoreB) {
-          if (rule.includes('_REVERSE')) {
-            // Worst scores (highest) go first, leaders go last
-            return scoreB - scoreA;
-          } else {
-            // Leaders (lowest) go first
-            return scoreA - scoreB;
-          }
-        }
-
-        // TIE-BREAKER: First In, Last Out (FILO)
-        // The player who finished earliest (smaller recorded time) tees off later.
-        const timeA = playerLastRecorded[a.user?.id || ''] ?? 0;
-        const timeB = playerLastRecorded[b.user?.id || ''] ?? 0;
-
-        if (rule.includes('_REVERSE')) {
-          // In reverse leaderboard, later tee time means LARGER index.
-          // So if timeA < timeB (A finished earlier), A should have a LARGER index, so return positive.
-          return timeB - timeA;
-        } else {
-          // In direct leaderboard, later tee time means LARGER index.
-          // So if timeA < timeB, A should have a LARGER index, so return positive.
-          return timeB - timeA;
-        }
-      });
-    } catch (err) {
-      console.error('Failed to apply leaderboard grouping rules:', err);
-    }
-  }
-
-  groups.push(...existingGroups);
-
-  if (rule === 'MANUAL_EMPTY') {
-    unassigned.push(...sortedPlayers);
-    
-    const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
-    
-    // Fast forward time if appending
-    if (startType !== "SHOTGUN") {
-      currentMin += startingGroupIndex * interval;
-      currentHour += Math.floor(currentMin / 60);
-      currentMin = currentMin % 60;
-    }
-
-    for (let i = 0; i < totalGroups; i++) {
-      const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-      const timeStr = startType === "SHOTGUN" ? startTimeStr : `${pad(currentHour)}:${pad(currentMin)}`;
-
-      groups.push({
-        id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
-        name: startType === "SHOTGUN" ? `Hole ${i + 1 + startingGroupIndex}` : `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
-        startTime: timeStr,
-        registrations: [],
-      });
-
-      if (startType !== "SHOTGUN") {
-        currentMin += interval;
-        if (currentMin >= 60) {
-          currentHour += Math.floor(currentMin / 60);
-          currentMin = currentMin % 60;
-        }
-      }
-    }
-  } else {
-    // Fill existing empty spots in groups first
-    for (const group of groups) {
-      while (group.registrations.length < maxPerGroup && sortedPlayers.length > 0) {
-        group.registrations.push(sortedPlayers.shift()!);
-      }
-    }
-
-    // Generate new flights for remaining players
-    if (sortedPlayers.length > 0) {
-      const totalGroups = Math.ceil(sortedPlayers.length / maxPerGroup);
-      
-      // Fast forward time if appending
-      if (startType !== "SHOTGUN") {
-        currentMin += startingGroupIndex * interval;
-        currentHour += Math.floor(currentMin / 60);
-        currentMin = currentMin % 60;
-      }
-
-      for (let i = 0; i < totalGroups; i++) {
-        const groupPlayers = sortedPlayers.slice(i * maxPerGroup, (i + 1) * maxPerGroup);
-        
-        const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-        const timeStr = startType === "SHOTGUN" ? startTimeStr : `${pad(currentHour)}:${pad(currentMin)}`;
-
-        groups.push({
-          id: `group-${day}-${i + 1 + startingGroupIndex}-${Math.random().toString(36).substr(2, 9)}`,
-          name: startType === "SHOTGUN" ? `Hole ${i + 1 + startingGroupIndex}` : `Flight ${indexToFlightLetters(i + startingGroupIndex)}`,
-          startTime: timeStr,
-          registrations: groupPlayers,
-        });
-
-        if (startType !== "SHOTGUN") {
-          currentMin += interval;
-          if (currentMin >= 60) {
-            currentHour += Math.floor(currentMin / 60);
-            currentMin = currentMin % 60;
-          }
-        }
-      }
-    }
-  }
-
-  const result = { groups, unassigned, rule };
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(result));
-  }
-  return result;
+  return { groups: [], unassigned: [] };
 }
 
 export async function movePlayerInGroupings(
@@ -605,46 +279,10 @@ export async function movePlayerInGroupings(
   }).catch(() => null);
 
   if (res && res.ok) {
-    return upgradeGroupNames(await res.json());
+    return res.json();
   }
 
-  // Local Mock fallback
-  const current = await getGroupings(tournamentId, day);
-  let playerToMove: GroupingPlayer | null = null;
-
-  current.groups = current.groups.map(g => {
-    const found = g.registrations.find(p => p.id === registrationId);
-    if (found) {
-      playerToMove = found;
-      return { ...g, registrations: g.registrations.filter(p => p.id !== registrationId) };
-    }
-    return g;
-  });
-
-  const unassignedFound = current.unassigned.find(p => p.id === registrationId);
-  if (unassignedFound) {
-    playerToMove = unassignedFound;
-    current.unassigned = current.unassigned.filter(p => p.id !== registrationId);
-  }
-
-  if (!playerToMove) {
-    throw new Error("Player registration not found in current tournament pairings.");
-  }
-
-  if (targetGroupId === null) {
-    current.unassigned.push(playerToMove);
-  } else {
-    const targetGroup = current.groups.find(g => g.id === targetGroupId);
-    if (!targetGroup) {
-      throw new Error("Target group not found.");
-    }
-    targetGroup.registrations.push(playerToMove);
-  }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(current));
-  }
-  return current;
+  throw new Error("Failed to move player in groupings.");
 }
 
 export async function updateGroupingTime(
@@ -662,23 +300,10 @@ export async function updateGroupingTime(
   }).catch(() => null);
 
   if (res && res.ok) {
-    return upgradeGroupNames(await res.json());
+    return res.json();
   }
 
-  // Local Mock fallback
-  const current = await getGroupings(tournamentId, day);
-  const targetGroup = current.groups.find(g => g.id === groupId);
-  if (!targetGroup) {
-    throw new Error("Group not found.");
-  }
-
-  if (payload.name !== undefined) targetGroup.name = payload.name;
-  if (payload.startTime !== undefined) targetGroup.startTime = payload.startTime;
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(getStorageKey(tournamentId, day), JSON.stringify(current));
-  }
-  return current;
+  throw new Error("Failed to update grouping time.");
 }
 
 export async function clearGroupings(tournamentId: string, day: number = 1): Promise<GroupingData> {
@@ -690,12 +315,7 @@ export async function clearGroupings(tournamentId: string, day: number = 1): Pro
     return res.json();
   }
 
-  // Local Mock fallback
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(getStorageKey(tournamentId, day));
-  }
-  const players = await getFallbackPlayers(tournamentId);
-  return { groups: [], unassigned: players };
+  throw new Error("Failed to clear groupings.");
 }
 
 export async function publishGroupingsEmail(tournamentId: string, day: number, data: GroupingData): Promise<{ success: boolean; message: string }> {

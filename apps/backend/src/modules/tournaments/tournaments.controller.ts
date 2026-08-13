@@ -131,6 +131,57 @@ export class TournamentsController {
     return this.tournamentsService.publishGroupingsEmail(id, dto);
   }
 
+  @Get(':id/groupings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getGroupings(
+    @Param('id') id: string,
+    @Query('day') day?: string,
+  ) {
+    return this.tournamentsService.getGroupings(id, day ? parseInt(day, 10) : 1);
+  }
+
+  @Post(':id/groupings/move')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async movePlayerInGroupings(
+    @Param('id') id: string,
+    @Body() dto: { registrationId: string; targetGroupId: string | null; day: number },
+  ) {
+    return this.tournamentsService.movePlayerInGroupings(id, dto.registrationId, dto.targetGroupId, dto.day);
+  }
+
+  @Post(':id/groupings/generate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async generateGroupings(
+    @Param('id') id: string,
+    @Query('day') day?: string,
+    @Body('rule') rule?: string,
+  ) {
+    return this.tournamentsService.generateGroupings(id, day ? parseInt(day, 10) : 1, rule || 'RANDOM');
+  }
+
+  @Patch(':id/groupings/:groupId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async updateGroupingTime(
+    @Param('id') id: string,
+    @Param('groupId') groupId: string,
+    @Body() dto: { name?: string; startTime?: string; day: number },
+  ) {
+    return this.tournamentsService.updateGroupingTime(id, groupId, dto);
+  }
+
+  @Delete(':id/groupings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async clearGroupings(
+    @Param('id') id: string,
+    @Query('day') day?: string,
+  ) {
+    return this.tournamentsService.clearGroupings(id, day ? parseInt(day, 10) : 1);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @AuditLog('Tournament', 'DELETE')

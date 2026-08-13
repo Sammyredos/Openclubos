@@ -1503,7 +1503,7 @@ function ViewTournamentPageInner() {
   return (
     <div className="w-full max-w-full font-sans space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-2 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] gap-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/super-admin/tournaments")}
@@ -1552,13 +1552,16 @@ function ViewTournamentPageInner() {
           )}
 
           <Button
-            onClick={() => openEdit(selectedTournament)}
-            disabled={selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED"}
-            variant="outline"
-            className="bg-white h-11 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
+            onClick={() => {
+              const baseUrl = window.location.origin.replace("admin.", "app.");
+              const link = `${baseUrl}/tournaments/${selectedTournament.id}`;
+              navigator.clipboard.writeText(link);
+              toast.success("Tournament link copied to clipboard");
+            }}
+            className="bg-openclub-600 hover:bg-openclub-700 text-white h-11 font-normal text-[13px] flex items-center gap-2 rounded-[12px] px-5 shadow-sm transition-all"
           >
-            <Edit2 className="w-4 h-4 text-gray-400" />
-            Edit Tournament
+            <Link className="w-4 h-4" />
+            Copy Tournament Link
           </Button>
 
 
@@ -2499,29 +2502,31 @@ function ViewTournamentPageInner() {
                     {/* Flights Grid Skeleton */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-sm">
-                          <div className="p-4 border-b border-gray-50 bg-background/30 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gray-100 animate-pulse shrink-0" />
-                              <div className="space-y-2">
-                                <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
-                                <div className="w-16 h-3 bg-gray-100 animate-pulse rounded" />
+                        <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-lg">
+                          <div className="p-5 flex items-start justify-between bg-[#278a4c]/10 rounded-t-xl border-b border-[#1c6437]/10">
+                            <div className="flex items-start gap-4">
+                              <div className="w-10 h-10 rounded-full bg-[#278a4c]/20 animate-pulse shrink-0" />
+                              <div className="space-y-2 mt-0.5">
+                                <div className="w-24 h-5 bg-[#278a4c]/20 animate-pulse rounded" />
+                                <div className="w-20 h-3 bg-[#278a4c]/20 animate-pulse rounded" />
                               </div>
                             </div>
-                            <div className="flex flex-col items-end space-y-2">
-                              <div className="w-8 h-4 bg-gray-100 animate-pulse rounded" />
-                              <div className="w-14 h-3 bg-gray-100 animate-pulse rounded" />
+                            <div className="flex flex-col items-end mt-0.5 space-y-2">
+                              <div className="w-8 h-4 bg-[#278a4c]/20 animate-pulse rounded" />
+                              <div className="w-12 h-3 bg-[#278a4c]/20 animate-pulse rounded" />
                             </div>
                           </div>
-                          <div className="h-1 w-full bg-background" />
-                          <div className="p-2 space-y-1">
-                            {[1, 2, 3, 4].map(j => (
-                              <div key={j} className="flex items-center gap-3 p-2">
-                                <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse shrink-0" />
-                                <div className="w-32 h-3 bg-gray-100 animate-pulse rounded" />
-                                <div className="w-8 h-3 bg-gray-100 animate-pulse rounded ml-auto" />
-                              </div>
-                            ))}
+                          <div className="h-[2px] w-full bg-gray-100" />
+                          <div className="flex-1 p-0">
+                            <div className="divide-y divide-[#efefef]">
+                              {[1, 2, 3, 4].map(j => (
+                                <div key={j} className="flex items-center gap-3 px-4 py-3">
+                                  <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse shrink-0 border border-[#e1efe5]" />
+                                  <div className="w-32 h-4 bg-gray-100 animate-pulse rounded" />
+                                  <div className="w-16 h-4 bg-gray-100 animate-pulse rounded ml-auto" />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2644,9 +2649,25 @@ function ViewTournamentPageInner() {
                             variant="outline"
                             size="icon"
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                            className="bg-white border border-[#f0f0f0] text-gray-700 hover:bg-[#fafafa] h-11 w-11 rounded-xl shadow-sm disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed transition-all shrink-0"
+                            className={cn(
+                              "h-11 w-11 rounded-xl shadow-sm transition-all shrink-0 relative flex items-center justify-center disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed",
+                              groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
+                                ? "bg-openclub-700 border-openclub-700 text-white hover:bg-openclub-800"
+                                : "bg-white border border-[#f0f0f0] text-gray-700 hover:bg-[#fafafa]"
+                            )}
                           >
-                            <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                            <MoreHorizontal className={cn(
+                              "w-5 h-5",
+                              groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
+                                ? "text-white"
+                                : "text-gray-600"
+                            )} />
+                            {groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+                              </span>
+                            )}
                           </Button>
 
                           <FloatingMenu
@@ -2671,7 +2692,7 @@ function ViewTournamentPageInner() {
                                 className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors font-normal"
                               >
                                 <Mail className="w-4 h-4 text-[#15803D]" />
-                                Publish to Email
+                                Send to Players
                                 {publishClickCount > 0 && (
                                   <span className="ml-auto bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-md text-[10px] font-normal">
                                     {publishClickCount}
@@ -2782,211 +2803,211 @@ function ViewTournamentPageInner() {
                             >
 
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {[...groupingsData.groups].reverse()
-                                .filter(group => {
-                                  const query = groupingsSearch.trim().toLowerCase();
-                                  if (!query) return true;
-                                  const tokens = query.split(/[\s-]+/).filter(Boolean);
+                                {[...groupingsData.groups].reverse()
+                                  .filter(group => {
+                                    const query = groupingsSearch.trim().toLowerCase();
+                                    if (!query) return true;
+                                    const tokens = query.split(/[\s-]+/).filter(Boolean);
 
-                                  const matchesGroupName = tokens.every(token =>
-                                    group.name.toLowerCase().includes(token)
-                                  );
-
-                                  const matchesPlayer = group.registrations.some(p => {
-                                    const searchableFields = [
-                                      p.user?.firstName,
-                                      p.user?.lastName,
-                                      p.user?.email,
-                                      `${p.user?.firstName} ${p.user?.lastName}`,
-                                      `${p.user?.lastName} ${p.user?.firstName}`
-                                    ];
-                                    return tokens.every(token =>
-                                      searchableFields.some(field => field?.toLowerCase().includes(token))
+                                    const matchesGroupName = tokens.every(token =>
+                                      group.name.toLowerCase().includes(token)
                                     );
-                                  });
 
-                                  return matchesGroupName || matchesPlayer;
-                                })
-                                .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
-                                .map((group: GroupingItem) => {
-                                  const occupancy = group.registrations.length;
-                                  const capacity = selectedTournament?.maxPlayersPerGroup || 4;
-                                  const isFull = occupancy >= capacity;
+                                    const matchesPlayer = group.registrations.some(p => {
+                                      const searchableFields = [
+                                        p.user?.firstName,
+                                        p.user?.lastName,
+                                        p.user?.email,
+                                        `${p.user?.firstName} ${p.user?.lastName}`,
+                                        `${p.user?.lastName} ${p.user?.firstName}`
+                                      ];
+                                      return tokens.every(token =>
+                                        searchableFields.some(field => field?.toLowerCase().includes(token))
+                                      );
+                                    });
 
-                                  return (
-                                    <div
-                                      key={group.id}
-                                      className={cn(
-                                        "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-lg",
-                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
-                                      )}
-                                    >
-                                      <div className="p-5 flex items-start justify-between bg-[#278a4c] rounded-t-xl border-b border-[#1c6437]/50">
-                                        <div className="flex items-start gap-4 min-w-0">
-                                          <div className={cn(
-                                            "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
-                                            isFull ? "bg-[#116630] text-emerald-200" : "bg-[#116630]/70 text-emerald-100"
-                                          )}>
-                                            <Flag className="w-5 h-5" />
+                                    return matchesGroupName || matchesPlayer;
+                                  })
+                                  .slice((groupsPage - 1) * groupsPerPage, groupsPage * groupsPerPage)
+                                  .map((group: GroupingItem) => {
+                                    const occupancy = group.registrations.length;
+                                    const capacity = selectedTournament?.maxPlayersPerGroup || 4;
+                                    const isFull = occupancy >= capacity;
+
+                                    return (
+                                      <div
+                                        key={group.id}
+                                        className={cn(
+                                          "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-lg",
+                                          isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
+                                        )}
+                                      >
+                                        <div className="p-5 flex items-start justify-between bg-[#278a4c] rounded-t-xl border-b border-[#1c6437]/50">
+                                          <div className="flex items-start gap-4 min-w-0">
+                                            <div className={cn(
+                                              "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                                              isFull ? "bg-[#116630] text-emerald-200" : "bg-[#116630]/70 text-emerald-100"
+                                            )}>
+                                              <Flag className="w-5 h-5" />
+                                            </div>
+                                            <div className="min-w-0 mt-0.5">
+                                              {editingGroupNameId === group.id ? (
+                                                <Input
+                                                  autoFocus
+                                                  value={editingGroupNameValue}
+                                                  onChange={(e) => setEditingGroupNameValue(e.target.value)}
+                                                  onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
+                                                  className="h-8 py-0 px-2 text-base font-medium rounded-md border-gray-300 w-full bg-white text-gray-900"
+                                                />
+                                              ) : (
+                                                <h3
+                                                  onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
+                                                  className="text-base font-medium text-white truncate cursor-pointer hover:text-emerald-100 transition-colors"
+                                                >
+                                                  {group.name}
+                                                </h3>
+                                              )}
+                                              <p className="text-xs text-emerald-100 mt-0.5 flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5 text-emerald-200" />
+                                                {group.startTime ? group.startTime.substring(11, 16) : "TBD"}
+                                              </p>
+                                            </div>
                                           </div>
-                                          <div className="min-w-0 mt-0.5">
-                                            {editingGroupNameId === group.id ? (
-                                              <Input
-                                                autoFocus
-                                                value={editingGroupNameValue}
-                                                onChange={(e) => setEditingGroupNameValue(e.target.value)}
-                                                onBlur={() => handleUpdateGroupDetails(group.id, { name: editingGroupNameValue })}
-                                                className="h-8 py-0 px-2 text-base font-medium rounded-md border-gray-300 w-full bg-white text-gray-900"
-                                              />
-                                            ) : (
-                                              <h3
-                                                onClick={() => { setEditingGroupNameId(group.id); setEditingGroupNameValue(group.name); }}
-                                                className="text-base font-medium text-white truncate cursor-pointer hover:text-emerald-100 transition-colors"
-                                              >
-                                                {group.name}
-                                              </h3>
-                                            )}
-                                            <p className="text-xs text-emerald-100 mt-0.5 flex items-center gap-1.5">
-                                              <Clock className="w-3.5 h-3.5 text-emerald-200" />
-                                              {group.startTime || "Tee time TBD"}
-                                            </p>
+                                          <div className="text-right flex flex-col items-end mt-0.5">
+                                            <div className="text-sm font-medium text-white">{occupancy}/{capacity}</div>
+                                            <div className="text-xs text-emerald-200 mt-0.5">Players</div>
                                           </div>
                                         </div>
-                                        <div className="text-right flex flex-col items-end mt-0.5">
-                                          <div className="text-sm font-medium text-white">{occupancy}/{capacity}</div>
-                                          <div className="text-xs text-emerald-200 mt-0.5">Players</div>
+                                        <div className="h-[2px] w-full bg-gray-100">
+                                          <div
+                                            className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-gray-300")}
+                                            style={{ width: `${(occupancy / capacity) * 100}%` }}
+                                          />
+                                        </div>
+                                        {/* Group Players (Tabular) */}
+                                        <div className="flex-1 overflow-visible">
+                                          <table className="w-full text-left">
+                                            <tbody className="divide-y divide-[#efefef]">
+                                              {group.registrations.map((player: GroupingPlayer) => (
+                                                <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player h-[52px]">
+                                                  <td className="pl-4 py-2 w-[44px] align-middle">
+                                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
+                                                      <img
+                                                        src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                        alt=""
+                                                        className="w-full h-full object-cover"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                  <td className="py-2 px-2 align-middle max-w-[130px]">
+                                                    <NextLink href="#" className="block truncate">
+                                                      <div className="text-[12px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
+                                                        {player.user?.firstName} {player.user?.lastName}
+                                                      </div>
+                                                    </NextLink>
+                                                  </td>
+                                                  <td className="py-2 px-2 align-middle">
+                                                    <div className="flex flex-wrap items-center gap-1">
+                                                      {/* Gender Badge */}
+                                                      {player.user?.gender && (
+                                                        <span className={cn(
+                                                          "text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                          player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                        )}>
+                                                          {player.user.gender.substring(0, 1)}
+                                                        </span>
+                                                      )}
+                                                      {/* Category Badge */}
+                                                      {player.user?.handicap !== undefined && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider whitespace-nowrap">
+                                                          {getGolfCategory(player.user.handicap).replace('Category ', 'Cat ')}
+                                                        </span>
+                                                      )}
+                                                      {/* Age Badge */}
+                                                      {player.user?.dob && (
+                                                        <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                          {(() => {
+                                                            const birthDate = new Date(player.user.dob);
+                                                            const today = new Date();
+                                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                                            const m = today.getMonth() - birthDate.getMonth();
+                                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                            return `${age}Y`;
+                                                          })()}
+                                                        </span>
+                                                      )}
+                                                      {/* HCP Badge */}
+                                                      <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                        HCP {player.user?.handicap ?? 0}
+                                                      </span>
+                                                    </div>
+                                                  </td>
+                                                  <td className="pr-3 py-2 align-middle text-right w-[40px]">
+                                                    {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                      <PlayerActionDropdown
+                                                        player={player}
+                                                        group={group}
+                                                        groupingsData={groupingsData}
+                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                        onMovePlayer={handleMovePlayer}
+                                                        capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                      />
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                              {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
+                                                <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity h-[52px]">
+                                                  <td className="pl-4 py-2 w-[44px] align-middle">
+                                                    <div className="w-8 h-8 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
+                                                      <Plus className="w-4 h-4 text-gray-400" />
+                                                    </div>
+                                                  </td>
+                                                  <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
+                                                    {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? (
+                                                      <div className="text-[12px] text-gray-400 italic flex items-center h-9">
+                                                        Empty Slot
+                                                      </div>
+                                                    ) : (
+                                                      <SearchableSelect
+                                                        value=""
+                                                        onValueChange={(playerId) => {
+                                                          if (playerId) {
+                                                            handleMovePlayer(playerId, group.id);
+                                                          }
+                                                        }}
+                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                        placeholder="Available Space (click to assign)"
+                                                        options={groupingsData.unassigned.map((p: any) => ({
+                                                          value: p.id,
+                                                          label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
+                                                        }))}
+                                                        triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
+                                                        className="w-full"
+                                                      />
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
                                         </div>
                                       </div>
-                                      <div className="h-[2px] w-full bg-gray-100">
-                                        <div
-                                          className={cn("h-full transition-all duration-500", isFull ? "bg-emerald-500" : "bg-gray-300")}
-                                          style={{ width: `${(occupancy / capacity) * 100}%` }}
-                                        />
-                                      </div>
-                                      {/* Group Players (Tabular) */}
-                                      <div className="flex-1 overflow-visible">
-                                        <table className="w-full text-left">
-                                          <tbody className="divide-y divide-[#efefef]">
-                                            {group.registrations.map((player: GroupingPlayer) => (
-                                              <tr key={player.id} className="hover:bg-emerald-50/30 transition-colors group/player h-[52px]">
-                                                <td className="pl-4 py-2 w-[44px] align-middle">
-                                                  <div className="w-8 h-8 rounded-full overflow-hidden border border-[#e1efe5] bg-white shadow-sm shrink-0">
-                                                    <img
-                                                      src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                                      alt=""
-                                                      className="w-full h-full object-cover"
-                                                    />
-                                                  </div>
-                                                </td>
-                                                <td className="py-2 px-2 align-middle max-w-[130px]">
-                                                  <NextLink href="#" className="block truncate">
-                                                    <div className="text-[12px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
-                                                      {player.user?.firstName} {player.user?.lastName}
-                                                    </div>
-                                                  </NextLink>
-                                                </td>
-                                                <td className="py-2 px-2 align-middle">
-                                                  <div className="flex flex-wrap items-center gap-1">
-                                                    {/* Gender Badge */}
-                                                    {player.user?.gender && (
-                                                      <span className={cn(
-                                                        "text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
-                                                        player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                      )}>
-                                                        {player.user.gender.substring(0, 1)}
-                                                      </span>
-                                                    )}
-                                                    {/* Category Badge */}
-                                                    {player.user?.handicap !== undefined && (
-                                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-wider whitespace-nowrap">
-                                                        {getGolfCategory(player.user.handicap).replace('Category ', 'Cat ')}
-                                                      </span>
-                                                    )}
-                                                    {/* Age Badge */}
-                                                    {player.user?.dob && (
-                                                      <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
-                                                        {(() => {
-                                                          const birthDate = new Date(player.user.dob);
-                                                          const today = new Date();
-                                                          let age = today.getFullYear() - birthDate.getFullYear();
-                                                          const m = today.getMonth() - birthDate.getMonth();
-                                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                          return `${age}Y`;
-                                                        })()}
-                                                      </span>
-                                                    )}
-                                                    {/* HCP Badge */}
-                                                    <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
-                                                      HCP {player.user?.handicap ?? 0}
-                                                    </span>
-                                                  </div>
-                                                </td>
-                                                <td className="pr-3 py-2 align-middle text-right w-[40px]">
-                                                  {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
-                                                    <PlayerActionDropdown
-                                                      player={player}
-                                                      group={group}
-                                                      groupingsData={groupingsData}
-                                                      disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                      onMovePlayer={handleMovePlayer}
-                                                      capacity={selectedTournament?.maxPlayersPerGroup || 4}
-                                                    />
-                                                  )}
-                                                </td>
-                                              </tr>
-                                            ))}
-                                            {Array.from({ length: Math.max(0, capacity - occupancy) }).map((_, i) => (
-                                              <tr key={`empty-${i}`} className="opacity-70 hover:opacity-100 transition-opacity h-[52px]">
-                                                <td className="pl-4 py-2 w-[44px] align-middle">
-                                                  <div className="w-8 h-8 rounded-full bg-background border border-dashed border-gray-300 flex items-center justify-center">
-                                                    <Plus className="w-4 h-4 text-gray-400" />
-                                                  </div>
-                                                </td>
-                                                <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
-                                                  {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? (
-                                                    <div className="text-[12px] text-gray-400 italic flex items-center h-9">
-                                                      Empty Slot
-                                                    </div>
-                                                  ) : (
-                                                    <SearchableSelect
-                                                      value=""
-                                                      onValueChange={(playerId) => {
-                                                        if (playerId) {
-                                                          handleMovePlayer(playerId, group.id);
-                                                        }
-                                                      }}
-                                                      disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                      placeholder="Available Space (click to assign)"
-                                                      options={groupingsData.unassigned.map((p: any) => ({
-                                                        value: p.id,
-                                                        label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
-                                                      }))}
-                                                      triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
-                                                      className="w-full"
-                                                    />
-                                                  )}
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                            </div>
-                            {groupingsData.groups.length > groupsPerPage && (
-                              <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e1efe5]">
-                                <p className="text-[13px] text-gray-500 font-normal">
-                                  Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
-                                </p>
-                                <Pagination
-                                  currentPage={groupsPage}
-                                  totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
-                                  onPageChange={setGroupsPage}
-                                />
+                                    );
+                                  })}
                               </div>
-                            )}
+                              {groupingsData.groups.length > groupsPerPage && (
+                                <div className="pt-4 flex items-center justify-between bg-white p-4 rounded-xl border border-[#e1efe5]">
+                                  <p className="text-[13px] text-gray-500 font-normal">
+                                    Showing {(groupsPage - 1) * groupsPerPage + 1} to {Math.min(groupsPage * groupsPerPage, groupingsData.groups.length)} of {groupingsData.groups.length} groups
+                                  </p>
+                                  <Pagination
+                                    currentPage={groupsPage}
+                                    totalPages={Math.ceil(groupingsData.groups.length / groupsPerPage)}
+                                    onPageChange={setGroupsPage}
+                                  />
+                                </div>
+                              )}
                             </motion.div>
                           )}
 
@@ -2999,153 +3020,153 @@ function ViewTournamentPageInner() {
                               transition={{ duration: 0.2 }}
                               className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden"
                             >
-                            <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
-                              <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-openclub-700" />
-                                Unassigned Participants
-                              </h4>
-                              <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
-                                {groupingsData.unassigned.length}
-                              </Badge>
-                            </div>
-                            <div className="p-6">
-                              {(() => {
-                                const filtered = groupingsData.unassigned.filter(p => {
-                                  const query = groupingsSearch.trim().toLowerCase();
-                                  if (!query) return true;
-                                  const tokens = query.split(/[\s-]+/).filter(Boolean);
-                                  const searchableFields = [
-                                    p.user?.firstName,
-                                    p.user?.lastName,
-                                    p.user?.email,
-                                    `${p.user?.firstName} ${p.user?.lastName}`,
-                                    `${p.user?.lastName} ${p.user?.firstName}`
-                                  ];
+                              <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
+                                <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
+                                  <Users className="w-4 h-4 text-openclub-700" />
+                                  Unassigned Participants
+                                </h4>
+                                <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
+                                  {groupingsData.unassigned.length}
+                                </Badge>
+                              </div>
+                              <div className="p-6">
+                                {(() => {
+                                  const filtered = groupingsData.unassigned.filter(p => {
+                                    const query = groupingsSearch.trim().toLowerCase();
+                                    if (!query) return true;
+                                    const tokens = query.split(/[\s-]+/).filter(Boolean);
+                                    const searchableFields = [
+                                      p.user?.firstName,
+                                      p.user?.lastName,
+                                      p.user?.email,
+                                      `${p.user?.firstName} ${p.user?.lastName}`,
+                                      `${p.user?.lastName} ${p.user?.firstName}`
+                                    ];
 
-                                  return tokens.every(token =>
-                                    searchableFields.some(field => field?.toLowerCase().includes(token))
-                                  );
-                                });
+                                    return tokens.every(token =>
+                                      searchableFields.some(field => field?.toLowerCase().includes(token))
+                                    );
+                                  });
 
-                                const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
+                                  const paginated = filtered.slice((unassignedPage - 1) * unassignedPerPage, unassignedPage * unassignedPerPage);
 
-                                return (
-                                  <div className="space-y-6">
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-left">
-                                        <thead>
-                                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                                            <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
-                                            <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
-                                            {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
-                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
-                                            )}
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-[#efefef]">
-                                          {paginated.length > 0 ? (
-                                            paginated.map((player: GroupingPlayer) => (
-                                              <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
-                                                <td className="pl-4 py-3 align-middle">
-                                                  <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e1efe5] bg-white shadow-sm">
-                                                      <img
-                                                        src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
-                                                        alt=""
-                                                        className="w-full h-full object-cover"
-                                                      />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                      <NextLink href="#" className="block truncate">
-                                                        <div className="text-[13px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
-                                                          {player.user?.firstName} {player.user?.lastName}
-                                                        </div>
-                                                      </NextLink>
-                                                    </div>
-                                                  </div>
-                                                </td>
-                                                <td className="py-3 px-4 align-middle">
-                                                  <div className="flex flex-wrap items-center gap-1.5">
-                                                    {/* Gender Badge */}
-                                                    {player.user?.gender && (
-                                                      <span className={cn(
-                                                        "text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
-                                                        player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
-                                                      )}>
-                                                        {player.user.gender}
-                                                      </span>
-                                                    )}
-                                                    {/* Category Badge */}
-                                                    {player.user?.handicap !== undefined && (
-                                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
-                                                        {getGolfCategory(player.user.handicap)}
-                                                      </span>
-                                                    )}
-                                                    {/* Age Badge */}
-                                                    {player.user?.dob && (
-                                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
-                                                        {(() => {
-                                                          const birthDate = new Date(player.user.dob);
-                                                          const today = new Date();
-                                                          let age = today.getFullYear() - birthDate.getFullYear();
-                                                          const m = today.getMonth() - birthDate.getMonth();
-                                                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                          return `${age} YRS`;
-                                                        })()}
-                                                      </span>
-                                                    )}
-                                                    {/* HCP Badge */}
-                                                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
-                                                      HCP {player.user?.handicap ?? 0}
-                                                    </span>
-                                                  </div>
-                                                </td>
-                                                {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
-                                                  <td className="px-4 py-3 align-middle text-right">
-                                                    <div className="flex justify-end">
-                                                      <PlayerActionDropdown
-                                                        player={player}
-                                                        groupingsData={groupingsData}
-                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
-                                                        onMovePlayer={handleMovePlayer}
-                                                        variant="assign"
-                                                        capacity={selectedTournament?.maxPlayersPerGroup || 4}
-                                                      />
+                                  return (
+                                    <div className="space-y-6">
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                          <thead>
+                                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
+                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
+                                              {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                              )}
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-[#efefef]">
+                                            {paginated.length > 0 ? (
+                                              paginated.map((player: GroupingPlayer) => (
+                                                <tr key={player.id} className="hover:bg-[#fafafa] transition-colors group/row">
+                                                  <td className="pl-4 py-3 align-middle">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#e1efe5] bg-white shadow-sm">
+                                                        <img
+                                                          src={player.user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.user?.email || player.id)}`}
+                                                          alt=""
+                                                          className="w-full h-full object-cover"
+                                                        />
+                                                      </div>
+                                                      <div className="min-w-0">
+                                                        <NextLink href="#" className="block truncate">
+                                                          <div className="text-[13px] text-gray-900 font-medium hover:text-openclub-800 transition-colors truncate">
+                                                            {player.user?.firstName} {player.user?.lastName}
+                                                          </div>
+                                                        </NextLink>
+                                                      </div>
                                                     </div>
                                                   </td>
-                                                )}
+                                                  <td className="py-3 px-4 align-middle">
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                      {/* Gender Badge */}
+                                                      {player.user?.gender && (
+                                                        <span className={cn(
+                                                          "text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight border whitespace-nowrap",
+                                                          player.user.gender.toUpperCase() === 'MALE' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-pink-50 text-pink-700 border-pink-100"
+                                                        )}>
+                                                          {player.user.gender}
+                                                        </span>
+                                                      )}
+                                                      {/* Category Badge */}
+                                                      {player.user?.handicap !== undefined && (
+                                                        <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap">
+                                                          {getGolfCategory(player.user.handicap)}
+                                                        </span>
+                                                      )}
+                                                      {/* Age Badge */}
+                                                      {player.user?.dob && (
+                                                        <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-orange-50 text-orange-700 border border-orange-100 whitespace-nowrap">
+                                                          {(() => {
+                                                            const birthDate = new Date(player.user.dob);
+                                                            const today = new Date();
+                                                            let age = today.getFullYear() - birthDate.getFullYear();
+                                                            const m = today.getMonth() - birthDate.getMonth();
+                                                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                            return `${age} YRS`;
+                                                          })()}
+                                                        </span>
+                                                      )}
+                                                      {/* HCP Badge */}
+                                                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-md uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                                                        HCP {player.user?.handicap ?? 0}
+                                                      </span>
+                                                    </div>
+                                                  </td>
+                                                  {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                    <td className="px-4 py-3 align-middle text-right">
+                                                      <div className="flex justify-end">
+                                                        <PlayerActionDropdown
+                                                          player={player}
+                                                          groupingsData={groupingsData}
+                                                          disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
+                                                          onMovePlayer={handleMovePlayer}
+                                                          variant="assign"
+                                                          capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                        />
+                                                      </div>
+                                                    </td>
+                                                  )}
+                                                </tr>
+                                              ))
+                                            ) : (
+                                              <tr>
+                                                <td colSpan={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? 2 : 3} className="px-4 py-12">
+                                                  <EmptyState
+                                                    variant="minimal"
+                                                    title="No players found"
+                                                    description="No unassigned players matching your search query."
+                                                  />
+                                                </td>
                                               </tr>
-                                            ))
-                                          ) : (
-                                            <tr>
-                                              <td colSpan={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? 2 : 3} className="px-4 py-12">
-                                                <EmptyState
-                                                  variant="minimal"
-                                                  title="No players found"
-                                                  description="No unassigned players matching your search query."
-                                                />
-                                              </td>
-                                            </tr>
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                    {filtered.length > unassignedPerPage && (
-                                      <div className="pt-4 flex items-center justify-between border-t border-[#e1efe5]">
-                                        <p className="text-[13px] text-gray-500 font-normal">
-                                          Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
-                                        </p>
-                                        <Pagination
-                                          currentPage={unassignedPage}
-                                          totalPages={Math.ceil(filtered.length / unassignedPerPage)}
-                                          onPageChange={setUnassignedPage}
-                                        />
+                                            )}
+                                          </tbody>
+                                        </table>
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                                      {filtered.length > unassignedPerPage && (
+                                        <div className="pt-4 flex items-center justify-between border-t border-[#e1efe5]">
+                                          <p className="text-[13px] text-gray-500 font-normal">
+                                            Showing {(unassignedPage - 1) * unassignedPerPage + 1} to {Math.min(unassignedPage * unassignedPerPage, filtered.length)} of {filtered.length} players
+                                          </p>
+                                          <Pagination
+                                            currentPage={unassignedPage}
+                                            totalPages={Math.ceil(filtered.length / unassignedPerPage)}
+                                            onPageChange={setUnassignedPage}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -3819,28 +3840,27 @@ function ViewTournamentPageInner() {
                   key={rule.value}
                   disabled={rule.disabled}
                   onClick={() => setSelectedAutoTeeRule(rule.value)}
-                  className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${selectedAutoTeeRule === rule.value
-                    ? "border-openclub-600 bg-openclub-50/50 ring-1 ring-openclub-600"
-                    : "border-gray-200 hover:border-gray-300"
+                  className={`relative w-full text-left p-4 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAutoTeeRule === rule.value
+                    ? "border-[#15803D] bg-[#f5faf6]"
+                    : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"
                     }`}
                 >
-                  <div className="flex items-start gap-4 flex-1 pr-4">
-                    <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${selectedAutoTeeRule === rule.value
-                      ? 'bg-openclub-100 border-openclub-200 text-openclub-700'
-                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                      }`}>
-                      <Icon className="w-4 h-4" />
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-2 flex-shrink-0 rounded-lg ${selectedAutoTeeRule === rule.value ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <div className="text-left flex-1 min-w-0">
-                      <h4 className="text-[14px] font-normal text-gray-900 mb-0.5">{rule.label}</h4>
-                      <p className="text-[13px] text-gray-500">{rule.desc}</p>
+                    <div>
+                      <h4 className={`text-sm font-medium ${selectedAutoTeeRule === rule.value ? "text-zinc-900" : "text-zinc-700"}`}>{rule.label}</h4>
+                      <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                        {rule.desc}
+                      </p>
                     </div>
                   </div>
-                  <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
-                    {selectedAutoTeeRule === rule.value && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
-                    )}
-                  </div>
+                  {selectedAutoTeeRule === rule.value && (
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                    </div>
+                  )}
                 </button>
               );
             })}

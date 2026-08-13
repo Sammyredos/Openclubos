@@ -996,4 +996,201 @@ export class TournamentsService {
 
     return { success: true, message: 'Cut applied successfully' };
   }
+
+  async getGroupings(tournamentId: string, day: number) {
+    const groups = await this.prisma.group.findMany({
+      where: { tournamentId, day },
+      include: {
+        players: {
+          include: {
+            registration: {
+              include: { user: true }
+            }
+          }
+        }
+      },
+      orderBy: { startTime: 'asc' }
+    });
+
+    const assignedRegistrationIds = groups.flatMap(g => g.players.map(p => p.registrationId));
+
+    const unassignedRegistrations = await this.prisma.registration.findMany({
+      where: {
+        tournamentId,
+        status: 'APPROVED',
+        paymentStatus: 'PAID',
+        id: { notIn: assignedRegistrationIds.length > 0 ? assignedRegistrationIds : ['none'] }
+      },
+      include: { user: true }
+    });
+
+    return {
+      groups: groups.map(g => ({
+        id: g.id,
+        name: g.name,
+        startTime: g.startTime ? g.startTime.toISOString() : null,
+        registrations: g.players.map(p => ({
+          id: p.registration.id,
+          paymentStatus: p.registration.paymentStatus,
+          user: {
+            id: p.registration.user.id,
+            email: p.registration.user.email,
+            firstName: p.registration.user.firstName,
+            lastName: p.registration.user.lastName,
+            handicap: p.registration.user.handicap,
+            profilePhoto: p.registration.user.profilePhoto,
+            gender: p.registration.user.gender,
+            dob: p.registration.user.dob,
+          }
+        }))
+      })),
+      unassigned: unassignedRegistrations.map(r => ({
+        id: r.id,
+        paymentStatus: r.paymentStatus,
+        user: {
+          id: r.user.id,
+          email: r.user.email,
+          firstName: r.user.firstName,
+          lastName: r.user.lastName,
+          handicap: r.user.handicap,
+          profilePhoto: r.user.profilePhoto,
+          gender: r.user.gender,
+          dob: r.user.dob,
+        }
+      })),
+      rule: 'DATABASE'
+    };
+  }
+
+  async clearGroupings(tournamentId: string, day: number) {
+    await this.prisma.group.deleteMany({
+      where: { tournamentId, day }
+    });
+    return this.getGroupings(tournamentId, day);
+  }
+
+  async updateGroupingTime(tournamentId: string, groupId: string, dto: { name?: string; startTime?: string; day: number }) {
+    await this.prisma.group.update({
+      where: { id: groupId },
+      data: {
+        name: dto.name,
+        startTime: dto.startTime ? new Date(dto.startTime) : null
+      }
+    });
+    return this.getGroupings(tournamentId, dto.day);
+  }
+
+  async movePlayerInGroupings(tournamentId: string, registrationId: string, targetGroupId: string | null, day: number) {
+    // Delete from current groups on this day
+    await this.prisma.groupPlayer.deleteMany({
+      where: {
+        registrationId,
+        group: {
+          tournamentId,
+          day
+        }
+      }
+    });
+
+    // Insert into target group if provided
+    if (targetGroupId) {
+      await this.prisma.groupPlayer.create({
+        data: {
+          groupId: targetGroupId,
+          registrationId
+        }
+      });
+    }
+    return this.getGroupings(tournamentId, day);
+  }
+
+  async generateGroupings(tournamentId: string, day: number, rule: string) {
+    await this.clearGroupings(tournamentId, day);
+    const unassigned = await this.prisma.registration.findMany({
+      where: { tournamentId, status: 'APPROVED', paymentStatus: 'PAID' },
+      include: { user: true }
+    });
+    
+    // Sort logic placeholder (Random by default)
+    if (rule.includes('RANDOM')) {
+      unassigned.sort(() => Math.random() - 0.5);
+    } else if (rule.includes('GROSS')) {
+      // Very basic mock sorting for demo
+      unassigned.sort((a, b) => (a.user.handicap || 0) - (b.user.handicap || 0));
+    }
+    
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId }
+    });
+    const maxPlayersPerGroup = tournament?.maxPlayersPerGroup || 4;
+    const interval = tournament?.teeIntervalMinutes || 10;
+    const startTimeStr = tournament?.teeStartTime || "08:00";
+    const startType = tournament?.startType || "TEE_TIMES";
+    
+    const [startHour, startMin] = startTimeStr.split(':').map(Number);
+    let currentHour = isNaN(startHour) ? 8 : startHour;
+    let currentMin = isNaN(startMin) ? 0 : startMin;
+    
+    let currentGroupIndex = 0;
+    
+    while (unassigned.length > 0) {
+      const playersChunk = unassigned.splice(0, maxPlayersPerGroup);
+      
+      const pad = (n: number) => n < 10 ? `0${n}` : String(n);
+      
+      // Calculate time for this group (similar to frontend mock)
+      let timeStr: string | null = null;
+      let groupName = "";
+      
+      const getFlightLetters = (index: number) => {
+        let result = '';
+        let i = index;
+        while (i >= 0) {
+            result = String.fromCharCode(65 + (i % 26)) + result;
+            i = Math.floor(i / 26) - 1;
+        }
+        return result;
+      };
+
+      if (startType === "SHOTGUN") {
+        timeStr = startTimeStr;
+        groupName = `Hole ${currentGroupIndex + 1}`;
+      } else {
+        timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
+        groupName = `Flight ${getFlightLetters(currentGroupIndex)}`;
+      }
+      
+      // Parse timeStr to DateTime for DB
+      const [h, m] = timeStr.split(':').map(Number);
+      const startTime = new Date();
+      startTime.setUTCHours(h, m, 0, 0);
+
+      const group = await this.prisma.group.create({
+        data: {
+          tournamentId,
+          day,
+          name: groupName,
+          startTime
+        }
+      });
+      await this.prisma.groupPlayer.createMany({
+        data: playersChunk.map(p => ({
+          groupId: group.id,
+          registrationId: p.id
+        }))
+      });
+      
+      if (startType !== "SHOTGUN") {
+        currentMin += interval;
+        if (currentMin >= 60) {
+          currentHour += Math.floor(currentMin / 60);
+          currentMin = currentMin % 60;
+        }
+      }
+      
+      currentGroupIndex++;
+    }
+    
+    return this.getGroupings(tournamentId, day);
+  }
 }

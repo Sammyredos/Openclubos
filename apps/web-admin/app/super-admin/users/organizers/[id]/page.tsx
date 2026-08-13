@@ -1762,7 +1762,7 @@ export default function SuperAdminTeamPage() {
         isOpen={isInviteManagerModalOpen}
         onClose={() => setIsInviteManagerModalOpen(false)}
         title="Invite Manager"
-        size="lg"
+        size="xl"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>

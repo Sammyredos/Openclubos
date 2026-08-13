@@ -1500,7 +1500,7 @@ function ViewTournamentPageInner() {
   return (
     <div className="w-full max-w-full font-sans space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] mb-2 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white border-none rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] gap-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/super-admin/tournaments")}

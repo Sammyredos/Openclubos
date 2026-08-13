@@ -348,6 +348,7 @@ model Registration {
   userId       String
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   tournamentId String
+  groupings    GroupPlayer[]
 
   @@unique([userId, tournamentId])
   @@index([userId])
@@ -376,11 +377,25 @@ model Group {
   id        String    @id @default(uuid())
   name      String?
   startTime DateTime?
+  day       Int       @default(1)
 
   // Relations
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   tournamentId String
   scores       Score[]
+  players      GroupPlayer[]
+}
+
+model GroupPlayer {
+  id             String       @id @default(uuid())
+  groupId        String
+  registrationId String
+  
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, registrationId])
+  @@index([registrationId])
 }
 
 model Score {

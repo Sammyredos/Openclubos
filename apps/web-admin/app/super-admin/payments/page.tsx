@@ -242,12 +242,12 @@ export default function PaymentsPage() {
               <div className="p-5 border-b border-[#e1efe5]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search player, or TXN ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 h-11 rounded-lg text-[13px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                  className="pl-10 h-11 rounded-lg text-[13px] border-[#e1efe5] bg-white text-zinc-900 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] placeholder:text-zinc-500"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-3 ml-auto">
@@ -263,7 +263,7 @@ export default function PaymentsPage() {
                       ...Array.from(new Map(registrations.filter(r => r.tournament).map(r => [r.tournament!.id, r.tournament!.name])).entries()).map(([id, name]) => ({ value: id, label: name }))
                     ]}
                     className="w-[300px]"
-                    triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium text-[13px]"
+                    triggerClassName="h-11 bg-white border-[#e1efe5] text-zinc-700 font-medium text-[13px]"
                     placeholder="All Tournaments"
                   />
                 </div>
