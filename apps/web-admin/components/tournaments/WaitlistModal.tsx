@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getRegistrations, updateRegistrationStatus, deleteRegistration, type RegistrationListItem } from "@/lib/api/registrations";
 import { cn, formatWithCommas } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface WaitlistModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function WaitlistModal({
   const [loading, setLoading] = useState(true);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [actionId, setActionId] = useState<string | null>(null);
 
   const fetchWaitlist = async () => {
@@ -82,7 +84,7 @@ export function WaitlistModal({
   };
 
   const filteredWaitlist = waitlist.filter(item => {
-    const q = searchQuery.toLowerCase();
+    const q = debouncedSearchQuery.toLowerCase();
     const fullName = `${item.user?.firstName || ""} ${item.user?.lastName || ""}`.toLowerCase();
     const email = (item.user?.email || "").toLowerCase();
     return fullName.includes(q) || email.includes(q);

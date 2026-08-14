@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useSyncExternalStore, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useRouter } from "next/navigation";
 import {
   Trophy,
@@ -130,6 +131,7 @@ export default function LeaderboardDirectoryPage() {
   );
   
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [monthFilter, setMonthFilter] = useState("All Months");
   const [yearFilter, setYearFilter] = useState("All Years");
@@ -208,7 +210,7 @@ export default function LeaderboardDirectoryPage() {
         rounds: getCurrentRound(t.startDate, t.endDate),
         lastUpdated: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString() : new Date(t.createdAt).toLocaleDateString()
       }));
-  }, [tournaments, searchQuery, statusFilter, yearFilter, monthFilter]);
+  }, [tournaments, debouncedSearchQuery, statusFilter, yearFilter, monthFilter]);
 
   const totalPages = Math.ceil(filteredTournaments.length / itemsPerPage);
 

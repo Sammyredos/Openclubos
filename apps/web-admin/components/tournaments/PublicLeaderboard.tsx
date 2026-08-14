@@ -5,6 +5,7 @@ import { getPublicLeaderboardData } from "@/lib/api/scores";
 import { Trophy, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -17,6 +18,7 @@ export default function PublicLeaderboard({ tournamentId, tournamentStartDate }:
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const leaderboardSortBy: string = "GROSS";
 
@@ -125,13 +127,13 @@ export default function PublicLeaderboard({ tournamentId, tournamentStartDate }:
   }, [tournamentId]);
 
   const filteredData = useMemo(() => {
-    if (!search) return data;
-    const q = search.toLowerCase();
+    if (!debouncedSearch) return data;
+    const q = debouncedSearch.toLowerCase();
     return data.filter((entry) => {
       const name = `${entry.user.firstName || ""} ${entry.user.lastName || ""}`.toLowerCase();
       return name.includes(q) || entry.user.email?.toLowerCase().includes(q);
     });
-  }, [data, search]);
+  }, [data, debouncedSearch]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
@@ -143,7 +145,7 @@ export default function PublicLeaderboard({ tournamentId, tournamentStartDate }:
   // Reset page when search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   // Helper: mask a player name
   const getDisplayName = (user: any) => {

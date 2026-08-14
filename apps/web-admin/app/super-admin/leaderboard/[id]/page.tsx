@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { PenalizeActionDropdown } from "@/components/penalize-action-dropdown";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
@@ -225,6 +226,7 @@ function ViewTournamentPageInner() {
   const [registrationsPage, setRegistrationsPage] = useState(1);
   const registrationsPerPage = 6;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
+  const debouncedRegistrationsSearch = useDebounce(registrationsSearch, 300);
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
@@ -319,6 +321,7 @@ function ViewTournamentPageInner() {
 
   // Manual register options
   const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const debouncedRegisterPlayerSearch = useDebounce(registerPlayerSearch, 300);
   const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
   const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -342,6 +345,7 @@ function ViewTournamentPageInner() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [waitlistSearch, setWaitlistSearch] = useState("");
+  const debouncedWaitlistSearch = useDebounce(waitlistSearch, 300);
   const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
   const [waitlistPage, setWaitlistPage] = useState(1);
   const [waitlistTotal, setWaitlistTotal] = useState(0);
@@ -372,7 +376,9 @@ function ViewTournamentPageInner() {
   const [publishClickCount, setPublishClickCount] = useState(0);
   const [justGrouped, setJustGrouped] = useState(false);
   const [groupingsSearch, setGroupingsSearch] = useState("");
+  const debouncedGroupingsSearch = useDebounce(groupingsSearch, 300);
   const [groupsSearch, setGroupsSearch] = useState("");
+  const debouncedGroupsSearch = useDebounce(groupsSearch, 300);
   const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
@@ -388,6 +394,7 @@ function ViewTournamentPageInner() {
   const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [leaderboardSearch, setLeaderboardSearch] = useState("");
+  const debouncedLeaderboardSearch = useDebounce(leaderboardSearch, 300);
   const leaderboardPerPage = 10;
   const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
@@ -874,12 +881,12 @@ function ViewTournamentPageInner() {
 
   useEffect(() => {
     setRegistrationsDebouncedSearch(registrationsSearch.trim());
-  }, [registrationsSearch]);
+  }, [debouncedRegistrationsSearch]);
 
   useEffect(() => {
     const handler = setTimeout(() => setWaitlistDebouncedSearch(waitlistSearch.trim()), 300);
     return () => clearTimeout(handler);
-  }, [waitlistSearch]);
+  }, [debouncedWaitlistSearch]);
 
   useEffect(() => {
     if (!selectedTournament?.id) return;
@@ -1067,7 +1074,7 @@ function ViewTournamentPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, registerPlayerSearch]);
+  }, [activeTab, debouncedRegisterPlayerSearch]);
 
   const handleRegisterPlayer = async (userId: string) => {
     if (!selectedTournament?.id) return;
@@ -2863,15 +2870,6 @@ function ViewTournamentPageInner() {
 
                         {groupingsSubTab === "unassigned" && (
                           <div className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
-                              <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-openclub-700" />
-                                Unassigned Participants
-                              </h4>
-                              <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
-                                {groupingsData.unassigned.length}
-                              </Badge>
-                            </div>
                             <div className="p-6">
                               {(() => {
                                 const filtered = groupingsData.unassigned.filter(p => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   Flag,
   MapPin,
@@ -74,6 +75,7 @@ export default function SuperAdminGolfCoursesPage() {
   const [stats, setStats] = useState<CourseStats | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [countryFilter, setCountryFilter] = useState("All Countries");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [typeFilter, setTypeFilter] = useState("All Types");
@@ -127,7 +129,7 @@ export default function SuperAdminGolfCoursesPage() {
       const res = await getAdminCourses({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
-        search: searchQuery || undefined,
+        search: debouncedSearchQuery || undefined,
         country: countryFilter !== "All Countries" ? countryFilter : undefined,
         status: statusFilter !== "All Status" ? statusFilter : undefined,
         type: typeFilter !== "All Types" ? typeFilter : undefined,
@@ -144,7 +146,7 @@ export default function SuperAdminGolfCoursesPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, [currentPage, itemsPerPage, searchQuery, countryFilter, statusFilter, typeFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearchQuery, countryFilter, statusFilter, typeFilter]);
 
   const openStatusModal = (c: Course) => {
     setSelectedCourse(c);

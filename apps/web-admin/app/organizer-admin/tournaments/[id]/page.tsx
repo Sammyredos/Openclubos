@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { PenalizeActionDropdown } from "@/components/penalize-action-dropdown";
 import NextLink from "next/link";
 import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
@@ -224,6 +225,7 @@ function ViewTournamentPageInner() {
   const [registrationsPage, setRegistrationsPage] = useState(1);
   const registrationsPerPage = 6;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
+  const debouncedRegistrationsSearch = useDebounce(registrationsSearch, 300);
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
@@ -318,6 +320,7 @@ function ViewTournamentPageInner() {
 
   // Manual register options
   const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const debouncedRegisterPlayerSearch = useDebounce(registerPlayerSearch, 300);
   const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
   const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -341,6 +344,7 @@ function ViewTournamentPageInner() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlist, setWaitlist] = useState<RegistrationListItem[]>([]);
   const [waitlistSearch, setWaitlistSearch] = useState("");
+  const debouncedWaitlistSearch = useDebounce(waitlistSearch, 300);
   const [waitlistDebouncedSearch, setWaitlistDebouncedSearch] = useState("");
   const [waitlistPage, setWaitlistPage] = useState(1);
   const [waitlistTotal, setWaitlistTotal] = useState(0);
@@ -371,7 +375,9 @@ function ViewTournamentPageInner() {
   const [publishClickCount, setPublishClickCount] = useState(0);
   const [justGrouped, setJustGrouped] = useState(false);
   const [groupingsSearch, setGroupingsSearch] = useState("");
+  const debouncedGroupingsSearch = useDebounce(groupingsSearch, 300);
   const [groupsSearch, setGroupsSearch] = useState("");
+  const debouncedGroupsSearch = useDebounce(groupsSearch, 300);
   const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
@@ -387,6 +393,7 @@ function ViewTournamentPageInner() {
   const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [leaderboardSearch, setLeaderboardSearch] = useState("");
+  const debouncedLeaderboardSearch = useDebounce(leaderboardSearch, 300);
   const leaderboardPerPage = 10;
   const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
@@ -886,12 +893,12 @@ function ViewTournamentPageInner() {
 
   useEffect(() => {
     setRegistrationsDebouncedSearch(registrationsSearch.trim());
-  }, [registrationsSearch]);
+  }, [debouncedRegistrationsSearch]);
 
   useEffect(() => {
     const handler = setTimeout(() => setWaitlistDebouncedSearch(waitlistSearch.trim()), 300);
     return () => clearTimeout(handler);
-  }, [waitlistSearch]);
+  }, [debouncedWaitlistSearch]);
 
   useEffect(() => {
     if (!selectedTournament?.id) return;
@@ -2232,6 +2239,14 @@ function ViewTournamentPageInner() {
             {/* TABS 1: Groupings & Tee Times */}
             {activeTab === "groupings" && (
               <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="border-b border-[#e1efe5] pb-4">
+                  <h2 className="text-[15px] font-medium text-gray-900 font-sans">
+                    {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
+                  </h2>
+                  <p className="text-[12px] text-gray-500 mt-1">
+                    Manage and organize {selectedTournament?.startType === 'SHOTGUN' ? 'hole assignments and start times' : 'flights and tee times'} for the tournament.
+                  </p>
+                </div>
                 {groupingsLoading ? (
                   <div className="space-y-8">
                     {/* Day Selection Linear Flow Skeleton */}
@@ -2306,45 +2321,44 @@ function ViewTournamentPageInner() {
                   </div>
                 ) : (
                   <>
-                    {/* Day Selection Linear Flow */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
-                      <div className="flex items-center gap-3 z-10 w-1/3">
-                        {selectedDay > 1 && (
-                          <button
-                            onClick={() => setSelectedDay(selectedDay - 1)}
-                            className="px-6 py-2.5 text-[14px] font-medium rounded-xl bg-openclub-800 text-white hover:bg-openclub-900 shadow-sm transition-all duration-300 flex items-center gap-2"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                            Back to Day {selectedDay - 1}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-                        <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
-                          <div className="bg-emerald-200/60 p-1.5 rounded-lg">
-                            <Calendar className="w-4 h-4 text-emerald-800" />
-                          </div>
-                          <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
-                          <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-3 z-10 w-1/3">
-                        {selectedDay < getTournamentDays() && (
-                          <button
-                            onClick={() => setSelectedDay(selectedDay + 1)}
-                            className="px-6 py-2.5 text-[14px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
-                          >
-                            Proceed to Day {selectedDay + 1}
-                            <ArrowRight className="w-4.5 h-4.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
 <div className="p-5 space-y-8">
+                      {/* Day Selection Linear Flow */}
+                      <div className="flex items-center justify-between pb-4 mb-12 border-b border-[#e1efe5] relative">
+                        <div className="flex items-center gap-3 z-10 w-1/3">
+                          {selectedDay > 1 && (
+                            <button
+                              onClick={() => setSelectedDay(selectedDay - 1)}
+                              className="px-6 py-2.5 text-[14px] font-medium rounded-xl bg-openclub-800 text-white hover:bg-openclub-900 shadow-sm transition-all duration-300 flex items-center gap-2"
+                            >
+                              <ArrowLeft className="w-4 h-4" />
+                              Back to Day {selectedDay - 1}
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
+                          <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
+                            <div className="bg-emerald-200/60 p-1.5 rounded-lg">
+                              <Calendar className="w-4 h-4 text-emerald-800" />
+                            </div>
+                            <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
+                            <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 z-10 w-1/3">
+                          {selectedDay < getTournamentDays() && (
+                            <button
+                              onClick={() => setSelectedDay(selectedDay + 1)}
+                              className="px-6 py-2.5 text-[14px] font-medium rounded-xl border border-openclub-800 text-openclub-800 hover:bg-openclub-800 hover:text-white shadow-sm transition-all duration-300 flex items-center gap-2"
+                            >
+                              Proceed to Day {selectedDay + 1}
+                              <ArrowRight className="w-4.5 h-4.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3 text-amber-800">
                           <Lock className="w-4 h-4 shrink-0" />
@@ -2427,7 +2441,7 @@ function ViewTournamentPageInner() {
                               "h-9 w-9 rounded-md shadow-sm transition-all shrink-0 relative flex items-center justify-center disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed",
                               groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
                                 ? "bg-openclub-700 border-openclub-700 text-white hover:bg-openclub-800"
-                                : "bg-[#fafafa] border border-slate-200 text-slate-800 hover:bg-slate-100"
+                                : "bg-white border border-[#f0f0f0] text-gray-700 hover:bg-[#fafafa]"
                             )}
                           >
                             <MoreHorizontal className={cn(
@@ -2564,21 +2578,22 @@ function ViewTournamentPageInner() {
                     </div>
 
                     {groupingsData && (groupingsData.groups.length > 0 || groupingsData.unassigned.length > 0) ? (
-                      <div className="space-y-6">
+                      <div className="space-y-6 relative">
                         <AnimatePresence mode="wait">
                           {groupingsSubTab === "grouped" && (
                             <motion.div
                               key="grouped"
-                              initial={{ opacity: 0, x: -20 }}
+                              initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 20 }}
+                              exit={{ opacity: 0, x: -20 }}
                               transition={{ duration: 0.2 }}
                               className="space-y-6 px-5 pb-5"
                             >
+
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[...groupingsData.groups].reverse()
                                   .filter(group => {
-                                    const query = groupingsSearch.trim().toLowerCase();
+                                    const query = debouncedGroupingsSearch.trim().toLowerCase();
                                     if (!query) return true;
                                     const tokens = query.split(/[\s-]+/).filter(Boolean);
 
@@ -2716,14 +2731,16 @@ function ViewTournamentPageInner() {
                                                     </div>
                                                   </td>
                                                   <td className="pr-3 py-2 align-middle text-right w-[40px]">
-                                                    <PlayerActionDropdown
-                                                      player={player}
-                                                      group={group}
-                                                      groupingsData={groupingsData}
-                                                      disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                      onMovePlayer={handleMovePlayer}
-                                                      capacity={selectedTournament?.maxPlayersPerGroup || 4}
-                                                    />
+                                                    {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                      <PlayerActionDropdown
+                                                        player={player}
+                                                        group={group}
+                                                        groupingsData={groupingsData}
+                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                        onMovePlayer={handleMovePlayer}
+                                                        capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                      />
+                                                    )}
                                                   </td>
                                                 </tr>
                                               ))}
@@ -2735,22 +2752,28 @@ function ViewTournamentPageInner() {
                                                     </div>
                                                   </td>
                                                   <td className="py-2 px-2 pr-4 align-middle" colSpan={3}>
-                                                    <SearchableSelect
-                                                      value=""
-                                                      onValueChange={(playerId) => {
-                                                        if (playerId) {
-                                                          handleMovePlayer(playerId, group.id);
-                                                        }
-                                                      }}
-                                                      disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
-                                                      placeholder="Available Space (click to assign)"
-                                                      options={groupingsData.unassigned.map((p: any) => ({
-                                                        value: p.id,
-                                                        label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
-                                                      }))}
-                                                      triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
-                                                      className="w-full"
-                                                    />
+                                                    {selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? (
+                                                      <div className="text-[12px] text-gray-400 italic flex items-center h-9">
+                                                        Empty Slot
+                                                      </div>
+                                                    ) : (
+                                                      <SearchableSelect
+                                                        value=""
+                                                        onValueChange={(playerId) => {
+                                                          if (playerId) {
+                                                            handleMovePlayer(playerId, group.id);
+                                                          }
+                                                        }}
+                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay)}
+                                                        placeholder="Available Space (click to assign)"
+                                                        options={groupingsData.unassigned.map((p: any) => ({
+                                                          value: p.id,
+                                                          label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
+                                                        }))}
+                                                        triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
+                                                        className="w-full"
+                                                      />
+                                                    )}
                                                   </td>
                                                 </tr>
                                               ))}
@@ -2779,25 +2802,17 @@ function ViewTournamentPageInner() {
                           {groupingsSubTab === "unassigned" && (
                             <motion.div
                               key="unassigned"
-                              initial={{ opacity: 0, x: 20 }}
+                              initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -20 }}
+                              exit={{ opacity: 0, x: 20 }}
                               transition={{ duration: 0.2 }}
                               className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden"
                             >
-                              <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
-                                <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-openclub-700" />
-                                  Unassigned Participants
-                                </h4>
-                                <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
-                                  {groupingsData.unassigned.length}
-                                </Badge>
-                              </div>
+
                               <div className="p-6">
                                 {(() => {
                                   const filtered = groupingsData.unassigned.filter(p => {
-                                    const query = groupingsSearch.trim().toLowerCase();
+                                    const query = debouncedGroupingsSearch.trim().toLowerCase();
                                     if (!query) return true;
                                     const tokens = query.split(/[\s-]+/).filter(Boolean);
                                     const searchableFields = [
@@ -2824,7 +2839,9 @@ function ViewTournamentPageInner() {
                                             <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
                                               <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
                                               <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
-                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                              {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                              )}
                                             </tr>
                                           </thead>
                                           <tbody className="divide-y divide-[#efefef]">
@@ -2885,23 +2902,25 @@ function ViewTournamentPageInner() {
                                                       </span>
                                                     </div>
                                                   </td>
-                                                  <td className="px-4 py-3 align-middle text-right">
-                                                    <div className="flex justify-end">
-                                                      <PlayerActionDropdown
-                                                        player={player}
-                                                        groupingsData={groupingsData}
-                                                        disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
-                                                        onMovePlayer={handleMovePlayer}
-                                                        variant="assign"
-                                                        capacity={selectedTournament?.maxPlayersPerGroup || 4}
-                                                      />
-                                                    </div>
-                                                  </td>
+                                                  {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
+                                                    <td className="px-4 py-3 align-middle text-right">
+                                                      <div className="flex justify-end">
+                                                        <PlayerActionDropdown
+                                                          player={player}
+                                                          groupingsData={groupingsData}
+                                                          disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || !groupingsData?.groups?.length}
+                                                          onMovePlayer={handleMovePlayer}
+                                                          variant="assign"
+                                                          capacity={selectedTournament?.maxPlayersPerGroup || 4}
+                                                        />
+                                                      </div>
+                                                    </td>
+                                                  )}
                                                 </tr>
                                               ))
                                             ) : (
                                               <tr>
-                                                <td colSpan={3} className="px-4 py-12">
+                                                <td colSpan={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ? 2 : 3} className="px-4 py-12">
                                                   <EmptyState
                                                     variant="minimal"
                                                     title="No players found"

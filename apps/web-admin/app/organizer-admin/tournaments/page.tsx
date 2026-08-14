@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useSyncExternalStore, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useRouter } from "next/navigation";
 import {
   Trophy,
@@ -224,6 +225,7 @@ export default function TournamentsPage() {
     () => false,
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [clubFilter, setClubFilter] = useState("All Organizers");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [loading, setLoading] = useState(true);
@@ -262,6 +264,7 @@ export default function TournamentsPage() {
   const [registrationsPage, setRegistrationsPage] = useState(1);
   const registrationsPerPage = 5;
   const [registrationsSearch, setRegistrationsSearch] = useState("");
+  const debouncedRegistrationsSearch = useDebounce(registrationsSearch, 300);
   const [registrationsDebouncedSearch, setRegistrationsDebouncedSearch] = useState("");
   const [registrationsStatusFilter, setRegistrationsStatusFilter] = useState<
     "All Status" | "PENDING" | "APPROVED" | "REJECTED" | "WAITLISTED" | "DISQUALIFIED"
@@ -278,6 +281,7 @@ export default function TournamentsPage() {
 
   const [isRegisterPlayerModalOpen, setIsRegisterPlayerModalOpen] = useState(false);
   const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
+  const debouncedRegisterPlayerSearch = useDebounce(registerPlayerSearch, 300);
   const [registerPlayerResults, setRegisterPlayerResults] = useState<any[]>([]);
   const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -535,7 +539,7 @@ export default function TournamentsPage() {
   useEffect(() => {
     const handle = window.setTimeout(() => setRegistrationsDebouncedSearch(registrationsSearch.trim()), 250);
     return () => window.clearTimeout(handle);
-  }, [registrationsSearch]);
+  }, [debouncedRegistrationsSearch]);
 
   useEffect(() => {
     if ((!isRegisterPlayerModalOpen) || !selectedTournament?.id) return;
@@ -676,7 +680,7 @@ export default function TournamentsPage() {
 
   const handleInvitePlayer = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selectedTournament?.id || !registerPlayerSearch.trim()) return;
+    if (!selectedTournament?.id || !debouncedRegisterPlayerSearch.trim()) return;
     setIsRegistering(true);
     try {
       const { invitePlayerToTournament } = await import("@/lib/api/registrations");
@@ -1491,7 +1495,7 @@ export default function TournamentsPage() {
 
             <Button
               type="submit"
-              disabled={isRegistering || !registerPlayerSearch.trim() || !registerPlayerSearch.includes('@')}
+              disabled={isRegistering || !debouncedRegisterPlayerSearch.trim() || !debouncedRegisterPlayerSearch.includes('@')}
               className="w-full h-12 bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl font-medium"
             >
               {isRegistering ? (

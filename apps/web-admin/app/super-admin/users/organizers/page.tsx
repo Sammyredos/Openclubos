@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -155,6 +156,7 @@ export default function SuperAdminUsersPage() {
   } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [handicapFilter, setHandicapFilter] = useState("All Handicaps");
@@ -193,8 +195,11 @@ export default function SuperAdminUsersPage() {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewRegistrations, setViewRegistrations] = useState<any[]>([]);
   const [activitySearch, setActivitySearch] = useState("");
+  const debouncedActivitySearch = useDebounce(activitySearch, 300);
   const [paymentSearch, setPaymentSearch] = useState("");
+  const debouncedPaymentSearch = useDebounce(paymentSearch, 300);
   const [tournamentSearch, setTournamentSearch] = useState("");
+  const debouncedTournamentSearch = useDebounce(tournamentSearch, 300);
   const [activityPage, setActivityPage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
   const [tournamentPage, setTournamentPage] = useState(1);
@@ -247,7 +252,7 @@ export default function SuperAdminUsersPage() {
       const data = await getAdminUsers({
         skip: (currentPage - 1) * itemsPerPage,
         take: itemsPerPage,
-        search: searchQuery || undefined,
+        search: debouncedSearchQuery || undefined,
         role: roleFilter !== "All Roles" ? roleFilter : "CLUB_ADMIN",
         status: statusFilter !== "All Status" ? statusFilter : undefined,
         isPrimaryOrganizer: true,
@@ -276,7 +281,7 @@ export default function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, roleFilter, statusFilter, handicapFilter, currentPage]);
+  }, [debouncedSearchQuery, roleFilter, statusFilter, handicapFilter, currentPage]);
 
   useEffect(() => {
     if (!isViewModalOpen) return;
@@ -1406,7 +1411,7 @@ export default function SuperAdminUsersPage() {
       >
         {(() => {
           const filteredActivity = viewRegistrations.filter((r) =>
-            r.tournament.name.toLowerCase().includes(activitySearch.toLowerCase()),
+            r.tournament.name.toLowerCase().includes(debouncedActivitySearch.toLowerCase()),
           );
           const paginatedActivity = filteredActivity.slice(
             (activityPage - 1) * modalItemsPerPage,
@@ -1415,8 +1420,8 @@ export default function SuperAdminUsersPage() {
           const totalActivityPages = Math.ceil(filteredActivity.length / modalItemsPerPage);
 
           const filteredPayments = viewRegistrations.filter((r) =>
-            r.tournament.name.toLowerCase().includes(paymentSearch.toLowerCase()) ||
-            (r.paymentReference || "").toLowerCase().includes(paymentSearch.toLowerCase())
+            r.tournament.name.toLowerCase().includes(debouncedPaymentSearch.toLowerCase()) ||
+            (r.paymentReference || "").toLowerCase().includes(debouncedPaymentSearch.toLowerCase())
           );
           const paginatedPayments = filteredPayments.slice(
             (paymentPage - 1) * modalItemsPerPage,
@@ -1425,7 +1430,7 @@ export default function SuperAdminUsersPage() {
           const totalPaymentPages = Math.ceil(filteredPayments.length / modalItemsPerPage);
 
           const filteredTournaments = viewRegistrations.filter((r) =>
-            r.tournament.name.toLowerCase().includes(tournamentSearch.toLowerCase()),
+            r.tournament.name.toLowerCase().includes(debouncedTournamentSearch.toLowerCase()),
           );
           const paginatedTournaments = filteredTournaments.slice(
             (tournamentPage - 1) * modalItemsPerPage,

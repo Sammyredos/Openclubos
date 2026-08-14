@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   CreditCard,
   Download,
@@ -94,6 +95,7 @@ export default function PaymentsPage() {
   const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [selectedTxn, setSelectedTxn] = useState<RegistrationListItem | null>(null);
@@ -182,7 +184,7 @@ export default function PaymentsPage() {
       }
       return true;
     });
-  }, [search, statusFilter, methodFilter, tournamentFilter, registrations]);
+  }, [debouncedSearch, statusFilter, methodFilter, tournamentFilter, registrations]);
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">

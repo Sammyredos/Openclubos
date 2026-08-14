@@ -1,5 +1,6 @@
 "use client";
 
+import { useDebounce } from "@/hooks/use-debounce";
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { PenalizeActionDropdown } from "@/components/penalize-action-dropdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -372,7 +373,9 @@ function ViewTournamentPageInner() {
   const [publishClickCount, setPublishClickCount] = useState(0);
   const [justGrouped, setJustGrouped] = useState(false);
   const [groupingsSearch, setGroupingsSearch] = useState("");
+  const debouncedGroupingsSearch = useDebounce(groupingsSearch, 300);
   const [groupsSearch, setGroupsSearch] = useState("");
+  const debouncedGroupsSearch = useDebounce(groupsSearch, 300);
   const [groupingsFilter, setGroupingsFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
@@ -388,6 +391,7 @@ function ViewTournamentPageInner() {
   const [leaderboardGenderFilter, setLeaderboardGenderFilter] = useState<string>("ALL");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [leaderboardSearch, setLeaderboardSearch] = useState("");
+  const debouncedLeaderboardSearch = useDebounce(leaderboardSearch, 300);
   const leaderboardPerPage = 10;
   const [pendingWaitlistTotal, setPendingWaitlistTotal] = useState(0);
 
@@ -2806,7 +2810,7 @@ function ViewTournamentPageInner() {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[...groupingsData.groups].reverse()
                                   .filter(group => {
-                                    const query = groupingsSearch.trim().toLowerCase();
+                                    const query = debouncedGroupingsSearch.trim().toLowerCase();
                                     if (!query) return true;
                                     const tokens = query.split(/[\s-]+/).filter(Boolean);
 
@@ -3021,19 +3025,11 @@ function ViewTournamentPageInner() {
                               transition={{ duration: 0.2 }}
                               className="bg-white border border-[#e1efe5] rounded-xl shadow-sm overflow-hidden"
                             >
-                              <div className="p-4 border-b border-[#e1efe5] bg-background/30 flex items-center justify-between">
-                                <h4 className="text-[13px] font-normal text-gray-900 flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-openclub-700" />
-                                  Unassigned Participants
-                                </h4>
-                                <Badge variant="outline" className="bg-emerald-50 text-openclub-800 border-emerald-100 font-normal px-2 py-0.5">
-                                  {groupingsData.unassigned.length}
-                                </Badge>
-                              </div>
+
                               <div className="p-6">
                                 {(() => {
                                   const filtered = groupingsData.unassigned.filter(p => {
-                                    const query = groupingsSearch.trim().toLowerCase();
+                                    const query = debouncedGroupingsSearch.trim().toLowerCase();
                                     if (!query) return true;
                                     const tokens = query.split(/[\s-]+/).filter(Boolean);
                                     const searchableFields = [

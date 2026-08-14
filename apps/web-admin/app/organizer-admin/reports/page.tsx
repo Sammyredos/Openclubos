@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   FileText,
   Download,
@@ -90,6 +91,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -162,7 +164,7 @@ export default function ReportsPage() {
       const matchesType = typeFilter === "ALL" || rpt.type === typeFilter;
       return matchesSearch && matchesType;
     });
-  }, [search, typeFilter, reports]);
+  }, [debouncedSearch, typeFilter, reports]);
 
   const totalReports = reports.length;
   const totalSizeBytes = reports.reduce((acc, rpt) => acc + (rpt.sizeBytes || 0), 0);

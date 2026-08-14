@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   CreditCard,
   Users,
@@ -39,6 +40,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = React.useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState("All");
   const [planFilter, setPlanFilter] = useState("All");
   const [billingFilter, setBillingFilter] = useState("All");
@@ -77,7 +79,7 @@ export default function SubscriptionsPage() {
 
       return matchesSearch && matchesStatus && matchesPlan && matchesBilling;
     });
-  }, [searchQuery, statusFilter, planFilter, billingFilter]);
+  }, [debouncedSearchQuery, statusFilter, planFilter, billingFilter]);
 
   // Paginated display
   const paginatedSubscriptions = useMemo(() => {
