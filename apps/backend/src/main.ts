@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -85,12 +86,14 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
   }
 
+
+
   // gRPC setup
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'leaderboard',
-      protoPath: path.join(__dirname, '../../../../packages/proto/leaderboard.proto'),
+      protoPath: path.join(__dirname, '../../../packages/proto/leaderboard.proto'),
       url: '0.0.0.0:50051',
     },
   });
@@ -101,6 +104,7 @@ async function bootstrap() {
   const port = await listenWithFallback(app, preferredPort);
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`gRPC Microservice is listening on 0.0.0.0:50051`);
+
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
   }

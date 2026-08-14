@@ -201,20 +201,20 @@ export default function TVDisplayPage() {
                   {/* Flight Header (Green) */}
                   <div className="bg-openclub-700 px-8 py-6 flex items-center justify-between text-white">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <div className="w-14 h-14 bg-black/20 rounded-full flex items-center justify-center shrink-0">
                         <Flag className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h3 className="text-3xl font-bold">{group.name || `Flight ${currentPage * groupsPerPage + idx + 1}`}</h3>
                         <div className="flex items-center gap-2 text-openclub-100 mt-1 text-2xl">
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                          <span>{group.startTime || "TBD"}</span>
+                          <span>{group.startTime ? (group.startTime.includes('T') ? group.startTime.split('T')[1].substring(0, 5) : group.startTime) : "TBD"}</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">{playerCount}/{maxPlayers}</div>
-                      <div className="text-sm text-openclub-100 uppercase tracking-wider font-medium">Players</div>
+                      <div className="text-base text-openclub-100 capitalize font-medium">Players</div>
                     </div>
                   </div>
 
