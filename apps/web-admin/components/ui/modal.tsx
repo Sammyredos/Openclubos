@@ -50,7 +50,7 @@ export function Modal({
         )}
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#e1efe5] bg-white">
-          <h3 className="text-lg font-medium text-[#0B1B1E] tracking-tight">{title}</h3>
+          <h3 className="text-lg font-semibold text-[#0B1B1E] tracking-tight">{title}</h3>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
@@ -64,7 +64,7 @@ export function Modal({
         </div>
 
         {footer && (
-          <div className="px-6 py-5 bg-white flex items-center justify-center gap-3 w-full [&>button]:flex-1">
+          <div className="px-6 py-5 bg-white border-t border-[#e1efe5] grid grid-cols-2 gap-4 w-full">
             {footer}
           </div>
         )}

@@ -7,6 +7,7 @@ import { Country, State } from "country-state-city";
 import { getNigerianStates } from "@/lib/nigerian-states-lgas";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
+import { ActionModal } from "@/components/ui/action-modal";
 import { createTournament, getTournament, getTournaments, updateTournament, checkTournamentName, UpdateTournamentPayload } from "@/lib/api/tournaments";
 import { getOrganizers } from "@/lib/api/organizers";
 import { getCourses, Course } from "@/lib/api/courses";
@@ -1815,27 +1816,25 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         </div>
       </div>
 
-      {showPublishConfirm && (
-        <Modal isOpen={showPublishConfirm} onClose={() => setShowPublishConfirm(false)} title="Confirm Publishing" className="max-w-md z-[100]">
-          <div className="space-y-4 py-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[#15803D] mb-4">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h4 className="text-[14px] font-medium text-gray-900">Publish Tournament?</h4>
-              <p className="text-[12px] text-gray-500">
-                Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
-              </p>
-            </div>
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPublishConfirm(false)} disabled={loading}>Cancel</Button>
-              <Button className="flex-1 bg-[#15803D] hover:bg-[#166534] text-white" onClick={() => { setShowPublishConfirm(false); handleSubmit(); }} disabled={loading}>
-                {loading ? "Publishing..." : "Yes, Publish"}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      <ActionModal
+        isOpen={showPublishConfirm}
+        onClose={() => setShowPublishConfirm(false)}
+        title="Confirm Publishing"
+        iconType="warning"
+        heading="Publish Tournament?"
+        description={
+          <>
+            Once a tournament is published, it becomes visible to players and the action is <strong className="text-gray-900">irreversible</strong>. Are you sure you want to proceed?
+          </>
+        }
+        actionLabel={loading ? "Publishing..." : "Yes, Publish"}
+        onAction={() => {
+          setShowPublishConfirm(false);
+          handleSubmit();
+        }}
+        isActionLoading={loading}
+        actionVariant="default"
+      />
     </div>
   );
 }

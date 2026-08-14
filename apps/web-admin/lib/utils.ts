@@ -103,29 +103,14 @@ export function formatNumber(value: string | number): string {
   const isNaira = raw.includes("₦");
   const absValue = Math.abs(numericValue);
   const sign = numericValue < 0 ? "-" : "";
-
-  function formatKMB(n: number, divisor: number, suffix: string) {
-    const val = n / divisor;
-    const formatted = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 1,
-    }).format(val);
-    return `${formatted}${suffix}`;
-  }
-
   const prefix = isNaira ? " ₦" : "";
 
-  if (absValue >= 1_000_000_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000_000_000, "b")}`;
-  }
-  if (absValue >= 1_000_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000_000, "m")}`;
-  }
-  if (absValue >= 10_000) {
-    return `${sign}${prefix}${formatKMB(absValue, 1_000, "k")}`;
-  }
-
-  const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US");
-  return `${sign}${prefix}${nf.format(Math.round(absValue))}`;
+  const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US", isNaira ? {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  } : undefined);
+  
+  return `${sign}${prefix}${nf.format(isNaira ? absValue : Math.round(absValue))}`;
 }
 
 export type AdminEvent = { type: string; payload?: unknown; at: number };
@@ -215,22 +200,6 @@ export function getGolfCategory(handicap: number | null | undefined): string {
 export function formatCurrency(amount: number): string {
   const absValue = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
-
-  if (absValue >= 1_000_000_000) {
-    const val = absValue / 1_000_000_000;
-    const formatted = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 1,
-    }).format(val);
-    return `${sign} ₦${formatted}b`;
-  }
-
-  if (absValue >= 1_000_000) {
-    const val = absValue / 1_000_000;
-    const formatted = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 1,
-    }).format(val);
-    return `${sign} ₦${formatted}m`;
-  }
 
   return `${sign} ₦${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
