@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package leaderboard;
+
+service LeaderboardService {
+  rpc GetLeaderboard (LeaderboardRequest) returns (LeaderboardResponse) {}
+}
+
+message LeaderboardRequest {
+  string tournamentId = 1;
+}
+
+message LeaderboardResponse {
+  string tournamentId = 1;
+  repeated PlayerScore scores = 2;
+}
+
+message PlayerScore {
+  string playerId = 1;
+  string playerName = 2;
+  int32 grossScore = 3;
+  int32 netScore = 4;
+  int32 thru = 5;
+  int32 position = 6;
+}

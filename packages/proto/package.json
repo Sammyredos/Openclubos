@@ -1,0 +1,6 @@
+{
+  "name": "@openclubos/proto",
+  "version": "0.0.1",
+  "description": "gRPC Protobuf definitions for Openclubos",
+  "main": "index.js"
+}
