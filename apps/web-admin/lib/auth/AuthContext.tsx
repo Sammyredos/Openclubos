@@ -34,15 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = () => {
       try {
         const storedUser = localStorage.getItem('oc_user');
-        const hasToken = document.cookie.includes('accessToken=');
         
-        if (storedUser && hasToken) {
+        if (storedUser) {
           setUser(JSON.parse(storedUser));
-        } else if (!hasToken && storedUser) {
-          // Sync state if cookie is missing but localStorage has user
-          localStorage.removeItem('oc_user');
-          localStorage.removeItem('oc_token');
-          setUser(null);
         }
       } catch {
         // ignore
@@ -55,12 +49,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Sync across tabs
     const syncAuth = (e: StorageEvent) => {
-      if (e.key === 'oc_user' || e.key === 'oc_token') {
-        const hasToken = document.cookie.includes('accessToken=');
-        if (!e.newValue || !hasToken) {
+      if (e.key === 'oc_user') {
+        if (!e.newValue) {
           setUser(null);
           router.replace('/login');
-        } else if (e.key === 'oc_user') {
+        } else {
           setUser(JSON.parse(e.newValue));
         }
       }
@@ -78,13 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const ping = async () => {
       if (cancelled) return;
       if (inFlight) return;
-      const token = getAuthToken();
-      if (!token) return;
       inFlight = true;
       try {
         const res = await fetch(`${API_BASE}/auth/me`, {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
           cache: 'no-store',
         });
         if (!res.ok) {
@@ -127,24 +118,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const login = (token: string, user: AuthUser, rememberMe: boolean = false) => {
-    // Store token in localStorage for cross-tab persistence
-    localStorage.setItem('oc_token', token);
     localStorage.setItem('oc_user', JSON.stringify(user));
     
-    // Set cookie. If rememberMe is true, it lasts 30 days. Otherwise, it's a session cookie.
-    const maxAgeStr = rememberMe ? `max-age=${30 * 24 * 60 * 60}; ` : '';
-    document.cookie = `accessToken=${token}; path=/; ${maxAgeStr}samesite=strict`;
     setUser(user);
     setIsLoading(false);
     // Use replace to prevent the login page from staying in history
     router.replace(ROLE_REDIRECT[user.role] ?? '/');
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsLoading(true);
-    localStorage.removeItem('oc_token');
+    try {
+      await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch {
+      // ignore
+    }
     localStorage.removeItem('oc_user');
-    document.cookie = 'accessToken=; path=/; max-age=0';
     setUser(null);
     router.replace('/login');
   };

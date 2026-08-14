@@ -32,13 +32,10 @@ export interface LoginResponse {
 function clearAuthSession() {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage?.removeItem('oc_token');
     window.localStorage?.removeItem('oc_user');
-  } catch {
-    // ignore
-  }
-  try {
-    document.cookie = 'accessToken=; path=/; max-age=0';
+    window.localStorage?.removeItem('oc_token'); // Clean up old tokens if they exist
+    window.localStorage?.removeItem('accessToken'); 
+    window.localStorage?.removeItem('refreshToken');
   } catch {
     // ignore
   }
@@ -72,6 +69,7 @@ export async function handleAuthFailure(res: Response) {
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
@@ -179,30 +177,10 @@ export async function registerOrganizationRequest(payload: {
 }
 
 export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const local = window.localStorage?.getItem('oc_token');
-    if (local) return local;
-  } catch {
-    // ignore
-  }
-  try {
-    const session = window.sessionStorage?.getItem('oc_token');
-    if (session) return session;
-  } catch {
-    // ignore
-  }
-  try {
-    const cookie = document.cookie
-      .split(';')
-      .map((c) => c.trim())
-      .find((c) => c.startsWith('accessToken='));
-    if (!cookie) return null;
-    const token = cookie.split('=')[1];
-    return token || null;
-  } catch {
-    return null;
-  }
+  // getAuthToken is deprecated with httpOnly cookies.
+  // We keep the signature to avoid breaking any stray imports, but it always returns null.
+  // Fetch calls should use credentials: 'include' instead of Authorization headers.
+  return null;
 }
 
 export async function validateOrganizationRequest(organizationName: string): Promise<{ available: boolean; message?: string }> {
@@ -230,12 +208,11 @@ export async function validateAdminRequest(adminEmail?: string, adminPhone?: str
 }
 
 export async function incrementAIUsage(): Promise<{ aiTournamentDescCount: number; aiTournamentDescResetAt: string | null }> {
-  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/auth/me/ai-usage/tournament-desc/increment`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) {

@@ -77,7 +77,7 @@ export async function getCourses(clubId?: string): Promise<Course[]> {
   const token = getAuthToken();
   const url = clubId ? `${API_BASE}/courses?clubId=${clubId}` : `${API_BASE}/courses`;
   const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    
   });
   if (!res.ok) {
     const error = await res.json().catch(() => null);
@@ -110,7 +110,7 @@ export async function getAdminCourses(params: {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -127,7 +127,7 @@ export async function getCourse(id: string): Promise<Course> {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {

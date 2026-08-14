@@ -93,10 +93,7 @@ function toSearchParams(query?: QueryRecord) {
 }
 
 async function authedFetch(path: string, init: RequestInit) {
-  const token = getAuthToken();
-  const headers = new Headers(init.headers);
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  return fetch(`${API_BASE}${path}`, { ...init, headers, cache: 'no-store' });
+  return fetch(`${API_BASE}${path}`, { ...init, credentials: 'include', cache: 'no-store' });
 }
 
 export async function createTournament(data: Record<string, unknown>) {

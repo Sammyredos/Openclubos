@@ -4,11 +4,8 @@ import { getAuthToken, handleAuthFailure } from './auth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 const getHeaders = () => {
-  const token = getAuthToken();
   return {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : '',
-    },
+    withCredentials: true,
   };
 };
 

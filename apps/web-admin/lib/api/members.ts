@@ -112,7 +112,7 @@ export async function getAdminUsers(params: {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -129,7 +129,7 @@ export async function getMember(id: string): Promise<AdminUser> {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -168,7 +168,7 @@ export async function updateMember(id: string, data: JsonObject) {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
     body: JSON.stringify(data),
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -186,7 +186,7 @@ export async function deleteMember(id: string) {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -204,7 +204,7 @@ export async function forceLogoutUser(id: string): Promise<{ success: boolean }>
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
-    cache: 'no-store',
+    credentials: 'include', cache: 'no-store',
   });
 
   if (!res.ok) {

@@ -31,13 +31,13 @@ export interface SubscriptionsResponse {
 }
 
 export const getSubscriptionsAdmin = async (audience?: string): Promise<SubscriptionsResponse> => {
-  const token = getAuthToken();
+  
   const url = new URL(`${API_URL}/subscriptions/admin`);
   if (audience) url.searchParams.set('type', audience);
   const res = await fetch(url.toString(), {
+    credentials: 'include',
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
@@ -49,11 +49,11 @@ export const getSubscriptionsAdmin = async (audience?: string): Promise<Subscrip
 };
 
 export const getPlans = async () => {
-  const token = getAuthToken();
+  
   const res = await fetch(`${API_URL}/subscriptions/plans`, {
+    credentials: 'include',
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) throw new Error("Failed to fetch plans");
@@ -61,12 +61,12 @@ export const getPlans = async () => {
 };
 
 export const createPlan = async (data: any) => {
-  const token = getAuthToken();
+  
   const res = await fetch(`${API_URL}/subscriptions/plans`, {
+    credentials: 'include',
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -75,12 +75,12 @@ export const createPlan = async (data: any) => {
 };
 
 export const updatePlan = async (id: string, data: any) => {
-  const token = getAuthToken();
+  
   const res = await fetch(`${API_URL}/subscriptions/plans/${id}`, {
+    credentials: 'include',
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -89,12 +89,12 @@ export const updatePlan = async (id: string, data: any) => {
 };
 
 export const deletePlan = async (id: string) => {
-  const token = getAuthToken();
+  
   const res = await fetch(`${API_URL}/subscriptions/plans/${id}`, {
+    credentials: 'include',
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) throw new Error("Failed to delete plan");

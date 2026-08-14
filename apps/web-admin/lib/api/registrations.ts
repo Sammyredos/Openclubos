@@ -40,12 +40,11 @@ function getErrorMessage(e: unknown) {
 }
 
 export async function invitePlayerToTournament(data: { tournamentId: string; email: string }) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/invite`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/invite`, { credentials: 'include',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -69,12 +68,11 @@ export async function registerForTournament(data: {
   status?: Registration['status'];
   paymentStatus?: Registration['paymentStatus'];
 }) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations`, {
+  
+  const res = await fetch(`${API_BASE}/registrations`, { credentials: 'include',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
     body: JSON.stringify(data),
   });
@@ -103,7 +101,7 @@ export async function getRegistrations(params?: {
   take?: number;
   orderBy?: 'registeredAt' | 'updatedAt';
 }): Promise<{ items: RegistrationListItem[]; total: number }> {
-  const token = getAuthToken();
+  
   const searchParams = new URLSearchParams();
   if (params?.clubId) searchParams.append('clubId', params.clubId);
   if (params?.organizerId) searchParams.append('organizerId', params.organizerId);
@@ -120,9 +118,8 @@ export async function getRegistrations(params?: {
   if (params?.orderBy) searchParams.append('orderBy', params.orderBy);
 
   const qs = searchParams.toString();
-  const res = await fetch(`${API_BASE}/registrations${qs ? `?${qs}` : ''}`, {
+  const res = await fetch(`${API_BASE}/registrations${qs ? `?${qs}` : ''}`, { credentials: 'include',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
   });
 
@@ -135,14 +132,13 @@ export async function getRegistrations(params?: {
 }
 
 export async function getRegistrationStats(params?: { clubId?: string }) {
-  const token = getAuthToken();
+  
   const searchParams = new URLSearchParams();
   if (params?.clubId) searchParams.append('clubId', params.clubId);
 
   const qs = searchParams.toString();
-  const res = await fetch(`${API_BASE}/registrations/stats${qs ? `?${qs}` : ''}`, {
+  const res = await fetch(`${API_BASE}/registrations/stats${qs ? `?${qs}` : ''}`, { credentials: 'include',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
   });
 
@@ -158,12 +154,11 @@ export async function updateRegistrationStatus(
   registrationId: string,
   status: Registration['status'],
 ): Promise<Registration> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/${registrationId}/status`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}/status`, { credentials: 'include',
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
     body: JSON.stringify({ status }),
   });
@@ -177,12 +172,11 @@ export async function updateRegistrationStatus(
 }
 
 export async function addRegistrationStrokes(registrationId: string, delta: number): Promise<Registration> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes`, { credentials: 'include',
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
     body: JSON.stringify({ delta }),
   });
@@ -196,11 +190,10 @@ export async function addRegistrationStrokes(registrationId: string, delta: numb
 }
 
 export async function clearRegistrationStrokes(registrationId: string): Promise<Registration> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes/clear`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes/clear`, { credentials: 'include',
     method: 'PATCH',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
   });
 
@@ -213,11 +206,10 @@ export async function clearRegistrationStrokes(registrationId: string): Promise<
 }
 
 export async function deleteRegistration(registrationId: string) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/${registrationId}`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}`, { credentials: 'include',
     method: 'DELETE',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
   });
 
@@ -230,12 +222,11 @@ export async function deleteRegistration(registrationId: string) {
 }
 
 export async function confirmRegistrationPayment(registrationId: string, paymentReference: string): Promise<Registration> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/registrations/${registrationId}/payment`, {
+  
+  const res = await fetch(`${API_BASE}/registrations/${registrationId}/payment`, { credentials: 'include',
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : undefined),
     },
     body: JSON.stringify({ paymentReference }),
   });

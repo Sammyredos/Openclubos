@@ -12,8 +12,8 @@ async function fetchWithSuperAdminFallback(path: string, init: RequestInit) {
 export async function getClubs() {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/clubs`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    cache: 'no-store',
+    
+    credentials: 'include', cache: 'no-store',
   });
   if (!res.ok) {
     await handleAuthFailure(res);
@@ -26,8 +26,8 @@ export async function getClubs() {
 export async function getClub(id: string) {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/clubs/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    cache: 'no-store',
+    
+    credentials: 'include', cache: 'no-store',
   });
   if (!res.ok) {
     await handleAuthFailure(res);
@@ -40,8 +40,8 @@ export async function getClub(id: string) {
 export async function getClubStats(id: string) {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/clubs/${id}/stats`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    cache: 'no-store',
+    
+    credentials: 'include', cache: 'no-store',
   });
   if (!res.ok) {
     await handleAuthFailure(res);
@@ -54,8 +54,8 @@ export async function getClubStats(id: string) {
 export async function getClubChartData(id: string, range: string) {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/clubs/${id}/chart-data?range=${encodeURIComponent(range)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    cache: 'no-store',
+    
+    credentials: 'include', cache: 'no-store',
   });
   if (!res.ok) {
     await handleAuthFailure(res);

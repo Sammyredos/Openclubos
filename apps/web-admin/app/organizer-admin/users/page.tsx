@@ -256,13 +256,7 @@ export default function OrganizerAdminMembersPage() {
   const paginatedUsers = allUsers;
 
   async function reload() {
-    const token = getAuthToken();
-    if (!token) {
-      setError("Not authenticated. Please login again.");
-      setAllUsers([]);
-      setLoading(false);
-      return;
-    }
+    
 
     setLoading(true);
     setError(null);

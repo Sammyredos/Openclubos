@@ -10,7 +10,9 @@ import {
   UseGuards,
   Headers,
   Param,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -86,7 +88,10 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
@@ -94,13 +99,37 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    return this.authService.login(user);
+    
+    const result = await this.authService.login(user);
+    
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days or session default
+    });
+    
+    return result;
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() body: { refreshToken: string }) {
-    return this.authService.refresh(body.refreshToken);
+  async refresh(
+    @Body() body: { refreshToken: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.refresh(body.refreshToken);
+    
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    
+    return result;
   }
 
   @Post('logout')
@@ -110,6 +139,7 @@ export class AuthController {
     @Request() req: any,
     @Headers('authorization') auth: string,
     @Body() body: { refreshToken?: string },
+    @Res({ passthrough: true }) res: Response,
   ) {
     const accessToken = auth?.replace('Bearer ', '');
     await this.authService.logout(
@@ -117,7 +147,30 @@ export class AuthController {
       accessToken,
       body.refreshToken,
     );
+    
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+    
     return { success: true, message: 'Logged out successfully' };
+  }
+
+  @Get('force-clear-cookie')
+  async forceClearCookie(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+    // Also try to clear the lax/strict ones just in case the browser distinguishes them by sameSite (some older browsers do)
+    res.clearCookie('accessToken', { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
+    res.clearCookie('accessToken', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
+    
+    return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000/login');
   }
 
   @Post('verify-email')

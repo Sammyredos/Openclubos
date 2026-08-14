@@ -18,7 +18,7 @@ export async function getOrganizers(query?: { search?: string; skip?: number; ta
 
   const qs = searchParams.toString();
   const res = await fetchWithSuperAdminFallback(`/organizers${qs ? `?${qs}` : ''}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -32,7 +32,7 @@ export async function getOrganizers(query?: { search?: string; skip?: number; ta
 export async function getOrganizer(id: string) {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/organizers/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -46,7 +46,7 @@ export async function getOrganizer(id: string) {
 export async function getOrganizerStats(id: string) {
   const token = getAuthToken();
   const res = await fetchWithSuperAdminFallback(`/organizers/${id}/stats`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -67,10 +67,7 @@ export type UpdateOrganizerPayload = {
 };
 
 async function authedFetch(path: string, init: RequestInit) {
-  const token = getAuthToken();
-  const headers = new Headers(init.headers);
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  return fetchWithSuperAdminFallback(path, { ...init, headers, cache: 'no-store' });
+  return fetchWithSuperAdminFallback(path, { ...init, credentials: 'include', cache: 'no-store' });
 }
 
 export async function updateOrganizer(id: string, payload: UpdateOrganizerPayload) {

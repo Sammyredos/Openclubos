@@ -54,14 +54,24 @@ export class ClubGuard implements CanActivate {
     }
 
     // 3. Extract and verify JWT token to get user context
+    let token = '';
     const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (request.cookies && request.cookies.accessToken) {
+      token = request.cookies.accessToken;
+    } else if (request.headers.cookie) {
+      // In case cookie parser hasn't run or isn't available
+      const match = request.headers.cookie.match(/(?:^|;\s*)accessToken=([^;]+)/);
+      if (match) token = match[1];
+    }
+
+    if (!token) {
       throw new UnauthorizedException(
-        'Missing or invalid authorization header',
+        'Missing or invalid authorization token',
       );
     }
 
-    const token = authHeader.substring(7);
     let payload: any;
     try {
       payload = this.jwtService.verify(token);

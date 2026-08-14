@@ -164,13 +164,12 @@ export default function SuperAdminDashboard() {
   const [realTimeLatency, setRealTimeLatency] = useState<string>('--');
 
   const getHeaders = useCallback(() => {
-    const token = getAuthToken();
-    if (!token) {
-      setAuthError("Not authenticated. Please login again.");
-      return null;
-    }
     setAuthError(null);
-    return { Authorization: `Bearer ${token}` };
+    return {};
+  }, []);
+  
+  const getFetchOptions = useCallback((headers: any) => {
+    return { headers, credentials: 'include' as RequestCredentials };
   }, []);
 
   const computeTopSubs = useCallback((items: ClubListItem[], range: string) => {
@@ -228,11 +227,12 @@ export default function SuperAdminDashboard() {
     setSubsLoading(true);
     setLocationsLoading(true);
     try {
+      const options = getFetchOptions(headers);
       const [statsRes, activityRes, clubsListRes, locationsRes] = await Promise.all([
-        fetch(`${API_BASE}/super-admin/dashboard/stats`, { headers }),
-        fetch(`${API_BASE}/super-admin/dashboard/activity`, { headers }),
-        fetch(`${API_BASE}/organizers`, { headers }),
-        fetch(`${API_BASE}/super-admin/dashboard/top-locations`, { headers }),
+        fetch(`${API_BASE}/super-admin/dashboard/stats`, options),
+        fetch(`${API_BASE}/super-admin/dashboard/activity`, options),
+        fetch(`${API_BASE}/organizers`, options),
+        fetch(`${API_BASE}/super-admin/dashboard/top-locations`, options),
       ]);
 
       if (statsRes.status === 401 || statsRes.status === 403) {
@@ -280,10 +280,10 @@ export default function SuperAdminDashboard() {
 
   const fetchRevenueTrend = useCallback(async (range: string) => {
     const headers = getHeaders();
-    if (!headers) return;
     setRevenueLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/super-admin/dashboard/chart-data?range=${encodeURIComponent(range)}`, { headers });
+      const options = getFetchOptions(headers);
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/chart-data?range=${encodeURIComponent(range)}`, options);
       if (res.ok) {
         const data = await res.json();
         setRevenueData(data.revenueData);
@@ -291,46 +291,46 @@ export default function SuperAdminDashboard() {
     } finally {
       setRevenueLoading(false);
     }
-  }, [getHeaders]);
+  }, [getFetchOptions, getHeaders]);
 
   const fetchClubGrowth = useCallback(async (range: string) => {
     const headers = getHeaders();
-    if (!headers) return;
     setGrowthLoading(true);
     try {
       const now = new Date();
       const growthYear = range === "Last Year" ? now.getFullYear() - 1 : now.getFullYear();
-      const res = await fetch(`${API_BASE}/super-admin/dashboard/organizer-growth?year=${growthYear}`, { headers });
+      const options = getFetchOptions(headers);
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/organizer-growth?year=${growthYear}`, options);
       if (res.ok) setGrowthData((await res.json()) as GrowthPoint[]);
     } finally {
       setGrowthLoading(false);
     }
-  }, [getHeaders]);
+  }, [getFetchOptions, getHeaders]);
 
   const fetchAgeDemographics = useCallback(async () => {
     const headers = getHeaders();
-    if (!headers) return;
     setAgeLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/super-admin/dashboard/age-demographics`, { headers });
+      const options = getFetchOptions(headers);
+      const res = await fetch(`${API_BASE}/super-admin/dashboard/age-demographics`, options);
       if (res.ok) setAgeDemographicsData(await res.json());
     } finally {
       setAgeLoading(false);
     }
-  }, [getHeaders]);
+  }, [getFetchOptions, getHeaders]);
 
   const fetchTopClubs = useCallback(async (range: string) => {
     const headers = getHeaders();
-    if (!headers) return;
     setTopClubsLoading(true);
     try {
       const url = `${API_BASE}/super-admin/dashboard/top-organizers?range=${encodeURIComponent(range)}`;
-      const res = await fetch(url, { headers });
+      const options = getFetchOptions(headers);
+      const res = await fetch(url, options);
       if (res.ok) setPerformingClubs((await res.json()) as PerformingClub[]);
     } finally {
       setTopClubsLoading(false);
     }
-  }, [getHeaders]);
+  }, [getFetchOptions, getHeaders]);
 
   useEffect(() => {
     let cancelled = false;

@@ -19,10 +19,9 @@ export function LiveTickerStrip() {
     // Fetch real stats to get active tournaments count, names, scores, and spectators
     const fetchStats = async () => {
       try {
-        const token = getAuthToken();
-        if (!token) return;
+        
         const res = await fetch(`${API_BASE}/super-admin/dashboard/stats`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: 'include'
         });
         if (res.ok) {
           const data = await res.json();

@@ -5,6 +5,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { MemberStatus, UserRole } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma.service';
 
@@ -15,8 +16,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     private cacheService: CacheService,
   ) {
+    const cookieExtractor = (req: Request) => {
+      let token = null;
+      if (req && req.cookies) {
+        token = req.cookies['accessToken'];
+      }
+      return token || ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    };
+
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: cookieExtractor,
       ignoreExpiration: false,
       secretOrKeyProvider: (
         request: any,
