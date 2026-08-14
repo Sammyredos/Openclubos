@@ -2378,13 +2378,7 @@ function ViewTournamentPageInner() {
                             </span>
                           </h3>
                           <p className="text-[13px] text-gray-500">Pair players into {selectedTournament?.startType === 'SHOTGUN' ? 'Holes and assign start times' : 'Tee Flights and assign tee times'} for Day {selectedDay}.</p>
-                          {groupingsData?.rule && (
-                            <div className="mt-4">
-                              <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
-                                Rule: {groupingsData.rule.replace(/_/g, ' ')}
-                              </span>
-                            </div>
-                          )}
+
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
@@ -2437,23 +2431,13 @@ function ViewTournamentPageInner() {
                             variant="outline"
                             size="icon"
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                            className={cn(
-                              "h-9 w-9 rounded-md shadow-sm transition-all shrink-0 relative flex items-center justify-center disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed",
-                              groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
-                                ? "bg-openclub-700 border-openclub-700 text-white hover:bg-openclub-800"
-                                : "bg-white border border-[#f0f0f0] text-gray-700 hover:bg-[#fafafa]"
-                            )}
+                            className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm shrink-0 relative disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed"
                           >
-                            <MoreHorizontal className={cn(
-                              "w-4 h-4",
-                              groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0
-                                ? "text-white"
-                                : "text-gray-600"
-                            )} />
+                            <MoreHorizontal className="w-4 h-4 text-gray-600" />
                             {groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0 && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white"></span>
                               </span>
                             )}
                           </Button>

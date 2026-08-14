@@ -1142,22 +1142,12 @@ export class TournamentsService {
       let timeStr: string | null = null;
       let groupName = "";
       
-      const getFlightLetters = (index: number) => {
-        let result = '';
-        let i = index;
-        while (i >= 0) {
-            result = String.fromCharCode(65 + (i % 26)) + result;
-            i = Math.floor(i / 26) - 1;
-        }
-        return result;
-      };
-
       if (startType === "SHOTGUN") {
         timeStr = startTimeStr;
         groupName = `Hole ${currentGroupIndex + 1}`;
       } else {
         timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
-        groupName = `Flight ${getFlightLetters(currentGroupIndex)}`;
+        groupName = `Flight ${currentGroupIndex + 1}`;
       }
       
       // Parse timeStr to DateTime for DB
