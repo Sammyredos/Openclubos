@@ -277,8 +277,35 @@ function ViewTournamentPageInner() {
   };
 
   // Invite Player options
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState("");
   const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
+
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addEmails(emailInput);
+    }
+  };
+
+  const handleEmailPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text");
+    addEmails(pasted);
+  };
+
+  const addEmails = (raw: string) => {
+    const emails = raw.split(/[\s,]+/).map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const newEmails = emails.filter(e => !inviteEmails.includes(e));
+    if (newEmails.length > 0) {
+      setInviteEmails(prev => [...prev, ...newEmails]);
+    }
+    setEmailInput("");
+  };
+
+  const removeEmail = (emailToRemove: string) => {
+    setInviteEmails(prev => prev.filter(e => e !== emailToRemove));
+  };
 
   const handleSendInvite = async () => {
     if (!selectedTournament?.id) {
@@ -290,29 +317,49 @@ function ViewTournamentPageInner() {
       toast.error("Invitations are disabled because this tournament has concluded or been cancelled.");
       return;
     }
-    const email = inviteEmail.trim();
-    if (!email) {
-      toast.error("Please enter a player's email address.");
-      return;
+
+    let finalEmails = [...inviteEmails];
+    if (emailInput.trim()) {
+      const pendingEmails = emailInput.split(/[\s,]+/).map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+      const newPending = pendingEmails.filter(e => !finalEmails.includes(e));
+      if (newPending.length > 0) {
+        finalEmails = [...finalEmails, ...newPending];
+      }
+      setEmailInput("");
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address.");
+
+    if (finalEmails.length === 0) {
+      toast.error("Please add at least one valid player email address.");
       return;
     }
 
-    const toastId = toast.loading("Sending invitation...");
+    const toastId = toast.loading(`Sending ${finalEmails.length} invitation(s)...`);
     try {
       setIsSubmittingInvite(true);
       const { invitePlayerToTournament } = await import("@/lib/api/registrations");
-      await invitePlayerToTournament({
-        tournamentId: selectedTournament.id,
-        email: email,
-      });
-      toast.success(`Invitation sent successfully to ${email}`, { id: toastId });
-      setInviteEmail("");
+      
+      const results = await Promise.allSettled(
+        finalEmails.map(email => invitePlayerToTournament({
+          tournamentId: selectedTournament.id!,
+          email,
+        }))
+      );
+
+      const successes = results.filter(r => r.status === "fulfilled").length;
+      const failures = results.length - successes;
+
+      if (failures === 0) {
+        toast.success(`Successfully sent ${successes} invitation(s)`, { id: toastId });
+        setInviteEmails([]);
+      } else if (successes === 0) {
+        toast.error(`Failed to send ${failures} invitation(s).`, { id: toastId });
+        setInviteEmails(finalEmails);
+      } else {
+        toast.error(`Sent ${successes} invite(s). Failed to send ${failures}.`, { id: toastId });
+        setInviteEmails(finalEmails);
+      }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Failed to send invitation";
+      const errMsg = err instanceof Error ? err.message : "Failed to send invitations";
       toast.error(errMsg, { id: toastId });
     } finally {
       setIsSubmittingInvite(false);
@@ -1864,31 +1911,39 @@ function ViewTournamentPageInner() {
                   <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
                     {/* Form */}
                     <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-gray-700 block">
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <Input
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder={isConcluded ? "Invitations closed for concluded tournament" : "Enter player's email..."}
-                        disabled={isSubmittingInvite || isConcluded}
-                        className="h-11 border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60 text-[13px] font-normal rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !isSubmittingInvite && !isConcluded) {
-                            handleSendInvite();
-                          }
-                        }}
-                      />
+                      <div className="space-y-0.5">
+                        <label className="text-[13px] font-medium text-gray-700 block">
+                          Email Address(es) <span className="text-red-500">*</span>
+                        </label>
+                        <p className="text-[11px] text-gray-400">Separate multiple emails with commas or space.</p>
+                      </div>
+                      <div className={`flex flex-wrap items-center gap-2 p-2 border border-[#e1efe5] bg-white rounded-lg min-h-[44px] focus-within:ring-2 focus-within:ring-[#15803D]/20 ${isConcluded ? "opacity-60 bg-gray-50 cursor-not-allowed" : ""}`}>
+                        {inviteEmails.map((email) => (
+                          <span key={email} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#f5faf6] text-[#15803D] text-[13px] border border-[#e1efe5]">
+                            {email}
+                            <button type="button" onClick={() => removeEmail(email)} disabled={isSubmittingInvite || isConcluded} className="text-[#15803D]/60 hover:text-[#15803D] disabled:opacity-50"><X className="w-3 h-3" /></button>
+                          </span>
+                        ))}
+                        <input
+                          type="email"
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          onKeyDown={handleEmailKeyDown}
+                          onPaste={handleEmailPaste}
+                          placeholder={isConcluded ? "Invitations closed for concluded tournament" : inviteEmails.length === 0 ? "Enter player emails..." : ""}
+                          disabled={isSubmittingInvite || isConcluded}
+                          className="flex-1 bg-transparent border-none outline-none text-[#15803D] placeholder:text-[#15803D]/60 text-[13px] min-w-[150px] p-1 disabled:cursor-not-allowed"
+                        />
+                      </div>
                     </div>
 
                     {/* Button */}
                     <Button
                       onClick={handleSendInvite}
-                      disabled={isSubmittingInvite || isConcluded || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())}
+                      disabled={isSubmittingInvite || isConcluded || (inviteEmails.length === 0 && !emailInput.trim())}
                       className="w-full h-11 bg-[#15803D] hover:bg-[#166534] border border-[#166534] text-white font-medium text-[13px] rounded-lg transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:border-transparent disabled:cursor-not-allowed"
                     >
-                      {isSubmittingInvite ? "Sending Invitation..." : isConcluded ? "Tournament Concluded" : "Send Invitation"}
+                      {isSubmittingInvite ? "Sending Invitations..." : isConcluded ? "Tournament Concluded" : "Send Invitations"}
                     </Button>
                   </div>
                 </div>
@@ -2318,16 +2373,16 @@ function ViewTournamentPageInner() {
                     )}
 
                     {/* Groupings Dashboard Header */}
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 pt-2">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-12 pt-2">
                       <div className="space-y-1">
                         <h3 className="text-[15px] font-medium text-gray-900 flex items-center gap-3">
-                          Manage {selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'}
+                          Day {selectedDay} Flights
                           <span className="text-[11px] font-normal text-gray-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
                             {getTournamentDays()} Day Tournament
                           </span>
                         </h3>
-                        <p className="text-[13px] text-gray-500">Pair players into {selectedTournament?.startType === 'SHOTGUN' ? 'Holes and assign start times' : 'Tee Flights and assign tee times'} for Day {selectedDay}.</p>
+                        <p className="text-[13px] text-gray-500">Organize player pairings and start times for this round.</p>
                         {groupingsData?.rule && (
                           <div className="mt-2">
                             <span className="text-[11px] font-normal bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 uppercase tracking-wider shadow-sm">
@@ -2821,8 +2876,8 @@ function ViewTournamentPageInner() {
                     ) : (
                       <EmptyState
                         icon={Users}
-                        title="No Allocation Data"
-                        description={`Use the Auto Group Players to distribute players into groups for Day ${selectedDay}.`}
+                        title="No Flights Assigned"
+                        description={`Use Auto Tee Players to distribute players into flights for Day ${selectedDay}.`}
                       />
                     )}
 

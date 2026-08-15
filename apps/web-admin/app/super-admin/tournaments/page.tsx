@@ -285,6 +285,8 @@ export default function TournamentsPage() {
   const [strokesMenuAnchorEl, setStrokesMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const [isRegisterPlayerModalOpen, setIsRegisterPlayerModalOpen] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState("");
   const [registerPlayerSearch, setRegisterPlayerSearch] = useState("");
   const debouncedRegisterPlayerSearch = useDebounce(registerPlayerSearch, 300);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -676,27 +678,86 @@ export default function TournamentsPage() {
 
   useEffect(() => {
     if (!isRegisterPlayerModalOpen) {
+      setInviteEmails([]);
+      setEmailInput("");
       setRegisterPlayerSearch("");
     }
   }, [isRegisterPlayerModalOpen]);
 
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addEmails(emailInput);
+    }
+  };
+
+  const handleEmailPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text");
+    addEmails(pasted);
+  };
+
+  const addEmails = (raw: string) => {
+    const emails = raw.split(/[\s,]+/).map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const newEmails = emails.filter(e => !inviteEmails.includes(e));
+    if (newEmails.length > 0) {
+      setInviteEmails(prev => [...prev, ...newEmails]);
+    }
+    setEmailInput("");
+  };
+
+  const removeEmail = (emailToRemove: string) => {
+    setInviteEmails(prev => prev.filter(e => e !== emailToRemove));
+  };
+
   const handleInvitePlayer = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selectedTournament?.id || !debouncedRegisterPlayerSearch.trim()) return;
+    if (!selectedTournament?.id) return;
+
+    let finalEmails = [...inviteEmails];
+    if (emailInput.trim()) {
+      const pendingEmails = emailInput.split(/[\s,]+/).map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+      const newPending = pendingEmails.filter(e => !finalEmails.includes(e));
+      if (newPending.length > 0) {
+        finalEmails = [...finalEmails, ...newPending];
+      }
+      setEmailInput("");
+    }
+
+    if (finalEmails.length === 0) {
+      toast.error("Please add at least one valid player email address.");
+      return;
+    }
+
     setIsRegistering(true);
     try {
       const { invitePlayerToTournament } = await import("@/lib/api/registrations");
-      await invitePlayerToTournament({
-        tournamentId: selectedTournament.id,
-        email: registerPlayerSearch.trim(),
-      });
-      toast.success("Player invited successfully");
-      setIsRegisterPlayerModalOpen(false);
-      setRegisterPlayerSearch("");
+      const results = await Promise.allSettled(
+        finalEmails.map(email => invitePlayerToTournament({
+          tournamentId: selectedTournament.id!,
+          email,
+        }))
+      );
 
-      // Update local state for realtime feel
-      setRegistrationsTournamentTotal(prev => prev + 1);
-      setSelectedTournament(prev => prev ? { ...prev, registrations: prev.registrations + 1 } : null);
+      const successes = results.filter(r => r.status === "fulfilled").length;
+      const failures = results.length - successes;
+
+      if (failures === 0) {
+        toast.success(`Successfully sent ${successes} invitation(s)`);
+        setIsRegisterPlayerModalOpen(false);
+      } else if (successes === 0) {
+        toast.error(`Failed to send ${failures} invitation(s).`);
+        setInviteEmails(finalEmails);
+        setIsRegistering(false);
+        return; // Don't refresh if all failed
+      } else {
+        toast.error(`Sent ${successes} invite(s). Failed to send ${failures}.`);
+        setInviteEmails(finalEmails);
+      }
+
+      // Update local state for realtime feel (approximate)
+      setRegistrationsTournamentTotal(prev => prev + successes);
+      setSelectedTournament(prev => prev ? { ...prev, registrations: prev.registrations + successes } : null);
 
       // Refresh everything
       reloadTournaments();
@@ -715,8 +776,8 @@ export default function TournamentsPage() {
       } else {
         setRegistrationsInitialized(false);
       }
-    } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Failed to invite player");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err) || "Failed to invite players");
     } finally {
       setIsRegistering(false);
     }
@@ -1513,20 +1574,35 @@ export default function TournamentsPage() {
           {/* Email Input Form */}
           <form onSubmit={handleInvitePlayer} className="space-y-4 px-1">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
-              <Input
-                type="email"
-                required
-                value={registerPlayerSearch}
-                onChange={(e) => setRegisterPlayerSearch(e.target.value)}
-                placeholder="Enter player's email..."
-                className="mt-1 h-11 border-gray-200"
-              />
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium text-gray-700">
+                  Email Address(es) <span className="text-red-500">*</span>
+                </Label>
+                <p className="text-[11px] text-gray-400">Separate multiple emails with commas or space.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-200 bg-white rounded-xl min-h-[44px] focus-within:ring-2 focus-within:ring-openclub-700/20">
+                {inviteEmails.map((email) => (
+                  <span key={email} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-openclub-50 text-openclub-800 text-[13px] border border-openclub-100">
+                    {email}
+                    <button type="button" onClick={() => removeEmail(email)} disabled={isRegistering} className="text-openclub-800/60 hover:text-openclub-800 disabled:opacity-50"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  onKeyDown={handleEmailKeyDown}
+                  onPaste={handleEmailPaste}
+                  placeholder={inviteEmails.length === 0 ? "Enter player emails..." : ""}
+                  disabled={isRegistering}
+                  className="flex-1 bg-transparent border-none outline-none text-openclub-800 placeholder:text-gray-400 text-[13px] min-w-[150px] p-1 disabled:cursor-not-allowed"
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
-              disabled={isRegistering || !debouncedRegisterPlayerSearch.trim() || !debouncedRegisterPlayerSearch.includes('@')}
+              disabled={isRegistering || (inviteEmails.length === 0 && !emailInput.trim())}
               className="w-full h-12 bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl font-normal"
             >
               {isRegistering ? (
@@ -1535,7 +1611,7 @@ export default function TournamentsPage() {
                   Inviting...
                 </div>
               ) : (
-                "Send Invitation"
+                "Send Invitations"
               )}
             </Button>
           </form>
