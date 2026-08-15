@@ -2356,11 +2356,11 @@ function ViewTournamentPageInner() {
                         <Button
                           onClick={(e) => setGroupingsMoreAnchorEl(e.currentTarget)}
                           variant="outline"
-                          size="icon"
                           disabled={groupingsLoading || !groupingsData?.groups?.length}
-                          className="h-11 w-11 inline-flex items-center justify-center rounded-xl bg-white text-gray-600 hover:bg-slate-50 transition-colors border border-slate-200 shadow-sm shrink-0 disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed"
+                          className="h-11 px-4 gap-2 inline-flex items-center justify-center rounded-xl bg-white text-gray-700 hover:bg-slate-50 hover:text-gray-900 transition-colors border border-slate-200 shadow-sm shrink-0 disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed font-normal text-[13px]"
                         >
-                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                          <MoreHorizontal className="w-4 h-4" />
+                          More
                         </Button>
                         <FloatingMenu
                           open={Boolean(groupingsMoreAnchorEl)}

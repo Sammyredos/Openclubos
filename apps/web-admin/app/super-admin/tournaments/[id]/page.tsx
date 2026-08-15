@@ -2646,11 +2646,11 @@ function ViewTournamentPageInner() {
                               }
                             }}
                             variant="outline"
-                            size="icon"
                             disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                            className="h-8 px-2.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm shrink-0 relative disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed"
+                            className="h-9 px-3 gap-1.5 inline-flex items-center justify-center rounded-md bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm shrink-0 relative disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed font-normal text-[12px]"
                           >
-                            <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                            More
                             {groupingsData && groupingsData.unassigned.length === 0 && groupingsData.groups.length > 0 && (
                               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
