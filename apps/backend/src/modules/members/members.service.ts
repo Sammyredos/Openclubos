@@ -890,7 +890,7 @@ export class MembersService {
 
     // Generate secure token
     const inviteToken = randomBytes(32).toString('hex');
-    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const inviteTokenExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create a placeholder password (user will set their own on acceptance)
     const placeholderPassword = await bcrypt.hash(
@@ -919,12 +919,24 @@ export class MembersService {
       },
     });
 
+    // Fetch actual club name if default is provided
+    let finalClubName = dto.clubName;
+    if (!finalClubName || finalClubName === 'Your Club') {
+      const club = await this.prisma.club.findUnique({
+        where: { id: dto.clubId },
+        select: { name: true },
+      });
+      if (club) {
+        finalClubName = club.name;
+      }
+    }
+
     // Queue the invitation email
     const inviteUrl = `${process.env.FRONTEND_URL}/accept-invite?token=${inviteToken}`;
     await this.jobsService.queueEmail('MANAGER_INVITE', email, {
       firstName: dto.firstName,
       inviteUrl,
-      clubName: dto.clubName,
+      clubName: finalClubName,
     });
 
     const { password, ...result } = user;

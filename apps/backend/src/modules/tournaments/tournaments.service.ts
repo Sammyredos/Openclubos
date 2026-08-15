@@ -1105,9 +1105,21 @@ export class TournamentsService {
   }
 
   async generateGroupings(tournamentId: string, day: number, rule: string) {
-    await this.clearGroupings(tournamentId, day);
+    if (rule === 'MANUAL_EMPTY') {
+      await this.clearGroupings(tournamentId, day);
+    }
+    
     const unassigned = await this.prisma.registration.findMany({
-      where: { tournamentId, status: 'APPROVED', paymentStatus: 'PAID' },
+      where: { 
+        tournamentId, 
+        status: 'APPROVED', 
+        paymentStatus: 'PAID',
+        groupings: {
+          none: {
+            group: { day }
+          }
+        }
+      },
       include: { user: true }
     });
     
@@ -1127,11 +1139,46 @@ export class TournamentsService {
     const startTimeStr = tournament?.teeStartTime || "08:00";
     const startType = tournament?.startType || "TEE_TIMES";
     
+    let existingGroups: any[] = [];
+    if (rule !== 'MANUAL_EMPTY') {
+      existingGroups = await this.prisma.group.findMany({
+        where: { tournamentId, day },
+        include: { players: true },
+        orderBy: { startTime: 'asc' }
+      });
+      
+      // Fill open slots in existing groups
+      for (const group of existingGroups) {
+        const currentCount = group.players.length;
+        const availableSlots = maxPlayersPerGroup - currentCount;
+        
+        if (availableSlots > 0 && unassigned.length > 0) {
+          const playersToFill = unassigned.splice(0, availableSlots);
+          await this.prisma.groupPlayer.createMany({
+            data: playersToFill.map(p => ({
+              groupId: group.id,
+              registrationId: p.id
+            }))
+          });
+        }
+      }
+    }
+    
     const [startHour, startMin] = startTimeStr.split(':').map(Number);
     let currentHour = isNaN(startHour) ? 8 : startHour;
     let currentMin = isNaN(startMin) ? 0 : startMin;
     
     let currentGroupIndex = 0;
+    if (existingGroups.length > 0) {
+      currentGroupIndex = existingGroups.length;
+      if (startType !== "SHOTGUN") {
+        currentMin += interval * currentGroupIndex;
+        if (currentMin >= 60) {
+          currentHour += Math.floor(currentMin / 60);
+          currentMin = currentMin % 60;
+        }
+      }
+    }
     
     while (unassigned.length > 0) {
       const playersChunk = unassigned.splice(0, maxPlayersPerGroup);
@@ -1163,12 +1210,15 @@ export class TournamentsService {
           startTime
         }
       });
-      await this.prisma.groupPlayer.createMany({
-        data: playersChunk.map(p => ({
-          groupId: group.id,
-          registrationId: p.id
-        }))
-      });
+      
+      if (rule !== "MANUAL_EMPTY") {
+        await this.prisma.groupPlayer.createMany({
+          data: playersChunk.map(p => ({
+            groupId: group.id,
+            registrationId: p.id
+          }))
+        });
+      }
       
       if (startType !== "SHOTGUN") {
         currentMin += interval;

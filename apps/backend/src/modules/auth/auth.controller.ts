@@ -133,7 +133,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   async logout(
     @Request() req: any,
@@ -141,12 +140,22 @@ export class AuthController {
     @Body() body: { refreshToken?: string },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const accessToken = auth?.replace('Bearer ', '');
-    await this.authService.logout(
-      req.user.userId,
-      accessToken,
-      body.refreshToken,
-    );
+    let accessToken = auth?.replace('Bearer ', '');
+    if (!accessToken && req.cookies && req.cookies.accessToken) {
+      accessToken = req.cookies.accessToken;
+    }
+    
+    if (accessToken) {
+      try {
+        await this.authService.logout(
+          req.user?.id || 'unknown',
+          accessToken,
+          body?.refreshToken,
+        );
+      } catch (error) {
+        // Ignore errors during blacklist if token is already invalid
+      }
+    }
     
     res.clearCookie('accessToken', {
       httpOnly: true,

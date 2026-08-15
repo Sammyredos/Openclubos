@@ -13,7 +13,7 @@ import {
   Plus,
   Download,
   Eye,
-  Edit2,
+  Pencil,
   Trash2,
   MoreHorizontal,
   ChevronRight,
@@ -653,36 +653,34 @@ export default function SuperAdminGolfCoursesPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          <div className="inline-flex rounded-md shadow-sm h-8">
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => router.push(`/super-admin/golf-courses/${course.id}/edit`)}
-                              className="h-8 pl-3 pr-2.5 inline-flex items-center justify-center gap-1.5 rounded-l-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-r-[rgba(255,255,255,0.2)]"
+                              className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
                               title="Edit Course"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Pencil className="w-3.5 h-3.5" />
                               <span className="text-[12px] font-medium leading-none whitespace-nowrap">Edit Course</span>
                             </button>
-                            <div className="relative">
-                              <button
-                                onClick={(e) => {
-                                  if (activeDropdown === course.id) {
-                                    closeDropdown();
-                                  } else {
-                                    if (closeTimeoutRef.current != null) {
-                                      window.clearTimeout(closeTimeoutRef.current);
-                                      closeTimeoutRef.current = null;
-                                    }
-                                    setActiveDropdown(course.id);
-                                    setDropdownAnchorEl(e.currentTarget);
-                                    setDropdownCourse(course);
+                            <button
+                              onClick={(e) => {
+                                if (activeDropdown === course.id) {
+                                  closeDropdown();
+                                } else {
+                                  if (closeTimeoutRef.current != null) {
+                                    window.clearTimeout(closeTimeoutRef.current);
+                                    closeTimeoutRef.current = null;
                                   }
-                                }}
-                                className="h-8 px-2 inline-flex items-center justify-center rounded-r-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] border-l-transparent"
-                                title="More Actions"
-                              >
-                                <ChevronDown className="w-4 h-4" />
-                              </button>
-                            </div>
+                                  setActiveDropdown(course.id);
+                                  setDropdownAnchorEl(e.currentTarget);
+                                  setDropdownCourse(course);
+                                }
+                              }}
+                              className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
+                              title="More Actions"
+                            >
+                              <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                            </button>
                           </div>
                         </div>
                       </td>

@@ -251,7 +251,7 @@ export class RegistrationsService {
     }
 
     const inviteToken = require('crypto').randomBytes(32).toString('hex');
-    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const inviteTokenExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     if (!user) {
       // Create shadow account

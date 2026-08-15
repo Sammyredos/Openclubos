@@ -2336,10 +2336,7 @@ function ViewTournamentPageInner() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3">
-
-
-
+                      <div className="flex flex-wrap items-center gap-2.5 bg-[#fafafa] p-3 rounded-xl border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
                         <Button
                           onClick={() => handleGenerateGroupings('MANUAL_EMPTY')}
                           disabled={
@@ -2481,7 +2478,7 @@ function ViewTournamentPageInner() {
                                       key={group.id}
                                       className={cn(
                                         "group bg-white rounded-xl border transition-all duration-300 overflow-visible flex flex-col shadow-lg",
-                                        isFull ? "border-emerald-100 bg-emerald-50/5" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
+                                        isFull ? "border-emerald-100 bg-white" : "border-[#e1efe5] hover:border-emerald-200 hover:shadow-xl"
                                       )}
                                     >
                                       <div className="p-5 flex items-start justify-between bg-[#278a4c] rounded-t-xl border-b border-[#1c6437]/50">

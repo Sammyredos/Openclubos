@@ -997,6 +997,29 @@ export class EmailService {
     const recipientName = await this.getRecipientName(to, 'Player');
     const title = isShotgun ? 'Hole Assignment Published' : 'Tee Time Published';
     
+    let formattedTeeTime = teeTime;
+    let formattedDate = '';
+    try {
+      const d = new Date(teeTime);
+      if (!isNaN(d.getTime())) {
+        formattedTeeTime = d.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'UTC'
+        });
+        formattedDate = d.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC'
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+    
     const html = this.wrap(
       title,
       `
@@ -1007,7 +1030,8 @@ export class EmailService {
       ${this.dataTable([
         { label: 'Tournament', value: tournamentName },
         { label: 'Round', value: roundName },
-        { label: isShotgun ? 'Start Time' : 'Tee Time', value: teeTime },
+        ...(formattedDate ? [{ label: 'Date', value: formattedDate }] : []),
+        { label: isShotgun ? 'Start Time' : 'Tee Time', value: formattedTeeTime },
         { label: isShotgun ? 'Starting Hole' : 'Flight', value: groupName },
       ])}
 
@@ -1111,7 +1135,7 @@ export class EmailService {
       
       ${this.button('Accept Invitation & Set Password', inviteUrl)}
       
-      ${this.p('This invitation link will expire in <strong>48 hours</strong>. If you did not expect this invitation, you can safely ignore this email.')}
+      ${this.p('This invitation link will expire in <strong>10 minutes</strong>. If you did not expect this invitation, you can safely ignore this email.')}
       ${this.p(`Best regards,<br/><strong>${clubName} Team</strong>`)}
     `,
       '#065f46, #047857',
