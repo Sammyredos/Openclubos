@@ -210,6 +210,7 @@ function ViewTournamentPageInner() {
   const [clubDetails, setClubDetails] = useState<Club | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [groupingsMoreAnchorEl, setGroupingsMoreAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [mutating, setMutating] = useState(false);
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -2576,6 +2577,42 @@ function ViewTournamentPageInner() {
                         </Button>
 
                         <Button
+                          onClick={(e) => setGroupingsMoreAnchorEl(e.currentTarget)}
+                          variant="outline"
+                          size="icon"
+                          disabled={groupingsLoading || !groupingsData?.groups?.length}
+                          className="h-11 w-11 inline-flex items-center justify-center rounded-xl bg-white text-gray-600 hover:bg-slate-50 transition-colors border border-slate-200 shadow-sm shrink-0 disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                        </Button>
+                        <FloatingMenu
+                          open={Boolean(groupingsMoreAnchorEl)}
+                          anchorEl={groupingsMoreAnchorEl}
+                          onClose={() => setGroupingsMoreAnchorEl(null)}
+                          placement="bottom-end"
+                        >
+                          <div className="w-48 py-1 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col">
+                            <button
+                              onClick={async () => {
+                                setGroupingsMoreAnchorEl(null);
+                                if (!selectedTournament || !groupingsData?.groups) return;
+                                try {
+                                  const { generateCartSigns } = await import('@/lib/pdf-generator');
+                                  await generateCartSigns(selectedTournament, groupingsData.groups);
+                                  toast.success("Cart signs downloaded!");
+                                } catch (err) {
+                                  toast.error("Failed to generate cart signs");
+                                }
+                              }}
+                              disabled={groupingsLoading || !groupingsData?.groups?.length}
+                              className="w-full px-4 py-2.5 flex items-center gap-3 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Download className="w-4 h-4 text-slate-500" />
+                              Print Cart Signs
+                            </button>
+                          </div>
+                        </FloatingMenu>
+                        <Button
                           disabled={
                             selectedTournament?.lockedGroupingsDays?.includes(selectedDay) ||
                             groupingsGenerating ||
@@ -2591,9 +2628,9 @@ function ViewTournamentPageInner() {
                         <Button
                           onClick={handleClearGroupings}
                           disabled={selectedTournament?.lockedGroupingsDays?.includes(selectedDay) || groupingsLoading || !groupingsData?.groups.length}
-                          className="bg-red-600 hover:bg-red-700 text-white h-11 px-5 text-[13px] font-normal rounded-xl shadow-sm border border-red-600/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
+                          className="bg-red-50 hover:bg-red-100 text-red-600 h-11 px-6 text-[14px] font-medium rounded-xl shadow-sm border border-dashed border-red-300 hover:border-red-400 disabled:bg-slate-50 disabled:text-gray-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-100 transition-all gap-2"
                         >
-                          <RefreshCcw className="w-3.5 h-3.5" />
+                          <RefreshCcw className="w-4 h-4" />
                           Reset All
                         </Button>
                       </div>
@@ -3313,6 +3350,17 @@ function ViewTournamentPageInner() {
                             {selectedLeaderboardDay === "all" ? "All Days" : `Day ${selectedLeaderboardDay}`}
                           </span>
                         </div>
+                      </div>
+
+                      <div className="flex items-center justify-end z-10 w-1/3">
+                        <NextLink
+                          href={`/tv/leaderboard/${tournamentId}`}
+                          target="_blank"
+                          className="px-5 py-2.5 text-[14px] font-normal rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all flex items-center gap-2"
+                        >
+                          <MonitorPlay className="w-4 h-4" />
+                          Launch TV Mode
+                        </NextLink>
                       </div>
 
                       <div className="flex items-center justify-end gap-3 z-10 w-1/3">
