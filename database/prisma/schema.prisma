@@ -10,7 +10,7 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(uuid())
+  id           String       @id @default(uuid(7))
   email        String       @unique
   password     String
   firstName    String?
@@ -106,7 +106,7 @@ enum ClubPlan {
 }
 
 model Club {
-  id        String     @id @default(uuid())
+  id        String     @id @default(uuid(7))
   name      String
   address   String?
   state     String?
@@ -140,7 +140,7 @@ enum CourseStatus {
 }
 
 model Course {
-  id          String  @id @default(uuid())
+  id          String  @id @default(uuid(7))
   name        String
   alsoKnownAs String?
   type        String  @default("Parkland")
@@ -181,7 +181,7 @@ model Course {
 }
 
 model TeeBox {
-  id      String @id @default(uuid())
+  id      String @id @default(uuid(7))
   name    String
   color   String
   yardage Int
@@ -193,7 +193,7 @@ model TeeBox {
 }
 
 model Hole {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid(7))
   number    Int
   par       Int
   index     Int?
@@ -213,7 +213,7 @@ enum TournamentStartType {
 }
 
 model Tournament {
-  id        String           @id @default(uuid())
+  id        String           @id @default(uuid(7))
   name      String
   startDate DateTime
   endDate   DateTime?
@@ -333,7 +333,7 @@ enum TournamentVisibility {
 }
 
 model Registration {
-  id               String             @id @default(uuid())
+  id               String             @id @default(uuid(7))
   registeredAt     DateTime           @default(now())
   updatedAt        DateTime           @updatedAt @default(now())
   status           RegistrationStatus @default(PENDING)
@@ -374,7 +374,7 @@ enum PaymentStatus {
 }
 
 model Group {
-  id        String    @id @default(uuid())
+  id        String    @id @default(uuid(7))
   name      String?
   startTime DateTime?
   day       Int       @default(1)
@@ -387,7 +387,7 @@ model Group {
 }
 
 model GroupPlayer {
-  id             String       @id @default(uuid())
+  id             String       @id @default(uuid(7))
   groupId        String
   registrationId String
   
@@ -399,7 +399,7 @@ model GroupPlayer {
 }
 
 model Score {
-  id         String   @id @default(uuid())
+  id         String   @id @default(uuid(7))
   strokes    Int
   putts      Int?
   points     Int? // Stableford points
@@ -432,7 +432,7 @@ enum ScoreStatus {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid(7))
   userId    String?
   action    String
   resource  String
@@ -444,7 +444,7 @@ model AuditLog {
 }
 
 model TournamentEmailLog {
-  id             String     @id @default(uuid())
+  id             String     @id @default(uuid(7))
   tournamentId   String
   emailType      String     // 'REMINDER', 'STARTED', 'COMPLETED'
   sentAt         DateTime   @default(now())
@@ -458,7 +458,7 @@ model TournamentEmailLog {
 }
 
 model SubscriptionPlan {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid(7))
   name           String   @unique
   description    String?
   amount         Float
@@ -474,7 +474,7 @@ model SubscriptionPlan {
 }
 
 model Subscription {
-  id                 String             @id @default(uuid())
+  id                 String             @id @default(uuid(7))
   clubId             String?
   userId             String?
   subscriptionPlanId String
@@ -501,7 +501,7 @@ enum SubscriptionStatus {
 }
 
 model Report {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7))
   name        String
   type        String   // "Tournament Results", "Financial", "Player List", "Analysis"
   status      String   @default("GENERATED")
