@@ -133,7 +133,7 @@ export default function PlansPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">Plan Name</th>
                   <th className="px-6 py-4">Audience</th>
                   <th className="px-6 py-4">Billing Cycle</th>

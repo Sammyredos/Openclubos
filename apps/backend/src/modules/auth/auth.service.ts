@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MemberStatus, UserRole } from '@prisma/client';
+import { MemberStatus, UserRole, RegistrationStatus, PaymentStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
@@ -610,6 +610,8 @@ export class AuthService {
     firstName?: string,
     lastName?: string,
     middleName?: string,
+    gender?: 'MALE' | 'FEMALE',
+    handicap?: number,
   ) {
     if (!token || !newPassword) {
       throw new BadRequestException('Token and password are required');
@@ -648,11 +650,62 @@ export class AuthService {
     if (lastName) {
       updateData.lastName = lastName.trim();
     }
+    
+    if (gender) {
+      updateData.gender = gender;
+    }
+    
+    if (handicap !== undefined) {
+      updateData.handicap = handicap;
+    }
 
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: updateData,
     });
+
+    // Check pending registrations for eligibility
+    const pendingRegistrations = await this.prisma.registration.findMany({
+      where: { userId: user.id, status: RegistrationStatus.PENDING },
+      include: { tournament: true },
+    });
+
+    for (const reg of pendingRegistrations) {
+      const tournament = reg.tournament;
+      let eligible = true;
+
+      // Gender check
+      if (tournament.genderRestriction === 'MALE_ONLY' && updatedUser.gender !== 'MALE') {
+        eligible = false;
+      } else if (tournament.genderRestriction === 'FEMALE_ONLY' && updatedUser.gender !== 'FEMALE') {
+        eligible = false;
+      }
+
+      // Handicap check
+      if (eligible && tournament.hasHandicapRestriction && updatedUser.handicap !== null) {
+        if (tournament.minHandicap !== null && updatedUser.handicap < tournament.minHandicap) {
+          eligible = false;
+        } else if (tournament.maxHandicap !== null && updatedUser.handicap > tournament.maxHandicap) {
+          eligible = false;
+        }
+      }
+
+      if (!eligible) {
+        // Mark as REJECTED due to ineligibility
+        await this.prisma.registration.update({
+          where: { id: reg.id },
+          data: { status: RegistrationStatus.REJECTED },
+        });
+      } else {
+        const isFree = !tournament.entryFee || Number(tournament.entryFee) === 0;
+        if (isFree) {
+          await this.prisma.registration.update({
+            where: { id: reg.id },
+            data: { status: RegistrationStatus.APPROVED, paymentStatus: PaymentStatus.PAID },
+          });
+        }
+      }
+    }
 
     // Auto-login: return JWT tokens
     return this.login(updatedUser);

@@ -246,7 +246,7 @@ export default function SubscriptionsPage() {
                 { value: "Cancelled", label: "Cancelled" },
               ]}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
             <SearchableSelect
@@ -262,7 +262,7 @@ export default function SubscriptionsPage() {
                 { value: "Professional", label: "Professional" },
               ]}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Plans"
             />
             <SearchableSelect
@@ -277,7 +277,7 @@ export default function SubscriptionsPage() {
                 { value: "Annual", label: "Annual" },
               ]}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Cycles"
             />
           </div>
@@ -287,7 +287,7 @@ export default function SubscriptionsPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] capitalize tracking-wider">
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">Organizer Details</th>
                   <th className="px-6 py-4">Plan Information</th>
                   <th className="px-6 py-4">Billing Cycle</th>

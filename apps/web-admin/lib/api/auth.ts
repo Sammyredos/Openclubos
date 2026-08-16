@@ -11,7 +11,8 @@ export interface AuthUser {
   name?: string;
   profilePhoto?: string;
   gender?: string;
-  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER';
+  handicap?: number;
+  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER' | 'MANAGER';
   clubId?: string;
   managerScope?: string;
   aiTournamentDescCount?: number;

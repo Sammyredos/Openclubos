@@ -539,12 +539,12 @@ export default function GolfCourseDetailPage() {
                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
                         <tr className="bg-background/50 border-b border-[#efefef] text-[#15803D]">
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Tee Name</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Type</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Par</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Yards</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Rating</th>
-                          <th className="py-3 px-4 text-[12px] font-normal text-[#15803D]">Slope</th>
+                          <th className="py-3 px-4">Tee Name</th>
+                          <th className="py-3 px-4">Type</th>
+                          <th className="py-3 px-4">Par</th>
+                          <th className="py-3 px-4">Yards</th>
+                          <th className="py-3 px-4">Rating</th>
+                          <th className="py-3 px-4">Slope</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">

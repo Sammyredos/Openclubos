@@ -1707,7 +1707,7 @@ function ViewTournamentPageInner() {
                           { value: "DISQUALIFIED", label: "Disqualified" },
                         ]}
                         className="min-w-[150px]"
-                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                         placeholder="All Status"
                       />
                       <SearchableSelect
@@ -1724,7 +1724,7 @@ function ViewTournamentPageInner() {
                           { value: "REFUNDED", label: "Refunded" },
                         ]}
                         className="min-w-[150px]"
-                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                         placeholder="All Payments"
                       />
                     </div>
@@ -1761,12 +1761,12 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto relative border-y border-[#e1efe5] bg-white">
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
-                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
-                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS & PAYMENT</th>
-                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DETAILS</th>
-                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-center">HANDICAP / PENALTY</th>
-                            <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                            <th className="px-4 py-4">PLAYER</th>
+                            <th className="px-4 py-4">STATUS & PAYMENT</th>
+                            <th className="px-4 py-4">DETAILS</th>
+                            <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                            <th className="px-4 py-4 text-right">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#efefef] bg-white">
@@ -2066,7 +2066,7 @@ function ViewTournamentPageInner() {
                           { value: "REJECTED", label: "Rejected Players" },
                         ]}
                         className="min-w-[170px]"
-                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
                       />
 
                       {waitlistFilter === "PENDING" && waitlist.length > 0 && (
@@ -2141,7 +2141,7 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto relative border-y border-[#e1efe5] bg-white">
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                          <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
+                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
                             {waitlistFilter === "PENDING" && (
                               <th className="w-12 px-4 py-4 text-center"></th>
                             )}
@@ -2827,7 +2827,7 @@ function ViewTournamentPageInner() {
                                                           value: p.id,
                                                           label: `${p.user?.firstName} ${p.user?.lastName} (HCP ${p.user?.handicap ?? 0} | ${getGolfCategory(p.user?.handicap) || 'Unknown'} | ${p.user?.gender ? p.user.gender.toUpperCase() : 'N/A'})`
                                                         }))}
-                                                        triggerClassName="h-9 text-[12px] bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
+                                                        triggerClassName="h-9 text-[12px] bg-white border-[#e1efe5] text-[#15803D] font-medium placeholder:text-[#15803D]/60"
                                                         className="w-full"
                                                       />
                                                     )}
@@ -2893,11 +2893,11 @@ function ViewTournamentPageInner() {
                                       <div className="overflow-x-auto border-y border-[#e1efe5]">
                                         <table className="w-full text-left">
                                           <thead>
-                                            <tr className="bg-[#f5faf6] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider border-b border-[#e1efe5]">
-                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
-                                              <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">ATTRIBUTES</th>
+                                            <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                                              <th className="px-4 py-3">PLAYER</th>
+                                              <th className="px-4 py-3">ATTRIBUTES</th>
                                               {!selectedTournament?.lockedGroupingsDays?.includes(selectedDay) && (
-                                                <th className="px-4 py-3 text-[11px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                                <th className="px-4 py-3 text-right">ACTIONS</th>
                                               )}
                                             </tr>
                                           </thead>
@@ -3061,7 +3061,7 @@ function ViewTournamentPageInner() {
                           { value: "DISQUALIFIED", label: "Disqualified Players" },
                         ]}
                         className="min-w-[170px]"
-                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
                       />
                       <SearchableSelect
                         value={penalizeStrokesFilter}
@@ -3074,7 +3074,7 @@ function ViewTournamentPageInner() {
                           { value: "WITH_STROKES", label: "With Strokes" },
                         ]}
                         className="min-w-[160px]"
-                        triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
+                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium rounded-lg text-[13px]"
                       />
                     </div>
                   </div>
@@ -3134,12 +3134,12 @@ function ViewTournamentPageInner() {
                           <div className="overflow-x-auto relative border-t border-[#e1efe5] bg-white">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                               <thead>
-                                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
-                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYER</th>
-                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS & PAYMENT</th>
-                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DETAILS</th>
-                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-center">HANDICAP / PENALTY</th>
-                                    <th className="px-4 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider text-right">ACTIONS</th>
+                                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                                    <th className="px-4 py-4">PLAYER</th>
+                                    <th className="px-4 py-4">STATUS & PAYMENT</th>
+                                    <th className="px-4 py-4">DETAILS</th>
+                                    <th className="px-4 py-4 text-center">HANDICAP / PENALTY</th>
+                                    <th className="px-4 py-4 text-right">ACTIONS</th>
                                   </tr>
                                 </thead>
                               <tbody className="divide-y divide-[#efefef] bg-white">

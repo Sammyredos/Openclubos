@@ -1183,7 +1183,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setClubFilter(v)}
                   options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Organizers"
                 />
                 <SearchableSelect
@@ -1191,7 +1191,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setStatusFilter(v)}
                   options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Status"
                 />
                 <SearchableSelect
@@ -1199,7 +1199,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setMonthFilter(v)}
                   options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Months"
                 />
                 <SearchableSelect
@@ -1207,7 +1207,7 @@ export default function TournamentsPage() {
                   onValueChange={(v) => setYearFilter(v)}
                   options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Years"
                 />
               </div>
@@ -1218,14 +1218,14 @@ export default function TournamentsPage() {
             <div className="w-full overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                 <thead>
-                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">TOURNAMENT</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ORGANIZER & VISIBILITY</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DATES</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">PLAYERS</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ENTRY FEE</th>
-                    <th className="px-6 py-4 text-center text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ACTIONS</th>
+                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                    <th className="px-6 py-4">TOURNAMENT</th>
+                    <th className="px-6 py-4">ORGANIZER & VISIBILITY</th>
+                    <th className="px-6 py-4">DATES</th>
+                    <th className="px-6 py-4">PLAYERS</th>
+                    <th className="px-6 py-4">STATUS</th>
+                    <th className="px-6 py-4">ENTRY FEE</th>
+                    <th className="px-6 py-4 text-center">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1efe5]">

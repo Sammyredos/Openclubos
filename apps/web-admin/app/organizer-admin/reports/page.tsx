@@ -266,7 +266,7 @@ export default function ReportsPage() {
                   placeholder="Search reports..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-[#f5faf6] text-[#15803D] focus:bg-[#e1efe5] placeholder:text-[#15803D]/60"
+                  className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-gray-50 placeholder:text-[#15803D]/60"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -281,7 +281,7 @@ export default function ReportsPage() {
                     { value: "Analysis", label: "Analysis" },
                   ]}
                   className="min-w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                 />
               </div>
             </div>
@@ -291,13 +291,13 @@ export default function ReportsPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#f5faf6] border-y border-[#e1efe5]">
                   <tr>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Report Name</th>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Format</th>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Size</th>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Generated</th>
-                    <th className="px-6 py-3 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-gray-600">Report Name</th>
+                    <th className="px-6 py-3 text-gray-600">Type</th>
+                    <th className="px-6 py-3 text-gray-600">Format</th>
+                    <th className="px-6 py-3 text-gray-600">Size</th>
+                    <th className="px-6 py-3 text-gray-600">Generated</th>
+                    <th className="px-6 py-3 text-gray-600">Status</th>
+                    <th className="px-6 py-3 text-right text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1efe5] bg-white">

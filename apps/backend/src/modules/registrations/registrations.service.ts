@@ -277,13 +277,16 @@ export class RegistrationsService {
       throw new ConflictException('Player is already registered for this tournament');
     }
 
+    const isFree = !tournament.entryFee || Number(tournament.entryFee) === 0;
+    const isCompleteProfile = !!(user.gender && user.handicap !== null);
+
     const registration = await this.prisma.registration.create({
       data: {
         userId: user.id,
         tournamentId,
         playerType: 'PLAYER',
-        status: RegistrationStatus.PENDING,
-        paymentStatus: PaymentStatus.UNPAID,
+        status: (isFree && isCompleteProfile) ? RegistrationStatus.APPROVED : RegistrationStatus.PENDING,
+        paymentStatus: isFree ? PaymentStatus.PAID : PaymentStatus.UNPAID,
       },
     });
 

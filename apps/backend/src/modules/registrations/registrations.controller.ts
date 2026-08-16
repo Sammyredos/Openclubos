@@ -30,7 +30,7 @@ export class RegistrationsController {
     const role = req.user?.role as UserRole;
     const isAdmin =
       role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
-    const userId = isAdmin && dto.userId ? dto.userId : req.user.userId;
+    const userId = isAdmin && dto.userId ? dto.userId : req.user.id;
     return this.registrationsService.register(userId, dto, isAdmin);
   }
 
@@ -48,7 +48,7 @@ export class RegistrationsController {
     @Query('take') take?: number,
   ) {
     return this.registrationsService.getMyRegistrations(
-      req.user.userId,
+      req.user.id,
       skip,
       take,
     );

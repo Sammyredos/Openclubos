@@ -280,7 +280,7 @@ export default function PaymentsPage() {
                         setMasterFilterDropdownAnchorEl(e.currentTarget);
                       }
                     }}
-                    className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-[#f5faf6] border border-[#e1efe5] text-[#15803D] font-medium text-[13px] transition-colors hover:bg-[#e1efe5]"
+                    className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-white border border-[#e1efe5] text-[#15803D] font-medium text-[13px] transition-colors hover:bg-gray-50"
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                     <span>Filters</span>
@@ -389,15 +389,15 @@ export default function PaymentsPage() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
+                <thead className="bg-[#f5faf6] border-b border-[#e1efe5]">
                   <tr>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Transaction</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Player</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Tournament</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4">Transaction</th>
+                    <th className="px-6 py-4">Player</th>
+                    <th className="px-6 py-4">Tournament</th>
+                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1efe5] bg-white">

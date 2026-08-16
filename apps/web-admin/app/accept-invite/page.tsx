@@ -23,6 +23,8 @@ const schema = z.object({
   firstName: z.string().min(1, { message: "First name is required." }),
   middleName: z.string().min(1, { message: "Middle name is required." }),
   lastName: z.string().min(1, { message: "Last name is required." }),
+  gender: z.enum(["MALE", "FEMALE"]),
+  handicap: z.number().min(-10).max(54),
   password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -54,7 +56,7 @@ function AcceptInvitePageInner() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { firstName: "", middleName: "", lastName: "", password: "", confirmPassword: "" },
+    defaultValues: { firstName: "", middleName: "", lastName: "", gender: "MALE", handicap: 0, password: "", confirmPassword: "" },
   })
 
   React.useEffect(() => {
@@ -110,6 +112,8 @@ function AcceptInvitePageInner() {
           firstName: data.firstName,
           lastName: data.lastName,
           middleName: data.middleName,
+          gender: data.gender,
+          handicap: data.handicap,
         }),
       })
 
@@ -259,6 +263,42 @@ function AcceptInvitePageInner() {
                       <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.lastName.message}</p>
                     )}
                   </div>
+
+                  {/* Gender and Handicap (Only for players) */}
+                  {inviteDetails?.role === "PLAYER" && (
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label htmlFor="gender" className="block text-sm font-medium text-zinc-700 mb-2">Gender</label>
+                        <select
+                          id="gender"
+                          className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          disabled={pageState === "loading"}
+                          {...form.register("gender")}
+                        >
+                          <option value="MALE">Male</option>
+                          <option value="FEMALE">Female</option>
+                        </select>
+                        {form.formState.errors.gender && (
+                          <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.gender.message}</p>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label htmlFor="handicap" className="block text-sm font-medium text-zinc-700 mb-2">Handicap Index</label>
+                        <input
+                          id="handicap"
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          disabled={pageState === "loading"}
+                          {...form.register("handicap", { valueAsNumber: true })}
+                        />
+                        {form.formState.errors.handicap && (
+                          <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.handicap.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Password field */}
                   <div>

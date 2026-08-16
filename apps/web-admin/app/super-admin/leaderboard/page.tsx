@@ -253,7 +253,7 @@ export default function LeaderboardDirectoryPage() {
                   onValueChange={(v) => setClubFilter(v)}
                   options={["All Organizers", ...uniqueClubs].map((v) => ({ value: v, label: v }))}
                   className="w-[300px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Organizers"
                 />
 
@@ -262,7 +262,7 @@ export default function LeaderboardDirectoryPage() {
                   onValueChange={(v) => setStatusFilter(v)}
                   options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
                   className="w-[160px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Status"
                 />
                 
@@ -271,7 +271,7 @@ export default function LeaderboardDirectoryPage() {
                   onValueChange={(v) => setMonthFilter(v)}
                   options={["All Months", ...uniqueMonths].map((v) => ({ value: v, label: v }))}
                   className="w-[150px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Months"
                 />
                 
@@ -280,7 +280,7 @@ export default function LeaderboardDirectoryPage() {
                   onValueChange={(v) => setYearFilter(v)}
                   options={["All Years", ...uniqueYears].map((v) => ({ value: v, label: v }))}
                   className="w-[130px]"
-                  triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Years"
                   searchable={false}
                 />
@@ -292,14 +292,14 @@ export default function LeaderboardDirectoryPage() {
             <div className="w-full overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                 <thead>
-                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">TOURNAMENT</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ORGANIZER</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">DATES</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">FORMAT</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ROUNDS</th>
-                    <th className="px-6 py-4 text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">STATUS</th>
-                    <th className="px-6 py-4 text-center text-[12px] font-semibold text-[#15803D] uppercase tracking-wider">ACTIONS</th>
+                  <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                    <th className="px-6 py-4">TOURNAMENT</th>
+                    <th className="px-6 py-4">ORGANIZER</th>
+                    <th className="px-6 py-4">DATES</th>
+                    <th className="px-6 py-4">FORMAT</th>
+                    <th className="px-6 py-4">ROUNDS</th>
+                    <th className="px-6 py-4">STATUS</th>
+                    <th className="px-6 py-4 text-center">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1efe5]">

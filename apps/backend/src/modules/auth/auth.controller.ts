@@ -260,6 +260,8 @@ export class AuthController {
       firstName?: string;
       lastName?: string;
       middleName?: string;
+      gender?: 'MALE' | 'FEMALE';
+      handicap?: number;
     },
   ) {
     return this.authService.acceptInvite(
@@ -268,6 +270,8 @@ export class AuthController {
       body.firstName,
       body.lastName,
       body.middleName,
+      body.gender,
+      body.handicap,
     );
   }
 }

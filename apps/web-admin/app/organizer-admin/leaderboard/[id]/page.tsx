@@ -1655,19 +1655,19 @@ function ViewTournamentPageInner() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-normal text-[#15803D] uppercase tracking-wider">
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider w-16 text-center">POS</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider">PLAYER</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">DIVISION</th>
+                          <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                            <th className="px-6 py-4 w-16 text-center">POS</th>
+                            <th className="px-6 py-4">PLAYER</th>
+                            <th className="px-6 py-4 text-center">DIVISION</th>
                             {getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                              <th key={`h-r${i}`} className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">R{i + 1}</th>
+                              <th key={`h-r${i}`} className="px-6 py-4 text-center">R{i + 1}</th>
                             ))}
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">HOLES</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">TOTAL GROSS</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">HCP</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">NET</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">TO PAR</th>
-                            <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">STATUS</th>
+                            <th className="px-6 py-4 text-center">HOLES</th>
+                            <th className="px-6 py-4 text-center">TOTAL GROSS</th>
+                            <th className="px-6 py-4 text-center">HCP</th>
+                            <th className="px-6 py-4 text-center">NET</th>
+                            <th className="px-6 py-4 text-center">TO PAR</th>
+                            <th className="px-6 py-4 text-center">STATUS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
@@ -1739,19 +1739,19 @@ function ViewTournamentPageInner() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[12px] font-normal text-[#15803D] uppercase tracking-wider">
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider w-16 text-center">POS</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider">PLAYER</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">DIVISION</th>
+                            <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                              <th className="px-6 py-4 w-16 text-center">POS</th>
+                              <th className="px-6 py-4">PLAYER</th>
+                              <th className="px-6 py-4 text-center">DIVISION</th>
                               {getTournamentDays() > 1 && Array.from({ length: getTournamentDays() }).map((_, i) => (
-                                <th key={`h-r${i}`} className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">R{i + 1}</th>
+                                <th key={`h-r${i}`} className="px-6 py-4 text-center">R{i + 1}</th>
                               ))}
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">HOLES</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">TOTAL GROSS</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">HCP</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">NET</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">TO PAR</th>
-                              <th className="px-6 py-4 text-[12px] font-normal text-gray-500 uppercase tracking-wider text-center">STATUS</th>
+                              <th className="px-6 py-4 text-center">HOLES</th>
+                              <th className="px-6 py-4 text-center">TOTAL GROSS</th>
+                              <th className="px-6 py-4 text-center">HCP</th>
+                              <th className="px-6 py-4 text-center">NET</th>
+                              <th className="px-6 py-4 text-center">TO PAR</th>
+                              <th className="px-6 py-4 text-center">STATUS</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">

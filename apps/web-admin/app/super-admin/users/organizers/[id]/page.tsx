@@ -757,7 +757,7 @@ export default function SuperAdminTeamPage() {
               }}
               options={roleSelectOptions}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Roles"
             />
             <SearchableSelect
@@ -768,7 +768,7 @@ export default function SuperAdminTeamPage() {
               }}
               options={statusSelectOptions}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Status"
             />
             <SearchableSelect
@@ -782,7 +782,7 @@ export default function SuperAdminTeamPage() {
                 label: v,
               }))}
               className="min-w-[160px]"
-              triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
               placeholder="All Handicaps"
             />
           </div>
@@ -791,7 +791,7 @@ export default function SuperAdminTeamPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">User Profile</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Status</th>
@@ -1658,7 +1658,7 @@ export default function SuperAdminTeamPage() {
                     </div>
                     <div className="overflow-hidden rounded-xl border border-[#efefef]">
                       <table className="w-full text-left">
-                        <thead className="bg-background text-[11px] font-normal text-[#15803D] uppercase tracking-wider">
+                        <thead className="bg-background">
                           <tr>
                             <th className="px-5 py-3">Tournament</th>
                             <th className="px-5 py-3">Amount</th>
@@ -1711,7 +1711,7 @@ export default function SuperAdminTeamPage() {
                     </div>
                     <div className="overflow-hidden rounded-xl border border-[#efefef]">
                       <table className="w-full text-left">
-                        <thead className="bg-background text-[11px] font-normal text-[#15803D] uppercase tracking-wider">
+                        <thead className="bg-background">
                           <tr>
                             <th className="px-5 py-3">Tournament</th>
                             <th className="px-5 py-3">Date</th>

@@ -404,7 +404,7 @@ export default function SuperAdminGolfCoursesPage() {
                 onValueChange={setCountryFilter}
                 options={countries}
                 className="min-w-[160px]"
-                triggerClassName="h-11 bg-[#f5faf6] border-[#e1efe5] text-[#15803D] font-medium"
+                triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                 placeholder="All Countries"
               />
               
@@ -418,7 +418,7 @@ export default function SuperAdminGolfCoursesPage() {
                     setMasterFilterDropdownAnchorEl(e.currentTarget);
                   }
                 }}
-                className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-[#f5faf6] border border-[#e1efe5] text-[#15803D] font-medium text-[14px] transition-colors hover:bg-[#e1efe5]"
+                className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-white border border-[#e1efe5] text-[#15803D] font-medium text-[14px] transition-colors hover:bg-gray-50"
               >
                 <SlidersHorizontal className="w-4 h-4" />
                 <span>Filters</span>
@@ -545,7 +545,7 @@ export default function SuperAdminGolfCoursesPage() {
           <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[11px] font-semibold text-[#15803D] uppercase tracking-wider">
+                <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
                   <th className="px-6 py-4">Course Info</th>
                   <th className="px-6 py-4">Location & Country</th>
                   <th className="px-6 py-4 text-center">Holes & Par</th>

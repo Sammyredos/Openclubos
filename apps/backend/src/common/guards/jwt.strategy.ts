@@ -110,6 +110,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         user.firstName || user.lastName
           ? `${user.firstName} ${user.lastName}`.trim()
           : undefined,
+      gender: user.gender || undefined,
+      handicap: user.handicap ?? undefined,
       managerScope: user.managerScope || undefined,
       aiTournamentDescCount: user.aiTournamentDescCount,
       aiTournamentDescResetAt: user.aiTournamentDescResetAt,
