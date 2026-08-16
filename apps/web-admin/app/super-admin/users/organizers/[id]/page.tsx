@@ -197,7 +197,7 @@ export default function SuperAdminTeamPage() {
   const [inviteFirstName, setInviteFirstName] = useState("");
   const [inviteMiddleName, setInviteMiddleName] = useState("");
   const [inviteLastName, setInviteLastName] = useState("");
-  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE">("FULL");
+  const [inviteScope, setInviteScope] = useState<"FULL" | "TOURNAMENTS" | "FINANCE" | "MARKER">("FULL");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -1915,6 +1915,29 @@ export default function SuperAdminTeamPage() {
                   </div>
                 </div>
                 {inviteScope === "FINANCE" && (
+                  <div className="absolute top-4 right-4">
+                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Marker Card */}
+              <div
+                onClick={() => setInviteScope("MARKER")}
+                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "MARKER" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "MARKER" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-medium ${inviteScope === "MARKER" ? "text-zinc-900" : "text-zinc-700"}`}>Marker Only</h4>
+                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                      Input scores and verify play during tournaments. No access to other management features.
+                    </p>
+                  </div>
+                </div>
+                {inviteScope === "MARKER" && (
                   <div className="absolute top-4 right-4">
                     <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
                   </div>

@@ -43,4 +43,14 @@ Always ensure that every page has a distinct title shown in the browser tab.
    ```
 
 ## Workspace Cleanup
-- Always remove all unused scripts, scratch files, and temporary code blocks immediately after they are no longer needed.
+- delete any x.py,test.tsc, fix.tsc,x.tsc,x.script and others that is not needed in my code .
+
+## Code Review Rule
+- After writing code, you must always run a syntax/type check and perform a senior-level stability review. You must then explain your corrections conceptually without using code.
+
+## Admin UI Synchronization
+- Whenever modifying features, modal states, or UI components within the `organizer-admin` directory, you must immediately verify if the equivalent file exists in the `super-admin` directory.
+- Apply structural and feature changes to both views synchronously to prevent divergent user experiences.
+
+## NextLink Button Styling
+- When styling a Next.js `<NextLink>` component to look like a button, always append the `no-underline` Tailwind class to ensure default browser link decorations do not override the button aesthetics.
