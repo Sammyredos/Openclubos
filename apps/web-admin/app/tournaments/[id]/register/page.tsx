@@ -35,9 +35,10 @@ export default function TournamentRegistrationPage() {
   const [tournament, setTournament] = React.useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [playerType] = React.useState("MEMBER")
   const [paymentRef, setPaymentRef] = React.useState("")
   const { user } = useAuth()
+  
+  const playerCategory = getGolfCategory(user?.handicap)
 
   React.useEffect(() => {
     async function loadTournament() {
@@ -60,7 +61,7 @@ export default function TournamentRegistrationPage() {
     try {
       await registerForTournament({
         tournamentId: tournament!.id,
-        playerType,
+        playerType: playerCategory,
         paymentReference: tournament!.entryFee && tournament!.entryFee > 0 ? paymentRef : undefined
       })
       setStep("success")
@@ -215,7 +216,7 @@ export default function TournamentRegistrationPage() {
                     <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Player Category <span className="text-red-500">*</span></p>
                     <p className="text-[12px] text-gray-400 mb-2">Your category for this tournament.</p>
                     <div className="text-[15px] font-medium text-[#1b2533]">
-                      {getGolfCategory(user?.handicap)}
+                      {playerCategory}
                     </div>
                   </div>
                   <div>
