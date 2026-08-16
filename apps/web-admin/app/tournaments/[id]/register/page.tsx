@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { registerForTournament } from "@/lib/api/registrations"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { getGolfCategory } from "@/lib/utils"
 
 type Step = "details" | "payment" | "success"
 
@@ -211,10 +212,10 @@ export default function TournamentRegistrationPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Player Type <span className="text-red-500">*</span></p>
-                    <p className="text-[12px] text-gray-400 mb-2">Your role in this tournament.</p>
+                    <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Player Category <span className="text-red-500">*</span></p>
+                    <p className="text-[12px] text-gray-400 mb-2">Your category for this tournament.</p>
                     <div className="text-[15px] font-medium text-[#1b2533]">
-                      {playerType}
+                      {getGolfCategory(user?.handicap)}
                     </div>
                   </div>
                   <div>
