@@ -514,3 +514,17 @@ model Report {
 
   @@index([clubId])
 }
+
+model WebhookLog {
+  id        String   @id @default(uuid(7))
+  eventId   String   @unique
+  provider  String   // STRIPE, PAYSTACK
+  type      String
+  status    String   // PENDING, PROCESSED, FAILED
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([provider, status])
+}

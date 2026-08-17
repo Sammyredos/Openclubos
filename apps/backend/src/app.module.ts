@@ -7,6 +7,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import * as Sentry from '@sentry/nestjs';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { redisStore } from 'cache-manager-ioredis-yet';
@@ -30,6 +31,9 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 
 
 import { validate } from './config/env.validation';
@@ -50,8 +54,16 @@ if (process.env.SENTRY_DSN) {
       validate,
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot({
-      throttlers: [{ ttl: 60000, limit: 100 }],
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+        return {
+          throttlers: [{ ttl: 60000, limit: 100 }],
+          storage: new ThrottlerStorageRedisService(redisUrl),
+        };
+      },
     }),
     NestCacheModule.registerAsync({
       isGlobal: true,
@@ -82,9 +94,14 @@ if (process.env.SENTRY_DSN) {
     CoursesModule,
     UploadsModule,
     JobsModule,
+    BullBoardModule.forRoot({
+      route: '/api/queues',
+      adapter: ExpressAdapter,
+    }),
     HealthModule,
     EmailModule,
     SubscriptionsModule,
+    PaymentsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

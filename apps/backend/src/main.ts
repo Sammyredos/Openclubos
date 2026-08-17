@@ -12,6 +12,7 @@ import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { RedisIoAdapter } from './common/redis-io.adapter';
 
 // Load .env from root
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
@@ -19,7 +20,9 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // Trust proxy (required for rate limiting behind Nginx/ALB)
   app.set('trust proxy', 1);
@@ -73,6 +76,11 @@ async function bootstrap() {
 
   // Global Exception Filter
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // WebSockets Redis Adapter
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis(process.env.REDIS_URL || 'redis://localhost:6379');
+  app.useWebSocketAdapter(redisIoAdapter);
 
   // Swagger — only in development
   if (process.env.NODE_ENV !== 'production') {

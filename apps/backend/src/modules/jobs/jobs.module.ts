@@ -1,6 +1,8 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { EmailModule } from '../email/email.module';
 import { TournamentsModule } from '../tournaments/tournaments.module';
 import { JobsProcessor } from './jobs.processor.js';
@@ -40,6 +42,16 @@ import { JobsService } from './jobs.service.js';
     BullModule.registerQueue({
       name: 'background-jobs',
     }),
+    BullBoardModule.forFeature(
+      {
+        name: 'background-jobs',
+        adapter: BullMQAdapter,
+      },
+      {
+        name: 'webhooks',
+        adapter: BullMQAdapter,
+      },
+    ),
     forwardRef(() => TournamentsModule),
     EmailModule,
   ],

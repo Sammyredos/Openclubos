@@ -8,6 +8,7 @@ import { ScoreStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
 import { CreateScoreDto } from './dto/create-score.dto';
+import { LeaderboardGateway } from './leaderboard.gateway';
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -16,6 +17,7 @@ export class ScoresService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
+    private leaderboardGateway: LeaderboardGateway,
   ) {}
 
   async upsertScore(createScoreDto: CreateScoreDto, currentUser: any) {
@@ -76,13 +78,19 @@ export class ScoresService {
         );
       }
 
-      return this.prisma.score.update({
+      const updatedScore = await this.prisma.score.update({
         where: { id: existingScore.id },
         data: { strokes, putts, points, recordedAt: new Date() },
       });
+
+      if (groupId) {
+        const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { tournamentId: true } });
+        if (group) this.leaderboardGateway.broadcastScoreUpdate(group.tournamentId, updatedScore);
+      }
+      return updatedScore;
     }
 
-    return this.prisma.score.create({
+    const newScore = await this.prisma.score.create({
       data: {
         strokes,
         putts,
@@ -93,6 +101,13 @@ export class ScoresService {
         status: ScoreStatus.ENTERED,
       },
     });
+
+    if (groupId) {
+      const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { tournamentId: true } });
+      if (group) this.leaderboardGateway.broadcastScoreUpdate(group.tournamentId, newScore);
+    }
+
+    return newScore;
   }
 
   async confirmScore(id: string, markerUser: any) {
@@ -139,6 +154,10 @@ export class ScoresService {
         .catch((err) => {
           console.error('Failed to queue scoreConfirmed email:', err);
         });
+    }
+
+    if (score.groupId && score.group?.tournamentId) {
+      this.leaderboardGateway.broadcastScoreUpdate(score.group.tournamentId, updated);
     }
 
     return updated;
