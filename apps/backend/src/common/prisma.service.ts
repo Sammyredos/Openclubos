@@ -42,15 +42,26 @@ export class PrismaService
           : [],
     });
 
-    const replicaUrl = process.env.DATABASE_URL_REPLICA || connectionString;
-    const replicaPool = new pg.Pool({
-      connectionString: replicaUrl,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
-    const replicaAdapter = new PrismaPg(replicaPool);
-    const replicaClient = new PrismaClient({ adapter: replicaAdapter });
+    // Only enable separate read replica extension in production with a distinct replica URL
+    const hasDistinctReplica =
+      process.env.NODE_ENV === 'production' &&
+      process.env.DATABASE_URL_REPLICA &&
+      process.env.DATABASE_URL_REPLICA !== connectionString;
+
+    let baseExtension: any = this;
+    if (hasDistinctReplica) {
+      const replicaUrl = process.env.DATABASE_URL_REPLICA!;
+      const replicaPool = new pg.Pool({
+        connectionString: replicaUrl,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+      });
+      const replicaAdapter = new PrismaPg(replicaPool);
+      const replicaClient = new PrismaClient({ adapter: replicaAdapter });
+      baseExtension = this.$extends(readReplicas({ replicas: [replicaClient] }));
+    }
+
     // Build soft-delete query overrides for each model
     const softDeleteOverride = {
       async findFirst({ args, query }: any) {
@@ -82,9 +93,7 @@ export class PrismaService
       },
     };
 
-    const extended = this.$extends(
-      readReplicas({ replicas: [replicaClient] }),
-    ).$extends({
+    const extended = baseExtension.$extends({
       query: {
         user: softDeleteOverride,
         club: softDeleteOverride,

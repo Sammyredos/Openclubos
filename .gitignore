@@ -56,6 +56,8 @@ mobile-app/.metadata
 !prisma.config.ts
 !database/prisma/seed.ts
 scratch/
+database/.seed.txt
+database/.seed.ts
 
 # Graphify
 graphify-out/
