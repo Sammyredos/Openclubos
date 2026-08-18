@@ -1,17 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { PrismaService } from '../../common/prisma.service';
+import { EmailCircuitBreakerService, EmailDispatchResult } from './email-circuit-breaker.service';
 
 export interface EmailResult {
   messageId: string;
   previewUrl: string | null;
+  provider?: string;
 }
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(private readonly mailer: MailerService, private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly mailer: MailerService,
+    private readonly prisma: PrismaService,
+    private readonly circuitBreaker: EmailCircuitBreakerService,
+  ) {}
 
   
   private async getRecipientName(email: string, defaultName: string): Promise<string> {
@@ -210,11 +216,16 @@ export class EmailService {
     html: string,
     logMsg: string,
   ): Promise<EmailResult> {
-    const result = await this.mailer.sendMail({ to, subject, html });
-    this.logger.log(`${logMsg} | messageId=${result.messageId}`);
+    const result = await this.circuitBreaker.sendWithFallback(
+      to,
+      subject,
+      html,
+      logMsg,
+    );
     return {
       messageId: result.messageId,
-      previewUrl: this.getPreviewUrl(result),
+      previewUrl: result.previewUrl,
+      provider: result.provider,
     };
   }
 

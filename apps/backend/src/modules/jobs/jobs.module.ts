@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { EmailModule } from '../email/email.module';
+import { ScoresModule } from '../scores/scores.module';
 import { TournamentsModule } from '../tournaments/tournaments.module';
 import { JobsProcessor } from './jobs.processor.js';
 import { JobsService } from './jobs.service.js';
@@ -14,8 +15,31 @@ import { JobsService } from './jobs.service.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const sentinelsEnv = configService.get<string>('QUEUE_REDIS_SENTINELS');
+        const sentinelMaster = configService.get<string>('QUEUE_REDIS_SENTINEL_MASTER') || 'mymaster';
+
+        if (sentinelsEnv) {
+          const sentinels = sentinelsEnv.split(',').map((s) => {
+            const [host, port] = s.trim().split(':');
+            return { host, port: parseInt(port || '26379', 10) };
+          });
+          return {
+            connection: {
+              name: sentinelMaster,
+              sentinels,
+              password: configService.get<string>('QUEUE_REDIS_PASSWORD') || undefined,
+              maxRetriesPerRequest: null,
+              enableReadyCheck: false,
+              retryStrategy: (times: number) => Math.min(times * 100, 3000),
+              reconnectOnError: () => true,
+            },
+          };
+        }
+
         const redisUrl =
-          configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+          configService.get<string>('QUEUE_REDIS_URL') ||
+          configService.get<string>('REDIS_URL') ||
+          'redis://localhost:6380';
         try {
           const parsed = new URL(redisUrl);
           return {
@@ -27,13 +51,21 @@ import { JobsService } from './jobs.service.js';
               db: parsed.pathname
                 ? parseInt(parsed.pathname.substring(1), 10)
                 : undefined,
+              maxRetriesPerRequest: null,
+              enableReadyCheck: false,
+              retryStrategy: (times: number) => Math.min(times * 100, 3000),
+              reconnectOnError: () => true,
             },
           };
         } catch {
           return {
             connection: {
               host: 'localhost',
-              port: 6379,
+              port: 6380,
+              maxRetriesPerRequest: null,
+              enableReadyCheck: false,
+              retryStrategy: (times: number) => Math.min(times * 100, 3000),
+              reconnectOnError: () => true,
             },
           };
         }
@@ -53,6 +85,7 @@ import { JobsService } from './jobs.service.js';
       },
     ),
     forwardRef(() => TournamentsModule),
+    forwardRef(() => ScoresModule),
     EmailModule,
   ],
   providers: [JobsService, JobsProcessor],

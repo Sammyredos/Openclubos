@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-08-18T14:51:58.749Z",
+  "filename": "openclub-db-backup-2026-08-18T14-51-57-535Z.sql.gz",
+  "sizeBytes": 1986456,
+  "rpoTarget": "< 5 minutes (WAL)",
+  "rtoTarget": "< 30 minutes",
+  "status": "VERIFIED"
+}

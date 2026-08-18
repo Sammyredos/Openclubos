@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EmailController } from './email.controller';
 import { EmailService } from './email.service';
+import { EmailCircuitBreakerService } from './email-circuit-breaker.service';
 
 const logger = new Logger('EmailModule');
 
@@ -51,7 +52,7 @@ const logger = new Logger('EmailModule');
     }),
   ],
   controllers: [EmailController],
-  providers: [EmailService],
-  exports: [EmailService],
+  providers: [EmailService, EmailCircuitBreakerService],
+  exports: [EmailService, EmailCircuitBreakerService],
 })
 export class EmailModule {}

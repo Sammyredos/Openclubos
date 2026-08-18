@@ -866,6 +866,11 @@ export class TournamentsService {
     return { success: true, message: 'Groupings publication emails queued' };
   }
 
+  /**
+   * Server-side cutline calculation engine with official golf tie resolution.
+   * Calculates standings, applies Top N and ties threshold, updates Registration.madeCut in Postgres,
+   * dispatches player notification jobs, and records an immutable AuditLog entry.
+   */
   async applyCut(tournamentId: string) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
@@ -884,81 +889,107 @@ export class TournamentsService {
     }
 
     if (!tournament.enableCut || !tournament.cutLine) {
-      throw new Error('Tournament does not have a cut rule enabled.');
+      throw new ConflictException('Tournament does not have a cut rule enabled or configured.');
     }
 
-    // Fetch aggregated scores for this tournament to avoid memory overload
-    const aggregatedScores = await this.prisma.score.groupBy({
-      by: ['userId'],
+    const cutTarget = tournament.cutLine; // e.g. Top 50 or percentage
+    if (tournament.registrations.length === 0) {
+      return { success: true, message: 'No registered players found to evaluate for cut.', madeCutCount: 0, missedCutCount: 0 };
+    }
+
+    const scores = await this.prisma.score.findMany({
       where: { group: { tournamentId } },
-      _sum: { strokes: true },
     });
 
-    // Map the aggregated scores to a user lookup dictionary
-    const userScores: Record<string, number> = {};
-    aggregatedScores.forEach((agg) => {
-      userScores[agg.userId] = agg._sum.strokes || 0;
-    });
-
-    // Calculate total scores for each player
+    // Compute player scores
     const playerScores = tournament.registrations.map((reg) => {
-      const totalStrokes = userScores[reg.userId] || 0;
+      const pScores = scores.filter((s) => s.userId === reg.userId);
+      const gross = pScores.reduce((sum, s) => sum + s.strokes, 0);
+      const points = pScores.reduce((sum, s) => sum + (s.points || 0), 0);
+      const net = gross - (reg.user.handicap || 0);
+
+      const scoreValue = tournament.format === 'STABLEFORD' ? points : tournament.scoringType === 'NET' ? net : gross;
       return {
         registrationId: reg.id,
-        totalStrokes,
+        userId: reg.userId,
+        email: reg.user.email,
+        name: `${reg.user.firstName || ''} ${reg.user.lastName || ''}`.trim(),
+        scoreValue,
+        thru: pScores.length,
       };
     });
 
-    // Sort players by strokes ascending (lower is better in golf)
-    playerScores.sort((a, b) => a.totalStrokes - b.totalStrokes);
+    // Sort players: Stableford is descending (highest points wins), Stroke Play is ascending (lowest score wins)
+    if (tournament.format === 'STABLEFORD') {
+      playerScores.sort((a, b) => b.scoreValue - a.scoreValue);
+    } else {
+      playerScores.sort((a, b) => a.scoreValue - b.scoreValue);
+    }
 
-    let targetCount = tournament.cutLine;
+    let targetCount = cutTarget;
     if (targetCount < 0) {
-      // It's a percentage
       const percentage = Math.abs(targetCount);
-      // Calculate how many players should advance
-      targetCount = Math.max(
-        1,
-        Math.floor((playerScores.length * percentage) / 100),
-      );
+      targetCount = Math.max(1, Math.floor((playerScores.length * percentage) / 100));
     }
 
-    // Find the score at the cut line position (e.g. 50th player).
-    // Note: arrays are 0-indexed, so 50th player is at index 49
     const cutLineIndex = Math.min(targetCount - 1, playerScores.length - 1);
-    const cutScoreThreshold = playerScores[cutLineIndex]?.totalStrokes;
-
-    if (cutScoreThreshold === undefined) {
-      return { success: true, message: 'Not enough players to apply cut' };
-    }
+    const thresholdValue = playerScores[cutLineIndex]?.scoreValue ?? 0;
 
     const passedPlayers: { email: string; name: string }[] = [];
     const missedPlayers: { email: string; name: string }[] = [];
+    const qualifiedIds: string[] = [];
+    const missedIds: string[] = [];
 
-    const updates = playerScores.map((player) => {
-      const madeCut = player.totalStrokes <= cutScoreThreshold;
+    for (const player of playerScores) {
+      const madeCut =
+        tournament.format === 'STABLEFORD'
+          ? player.scoreValue >= thresholdValue
+          : player.scoreValue <= thresholdValue;
 
-      const reg = tournament.registrations.find(
-        (r) => r.id === player.registrationId,
-      );
-      if (reg && reg.user && reg.user.email) {
-        const playerName = `${reg.user.firstName} ${reg.user.lastName}`.trim();
-        if (madeCut) {
-          passedPlayers.push({ email: reg.user.email, name: playerName });
-        } else {
-          missedPlayers.push({ email: reg.user.email, name: playerName });
-        }
+      if (madeCut) {
+        qualifiedIds.push(player.registrationId);
+        if (player.email) passedPlayers.push({ email: player.email, name: player.name });
+      } else {
+        missedIds.push(player.registrationId);
+        if (player.email) missedPlayers.push({ email: player.email, name: player.name });
+      }
+    }
+
+    // Atomic Database Updates
+    await this.prisma.$transaction(async (tx) => {
+      if (qualifiedIds.length > 0) {
+        await tx.registration.updateMany({
+          where: { id: { in: qualifiedIds } },
+          data: { madeCut: true },
+        });
       }
 
-      return this.prisma.registration.update({
-        where: { id: player.registrationId },
-        data: { madeCut },
+      if (missedIds.length > 0) {
+        await tx.registration.updateMany({
+          where: { id: { in: missedIds } },
+          data: { madeCut: false },
+        });
+      }
+
+      // Record Audit Log
+      await tx.auditLog.create({
+        data: {
+          action: 'APPLY_CUT',
+          resource: 'Tournament',
+          before: { tournamentId, status: 'PRE_CUT' },
+          after: {
+            tournamentId,
+            cutTarget,
+            thresholdValue,
+            madeCutCount: qualifiedIds.length,
+            missedCutCount: missedIds.length,
+            appliedAt: new Date().toISOString(),
+          },
+        },
       });
     });
 
-    await this.prisma.$transaction(updates);
-
-    // Queue emails in the background
+    // Queue cut result emails
     const jobs: any[] = [];
     for (const player of passedPlayers) {
       jobs.push({
@@ -994,7 +1025,15 @@ export class TournamentsService {
       });
     }
 
-    return { success: true, message: 'Cut applied successfully' };
+    return {
+      success: true,
+      tournamentId,
+      cutTarget,
+      thresholdValue,
+      madeCutCount: qualifiedIds.length,
+      missedCutCount: missedIds.length,
+      message: 'Cut applied successfully with official tie resolution.',
+    };
   }
 
   async getGroupings(tournamentId: string, day: number) {

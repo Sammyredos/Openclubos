@@ -67,6 +67,21 @@ export class PrismaService
       },
     };
 
+    const immutableAuditLogOverride = {
+      async update() {
+        throw new Error('SECURITY VIOLATION: AuditLog is append-only and immutable. Updates are forbidden.');
+      },
+      async updateMany() {
+        throw new Error('SECURITY VIOLATION: AuditLog is append-only and immutable. Updates are forbidden.');
+      },
+      async delete() {
+        throw new Error('SECURITY VIOLATION: AuditLog is append-only and immutable. Deletions are forbidden.');
+      },
+      async deleteMany() {
+        throw new Error('SECURITY VIOLATION: AuditLog is append-only and immutable. Deletions are forbidden.');
+      },
+    };
+
     const extended = this.$extends(
       readReplicas({ replicas: [replicaClient] }),
     ).$extends({
@@ -74,6 +89,7 @@ export class PrismaService
         user: softDeleteOverride,
         club: softDeleteOverride,
         tournament: softDeleteOverride,
+        auditLog: immutableAuditLogOverride,
       },
     });
 
@@ -126,6 +142,20 @@ export class PrismaService
         trace,
       );
     }
+  }
+
+  /**
+   * Executes a database transaction with transaction-local tenant context.
+   * Uses SET LOCAL / set_config(..., is_local = true) to prevent tenant leaks across PgBouncer pooled connections.
+   */
+  async $tenantTransaction<T>(
+    tenantId: string,
+    fn: (tx: any) => Promise<T>,
+  ): Promise<T> {
+    return this.$transaction(async (tx: any) => {
+      await tx.$executeRawUnsafe(`SELECT set_config('app.current_tenant', $1, true)`, tenantId);
+      return fn(tx);
+    });
   }
 
   async onModuleDestroy() {

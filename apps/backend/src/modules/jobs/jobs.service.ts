@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
+import { TraceContextService } from '../../common/services/trace-context.service';
 
 @Injectable()
 export class JobsService implements OnModuleInit {
@@ -58,6 +59,22 @@ export class JobsService implements OnModuleInit {
       this.logger.log(
         'Repeatable job DATA_RETENTION_CLEANUP registered successfully.',
       );
+
+      await this.queue.add(
+        'RECONCILE_LEADERBOARDS',
+        {},
+        {
+          repeat: {
+            pattern: '*/1 * * * *', // Run every 60 seconds
+          },
+          jobId: 'reconcile-leaderboards',
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      this.logger.log(
+        'Repeatable job RECONCILE_LEADERBOARDS (60s interval) registered successfully.',
+      );
     } catch (err) {
       this.logger.error(
         `Failed to schedule repeatable job: ${err instanceof Error ? err.message : String(err)}`,
@@ -77,13 +94,16 @@ export class JobsService implements OnModuleInit {
     to: string,
     data: Record<string, any> = {},
   ) {
+    const correlationId = TraceContextService.getCorrelationId();
+    const sentryTrace = TraceContextService.getSentryTrace();
+
     this.logger.log(
-      `Enqueuing SEND_EMAIL job (template=${template}, to=${to})`,
+      `Enqueuing SEND_EMAIL job (template=${template}, to=${to}, correlationId=${correlationId})`,
     );
     try {
       const job = await this.queue.add(
         'SEND_EMAIL',
-        { template, to, data },
+        { template, to, data, _correlationId: correlationId, _sentryTrace: sentryTrace },
         {
           removeOnComplete: true,
           removeOnFail: false,
@@ -108,11 +128,18 @@ export class JobsService implements OnModuleInit {
       data: { template: string; to: string; data?: Record<string, any> };
     }[],
   ) {
-    this.logger.log(`Enqueuing ${jobs.length} SEND_EMAIL jobs in bulk`);
+    const correlationId = TraceContextService.getCorrelationId();
+    const sentryTrace = TraceContextService.getSentryTrace();
+
+    this.logger.log(`Enqueuing ${jobs.length} SEND_EMAIL jobs in bulk (correlationId=${correlationId})`);
     try {
       const bullJobs = jobs.map((j) => ({
         name: j.name,
-        data: j.data,
+        data: {
+          ...j.data,
+          _correlationId: correlationId,
+          _sentryTrace: sentryTrace,
+        },
         opts: {
           removeOnComplete: true,
           removeOnFail: false,

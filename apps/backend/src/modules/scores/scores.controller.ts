@@ -69,4 +69,13 @@ export class ScoresController {
       take ? Number(take) : undefined,
     );
   }
+
+  @Get('verify/:tournamentId/:userId')
+  verifyScorecard(
+    @Param('tournamentId') tournamentId: string,
+    @Param('userId') userId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.scoresService.verifyScorecard(tournamentId, userId, groupId);
+  }
 }

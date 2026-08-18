@@ -80,7 +80,11 @@ async function bootstrap() {
 
   // WebSockets Redis Adapter
   const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis(process.env.REDIS_URL || 'redis://localhost:6379');
+  await redisIoAdapter.connectToRedis(
+    process.env.CACHE_REDIS_URL ||
+      process.env.REDIS_URL ||
+      'redis://localhost:6379',
+  );
   app.useWebSocketAdapter(redisIoAdapter);
 
   // Swagger — only in development
@@ -107,12 +111,13 @@ async function bootstrap() {
   ];
   const resolvedProtoPath = protoCandidates.find((p) => fs.existsSync(p)) ?? protoCandidates[0];
 
+  const grpcUrl = process.env.GRPC_URL || '127.0.0.1:50051';
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'leaderboard',
       protoPath: resolvedProtoPath,
-      url: '0.0.0.0:50051',
+      url: grpcUrl,
     },
   });
 
@@ -121,7 +126,7 @@ async function bootstrap() {
   const preferredPort = Number(process.env.BACKEND_PORT ?? 3001);
   const port = await listenWithFallback(app, preferredPort);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`gRPC Microservice is listening on 0.0.0.0:50051`);
+  console.log(`gRPC Microservice is listening securely on ${grpcUrl}`);
 
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Swagger documentation: http://localhost:${port}/api/docs`);

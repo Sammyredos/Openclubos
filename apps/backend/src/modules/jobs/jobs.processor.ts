@@ -1,8 +1,11 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma.service';
+import { TraceContextService } from '../../common/services/trace-context.service';
 import { EmailService } from '../email/email.service';
+import { ScoresService } from '../scores/scores.service';
 import { TournamentsService } from '../tournaments/tournaments.service';
 
 interface SendEmailJobPayload {
@@ -18,6 +21,8 @@ export class JobsProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TournamentsService))
     private readonly tournamentsService: TournamentsService,
+    @Inject(forwardRef(() => ScoresService))
+    private readonly scoresService: ScoresService,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
   ) {
@@ -25,15 +30,27 @@ export class JobsProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<any> {
-    this.logger.log(`Starting job ${job.name} (ID: ${job.id})`);
-    try {
-      switch (job.name) {
-        case 'AUTO_UPDATE_TOURNAMENTS':
-          await this.tournamentsService.autoUpdateStatuses();
-          this.logger.log(
-            `Completed job AUTO_UPDATE_TOURNAMENTS (ID: ${job.id}) successfully`,
-          );
-          break;
+    const correlationId =
+      job.data?._correlationId ||
+      job.data?.eventId ||
+      job.id ||
+      randomUUID();
+    const sentryTrace = job.data?._sentryTrace;
+
+    return TraceContextService.run(
+      { correlationId, sentryTrace },
+      async () => {
+        this.logger.log(
+          `Starting job ${job.name} (ID: ${job.id}, correlationId: ${correlationId})`,
+        );
+        try {
+          switch (job.name) {
+            case 'AUTO_UPDATE_TOURNAMENTS':
+              await this.tournamentsService.autoUpdateStatuses();
+              this.logger.log(
+                `Completed job AUTO_UPDATE_TOURNAMENTS (ID: ${job.id}) successfully`,
+              );
+              break;
 
         case 'SEND_TOURNAMENT_REMINDERS':
           await this.tournamentsService.sendTournamentReminders();
@@ -41,6 +58,20 @@ export class JobsProcessor extends WorkerHost {
             `Completed job SEND_TOURNAMENT_REMINDERS (ID: ${job.id}) successfully`,
           );
           break;
+
+        case 'RECONCILE_LEADERBOARDS': {
+          const ongoingTournaments = await this.prisma.tournament.findMany({
+            where: { status: 'ONGOING' },
+            select: { id: true, name: true },
+          });
+          for (const tourney of ongoingTournaments) {
+            await this.scoresService.reconcileLeaderboard(tourney.id);
+          }
+          this.logger.log(
+            `Reconciled ${ongoingTournaments.length} active tournament leaderboards from PostgreSQL (ID: ${job.id})`,
+          );
+          break;
+        }
 
         case 'DATA_RETENTION_CLEANUP':
           await this.runDataRetentionCleanup();
@@ -66,11 +97,13 @@ export class JobsProcessor extends WorkerHost {
       }
     } catch (error: any) {
       this.logger.error(
-        `Failed executing job ${job.name} (ID: ${job.id}): ${error.message}`,
+        `Failed executing job ${job.name} (ID: ${job.id}, correlationId: ${correlationId}): ${error.message}`,
         error.stack,
       );
       throw error;
     }
+  },
+);
   }
 
   private async dispatchEmail(

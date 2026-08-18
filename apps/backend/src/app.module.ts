@@ -16,7 +16,10 @@ import { LoggerModule } from 'nestjs-pino';
 import { CacheModule } from './common/cache/cache.module';
 import { ClubGuard } from './common/guards/club.guard';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { BullBoardAuthMiddleware } from './common/middleware/bull-board-auth.middleware';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { PrismaModule } from './common/prisma.module';
+import { SecretsService } from './common/services/secrets.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
 import { OrganizersModule } from './modules/organizers/organizers.module';
@@ -58,7 +61,10 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const redisUrl = configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+        const redisUrl =
+          configService.get<string>('CACHE_REDIS_URL') ||
+          configService.get<string>('REDIS_URL') ||
+          'redis://localhost:6379';
         return {
           throttlers: [{ ttl: 60000, limit: 100 }],
           storage: new ThrottlerStorageRedisService(redisUrl),
@@ -70,9 +76,12 @@ if (process.env.SENTRY_DSN) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const redisUrl = configService.get<string>('REDIS_URL');
+        const redisUrl =
+          configService.get<string>('CACHE_REDIS_URL') ||
+          configService.get<string>('REDIS_URL') ||
+          'redis://localhost:6379';
         if (!redisUrl) {
-          throw new Error('FATAL ERROR: REDIS_URL environment variable is not defined.');
+          throw new Error('FATAL ERROR: CACHE_REDIS_URL or REDIS_URL environment variable is not defined.');
         }
         return {
           store: await redisStore({
@@ -136,10 +145,15 @@ if (process.env.SENTRY_DSN) {
     LoggerModule.forRoot({
       pinoHttp: {
         genReqId: (req, res) => {
-          const id = req.headers['x-request-id'] || randomUUID();
+          const id = req.headers['x-correlation-id'] || req.headers['x-request-id'] || randomUUID();
+          res.setHeader('X-Correlation-Id', id);
           res.setHeader('X-Request-Id', id);
           return id;
         },
+        customProps: (req) => ({
+          correlationId: req.headers['x-correlation-id'] || req.headers['x-request-id'],
+          sentryTrace: req.headers['sentry-trace'],
+        }),
         redact: [
           'req.headers.authorization',
           'req.body.password',
@@ -163,6 +177,12 @@ if (process.env.SENTRY_DSN) {
       provide: require('@nestjs/core').APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,
     },
+    SecretsService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+    consumer.apply(BullBoardAuthMiddleware).forRoutes('/queues', '/api/queues', 'api/queues');
+  }
+}
