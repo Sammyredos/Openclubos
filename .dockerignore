@@ -1,0 +1,7 @@
+node_modules
+.git
+.pnpm-store
+apps/*/dist
+apps/*/node_modules
+database/prisma/migrations
+.env

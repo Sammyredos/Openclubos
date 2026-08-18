@@ -6,15 +6,27 @@ RUN corepack enable
 FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
+# Build the shared types package first (workspace dependency)
+RUN pnpm --filter=@openclubos/types run build 2>/dev/null || true
 RUN pnpm --filter=backend run build
+RUN pnpm --filter=backend deploy --prod /prod/backend
+# Copy all generated .prisma directories into the deployed pnpm tree and node_modules
+RUN find /usr/src/app/node_modules -name ".prisma" -type d -exec cp -r {} /prod/backend/node_modules/ \; 2>/dev/null || true; \
+    find /usr/src/app/node_modules/.pnpm -name ".prisma" -type d 2>/dev/null | while read dir; do \
+      target=$(echo "$dir" | sed 's|/usr/src/app|/prod/backend|'); \
+      mkdir -p "$(dirname "$target")"; \
+      cp -r "$dir" "$target"; \
+    done || true
 
 FROM base AS runner
-WORKDIR /usr/src/app
+WORKDIR /app
+# Copy the self-contained deployment bundle
+COPY --from=build /prod/backend/node_modules ./node_modules
 COPY --from=build /usr/src/app/apps/backend/dist ./dist
-COPY --from=build /usr/src/app/apps/backend/package.json ./package.json
-COPY --from=build /usr/src/app/node_modules ./node_modules
 # Prisma requires the schema at runtime in a monorepo setup
 COPY --from=build /usr/src/app/database/prisma/schema.prisma ./database/prisma/schema.prisma
+# gRPC protobuf definitions
+COPY --from=build /usr/src/app/packages/proto ./packages/proto
 EXPOSE 3001
 CMD ["node", "dist/main"]

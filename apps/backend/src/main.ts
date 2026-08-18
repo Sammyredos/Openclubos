@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
@@ -97,11 +98,20 @@ async function bootstrap() {
 
 
   // gRPC setup
+  const protoCandidates = [
+    path.join(__dirname, '../../../packages/proto/leaderboard.proto'),
+    path.join(__dirname, '../packages/proto/leaderboard.proto'),
+    path.join(__dirname, './packages/proto/leaderboard.proto'),
+    path.join(process.cwd(), 'packages/proto/leaderboard.proto'),
+    path.join(process.cwd(), 'proto/leaderboard.proto'),
+  ];
+  const resolvedProtoPath = protoCandidates.find((p) => fs.existsSync(p)) ?? protoCandidates[0];
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'leaderboard',
-      protoPath: path.join(__dirname, '../../../packages/proto/leaderboard.proto'),
+      protoPath: resolvedProtoPath,
       url: '0.0.0.0:50051',
     },
   });

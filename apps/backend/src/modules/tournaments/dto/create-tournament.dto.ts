@@ -5,7 +5,7 @@ import {
   TournamentVisibility,
   GenderRestriction,
   TournamentStartType,
-} from '@openclubos/types';
+} from '@prisma/client';
 import {
   IsString,
   IsDateString,
