@@ -251,10 +251,24 @@ export function CreateUserWizard({ isOpen, onClose, onSuccess, editingUser: prop
           phoneStr = phoneStr.replace(/^\+\d+/, "");
         }
 
-        const names = (editingUser.lastName || "").split(/\s+/).filter(Boolean);
-        const first = editingUser.firstName || "";
-        const sur = names[names.length - 1] || "";
-        const mid = names.slice(0, names.length - 1).join(" ");
+        const lastParts = (editingUser.lastName || "").split(/\s+/).filter(Boolean);
+        const firstParts = (editingUser.firstName || "").split(/\s+/).filter(Boolean);
+
+        let first = firstParts[0] || "";
+        let mid = "";
+        let sur = "";
+
+        if (lastParts.length > 1) {
+          mid = lastParts.slice(0, lastParts.length - 1).join(" ");
+          sur = lastParts[lastParts.length - 1] || "";
+        } else if (firstParts.length > 1) {
+          first = firstParts[0] || "";
+          mid = firstParts.slice(1).join(" ");
+          sur = lastParts[0] || "";
+        } else {
+          first = firstParts[0] || "";
+          sur = lastParts[0] || "";
+        }
 
         setFormData({
           firstName: first,

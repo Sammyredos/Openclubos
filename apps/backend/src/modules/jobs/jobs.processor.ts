@@ -294,6 +294,7 @@ export class JobsProcessor extends WorkerHost {
           data.clubName || 'Your Club',
           data.inviteUrl || '',
           data.isNewUser || false,
+          data.expiresIn || '10 minutes',
         );
 
       default:

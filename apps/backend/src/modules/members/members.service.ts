@@ -268,11 +268,27 @@ export class MembersService {
       where.status = status;
     }
 
-    if (clubId) {
-      where.clubId = clubId;
-    }
+    // Auto-purge expired unactivated invitations
+    const now = new Date();
+    await this.prisma.user.deleteMany({
+      where: {
+        status: MemberStatus.PENDING,
+        inviteTokenExpires: { lt: now },
+      },
+    }).catch(() => {});
 
-    const baseWhere = { ...where, deletedAt: null };
+    const baseWhere = { 
+      ...where, 
+      deletedAt: null,
+      NOT: [
+        { firstName: null },
+        { lastName: null },
+        { firstName: '' },
+        { lastName: '' },
+        { firstName: '-' },
+        { firstName: '—' },
+      ],
+    };
 
     const [items, total, activeCount, suspendedCount, roleCounts] =
       await Promise.all([

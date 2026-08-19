@@ -206,3 +206,41 @@ export function formatCurrency(amount: number): string {
     maximumFractionDigits: 2,
   }).format(absValue)}`;
 }
+
+export function formatTeeTime(timeStr?: string | null): string {
+  if (!timeStr) return "TBA";
+  const trimmed = timeStr.trim();
+
+  // If it's an ISO timestamp string like 2026-08-18T08:20:00.000Z
+  if (trimmed.includes("T")) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      // Extract UTC/local time
+      const hours = d.getUTCHours();
+      const minutes = d.getUTCMinutes();
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const h12 = hours % 12 || 12;
+      const strHours = h12 < 10 ? `0${h12}` : `${h12}`;
+      const strMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+      return `${strHours}:${strMinutes} ${ampm}`;
+    }
+  }
+
+  // If already formatted like "08:30 AM" or "8:30 PM"
+  if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // If 24-hour time string like "08:30" or "14:20:00"
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    const strHours = hours < 10 ? `0${hours}` : `${hours}`;
+    return `${strHours}:${minutes} ${ampm}`;
+  }
+
+  return trimmed;
+}

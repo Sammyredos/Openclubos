@@ -40,7 +40,22 @@ export function TimePicker({
     if (ref.current) setAnchorEl(ref.current)
   }, [])
 
-  const selected = TIME_OPTIONS.find((o) => o.value === value) || null
+  const normalizedValue = React.useMemo(() => {
+    if (!value) return '';
+    const trimmed = value.trim();
+    // If format is HH:mm:ss, take HH:mm
+    if (/^\d{1,2}:\d{2}:\d{2}/.test(trimmed)) {
+      const parts = trimmed.split(':');
+      return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+    }
+    // If format is H:mm, pad to HH:mm
+    if (/^\d{1}:\d{2}$/.test(trimmed)) {
+      return `0${trimmed}`;
+    }
+    return trimmed;
+  }, [value]);
+
+  const selected = TIME_OPTIONS.find((o) => o.value === normalizedValue || o.label.toLowerCase() === value?.toLowerCase()) || null
 
   return (
     <div ref={ref} className={cn("relative", className)}>

@@ -1,6 +1,8 @@
 import { Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { SendchampModule } from '../sendchamp/sendchamp.module';
+import { ResendModule } from '../resend/resend.module';
 import { EmailController } from './email.controller';
 import { EmailService } from './email.service';
 import { EmailCircuitBreakerService } from './email-circuit-breaker.service';
@@ -50,6 +52,8 @@ const logger = new Logger('EmailModule');
         };
       },
     }),
+    SendchampModule,
+    ResendModule,
   ],
   controllers: [EmailController],
   providers: [EmailService, EmailCircuitBreakerService],

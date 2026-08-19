@@ -133,6 +133,38 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   CDN_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDCHAMP_PUBLIC_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDCHAMP_MODE?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDCHAMP_WHATSAPP_SENDER?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDCHAMP_EMAIL_SENDER?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDCHAMP_EMAIL_SENDER_NAME?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_FROM_EMAIL?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_FROM_NAME?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

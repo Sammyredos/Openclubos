@@ -600,6 +600,7 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      phone: user.phone,
       role: user.role,
     };
   }
@@ -612,6 +613,7 @@ export class AuthService {
     middleName?: string,
     gender?: 'MALE' | 'FEMALE',
     handicap?: number,
+    phone?: string,
   ) {
     if (!token || !newPassword) {
       throw new BadRequestException('Token and password are required');
@@ -642,13 +644,13 @@ export class AuthService {
     };
 
     if (firstName) {
-      const first = firstName.trim();
-      const middle = middleName?.trim() || '';
-      updateData.firstName = middle ? `${first} ${middle}` : first;
+      updateData.firstName = firstName.trim();
     }
 
     if (lastName) {
-      updateData.lastName = lastName.trim();
+      const last = lastName.trim();
+      const middle = middleName?.trim() || '';
+      updateData.lastName = middle ? `${middle} ${last}` : last;
     }
     
     if (gender) {
@@ -657,6 +659,20 @@ export class AuthService {
     
     if (handicap !== undefined) {
       updateData.handicap = handicap;
+    }
+
+    if (phone && phone.trim()) {
+      let formattedPhone = phone.trim().replace(/[\s-]/g, '');
+      if (!formattedPhone.startsWith('+')) {
+        if (formattedPhone.startsWith('0')) {
+          formattedPhone = '+234' + formattedPhone.slice(1);
+        } else if (!formattedPhone.startsWith('234')) {
+          formattedPhone = '+234' + formattedPhone;
+        } else {
+          formattedPhone = '+' + formattedPhone;
+        }
+      }
+      updateData.phone = formattedPhone;
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -697,7 +713,7 @@ export class AuthService {
           data: { status: RegistrationStatus.REJECTED },
         });
       } else {
-        const isFree = !tournament.entryFee || Number(tournament.entryFee) === 0;
+        const isFree = !tournament.requiresPayment || !tournament.entryFee || Number(tournament.entryFee) === 0;
         if (isFree) {
           await this.prisma.registration.update({
             where: { id: reg.id },
@@ -705,6 +721,14 @@ export class AuthService {
           });
         }
       }
+    }
+
+    try {
+      await this.cacheService.invalidatePattern('tournaments:*');
+      await this.cacheService.invalidatePattern('registrations:*');
+      await this.cacheService.invalidatePattern('members:*');
+    } catch {
+      // Ignore cache clearing errors
     }
 
     // Auto-login: return JWT tokens

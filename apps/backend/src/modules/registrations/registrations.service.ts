@@ -78,10 +78,11 @@ export class RegistrationsService {
     const existing = await this.prisma.registration.findUnique({
       where: { userId_tournamentId: { userId, tournamentId } },
     });
-    if (existing)
+    if (existing && existing.status === RegistrationStatus.APPROVED && existing.paymentStatus === PaymentStatus.PAID) {
       throw new ConflictException(
         'You are already registered for this tournament',
       );
+    }
 
     // 5. Validate Eligibility (Player Type)
     const effectivePlayerType = playerType || user.role;
@@ -189,17 +190,27 @@ export class RegistrationsService {
       }
     }
 
-    // 8. Create Registration
-    const registration = await this.prisma.registration.create({
-      data: {
-        userId,
-        tournamentId,
-        playerType: effectivePlayerType,
-        status,
-        paymentStatus: paymentStatusVal,
-        paymentReference,
-      },
-    });
+    // 8. Create or Update Registration
+    const registration = existing
+      ? await this.prisma.registration.update({
+          where: { id: existing.id },
+          data: {
+            playerType: effectivePlayerType,
+            status,
+            paymentStatus: paymentStatusVal,
+            ...(paymentReference ? { paymentReference } : {}),
+          },
+        })
+      : await this.prisma.registration.create({
+          data: {
+            userId,
+            tournamentId,
+            playerType: effectivePlayerType,
+            status,
+            paymentStatus: paymentStatusVal,
+            paymentReference,
+          },
+        });
 
     if (user?.email) {
       if (status === RegistrationStatus.APPROVED) {
@@ -267,6 +278,15 @@ export class RegistrationsService {
           inviteTokenExpires,
         },
       });
+    } else if (user.status === 'PENDING') {
+      // Refresh invite token and expiry on re-invite
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          inviteToken,
+          inviteTokenExpires,
+        },
+      });
     }
 
     const existing = await this.prisma.registration.findUnique({
@@ -274,23 +294,29 @@ export class RegistrationsService {
     });
 
     if (existing) {
-      throw new ConflictException('Player is already registered for this tournament');
+      // If the player is already an active user or already has an approved registration, block re-invitation
+      if (user.status === 'ACTIVE' || existing.status === RegistrationStatus.APPROVED) {
+        throw new ConflictException('Player is already registered for this tournament');
+      }
     }
 
-    const isFree = !tournament.entryFee || Number(tournament.entryFee) === 0;
+    const isFree = !tournament.requiresPayment || !tournament.entryFee || Number(tournament.entryFee) === 0;
     const isCompleteProfile = !!(user.gender && user.handicap !== null);
 
-    const registration = await this.prisma.registration.create({
-      data: {
-        userId: user.id,
-        tournamentId,
-        playerType: 'PLAYER',
-        status: (isFree && isCompleteProfile) ? RegistrationStatus.APPROVED : RegistrationStatus.PENDING,
-        paymentStatus: isFree ? PaymentStatus.PAID : PaymentStatus.UNPAID,
-      },
-    });
+    const registration = existing
+      ? existing
+      : await this.prisma.registration.create({
+          data: {
+            userId: user.id,
+            tournamentId,
+            playerType: 'PLAYER',
+            status: (isFree && isCompleteProfile) ? RegistrationStatus.APPROVED : RegistrationStatus.PENDING,
+            paymentStatus: isFree ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+          },
+        });
 
-    const inviteUrl = isNewUser
+    const isPendingUser = isNewUser || user.status === 'PENDING';
+    const inviteUrl = isPendingUser
       ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/accept-invite?token=${inviteToken}&from=/tournaments/${tournamentId}/register`
       : `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tournaments/${tournamentId}/register`;
 
@@ -299,6 +325,7 @@ export class RegistrationsService {
       clubName: tournament.club?.name || 'Tournament Organizer',
       inviteUrl,
       isNewUser,
+      expiresIn: '10 minutes',
     });
 
     return registration;

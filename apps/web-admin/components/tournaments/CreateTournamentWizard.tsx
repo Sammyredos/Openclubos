@@ -48,7 +48,7 @@ const DEFAULT_FORM = {
   maxPlayers: "", maxPlayersPerGroup: 4, enableWaitlist: false,
   enableCut: false, cutAfterRound: "", cutFormat: "" as "" | "NUMBER" | "PERCENTAGE", cutLine: "",
   requiresPayment: false, entryFee: "", currency: "NGN", paymentDeadline: "", isRefundable: false,
-  autoGrouping: true, startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN", teeStartTime: "", teeIntervalMinutes: 10,
+  autoGrouping: true, startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN", teeStartTime: "08:00", teeIntervalMinutes: 10,
 
   publishImmediately: false, visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
@@ -289,8 +289,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               currency: t.currency || "NGN",
               paymentDeadline: t.paymentDeadline ? t.paymentDeadline.slice(0, 10) : "",
               isRefundable: t.isRefundable ?? false,
-              autoGrouping: t.autoGrouping ?? false,
-              teeStartTime: t.teeStartTime || "",
+              autoGrouping: t.autoGrouping ?? true,
+              teeStartTime: t.teeStartTime || "08:00",
               teeIntervalMinutes: t.teeIntervalMinutes || 10,
 
 
@@ -420,10 +420,10 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         currency: f.requiresPayment ? f.currency : "NGN",
         paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
         isRefundable: f.requiresPayment ? f.isRefundable : false,
-        autoGrouping: f.autoGrouping,
-        startType: f.autoGrouping ? f.startType : "TEE_TIMES",
-        teeStartTime: f.autoGrouping && f.teeStartTime ? f.teeStartTime : null,
-        teeIntervalMinutes: f.autoGrouping ? (f.startType === "TEE_TIMES" ? Number(f.teeIntervalMinutes) : 10) : 10,
+        autoGrouping: f.autoGrouping ?? true,
+        startType: f.startType || "TEE_TIMES",
+        teeStartTime: f.teeStartTime || "08:00",
+        teeIntervalMinutes: f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10,
 
 
 
@@ -1095,12 +1095,6 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full capitalize">Required</span>
-              <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
-                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
-              </div>
-            </div>
           </div>
 
           <div className="p-5 bg-emerald-50/30 border-t-2 border-emerald-100 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1137,7 +1131,16 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <Field label="Players Per Tee Flight" required>
+                  <Input
+                    type="number"
+                    value={formData.maxPlayersPerGroup}
+                    min={1}
+                    onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
+                    className="bg-white"
+                  />
+                </Field>
                 {formData.startType === "TEE_TIMES" && (
                   <Field label="Tee Interval (min)" required>
                     <Input type="number" value={formData.teeIntervalMinutes} min={1} onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))} className="bg-white" />
@@ -1147,7 +1150,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                   <TimePicker
                     value={formData.teeStartTime}
                     onValueChange={(v) => set("teeStartTime", v)}
-                    placeholder="--:--  "
+                    placeholder="Select start time..."
                   />
                 </Field>
               </div>
@@ -1208,14 +1211,19 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           {/* ── Publishing ── */}
-          <div className="bg-background rounded-xl border border-[#e1efe5]">
-            <div className={cn("px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between", (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer")}
+          <div className="bg-background rounded-xl border border-[#e1efe5] p-5">
+            <div
+              className={cn(
+                "flex items-center justify-between",
+                (originalStatus !== "DRAFT" && originalStatus !== undefined) ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+              )}
               onClick={() => {
                 if (originalStatus !== "DRAFT" && originalStatus !== undefined) return;
                 set("publishImmediately", !formData.publishImmediately);
-              }}>
+              }}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
                   <Send className="w-4 h-4" />
                 </div>
                 <div>
@@ -1234,7 +1242,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
             </div>
 
             {!formData.publishImmediately && (
-              <div className="p-4 bg-emerald-50/40 border-t-2 border-emerald-100/50">
+              <div className="mt-4 p-4 bg-emerald-50/40 border border-emerald-100/50 rounded-xl">
                 <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
                   This tournament will be saved as an unpublished <strong>DRAFT</strong>.<br className="hidden sm:block" /> Players cannot see or register for it until you manually publish it.
                 </p>

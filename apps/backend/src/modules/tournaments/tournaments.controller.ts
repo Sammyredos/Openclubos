@@ -131,6 +131,17 @@ export class TournamentsController {
     return this.tournamentsService.publishGroupingsEmail(id, dto);
   }
 
+  @Post(':id/groupings/whatsapp')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  async publishGroupingsWhatsApp(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.tournamentsService.publishGroupingsWhatsApp(id, dto);
+  }
+
   @Get(':id/groupings')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getGroupings(

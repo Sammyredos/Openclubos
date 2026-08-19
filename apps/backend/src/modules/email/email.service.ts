@@ -1168,23 +1168,27 @@ export class EmailService {
     clubName: string,
     inviteUrl: string,
     isNewUser: boolean,
+    expiresIn = '10 minutes',
   ): Promise<EmailResult> {
     const html = this.wrap(
       `You're Invited!`,
       `
       ${this.p(`You have been invited to participate in <strong>${tournamentName}</strong> by <strong>${clubName}</strong>.`)}
-      ${isNewUser ? this.p(`We've created a pending account for you. Click the button below to complete your registration and set your password.`) : this.p(`Click the button below to view the tournament details.`)}
+      ${isNewUser ? this.p(`We've created a pending registration for you. Click the button below to set up your profile, verified WhatsApp contact for tee times, and password.`) : this.p(`Click the button below to view the tournament details and confirm your entry.`)}
       
       ${this.button(isNewUser ? 'Complete Registration' : 'View Tournament', inviteUrl)}
       
+      ${this.infoBox(`⏰ <strong>Important Notice:</strong> This invitation link will expire in <strong>${expiresIn}</strong>. Please complete your registration before the link expires. If expired, you can request a new invitation from your tournament organizer.`, '#ecfdf5', '#a7f3d0', '#065f46')}
+
       ${this.p(`If the button doesn't work, you can copy and paste this link into your browser:<br/><a href="${inviteUrl}" style="color: #10b981; word-break: break-all;">${inviteUrl}</a>`)}
       ${this.p('See you on the green!')}
+      ${this.p(`Best regards,<br/><strong>${clubName} & OpenClubOS</strong>`)}
     `,
       '#10b981, #059669',
     );
     return this.send(
       to,
-      `You're invited to play in ${tournamentName}`,
+      `You're invited to play in ${tournamentName} (Link expires in ${expiresIn})`,
       html,
       `Tournament invite email sent to ${to} for ${tournamentName}`,
     );

@@ -262,6 +262,7 @@ export class AuthController {
       middleName?: string;
       gender?: 'MALE' | 'FEMALE';
       handicap?: number;
+      phone?: string;
     },
   ) {
     return this.authService.acceptInvite(
@@ -272,6 +273,7 @@ export class AuthController {
       body.middleName,
       body.gender,
       body.handicap,
+      body.phone,
     );
   }
 }

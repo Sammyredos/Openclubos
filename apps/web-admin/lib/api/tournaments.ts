@@ -14,6 +14,7 @@ export interface Tournament {
   maxHandicap?: number;
   playerTypes: string[];
   maxPlayers?: number;
+  maxPlayersPerGroup?: number;
   registrationOpenAt?: string;
   registrationCloseAt?: string;
   paymentDeadline?: string;
@@ -22,6 +23,11 @@ export interface Tournament {
   club?: { id: string; name: string; logo?: string | null; email?: string | null } | null;
   course?: { id: string; name: string; coverImage?: string | null } | null;
   enableWaitlist?: boolean;
+  enableCut?: boolean;
+  cutAfterRound?: number;
+  scoringType?: string;
+  visibility?: string;
+  createdAt?: string;
   _count?: { registrations: number };
   lockedGroupingsDays?: number[];
   bannerUrl?: string | null;
@@ -325,6 +331,21 @@ export async function publishGroupingsEmail(tournamentId: string, day: number, d
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to publish groupings via email');
+  }
+  
+  return res.json();
+}
+
+export async function publishGroupingsWhatsApp(tournamentId: string, day: number, data: GroupingData): Promise<{ success: boolean; sentCount?: number; message: string }> {
+  const res = await authedFetch(`/tournaments/${tournamentId}/groupings/whatsapp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, groups: data.groups }),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to publish groupings via WhatsApp');
   }
   
   return res.json();

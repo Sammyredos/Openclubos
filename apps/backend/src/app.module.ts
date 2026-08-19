@@ -33,6 +33,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
+import { SendchampModule } from './modules/sendchamp/sendchamp.module';
+import { ResendModule } from './modules/resend/resend.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BullBoardModule } from '@bull-board/nestjs';
@@ -109,6 +111,8 @@ if (process.env.SENTRY_DSN) {
     }),
     HealthModule,
     EmailModule,
+    SendchampModule,
+    ResendModule,
     SubscriptionsModule,
     PaymentsModule,
     JwtModule.registerAsync({

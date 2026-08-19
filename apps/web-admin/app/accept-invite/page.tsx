@@ -1,373 +1,735 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Icons } from "@/components/ui/icons"
-import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
-import { useSearchParams, useRouter } from "next/navigation"
-import Link from "next/link"
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Icons } from "@/components/ui/icons";
+import {
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  User,
+  Trophy,
+  Lock,
+  Check,
+  ChevronRight,
+  Info,
+  Mail,
+  Phone,
+  Target,
+  ShieldCheck,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface InviteDetails {
   email: string;
   firstName?: string | null;
   lastName?: string | null;
+  phone?: string | null;
   role: string;
 }
 
-const schema = z.object({
-  firstName: z.string().min(1, { message: "First name is required." }),
-  middleName: z.string().min(1, { message: "Middle name is required." }),
-  lastName: z.string().min(1, { message: "Last name is required." }),
-  gender: z.enum(["MALE", "FEMALE"]),
-  handicap: z.number().min(-10).max(54),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match.",
-  path: ["confirmPassword"],
-})
+const schema = z
+  .object({
+    firstName: z.string().min(1, { message: "First name is required." }),
+    middleName: z.string().min(1, { message: "Middle name is required." }),
+    lastName: z.string().min(1, { message: "Last name is required." }),
+    email: z.string().optional(),
+    phone: z.string().min(7, { message: "WhatsApp phone number is required (with country code)." }),
+    gender: z.enum(["MALE", "FEMALE"]),
+    handicap: z
+      .number({ message: "Handicap is required." })
+      .min(-10, { message: "Handicap must be between -10 and 54." })
+      .max(54, { message: "Handicap must be between -10 and 54." }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
 
-type FormValues = z.infer<typeof schema>
-
-type PageState = "idle" | "loading" | "success" | "error"
+type FormValues = z.infer<typeof schema>;
+type PageState = "idle" | "loading" | "success" | "error";
 
 export default function AcceptInvitePage() {
   return (
     <React.Suspense fallback={null}>
       <AcceptInvitePageInner />
     </React.Suspense>
-  )
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+  error,
+  helperText,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+  error?: string;
+  helperText?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[13px] font-medium text-gray-700 flex items-center">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      {children}
+      {helperText && !error && (
+        <p className="text-[11px] text-gray-400 mt-1">{helperText}</p>
+      )}
+      {error && <p className="text-[11px] text-red-500 font-normal mt-1">{error}</p>}
+    </div>
+  );
 }
 
 function AcceptInvitePageInner() {
-  const [pageState, setPageState] = React.useState<PageState>("idle")
-  const [showPassword, setShowPassword] = React.useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
-  const [inviteDetails, setInviteDetails] = React.useState<InviteDetails | null>(null)
+  const [pageState, setPageState] = React.useState<PageState>("idle");
+  const [currentStep, setCurrentStep] = React.useState(1);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [inviteDetails, setInviteDetails] = React.useState<InviteDetails | null>(null);
 
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const token = searchParams.get("token")
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const token = searchParams.get("token");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { firstName: "", middleName: "", lastName: "", gender: "MALE", handicap: 0, password: "", confirmPassword: "" },
-  })
+    mode: "onBlur",
+    defaultValues: {
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      gender: "MALE",
+      handicap: 0,
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const isPlayer = !inviteDetails || inviteDetails.role === "PLAYER";
+  const stepsList = isPlayer
+    ? [
+        { id: 1, name: "Basic Details", desc: "Your personal information" },
+        { id: 2, name: "Golf Profile", desc: "Handicap & divisions" },
+        { id: 3, name: "Security", desc: "Password & credentials" },
+      ]
+    : [
+        { id: 1, name: "Basic Details", desc: "Your personal information" },
+        { id: 2, name: "Security", desc: "Password & credentials" },
+      ];
+
+  const totalSteps = stepsList.length;
 
   React.useEffect(() => {
     if (!token) {
-      setPageState("error")
-      toast.error("Invalid or missing invitation token.")
-      return
+      setPageState("error");
+      toast.error("Invalid or missing invitation token.");
+      return;
     }
 
     async function fetchInvite() {
       try {
-        const res = await fetch(`${API_BASE}/auth/invite/${token}`)
+        const res = await fetch(`${API_BASE}/auth/invite/${token}`);
         if (!res.ok) {
-          throw new Error("Invalid or expired invitation token.")
+          throw new Error("Invalid or expired invitation token.");
         }
-        const data = (await res.json()) as InviteDetails
-        setInviteDetails(data)
+        const data = (await res.json()) as InviteDetails;
+        setInviteDetails(data);
 
-        let first = data.firstName || ""
-        let middle = ""
-        if (first.includes(" ")) {
-          const parts = first.split(" ")
-          first = parts[0]
-          middle = parts.slice(1).join(" ")
+        const lastParts = (data.lastName || "").split(/\s+/).filter(Boolean);
+        const firstParts = (data.firstName || "").split(/\s+/).filter(Boolean);
+
+        let first = firstParts[0] || "";
+        let middle = "";
+        let last = "";
+
+        if (lastParts.length > 1) {
+          middle = lastParts.slice(0, lastParts.length - 1).join(" ");
+          last = lastParts[lastParts.length - 1] || "";
+        } else if (firstParts.length > 1) {
+          first = firstParts[0] || "";
+          middle = firstParts.slice(1).join(" ");
+          last = lastParts[0] || "";
+        } else {
+          first = firstParts[0] || "";
+          last = lastParts[0] || "";
         }
 
         form.reset({
           firstName: first,
           middleName: middle,
-          lastName: data.lastName || "",
+          lastName: last,
+          email: data.email || "",
+          phone: data.phone || "",
+          gender: "MALE",
+          handicap: 0,
           password: "",
           confirmPassword: "",
-        })
-      } catch (err) {
-        setPageState("error")
-        toast.error("Invalid or expired invitation token.")
+        });
+      } catch {
+        setPageState("error");
+        toast.error("Invalid or expired invitation token.");
       }
     }
 
-    void fetchInvite()
-  }, [token, form])
+    void fetchInvite();
+  }, [token, form]);
+
+  const handleNextStep = async () => {
+    if (currentStep === 1) {
+      const fields: (keyof FormValues)[] = isPlayer
+        ? ["firstName", "middleName", "lastName", "phone"]
+        : ["firstName", "middleName", "lastName"];
+      const valid = await form.trigger(fields);
+      if (valid) {
+        setCurrentStep(2);
+      }
+    } else if (currentStep === 2 && isPlayer) {
+      const valid = await form.trigger(["gender", "handicap"]);
+      if (valid) {
+        setCurrentStep(3);
+      }
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  };
+
+  const handleStepClick = async (targetStep: number) => {
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+
+    if (currentStep === 1) {
+      const fields: (keyof FormValues)[] = isPlayer
+        ? ["firstName", "middleName", "lastName", "phone"]
+        : ["firstName", "middleName", "lastName"];
+      const valid = await form.trigger(fields);
+      if (!valid) return;
+    } else if (currentStep === 2 && isPlayer && targetStep === 3) {
+      const valid = await form.trigger(["gender", "handicap"]);
+      if (!valid) return;
+    }
+
+    setCurrentStep(targetStep);
+  };
 
   async function onSubmit(data: FormValues) {
-    if (!token) return
-    setPageState("loading")
+    if (!token) return;
+    setPageState("loading");
     try {
       const res = await fetch(`${API_BASE}/auth/accept-invite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
           password: data.password,
           firstName: data.firstName,
           lastName: data.lastName,
           middleName: data.middleName,
+          phone: data.phone,
           gender: data.gender,
           handicap: data.handicap,
         }),
-      })
+      });
 
       if (!res.ok) {
-        const error = await res.json().catch(() => null)
-        throw new Error(error?.message || "Failed to accept invitation.")
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.message || "Failed to accept invitation.");
       }
 
-      const result = await res.json()
+      const result = await res.json();
 
-      // Store auth tokens for immediate login
       if (result.accessToken) {
-        localStorage.setItem("accessToken", result.accessToken)
+        localStorage.setItem("accessToken", result.accessToken);
       }
       if (result.refreshToken) {
-        localStorage.setItem("refreshToken", result.refreshToken)
+        localStorage.setItem("refreshToken", result.refreshToken);
       }
       if (result.user) {
-        localStorage.setItem("user", JSON.stringify(result.user))
+        localStorage.setItem("user", JSON.stringify(result.user));
       }
 
-      setPageState("success")
-      toast.success("Account activated! Redirecting...")
+      setPageState("success");
+      toast.success("Account activated! Redirecting...");
 
-      // Redirect based on role and query parameters
-      const fromParam = searchParams.get("from")
-      const nextPath = fromParam || (result.user?.role === "PLAYER" ? "/app/home" : "/organizer-admin/dashboard")
-
+      const redirectUrl =
+        searchParams.get("from") ||
+        (result.user?.role === "PLAYER" ? "/tournaments" : "/super-admin/dashboard");
       setTimeout(() => {
-        router.push(nextPath)
-      }, 2000)
+        router.push(redirectUrl);
+      }, 1500);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
-      setPageState("idle")
+      setPageState("idle");
+      toast.error(err instanceof Error ? err.message : "Failed to set password.");
     }
   }
 
-  const defaultRedirect = inviteDetails?.role === "PLAYER" ? "/app/home" : "/organizer-admin/dashboard"
+  const defaultRedirect =
+    inviteDetails?.role === "PLAYER" ? "/tournaments" : "/super-admin/dashboard";
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900">
-      <div className="w-full max-w-[1440px] mx-auto flex justify-center relative">
+    <div className="min-h-screen w-full bg-[#f8fafc] text-zinc-900 py-8 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
+      <div className="w-full max-w-[1020px] mx-auto space-y-6">
+        {pageState === "success" ? (
+          <div className="bg-white rounded-2xl border border-[#e1efe5] p-8 md:p-12 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] flex flex-col items-center text-center max-w-[560px] mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center mb-6 text-[#15803D] animate-in zoom-in-50 duration-300">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
 
-        {/* RIGHT COLUMN - Form */}
-        <div className="w-full flex flex-col items-center justify-center p-2 md:p-8 lg:p-16 relative">
-          
+            <h2 className="text-[22px] font-semibold tracking-tight text-gray-900 mb-2">
+              Account Activated!
+            </h2>
+            <p className="text-gray-500 text-[14px] mb-8 leading-relaxed">
+              Your profile has been created and your password has been securely saved. You can now access your account.
+            </p>
 
+            <Link href={searchParams.get("from") || defaultRedirect} className="w-full no-underline">
+              <button className="w-full bg-[#15803D] hover:bg-[#166534] text-white rounded-xl py-3 px-6 flex items-center justify-center font-medium text-sm transition-all shadow-sm">
+                {inviteDetails?.role === "PLAYER" ? "Proceed to Tournaments" : "Go to Dashboard"}
+              </button>
+            </Link>
+          </div>
+        ) : pageState === "error" ? (
+          <div className="bg-white rounded-2xl border border-red-100 p-8 md:p-12 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] flex flex-col items-center text-center max-w-[560px] mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200/60 flex items-center justify-center mb-6 text-red-500">
+              <AlertCircle className="h-8 w-8" />
+            </div>
 
-          {/* Subtle background glow */}
-          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 pointer-events-none" />
+            <h2 className="text-[22px] font-semibold tracking-tight text-gray-900 mb-2">
+              Invalid or Expired Invitation
+            </h2>
+            <p className="text-gray-500 text-[14px] mb-8 leading-relaxed">
+              This invitation token is invalid, expired, or has already been used. Please contact your tournament organizer for a new invitation.
+            </p>
 
-          <div className="w-full max-w-[480px] md:max-w-[420px] lg:max-w-[730px] flex flex-col justify-center bg-white rounded-3xl p-6 md:p-10 lg:p-16 border border-zinc-100 relative z-10">
-            {pageState === "success" ? (
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            <Link href="/login" className="no-underline">
+              <button className="h-10 border border-[#e1efe5] hover:bg-gray-100/80 bg-white text-gray-700 rounded-xl px-6 text-[13px] font-medium transition-all">
+                Back to Sign In
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Top Header Card - only shown while filling the active form */}
+            <div className="flex items-center justify-between bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)]">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-
-                <h2 className="text-[28px] font-bold tracking-tight text-zinc-900 mb-3">Account Activated!</h2>
-                <p className="text-zinc-500 text-[15px] mb-8 leading-relaxed">
-                  Your account is now active. You are being redirected.
-                </p>
-
-                <Link href={searchParams.get("from") || defaultRedirect} className="w-full">
-                  <button className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98]">
-                    {inviteDetails?.role === "PLAYER" ? "Proceed to Tournaments" : "Go to Dashboard"}
-                  </button>
-                </Link>
-              </div>
-            ) : pageState === "error" ? (
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-6">
-                  <AlertCircle className="h-8 w-8 text-red-500" />
-                </div>
-
-                <h2 className="text-[28px] font-bold tracking-tight text-zinc-900 mb-3">Invalid Invitation</h2>
-                <p className="text-zinc-500 text-[15px] mb-8 leading-relaxed">
-                  This invitation link is invalid or has expired. Please ask your organizer to send a new invitation.
-                </p>
-
-                <Link href="/login" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
-                  Back to Sign In
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center w-full">
-                <div className="text-center w-full mb-8">
-                  <h2 className="text-[28px] font-bold tracking-tight mb-2 text-zinc-900">
-                    {inviteDetails?.role === "PLAYER" ? "Complete Registration" : "Set Your Password"}
-                  </h2>
-                  <p className="text-zinc-500 text-[15px]">
-                    {inviteDetails?.role === "PLAYER" ? (
+                <div>
+                  <h1 className="text-[16px] font-medium text-gray-900">
+                    {inviteDetails?.role === "PLAYER" ? "Accept Player Invitation" : "Accept Invitation"}
+                  </h1>
+                  <p className="text-[13px] text-gray-500 mt-0.5">
+                    {inviteDetails?.email ? (
                       <>
-                        Hi <span className="font-medium text-zinc-900">{inviteDetails.email}</span>, let's set up your profile and password.
+                        Invitation for <span className="font-medium text-gray-800">{inviteDetails.email}</span>
                       </>
                     ) : (
-                      "Create a secure password for your new manager account."
+                      "Complete your account profile and set your credentials"
                     )}
                   </p>
                 </div>
-
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
-                  {/* First Name */}
-                  <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700 mb-2">First Name</label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      placeholder="John"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                      disabled={pageState === "loading"}
-                      {...form.register("firstName")}
-                    />
-                    {form.formState.errors.firstName && (
-                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.firstName.message}</p>
-                    )}
-                  </div>
-
-                  {/* Middle Name */}
-                  <div>
-                    <label htmlFor="middleName" className="block text-sm font-medium text-zinc-700 mb-2">Middle Name</label>
-                    <input
-                      id="middleName"
-                      type="text"
-                      placeholder="Robert"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                      disabled={pageState === "loading"}
-                      {...form.register("middleName")}
-                    />
-                    {form.formState.errors.middleName && (
-                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.middleName.message}</p>
-                    )}
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-zinc-700 mb-2">Last Name</label>
-                    <input
-                      id="lastName"
-                      type="text"
-                      placeholder="Doe"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                      disabled={pageState === "loading"}
-                      {...form.register("lastName")}
-                    />
-                    {form.formState.errors.lastName && (
-                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.lastName.message}</p>
-                    )}
-                  </div>
-
-                  {/* Gender and Handicap (Only for players) */}
-                  {inviteDetails?.role === "PLAYER" && (
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label htmlFor="gender" className="block text-sm font-medium text-zinc-700 mb-2">Gender</label>
-                        <select
-                          id="gender"
-                          className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                          disabled={pageState === "loading"}
-                          {...form.register("gender")}
-                        >
-                          <option value="MALE">Male</option>
-                          <option value="FEMALE">Female</option>
-                        </select>
-                        {form.formState.errors.gender && (
-                          <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.gender.message}</p>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <label htmlFor="handicap" className="block text-sm font-medium text-zinc-700 mb-2">Handicap Index</label>
-                        <input
-                          id="handicap"
-                          type="number"
-                          step="0.1"
-                          placeholder="0.0"
-                          className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                          disabled={pageState === "loading"}
-                          {...form.register("handicap", { valueAsNumber: true })}
-                        />
-                        {form.formState.errors.handicap && (
-                          <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.handicap.message}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Password field */}
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-zinc-700 mb-2">Password</label>
-                    <div className="relative">
-                      <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                        disabled={pageState === "loading"}
-                        {...form.register("password")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {form.formState.errors.password && (
-                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.password.message}</p>
-                    )}
-                  </div>
-
-                  {/* Confirm Password field */}
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-700 mb-2">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                        disabled={pageState === "loading"}
-                        {...form.register("confirmPassword")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {form.formState.errors.confirmPassword && (
-                      <p className="text-xs font-medium text-red-600 mt-2">{form.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={pageState === "loading"}
-                    className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-2"
-                  >
-                    {pageState === "loading" ? (
-                      <Icons.spinner className="w-5 h-5 animate-spin text-white" />
-                    ) : (
-                      "Activate Account"
-                    )}
-                  </button>
-                </form>
               </div>
-            )}
+              {inviteDetails?.role && (
+                <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-[#15803D] border border-emerald-200/60 capitalize">
+                  {inviteDetails.role.replace(/_/g, " ").toLowerCase()}
+                </span>
+              )}
+            </div>
+
+            {/* Main Stepper & Form Layout */}
+            <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left Column - Step Navigation */}
+            <div className="w-full lg:w-[280px] shrink-0">
+              <div className="bg-white border border-[#e1efe5] rounded-2xl p-3 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] space-y-2 sticky top-6">
+                {stepsList.map((item, idx) => {
+                  const stepNum = idx + 1;
+                  const active = currentStep === stepNum;
+                  const past = currentStep > stepNum;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleStepClick(stepNum)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-3.5 border rounded-xl transition-all duration-200 text-left",
+                        active
+                          ? "bg-[#f4fdf8] border-[#15803D] text-[#15803D]"
+                          : "bg-white border-[#e1efe5] text-[#64748b] hover:border-gray-300 hover:bg-gray-50/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3.5 whitespace-nowrap overflow-hidden">
+                        <div
+                          className={cn(
+                            "w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[11px] font-medium transition-all duration-300",
+                            active
+                              ? "bg-[#15803D] text-white"
+                              : past
+                              ? "bg-emerald-100 text-openclub-800 border border-emerald-200"
+                              : "bg-gray-100 text-gray-400 border border-[#e1efe5]"
+                          )}
+                        >
+                          {past ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : stepNum}
+                        </div>
+                        <div>
+                          <span className="text-[13px] font-medium leading-tight block text-gray-800">
+                            {item.name}
+                          </span>
+                          <span className="text-[11px] text-gray-400 block leading-tight">
+                            {item.desc}
+                          </span>
+                        </div>
+                      </div>
+                      {active && <ChevronRight className="w-4 h-4 shrink-0 text-[#15803D]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column - Step Form Content */}
+            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-[#e1efe5] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1">
+                {/* STEP 1: Personal Details */}
+                {currentStep === 1 && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="px-6 py-4 border-b border-[#e1efe5] bg-gray-50/50 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Basic Details</h4>
+                        <p className="text-[12px] text-gray-500">
+                          Confirm and complete your personal contact information
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-5">
+                      <Field
+                        label="First Name"
+                        required
+                        error={form.formState.errors.firstName?.message}
+                      >
+                        <div className="relative">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <input
+                            type="text"
+                            placeholder="e.g. John"
+                            className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={pageState === "loading"}
+                            {...form.register("firstName")}
+                          />
+                        </div>
+                      </Field>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field
+                          label="Middle Name"
+                          required
+                          error={form.formState.errors.middleName?.message}
+                        >
+                          <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="e.g. Robert"
+                              className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={pageState === "loading"}
+                              {...form.register("middleName")}
+                            />
+                          </div>
+                        </Field>
+
+                        <Field
+                          label="Last Name"
+                          required
+                          error={form.formState.errors.lastName?.message}
+                        >
+                          <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="e.g. Doe"
+                              className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={pageState === "loading"}
+                              {...form.register("lastName")}
+                            />
+                          </div>
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Email Address">
+                          <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="email"
+                              value={inviteDetails?.email || form.getValues("email")}
+                              readOnly
+                              disabled
+                              className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-gray-100/80 pl-11 pr-4 py-2 text-sm font-normal text-zinc-600 cursor-not-allowed select-none"
+                            />
+                          </div>
+                          <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                            <Check className="w-3 h-3" /> Verified invitation email
+                          </p>
+                        </Field>
+
+                        {isPlayer && (
+                          <Field
+                            label="WhatsApp Phone Number"
+                            required
+                            error={form.formState.errors.phone?.message}
+                            helperText="For tee times, pairings and tournament broadcasts."
+                          >
+                            <div className="relative">
+                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                              <input
+                                type="tel"
+                                placeholder="+234 801 234 5678"
+                                className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={pageState === "loading"}
+                                {...form.register("phone")}
+                              />
+                            </div>
+                          </Field>
+                        )}
+                      </div>
+
+                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3.5 flex items-center gap-3">
+                        <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                        <p className="text-[12px] font-normal text-emerald-700">
+                          Note: Please ensure your contact details match your official union registration for tournament verification.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: Golf Profile (Player Only) */}
+                {currentStep === 2 && isPlayer && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="px-6 py-4 border-b border-[#e1efe5] bg-gray-50/50 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Golf Profile</h4>
+                        <p className="text-[12px] text-gray-500">
+                          Set your tournament division and playing handicap
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field
+                          label="Gender"
+                          required
+                          error={form.formState.errors.gender?.message}
+                          helperText="Used for tee assignment and division classification."
+                        >
+                          <div className="relative">
+                            <select
+                              className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] px-4 py-2 text-sm font-normal text-zinc-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={pageState === "loading"}
+                              {...form.register("gender")}
+                            >
+                              <option value="MALE">Male</option>
+                              <option value="FEMALE">Female</option>
+                            </select>
+                          </div>
+                        </Field>
+
+                        <Field
+                          label="Handicap Index"
+                          required
+                          error={form.formState.errors.handicap?.message}
+                          helperText="Official handicap index between -10.0 and 54.0."
+                        >
+                          <div className="relative">
+                            <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="e.g. 12.4"
+                              className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={pageState === "loading"}
+                              {...form.register("handicap", { valueAsNumber: true })}
+                            />
+                          </div>
+                        </Field>
+                      </div>
+
+                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3.5 flex items-center gap-3">
+                        <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                        <p className="text-[12px] font-normal text-emerald-700">
+                          Note: You can update your handicap or link your official golf union ID later in your account settings.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* FINAL STEP: Security & Password */}
+                {((currentStep === 3 && isPlayer) || (currentStep === 2 && !isPlayer)) && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="px-6 py-4 border-b border-[#e1efe5] bg-gray-50/50 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-[14px] font-medium text-gray-900">Security Credentials</h4>
+                        <p className="text-[12px] text-gray-500">
+                          Create a secure password to protect your Openclub account
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-5">
+                      <Field
+                        label="Create Password"
+                        required
+                        error={form.formState.errors.password?.message}
+                        helperText="Must be at least 8 characters long."
+                      >
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-11 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={pageState === "loading"}
+                            {...form.register("password")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </Field>
+
+                      <Field
+                        label="Confirm Password"
+                        required
+                        error={form.formState.errors.confirmPassword?.message}
+                        helperText="Re-enter your password to ensure they match."
+                      >
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-11 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={pageState === "loading"}
+                            {...form.register("confirmPassword")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </Field>
+
+                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3.5 flex items-center gap-3">
+                        <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                        <p className="text-[12px] font-normal text-emerald-700">
+                          Note: You will use your email ({inviteDetails?.email || "address"}) and this password to sign in across all Openclub devices.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form Actions Footer */}
+                <div className="mt-auto border-t border-[#e1efe5] bg-gray-50/50 p-5 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    disabled={currentStep === 1 || pageState === "loading"}
+                    className="h-10 border border-[#e1efe5] hover:bg-gray-100/80 bg-white text-gray-700 rounded-xl px-5 text-[13px] font-normal transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back</span>
+                  </button>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push("/login")}
+                      disabled={pageState === "loading"}
+                      className="h-10 border border-[#e1efe5] hover:bg-gray-100/80 bg-white text-gray-700 rounded-xl px-5 text-[13px] font-normal transition-all disabled:opacity-40"
+                    >
+                      Cancel
+                    </button>
+
+                    {currentStep < totalSteps ? (
+                      <button
+                        type="button"
+                        onClick={handleNextStep}
+                        className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal flex items-center gap-2 transition-all shadow-sm"
+                      >
+                        <span>Next Step</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={pageState === "loading"}
+                        className="h-10 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl px-6 text-[13px] font-normal flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                      >
+                        {pageState === "loading" ? (
+                          <>
+                            <Icons.spinner className="w-4 h-4 animate-spin text-white" />
+                            <span>Activating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Activate Account</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
-  )
+  </div>
+  );
 }

@@ -9,6 +9,7 @@ import { Cron } from '@nestjs/schedule';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { SendchampService } from '../sendchamp/sendchamp.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
@@ -21,6 +22,7 @@ export class TournamentsService {
     private cacheService: CacheService,
     @Inject(forwardRef(() => JobsService))
     private jobsService: JobsService,
+    private sendchampService: SendchampService,
   ) {}
 
   private dailyRemindedTournaments = new Set<string>();
@@ -259,6 +261,11 @@ export class TournamentsService {
           course: { select: { id: true, name: true, coverImage: true } },
           visibility: true,
           lockedGroupingsDays: true,
+          startType: true,
+          teeStartTime: true,
+          teeIntervalMinutes: true,
+          maxPlayersPerGroup: true,
+          autoGrouping: true,
           createdAt: true,
           _count: {
             select: {
@@ -811,6 +818,43 @@ export class TournamentsService {
     }
   }
 
+  private formatTeeTime(timeStr?: string | null): string {
+    if (!timeStr) return 'TBA';
+    const trimmed = timeStr.trim();
+
+    // If it's an ISO timestamp string like 2026-08-18T08:20:00.000Z
+    if (trimmed.includes('T')) {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        const hours = d.getUTCHours();
+        const minutes = d.getUTCMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const h12 = hours % 12 || 12;
+        const strHours = h12 < 10 ? `0${h12}` : `${h12}`;
+        const strMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+        return `${strHours}:${strMinutes} ${ampm}`;
+      }
+    }
+
+    // If already formatted like "08:30 AM" or "8:30 PM"
+    if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    // If 24-hour time string like "08:30" or "14:20:00"
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      const strHours = hours < 10 ? `0${hours}` : `${hours}`;
+      return `${strHours}:${minutes} ${ampm}`;
+    }
+
+    return trimmed;
+  }
+
   async publishGroupingsEmail(tournamentId: string, dto: any) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
@@ -819,11 +863,25 @@ export class TournamentsService {
 
     if (!tournament) throw new NotFoundException('Tournament not found');
 
+    const dayNumber = dto.day || 1;
+    const startDate = tournament.startDate ? new Date(tournament.startDate) : null;
+    let scheduledDateStr = '';
+    if (startDate && !isNaN(startDate.getTime())) {
+      const targetDate = new Date(startDate);
+      targetDate.setDate(targetDate.getDate() + (dayNumber - 1));
+      scheduledDateStr = targetDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+
     const jobs: any[] = [];
     for (const group of dto.groups || []) {
       const groupName = group.name || 'TBA';
-      const teeTime = group.startTime || 'TBA';
-      const roundName = `Day ${dto.day || 1}`;
+      const teeTime = this.formatTeeTime(group.startTime);
+      const roundName = `Day ${dayNumber}${scheduledDateStr ? ` (${scheduledDateStr})` : ''}`;
 
       const members = group.registrations || [];
 
@@ -847,6 +905,7 @@ export class TournamentsService {
             data: {
               tournamentName: tournament.name,
               roundName,
+              date: scheduledDateStr,
               teeTime,
               groupName,
               groupMembers,
@@ -864,6 +923,97 @@ export class TournamentsService {
     }
 
     return { success: true, message: 'Groupings publication emails queued' };
+  }
+
+  async publishGroupingsWhatsApp(tournamentId: string, dto: any) {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: { club: true },
+    });
+
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    const dayNumber = dto.day || 1;
+    const startDate = tournament.startDate ? new Date(tournament.startDate) : null;
+    let scheduledDateStr = '';
+    if (startDate && !isNaN(startDate.getTime())) {
+      const targetDate = new Date(startDate);
+      targetDate.setDate(targetDate.getDate() + (dayNumber - 1));
+      scheduledDateStr = targetDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+
+    const groups = dto.groups || [];
+    let sentCount = 0;
+    const errors: string[] = [];
+
+    for (const group of groups) {
+      const groupName = group.name || 'TBA';
+      const teeTime = this.formatTeeTime(group.startTime);
+      const roundName = `Day ${dayNumber}`;
+      const members = group.registrations || [];
+
+      for (let i = 0; i < members.length; i++) {
+        const player = members[i];
+        const phone = player.user?.phone;
+        const firstName = player.user?.firstName || 'Player';
+
+        if (!phone) continue;
+
+        const groupMembers = members
+          .filter((_: any, index: number) => index !== i)
+          .map((m: any) =>
+            `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim(),
+          )
+          .filter(Boolean);
+
+        const partnersText =
+          groupMembers.length > 0
+            ? groupMembers.join(', ')
+            : 'No other players assigned yet';
+
+        const isShotgun = tournament.startType === 'SHOTGUN';
+        const flightLabel = isShotgun ? 'Starting Hole' : 'Flight / Group';
+
+        const dateLine = scheduledDateStr ? `\n• Date: *${scheduledDateStr}*` : '';
+
+        const message = `⛳ *OpenClubOS Tee-Off Assignment*
+
+Tournament: *${tournament.name}*
+Schedule: *${roundName}${scheduledDateStr ? ` (${scheduledDateStr})` : ''}*
+
+Hi *${firstName}*, your tournament grouping has been confirmed:${dateLine}
+• ${flightLabel}: *${groupName}*
+• Tee Time: *${teeTime}*
+• Playing Partners: ${partnersText}
+
+Please arrive at least 30 minutes before your tee time. Best of luck on the course!`;
+
+        try {
+          await this.sendchampService.sendWhatsApp({
+            recipient: phone,
+            message,
+          });
+          sentCount++;
+        } catch (err: any) {
+          errors.push(`${firstName} (${phone}): ${err.message}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      sentCount,
+      errors: errors.length > 0 ? errors : undefined,
+      message:
+        sentCount > 0
+          ? `WhatsApp flight notifications dispatched to ${sentCount} players via Sendchamp.`
+          : 'No players with valid phone numbers found to message.',
+    };
   }
 
   /**
@@ -1203,9 +1353,24 @@ export class TournamentsService {
       }
     }
     
-    const [startHour, startMin] = startTimeStr.split(':').map(Number);
-    let currentHour = isNaN(startHour) ? 8 : startHour;
-    let currentMin = isNaN(startMin) ? 0 : startMin;
+    const rawTime = (tournament?.teeStartTime || "08:00").trim();
+    let startHour = 8;
+    let startMin = 0;
+    const isPM = /pm/i.test(rawTime);
+    const isAM = /am/i.test(rawTime);
+    const cleanNumbers = rawTime.replace(/[^0-9:]/g, '');
+    const [rawH, rawM] = cleanNumbers.split(':').map(Number);
+    if (!isNaN(rawH)) {
+      startHour = rawH;
+      if (isPM && startHour < 12) startHour += 12;
+      if (isAM && startHour === 12) startHour = 0;
+    }
+    if (!isNaN(rawM)) {
+      startMin = rawM;
+    }
+    
+    let currentHour = startHour;
+    let currentMin = startMin;
     
     let currentGroupIndex = 0;
     if (existingGroups.length > 0) {
@@ -1222,24 +1387,30 @@ export class TournamentsService {
     while (unassigned.length > 0) {
       const playersChunk = unassigned.splice(0, maxPlayersPerGroup);
       
-      const pad = (n: number) => n < 10 ? `0${n}` : String(n);
-      
-      // Calculate time for this group (similar to frontend mock)
-      let timeStr: string | null = null;
       let groupName = "";
-      
       if (startType === "SHOTGUN") {
-        timeStr = startTimeStr;
         groupName = `Hole ${currentGroupIndex + 1}`;
       } else {
-        timeStr = `${pad(currentHour)}:${pad(currentMin)}`;
         groupName = `Flight ${currentGroupIndex + 1}`;
       }
       
-      // Parse timeStr to DateTime for DB
-      const [h, m] = timeStr.split(':').map(Number);
       const startTime = new Date();
-      startTime.setUTCHours(h, m, 0, 0);
+      if (tournament?.startDate) {
+        const tourneyStart = new Date(tournament.startDate);
+        if (!isNaN(tourneyStart.getTime())) {
+          startTime.setUTCFullYear(
+            tourneyStart.getUTCFullYear(),
+            tourneyStart.getUTCMonth(),
+            tourneyStart.getUTCDate() + (day - 1)
+          );
+        }
+      }
+      
+      if (startType === "SHOTGUN") {
+        startTime.setUTCHours(startHour, startMin, 0, 0);
+      } else {
+        startTime.setUTCHours(currentHour, currentMin, 0, 0);
+      }
 
       const group = await this.prisma.group.create({
         data: {

@@ -104,7 +104,7 @@ const DEFAULT_FORM = {
   isRefundable: false,
   autoGrouping: true,
   startType: "TEE_TIMES" as "TEE_TIMES" | "SHOTGUN",
-  teeStartTime: "",
+  teeStartTime: "08:00",
   teeIntervalMinutes: 10,
 
 
@@ -459,7 +459,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 isRefundable: t.isRefundable ?? false,
                 autoGrouping: t.autoGrouping ?? true,
                 startType: t.startType || "TEE_TIMES",
-                teeStartTime: t.teeStartTime || "",
+                teeStartTime: t.teeStartTime || "08:00",
                 teeIntervalMinutes: t.teeIntervalMinutes || 10,
 
 
@@ -600,12 +600,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         isRefundable: f.requiresPayment ? f.isRefundable : false,
       };
 
-      if (formData.autoGrouping) {
-        basePayload.autoGrouping = f.autoGrouping;
-        basePayload.startType = f.startType;
-        basePayload.teeStartTime = f.teeStartTime;
-        basePayload.teeIntervalMinutes = f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10;
-      }
+      basePayload.autoGrouping = f.autoGrouping ?? true;
+      basePayload.startType = f.startType || "TEE_TIMES";
+      basePayload.teeStartTime = f.teeStartTime || "08:00";
+      basePayload.teeIntervalMinutes = f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10;
 
 
 
@@ -1493,12 +1491,6 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     <p className="text-[12px] text-gray-500">Automatically group players into sequential tee times</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-normal text-openclub-800 bg-emerald-100 px-2 py-0.5 rounded-full capitalize">Required</span>
-                  <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0 bg-openclub-700")}>
-                    <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all left-6")} />
-                  </div>
-                </div>
               </div>
 
               <div className="p-5 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1554,13 +1546,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         />
                       </Field>
                     )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <Field label="Tee Off Start Time" required>
                       <TimePicker
                         value={formData.teeStartTime}
                         onValueChange={(v) => set("teeStartTime", v)}
-                        placeholder="--:--  "
+                        placeholder="Select start time..."
                       />
                     </Field>
                   </div>
@@ -1641,16 +1631,16 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
             </div>
 
             {(!originalStatus || originalStatus === "DRAFT") && (
-              <div className="">
+              <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mx-5 mb-5">
                 <div
-                  className="px-5 py-4 border-b border-[#e1efe5] bg-background/50 rounded-t-2xl flex items-center justify-between cursor-pointer"
+                  className="flex items-center justify-between cursor-pointer"
                   onClick={() => {
                     if (originalStatus && originalStatus !== "DRAFT") return;
                     set("publishImmediately", !formData.publishImmediately);
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
                       <Send className="w-4 h-4" />
                     </div>
                     <div>
@@ -1674,18 +1664,13 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
 
                 {!formData.publishImmediately && (
-                  <div className="p-5">
-                    <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
-                      <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
-                        This tournament will be saved as an unpublished <strong>DRAFT</strong>.
-                        <br />
-                        Players cannot see or register for it until you manually publish it.
-                      </p>
-                    </div>
+                  <div className="mt-4 p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
+                    <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
+                      This tournament will be saved as an unpublished <strong>DRAFT</strong>.
+                      <br />
+                      Players cannot see or register for it until you manually publish it.
+                    </p>
                   </div>
-                )}
-                {formData.publishImmediately && (
-                  <div className="p-2" />
                 )}
               </div>
             )}
