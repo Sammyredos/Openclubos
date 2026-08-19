@@ -471,6 +471,24 @@ function ViewTournamentPageInner() {
     return Math.floor(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
   };
 
+  const getSelectedDayDateFormatted = (dayNum: number) => {
+    if (!selectedTournament?.startDate) return null;
+    const startStr = typeof selectedTournament.startDate === "string" ? selectedTournament.startDate : (selectedTournament.startDate as any).toISOString();
+    const dateOnly = startStr.split("T")[0];
+    const [y, m, d] = dateOnly.split("-").map(Number);
+    if (!y || !m || !d) {
+      const fallback = new Date(selectedTournament.startDate);
+      fallback.setDate(fallback.getDate() + (dayNum - 1));
+      return isNaN(fallback.getTime()) ? null : fallback.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+    const targetDate = new Date(y, m - 1, d + (dayNum - 1));
+    return targetDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   const closeDropdown = () => {
     setActiveDropdown(null);
     setDropdownAnchorEl(null);
@@ -2727,7 +2745,13 @@ function ViewTournamentPageInner() {
                                 <Calendar className="w-4 h-4 text-emerald-800" />
                               </div>
                               <span className="text-emerald-800 text-[15px] font-normal tracking-wide capitalize">{selectedTournament?.startType === 'SHOTGUN' ? 'Holes & Start Times' : 'Flights & Tee Times'} For</span>
-                              <span className="text-emerald-950 text-[15px] font-medium capitalize tracking-widest bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1">Day {selectedDay}</span>
+                              <span className="text-emerald-950 text-[15px] font-medium tracking-wide bg-emerald-200/60 px-3.5 py-1 rounded-lg ml-1 flex items-center gap-1.5">
+                                <span>Day {selectedDay}</span>
+                                {(() => {
+                                  const dateStr = getSelectedDayDateFormatted(selectedDay);
+                                  return dateStr ? <span className="text-emerald-800 font-normal text-[13px]">({dateStr})</span> : null;
+                                })()}
+                              </span>
                             </div>
                           </div>
 

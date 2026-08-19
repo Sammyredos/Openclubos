@@ -26,6 +26,8 @@ import {
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { Country } from "country-state-city";
+import { SearchableSelect } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -44,7 +46,8 @@ const schema = z
     middleName: z.string().min(1, { message: "Middle name is required." }),
     lastName: z.string().min(1, { message: "Last name is required." }),
     email: z.string().optional(),
-    phone: z.string().min(7, { message: "WhatsApp phone number is required (with country code)." }),
+    country: z.string().optional(),
+    phone: z.string().min(5, { message: "Phone number is required." }),
     gender: z.enum(["MALE", "FEMALE"]),
     handicap: z
       .number({ message: "Handicap is required." })
@@ -103,6 +106,21 @@ function AcceptInvitePageInner() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [inviteDetails, setInviteDetails] = React.useState<InviteDetails | null>(null);
+  const [selectedCountry, setSelectedCountry] = React.useState("NG");
+
+  const countryOptions = React.useMemo(() => {
+    return Country.getAllCountries().map((c) => ({
+      value: c.isoCode,
+      label: `${c.name} (+${c.phonecode.replace(/^\+/, "")})`,
+      phonecode: c.phonecode.replace(/^\+/, ""),
+      name: c.name,
+    }));
+  }, []);
+
+  const currentCountryCode = React.useMemo(() => {
+    const found = Country.getCountryByCode(selectedCountry);
+    return found ? found.phonecode.replace(/^\+/, "") : "234";
+  }, [selectedCountry]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -116,6 +134,7 @@ function AcceptInvitePageInner() {
       middleName: "",
       lastName: "",
       email: "",
+      country: "NG",
       phone: "",
       gender: "MALE",
       handicap: 0,
@@ -173,20 +192,31 @@ function AcceptInvitePageInner() {
           last = lastParts[0] || "";
         }
 
+        let initialPhone = data.phone || "";
+        if (initialPhone.startsWith("+")) {
+          const digits = initialPhone.replace(/^\+/, "");
+          const matchCountry = Country.getAllCountries().find(c => digits.startsWith(c.phonecode.replace(/^\+/, "")));
+          if (matchCountry) {
+            setSelectedCountry(matchCountry.isoCode);
+            initialPhone = digits.substring(matchCountry.phonecode.replace(/^\+/, "").length);
+          }
+        }
+
         form.reset({
           firstName: first,
           middleName: middle,
           lastName: last,
           email: data.email || "",
-          phone: data.phone || "",
+          country: selectedCountry,
+          phone: initialPhone,
           gender: "MALE",
           handicap: 0,
           password: "",
           confirmPassword: "",
         });
-      } catch {
+      } catch (err: unknown) {
         setPageState("error");
-        toast.error("Invalid or expired invitation token.");
+        toast.error(err instanceof Error ? err.message : "Failed to load invitation.");
       }
     }
 
@@ -194,26 +224,25 @@ function AcceptInvitePageInner() {
   }, [token, form]);
 
   const handleNextStep = async () => {
+    let fieldsToValidate: (keyof FormValues)[] = [];
     if (currentStep === 1) {
-      const fields: (keyof FormValues)[] = isPlayer
+      fieldsToValidate = isPlayer
         ? ["firstName", "middleName", "lastName", "phone"]
         : ["firstName", "middleName", "lastName"];
-      const valid = await form.trigger(fields);
-      if (valid) {
-        setCurrentStep(2);
-      }
-    } else if (currentStep === 2 && isPlayer) {
-      const valid = await form.trigger(["gender", "handicap"]);
-      if (valid) {
-        setCurrentStep(3);
-      }
+    } else if (currentStep === 2) {
+      fieldsToValidate = isPlayer ? ["gender", "handicap"] : ["password", "confirmPassword"];
+    } else if (currentStep === 3) {
+      fieldsToValidate = ["password", "confirmPassword"];
+    }
+
+    const isValid = await form.trigger(fieldsToValidate);
+    if (isValid) {
+      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
     }
   };
 
   const handlePrevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-    }
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleStepClick = async (targetStep: number) => {
@@ -240,6 +269,21 @@ function AcceptInvitePageInner() {
     if (!token) return;
     setPageState("loading");
     try {
+      let rawPhone = (data.phone || "").trim().replace(/[\s\-\(\)]/g, "");
+      let fullPhone = rawPhone;
+      if (rawPhone) {
+        if (rawPhone.startsWith(`+${currentCountryCode}`)) {
+          fullPhone = rawPhone;
+        } else if (rawPhone.startsWith(currentCountryCode)) {
+          fullPhone = `+${rawPhone}`;
+        } else {
+          if (rawPhone.startsWith("0")) {
+            rawPhone = rawPhone.substring(1);
+          }
+          fullPhone = `+${currentCountryCode}${rawPhone}`;
+        }
+      }
+
       const res = await fetch(`${API_BASE}/auth/accept-invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -249,7 +293,7 @@ function AcceptInvitePageInner() {
           firstName: data.firstName,
           lastName: data.lastName,
           middleName: data.middleName,
-          phone: data.phone,
+          phone: fullPhone,
           gender: data.gender,
           handicap: data.handicap,
         }),
@@ -500,26 +544,43 @@ function AcceptInvitePageInner() {
                           </p>
                         </Field>
 
-                        {isPlayer && (
-                          <Field
-                            label="WhatsApp Phone Number"
-                            required
-                            error={form.formState.errors.phone?.message}
-                            helperText="For tee times, pairings and tournament broadcasts."
-                          >
-                            <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <Field label="Country" required>
+                          <SearchableSelect
+                            value={selectedCountry}
+                            onValueChange={(val) => {
+                              setSelectedCountry(val);
+                            }}
+                            options={countryOptions}
+                            placeholder="Select Country"
+                            triggerClassName="h-11 rounded-xl border-[#e1efe5] bg-[#f5faf6]"
+                          />
+                        </Field>
+                      </div>
+
+                      {isPlayer && (
+                        <Field
+                          label="WhatsApp Phone Number"
+                          required
+                          error={form.formState.errors.phone?.message}
+                          helperText="For tee times, pairings and tournament broadcasts."
+                        >
+                          <div className="flex h-11 w-full rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden focus-within:border-[#15803D] focus-within:ring-1 focus-within:ring-emerald-500/20 shadow-sm transition-all">
+                            <div className="h-full px-4 bg-gray-100/80 border-r border-[#e1efe5] flex items-center justify-center text-sm font-medium text-zinc-700 shrink-0 select-none tracking-wide">
+                              +{currentCountryCode}
+                            </div>
+                            <div className="relative flex-1 flex items-center">
+                              <Phone className="absolute left-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
                               <input
                                 type="tel"
-                                placeholder="+234 801 234 5678"
-                                className="flex h-11 w-full rounded-xl border border-[#e1efe5] shadow-sm bg-[#f5faf6] pl-11 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Phone number"
+                                className="flex h-full w-full border-none bg-transparent pl-10 pr-4 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={pageState === "loading"}
                                 {...form.register("phone")}
                               />
                             </div>
-                          </Field>
-                        )}
-                      </div>
+                          </div>
+                        </Field>
+                      )}
 
                       <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3.5 flex items-center gap-3">
                         <Info className="w-4 h-4 text-openclub-700 shrink-0" />
