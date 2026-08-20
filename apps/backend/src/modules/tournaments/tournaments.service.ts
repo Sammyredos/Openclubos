@@ -31,14 +31,13 @@ export class TournamentsService {
   async create(dto: CreateTournamentDto) {
     const existing = await this.prisma.tournament.findFirst({
       where: {
-        clubId: dto.clubId,
-        name: { equals: dto.name, mode: 'insensitive' },
+        name: { equals: dto.name.trim(), mode: 'insensitive' },
       },
     });
 
     if (existing) {
       throw new ConflictException(
-        'A tournament with this name already exists in this club',
+        'A tournament with this name already exists. Please choose a unique name.',
       );
     }
 
@@ -145,11 +144,11 @@ export class TournamentsService {
     return result;
   }
 
-  async checkName(name: string, clubId: string, excludeId?: string): Promise<boolean> {
+  async checkName(name: string, excludeId?: string): Promise<boolean> {
+    if (!name || !name.trim()) return false;
     const existing = await this.prisma.tournament.findFirst({
       where: {
-        clubId,
-        name: { equals: name, mode: 'insensitive' },
+        name: { equals: name.trim(), mode: 'insensitive' },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
@@ -465,6 +464,20 @@ export class TournamentsService {
     const existing = await this.prisma.tournament.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Tournament not found');
+    }
+
+    if (dto.name && dto.name.trim() !== existing.name) {
+      const duplicate = await this.prisma.tournament.findFirst({
+        where: {
+          name: { equals: dto.name.trim(), mode: 'insensitive' },
+          id: { not: id },
+        },
+      });
+      if (duplicate) {
+        throw new ConflictException(
+          'A tournament with this name already exists. Please choose a unique name.',
+        );
+      }
     }
 
     // Dynamic Status Recalculation based on dates

@@ -28,7 +28,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Country } from "country-state-city";
 import { SearchableSelect } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { broadcastAdminEvent, cn } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -38,21 +38,33 @@ interface InviteDetails {
   lastName?: string | null;
   phone?: string | null;
   role: string;
+  managerScope?: string | null;
+}
+
+function getRoleLabel(role?: string, managerScope?: string | null) {
+  if (!role) return "Invitation";
+  if (role === "CLUB_ADMIN") {
+    if (managerScope === "FULL") return "Admin Manager";
+    if (managerScope === "TOURNAMENTS") return "Tournament Manager";
+    if (managerScope === "FINANCE") return "Finance Manager";
+    return "Organizer Admin";
+  }
+  if (role === "MARKER") return "Marker";
+  if (role === "SUPER_ADMIN") return "Super Admin";
+  if (role === "PLAYER") return "Player";
+  return role.replace(/_/g, " ");
 }
 
 const schema = z
   .object({
     firstName: z.string().min(1, { message: "First name is required." }),
-    middleName: z.string().min(1, { message: "Middle name is required." }),
+    middleName: z.string().optional(),
     lastName: z.string().min(1, { message: "Last name is required." }),
     email: z.string().optional(),
     country: z.string().optional(),
-    phone: z.string().min(5, { message: "Phone number is required." }),
-    gender: z.enum(["MALE", "FEMALE"]),
-    handicap: z
-      .number({ message: "Handicap is required." })
-      .min(-10, { message: "Handicap must be between -10 and 54." })
-      .max(54, { message: "Handicap must be between -10 and 54." }),
+    phone: z.string().optional(),
+    gender: z.enum(["MALE", "FEMALE"]).optional(),
+    handicap: z.union([z.number(), z.nan()]).optional(),
     password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
     confirmPassword: z.string(),
   })
@@ -102,6 +114,7 @@ function Field({
 
 function AcceptInvitePageInner() {
   const [pageState, setPageState] = React.useState<PageState>("idle");
+  const [loadingInvite, setLoadingInvite] = React.useState(true);
   const [currentStep, setCurrentStep] = React.useState(1);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
@@ -143,7 +156,7 @@ function AcceptInvitePageInner() {
     },
   });
 
-  const isPlayer = !inviteDetails || inviteDetails.role === "PLAYER";
+  const isPlayer = inviteDetails?.role === "PLAYER";
   const stepsList = isPlayer
     ? [
         { id: 1, name: "Basic Details", desc: "Your personal information" },
@@ -160,12 +173,14 @@ function AcceptInvitePageInner() {
   React.useEffect(() => {
     if (!token) {
       setPageState("error");
+      setLoadingInvite(false);
       toast.error("Invalid or missing invitation token.");
       return;
     }
 
     async function fetchInvite() {
       try {
+        setLoadingInvite(true);
         const res = await fetch(`${API_BASE}/auth/invite/${token}`);
         if (!res.ok) {
           throw new Error("Invalid or expired invitation token.");
@@ -217,6 +232,8 @@ function AcceptInvitePageInner() {
       } catch (err: unknown) {
         setPageState("error");
         toast.error(err instanceof Error ? err.message : "Failed to load invitation.");
+      } finally {
+        setLoadingInvite(false);
       }
     }
 
@@ -227,8 +244,8 @@ function AcceptInvitePageInner() {
     let fieldsToValidate: (keyof FormValues)[] = [];
     if (currentStep === 1) {
       fieldsToValidate = isPlayer
-        ? ["firstName", "middleName", "lastName", "phone"]
-        : ["firstName", "middleName", "lastName"];
+        ? ["firstName", "lastName", "phone"]
+        : ["firstName", "lastName"];
     } else if (currentStep === 2) {
       fieldsToValidate = isPlayer ? ["gender", "handicap"] : ["password", "confirmPassword"];
     } else if (currentStep === 3) {
@@ -253,8 +270,8 @@ function AcceptInvitePageInner() {
 
     if (currentStep === 1) {
       const fields: (keyof FormValues)[] = isPlayer
-        ? ["firstName", "middleName", "lastName", "phone"]
-        : ["firstName", "middleName", "lastName"];
+        ? ["firstName", "lastName", "phone"]
+        : ["firstName", "lastName"];
       const valid = await form.trigger(fields);
       if (!valid) return;
     } else if (currentStep === 2 && isPlayer && targetStep === 3) {
@@ -263,6 +280,15 @@ function AcceptInvitePageInner() {
     }
 
     setCurrentStep(targetStep);
+  };
+
+  const onInvalid = (errors: any) => {
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const firstError =
+        errors[errorKeys[0]]?.message || "Please check the required fields.";
+      toast.error(firstError);
+    }
   };
 
   async function onSubmit(data: FormValues) {
@@ -292,10 +318,10 @@ function AcceptInvitePageInner() {
           password: data.password,
           firstName: data.firstName,
           lastName: data.lastName,
-          middleName: data.middleName,
-          phone: fullPhone,
+          middleName: data.middleName || undefined,
+          phone: fullPhone || undefined,
           gender: data.gender,
-          handicap: data.handicap,
+          handicap: typeof data.handicap === "number" && !isNaN(data.handicap) ? data.handicap : undefined,
         }),
       });
 
@@ -319,9 +345,21 @@ function AcceptInvitePageInner() {
       setPageState("success");
       toast.success("Account activated! Redirecting...");
 
+      try {
+        broadcastAdminEvent("users-changed");
+        broadcastAdminEvent("members-changed");
+        broadcastAdminEvent("registrations-changed");
+        broadcastAdminEvent("tournaments-changed");
+        broadcastAdminEvent("clubs-changed");
+      } catch {}
+
       const redirectUrl =
         searchParams.get("from") ||
-        (result.user?.role === "PLAYER" ? "/tournaments" : "/super-admin/dashboard");
+        (result.user?.role === "PLAYER"
+          ? "/tournaments"
+          : result.user?.role === "SUPER_ADMIN"
+          ? "/super-admin/dashboard"
+          : "/organizer-admin/dashboard");
       setTimeout(() => {
         router.push(redirectUrl);
       }, 1500);
@@ -332,7 +370,11 @@ function AcceptInvitePageInner() {
   }
 
   const defaultRedirect =
-    inviteDetails?.role === "PLAYER" ? "/tournaments" : "/super-admin/dashboard";
+    inviteDetails?.role === "PLAYER"
+      ? "/tournaments"
+      : inviteDetails?.role === "SUPER_ADMIN"
+      ? "/super-admin/dashboard"
+      : "/organizer-admin/dashboard";
 
   return (
     <div className="min-h-screen w-full bg-[#f8fafc] text-zinc-900 py-8 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
@@ -375,6 +417,24 @@ function AcceptInvitePageInner() {
               </button>
             </Link>
           </div>
+        ) : loadingInvite || !inviteDetails ? (
+          <div className="space-y-6 animate-pulse">
+            <div className="bg-white border border-[#e1efe5] rounded-2xl p-5 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gray-100" />
+                <div className="space-y-2">
+                  <div className="h-4 w-44 bg-gray-200 rounded" />
+                  <div className="h-3 w-56 bg-gray-100 rounded" />
+                </div>
+              </div>
+              <div className="h-6 w-24 bg-gray-100 rounded-full" />
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="w-full lg:w-[280px] bg-white border border-[#e1efe5] rounded-2xl p-4 space-y-3 h-48" />
+              <div className="flex-1 bg-white border border-[#e1efe5] rounded-2xl p-8 space-y-6 h-96" />
+            </div>
+          </div>
         ) : (
           <>
             {/* Top Header Card - only shown while filling the active form */}
@@ -385,10 +445,12 @@ function AcceptInvitePageInner() {
                 </div>
                 <div>
                   <h1 className="text-[16px] font-medium text-gray-900">
-                    {inviteDetails?.role === "PLAYER" ? "Accept Player Invitation" : "Accept Invitation"}
+                    {inviteDetails.role === "PLAYER"
+                      ? "Accept Player Invitation"
+                      : `Accept ${getRoleLabel(inviteDetails.role, inviteDetails.managerScope)} Invitation`}
                   </h1>
                   <p className="text-[13px] text-gray-500 mt-0.5">
-                    {inviteDetails?.email ? (
+                    {inviteDetails.email ? (
                       <>
                         Invitation for <span className="font-medium text-gray-800">{inviteDetails.email}</span>
                       </>
@@ -398,9 +460,9 @@ function AcceptInvitePageInner() {
                   </p>
                 </div>
               </div>
-              {inviteDetails?.role && (
-                <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-[#15803D] border border-emerald-200/60 capitalize">
-                  {inviteDetails.role.replace(/_/g, " ").toLowerCase()}
+              {inviteDetails.role && (
+                <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-[#15803D] border border-emerald-200/60">
+                  {getRoleLabel(inviteDetails.role, inviteDetails.managerScope)}
                 </span>
               )}
             </div>
@@ -457,7 +519,7 @@ function AcceptInvitePageInner() {
 
             {/* Right Column - Step Form Content */}
             <div className="flex-1 min-w-0 bg-white rounded-2xl border border-[#e1efe5] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col">
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1">
+              <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col flex-1">
                 {/* STEP 1: Personal Details */}
                 {currentStep === 1 && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -494,7 +556,6 @@ function AcceptInvitePageInner() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field
                           label="Middle Name"
-                          required
                           error={form.formState.errors.middleName?.message}
                         >
                           <div className="relative">

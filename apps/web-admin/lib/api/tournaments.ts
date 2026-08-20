@@ -147,9 +147,9 @@ export async function getTournament(id: string) {
 }
 
 export async function checkTournamentName(name: string, clubId?: string, excludeId?: string): Promise<{ isUnique: boolean }> {
+  if (!name || !name.trim()) return { isUnique: false };
   const params = new URLSearchParams();
-  if (name) params.append('name', name);
-  if (clubId) params.append('clubId', clubId);
+  params.append('name', name.trim());
   if (excludeId) params.append('excludeId', excludeId);
   
   const res = await authedFetch(`/tournaments/check-name?${params.toString()}`, { method: 'GET' });
@@ -350,3 +350,4 @@ export async function publishGroupingsWhatsApp(tournamentId: string, day: number
   
   return res.json();
 }
+

@@ -285,6 +285,7 @@ export class JobsProcessor extends WorkerHost {
           data.firstName || 'Manager',
           data.inviteUrl || '',
           data.clubName || 'Your Club',
+          data.expiresIn || '10 minutes',
         );
 
       case 'TOURNAMENT_PLAYER_INVITE':

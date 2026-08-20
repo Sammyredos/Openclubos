@@ -35,18 +35,11 @@ export class TournamentsController {
   @Get('check-name')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async checkName(
-    @Request() req: any,
     @Query('name') name: string,
-    @Query('clubId') clubId?: string,
     @Query('excludeId') excludeId?: string,
   ) {
-    if (!name) return { isUnique: false };
-    const role = req.user?.role as UserRole | undefined;
-    const effectiveClubId = role === UserRole.CLUB_ADMIN ? req.user?.clubId : clubId;
-    if (!effectiveClubId) {
-      return { isUnique: true };
-    }
-    const isUnique = await this.tournamentsService.checkName(name, effectiveClubId, excludeId);
+    if (!name || !name.trim()) return { isUnique: false };
+    const isUnique = await this.tournamentsService.checkName(name.trim(), excludeId);
     return { isUnique };
   }
 

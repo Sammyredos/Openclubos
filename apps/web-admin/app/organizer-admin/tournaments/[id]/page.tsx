@@ -896,11 +896,14 @@ function ViewTournamentPageInner() {
 
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
-      if (event.type === "users-changed") {
+      if (
+        event.type === "users-changed" ||
+        event.type === "members-changed" ||
+        event.type === "registrations-changed" ||
+        event.type === "tournaments-changed"
+      ) {
         reloadSingleTournament();
-        if (activeTab === "players") {
-          setRegistrationsInitialized(false);
-        } else if (activeTab === "groupings") {
+        if (activeTab === "groupings") {
           loadGroupingsData();
         } else if (activeTab === "waitlist") {
           fetchWaitlistData();
@@ -908,6 +911,18 @@ function ViewTournamentPageInner() {
       }
     });
     return () => unsubscribe();
+  }, [activeTab, tournamentId]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        reloadSingleTournament();
+        if (activeTab === "waitlist") {
+          fetchWaitlistData();
+        }
+      }
+    }, 6000);
+    return () => clearInterval(interval);
   }, [activeTab, tournamentId]);
 
   useEffect(() => {

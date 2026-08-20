@@ -159,11 +159,32 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const [loading, setLoading] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [nameCheckLoading, setNameCheckLoading] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [organizers, setOrganizers] = useState<{ id: string; name: string; logo?: string }[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    if (!formData.name.trim()) {
+      setNameError(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkTournamentName(formData.name.trim(), tournamentId || undefined);
+        if (!res.isUnique) {
+          setNameError("A tournament with this name already exists. Please choose a unique name (e.g. include year).");
+        } else {
+          setNameError(null);
+        }
+      } catch {
+        // ignore
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [formData.name, tournamentId]);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
   const stateOptions = useMemo(() => {
@@ -348,11 +369,14 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     if (step === 1) {
       setNameCheckLoading(true);
       try {
-        const res = await checkTournamentName(formData.name, formData.clubId, tournamentId || undefined);
+        const res = await checkTournamentName(formData.name.trim(), tournamentId || undefined);
         if (!res.isUnique) {
+          setNameError("A tournament with this name already exists. Please choose a unique name (e.g. include year).");
           setShowValidation(true);
-          toast.error("A tournament with this name already exists in this club. Include the year to differentiate it.");
+          toast.error("A tournament with this name already exists. Please choose a unique name.");
           return;
+        } else {
+          setNameError(null);
         }
       } catch {
         // If the check fails, allow proceeding — server will catch duplicates
@@ -468,14 +492,24 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
           </div>
 
           <div className="p-5 space-y-5">
-            <Field label="Tournament Name" required>
+            <Field label="Tournament Name" required error={nameError || undefined}>
               <div className="relative">
                 <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Sunshine Tour 2026" className={cn("pl-11", req(formData.name))} />
+                <Input
+                  value={formData.name}
+                  onChange={(e) => {
+                    set("name", e.target.value);
+                    if (nameError) setNameError(null);
+                  }}
+                  placeholder="e.g. Sunshine Tour 2026"
+                  className={cn("pl-11", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}
+                />
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">
-                Include the year so recurring tournaments stay unique — e.g. <span className="font-normal text-gray-500">Lagos Open 2026</span>, <span className="font-normal text-gray-500">Sunshine Tour 2026</span>.
-              </p>
+              {!nameError && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Include the year so recurring tournaments stay unique — e.g. <span className="font-normal text-gray-500">Lagos Open 2026</span>, <span className="font-normal text-gray-500">Sunshine Tour 2026</span>.
+                </p>
+              )}
             </Field>
 
             <div className="grid grid-cols-2 gap-4">

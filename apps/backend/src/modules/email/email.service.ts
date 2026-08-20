@@ -1135,6 +1135,7 @@ export class EmailService {
     firstName: string,
     inviteUrl: string,
     clubName: string,
+    expiresIn = '10 minutes',
   ): Promise<EmailResult> {
     const html = this.wrap(
       `You're Invited!`,
@@ -1146,14 +1147,16 @@ export class EmailService {
       
       ${this.button('Accept Invitation & Set Password', inviteUrl)}
       
-      ${this.p('This invitation link will expire in <strong>10 minutes</strong>. If you did not expect this invitation, you can safely ignore this email.')}
+      ${this.infoBox(`⏰ <strong>Important Notice:</strong> This invitation link will expire in <strong>${expiresIn}</strong>. Please set up your password and activate your account before the link expires. If expired, you can request a new invitation from your club administrator.`, '#ecfdf5', '#a7f3d0', '#065f46')}
+
+      ${this.p(`If the button doesn't work, you can copy and paste this link into your browser:<br/><a href="${inviteUrl}" style="color: #10b981; word-break: break-all;">${inviteUrl}</a>`)}
       ${this.p(`Best regards,<br/><strong>${clubName} Team</strong>`)}
     `,
       '#065f46, #047857',
     );
     return this.send(
       to,
-      `You're invited to manage ${clubName} on OpenClubOS`,
+      `You're invited to manage ${clubName} on OpenClubOS (Link expires in ${expiresIn})`,
       html,
       `Manager invite email sent to ${to} for ${clubName}`,
     );

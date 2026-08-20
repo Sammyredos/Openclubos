@@ -1210,72 +1210,43 @@ export default function SuperAdminUsersPage() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title={selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? "Cannot Delete Organizer Administrator" : "Delete User Permanently?"}
+        title="Delete User Permanently?"
+        size="md"
         footer={
-          selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? null : (
-            <>
-              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-normal">
-                Cancel
-              </Button>
-              <Button
-                disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
-                className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-normal px-8"
-                onClick={confirmDelete}
-              >
-                Delete User
-              </Button>
-            </>
-          )
+          <>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="rounded-lg font-semibold">
+              Cancel
+            </Button>
+            <Button
+              disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE" || mutating}
+              className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 border border-red-600/30 text-white rounded-lg font-semibold px-8"
+              onClick={confirmDelete}
+            >
+              {mutating ? "Deleting..." : "Delete User"}
+            </Button>
+          </>
         }
       >
-        {selectedUser?.role === "CLUB_ADMIN" && selectedUser?.club ? (
-          <div className="space-y-6">
-            <div className="flex flex-col items-center text-center py-2">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500">
-                <AlertTriangle className="h-10 w-10" />
-              </div>
-              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Cannot Delete Administrator</h4>
-              <p className="text-gray-500 max-w-sm">
-                This user is currently the primary administrator for organizer <span className="font-normal text-gray-800">&quot;{selectedUser.club.name}&quot;</span>. Never leave an organizer blank without an administrator.
-              </p>
-              <p className="text-gray-500 max-w-sm mt-3 text-[12px]">
-                Please edit and update the organizer account with a new administrator under <strong>Super Admin &gt; Organizers</strong> before deleting this user.
-              </p>
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center py-2">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
+              <Trash2 className="h-10 w-10" />
             </div>
-            <div className="flex justify-center pt-2">
-              <Button
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  router.push("/super-admin/organizers");
-                }}
-                className="bg-[#15803D] hover:bg-[#166534] text-white rounded-lg font-normal px-8 h-11"
-              >
-                Go to Organizers
-              </Button>
-            </div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Delete User Permanently?</h4>
+            <p className="text-sm font-normal text-gray-500 max-w-sm">Deleting this user will permanently remove their profile, authentication records, and all associated platform data. This action cannot be undone.</p>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex flex-col items-center text-center py-2">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
-                <Trash2 className="h-10 w-10" />
-              </div>
-              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Delete User Permanently?</h4>
-              <p className="text-gray-500 max-w-sm">Deleting this user will permanently remove their profile, authentication records, and all associated platform data. This action cannot be undone.</p>
-            </div>
-            <div className="space-y-3">
-              <Label className="font-medium text-gray-700">
-                Type <span className="text-red-600">&quot;DELETE&quot;</span> to confirm:
-              </Label>
-              <Input
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE"
-                className="rounded-xl border-[#e1efe5] focus:border-red-500"
-              />
-            </div>
+          <div className="space-y-3">
+            <Label className="font-semibold text-gray-700 text-sm">
+              Type <span className="text-red-600 font-bold">&quot;DELETE&quot;</span> to confirm:
+            </Label>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="rounded-xl border-[#e1efe5] focus:border-red-500"
+            />
           </div>
-        )}
+        </div>
       </Modal>
 
 

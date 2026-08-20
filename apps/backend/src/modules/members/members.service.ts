@@ -224,6 +224,7 @@ export class MembersService {
 
     // Filter by role: if specific role requested use it, otherwise exclude SUPER_ADMIN
     if (clubId) {
+      where.clubId = clubId;
       if (role) {
         if (role === UserRole.PLAYER || role === UserRole.SUPER_ADMIN) {
           where.role = { in: [] };
@@ -847,7 +848,7 @@ export class MembersService {
       });
       if (remainingAdminsCount === 0) {
         throw new ConflictException(
-          `Cannot delete this user. This user is the administrator for organizer "${admin.club?.name || 'Organizer'}". Please edit and update the organizer account with a new user before deleting this user.`,
+          `Cannot delete this user. You must have at least one organizer administrator for "${admin.club?.name || 'this organizer'}".`,
         );
       }
     }
@@ -953,6 +954,7 @@ export class MembersService {
       firstName: dto.firstName,
       inviteUrl,
       clubName: finalClubName,
+      expiresIn: '10 minutes',
     });
 
     const { password, ...result } = user;

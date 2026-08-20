@@ -602,6 +602,7 @@ export class AuthService {
       lastName: user.lastName,
       phone: user.phone,
       role: user.role,
+      managerScope: user.managerScope,
     };
   }
 

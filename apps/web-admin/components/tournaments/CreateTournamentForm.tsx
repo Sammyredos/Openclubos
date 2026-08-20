@@ -227,6 +227,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [loading, setLoading] = useState(false);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [nameCheckLoading, setNameCheckLoading] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [organizers, setOrganizers] = useState<{ id: string; name: string; logo?: string }[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
@@ -235,6 +236,26 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [aiUsageCount, setAiUsageCount] = useState(0);
   const [aiUsageResetAt, setAiUsageResetAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (!formData.name.trim()) {
+      setNameError(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkTournamentName(formData.name.trim(), tournamentId || undefined);
+        if (!res.isUnique) {
+          setNameError("A tournament with this name already exists. Please choose a unique name (e.g. include year).");
+        } else {
+          setNameError(null);
+        }
+      } catch {
+        // ignore
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [formData.name, tournamentId]);
 
   useEffect(() => {
     if (user) {
@@ -522,11 +543,14 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     if (step === 1) {
       setNameCheckLoading(true);
       try {
-        const res = await checkTournamentName(formData.name, formData.clubId, tournamentId || undefined);
+        const res = await checkTournamentName(formData.name.trim(), tournamentId || undefined);
         if (!res.isUnique) {
+          setNameError("A tournament with this name already exists. Please choose a unique name (e.g. include year).");
           setShowValidation(true);
-          toast.error("A tournament with this name already exists in this club. Include the year to differentiate it.");
+          toast.error("A tournament with this name already exists. Please choose a unique name.");
           return;
+        } else {
+          setNameError(null);
         }
       } catch {
         // Safe fallback
@@ -688,20 +712,25 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
               </div>
 
               <div className="p-5 space-y-5">
-                <Field label="Tournament Name" required>
+                <Field label="Tournament Name" required error={nameError || undefined}>
                   <div className="relative">
                     <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
                       value={formData.name}
-                      onChange={(e) => set("name", e.target.value)}
+                      onChange={(e) => {
+                        set("name", e.target.value);
+                        if (nameError) setNameError(null);
+                      }}
                       placeholder="e.g. Sunshine Tour 2026"
-                      className={cn("pl-11", req(formData.name))}
+                      className={cn("pl-11", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}
                       disabled={originalStatus != null && originalStatus !== "DRAFT"}
                     />
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Include the year so recurring tournaments stay unique — e.g. Lagos Open 2026.
-                  </p>
+                  {!nameError && (
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Include the year so recurring tournaments stay unique — e.g. Lagos Open 2026.
+                    </p>
+                  )}
                 </Field>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
