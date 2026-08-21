@@ -29,7 +29,10 @@ export class RegistrationsController {
   register(@Request() req: any, @Body() dto: RegisterTournamentDto) {
     const role = req.user?.role as UserRole;
     const isAdmin =
-      role === UserRole.SUPER_ADMIN || role === UserRole.CLUB_ADMIN;
+      role === UserRole.SUPER_ADMIN ||
+      role === UserRole.CLUB_ADMIN ||
+      role === UserRole.MANAGER ||
+      role === UserRole.STAFF;
     const userId = isAdmin && dto.userId ? dto.userId : req.user.id;
     return this.registrationsService.register(userId, dto, isAdmin);
   }

@@ -61,14 +61,15 @@ export class RegistrationsService {
 
     // 3. Validate Deadline
     if (
+      !isAdmin &&
       tournament.registrationCloseAt &&
       new Date() > new Date(tournament.registrationCloseAt)
     ) {
       throw new BadRequestException('Registration deadline has passed');
     }
 
-    // 3.5 Validate if Tournament has started
-    if (new Date() > new Date(tournament.startDate)) {
+    // 3.5 Validate if Tournament has started (public players cannot self-register after Day 1; admins can override)
+    if (!isAdmin && new Date() > new Date(tournament.startDate)) {
       throw new BadRequestException(
         'Registration is closed. The tournament has already started and we do not accept new registrations after Day 1 has commenced.',
       );

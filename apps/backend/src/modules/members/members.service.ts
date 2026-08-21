@@ -878,9 +878,22 @@ export class MembersService {
       where: { email, deletedAt: null },
     });
     if (existing) {
-      throw new ConflictException(
-        'A user with this email already exists. Please use a different email address.',
-      );
+      if (
+        existing.status === MemberStatus.PENDING &&
+        existing.inviteTokenExpires &&
+        existing.inviteTokenExpires < new Date()
+      ) {
+        // Expired pending invite: purge automatically so user can be re-invited cleanly
+        await this.prisma.$transaction(async (tx) => {
+          await tx.score.deleteMany({ where: { userId: existing.id } });
+          await tx.registration.deleteMany({ where: { userId: existing.id } });
+          await tx.user.delete({ where: { id: existing.id } });
+        }).catch(() => {});
+      } else {
+        throw new ConflictException(
+          'A user with this email already exists. Please use a different email address.',
+        );
+      }
     }
 
     // Check if the organizer already has 30 users (managers/markers)

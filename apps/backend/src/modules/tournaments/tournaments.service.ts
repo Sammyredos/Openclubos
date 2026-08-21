@@ -1324,15 +1324,11 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
       },
       include: { user: true }
     });
-    
-    // Sort logic placeholder (Random by default)
-    if (rule.includes('RANDOM')) {
-      unassigned.sort(() => Math.random() - 0.5);
-    } else if (rule.includes('GROSS')) {
-      // Very basic mock sorting for demo
-      unassigned.sort((a, b) => (a.user.handicap || 0) - (b.user.handicap || 0));
+
+    if (unassigned.length === 0 && rule !== 'MANUAL_EMPTY') {
+      return this.getGroupings(tournamentId, day);
     }
-    
+
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId }
     });
@@ -1340,7 +1336,7 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
     const interval = tournament?.teeIntervalMinutes || 10;
     const startTimeStr = tournament?.teeStartTime || "08:00";
     const startType = tournament?.startType || "TEE_TIMES";
-    
+
     let existingGroups: any[] = [];
     if (rule !== 'MANUAL_EMPTY') {
       existingGroups = await this.prisma.group.findMany({
@@ -1348,21 +1344,179 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
         include: { players: true },
         orderBy: { startTime: 'asc' }
       });
-      
-      // Fill open slots in existing groups
+    }
+
+    const playerChunks: (typeof unassigned)[] = [];
+
+    if (rule === 'CATEGORY_RANDOM') {
+      const isPro = (p: any) =>
+        Boolean(
+          p.playerType?.toUpperCase()?.includes('PRO') ||
+          p.user?.playerType?.toUpperCase()?.includes('PRO') ||
+          (p.user?.handicap === 0 && (p.user?.lastName?.includes('PRO') || p.user?.role === 'STAFF'))
+        );
+      const isCat1 = (p: any) =>
+        !isPro(p) && (p.user?.handicap ?? 0) <= 9;
+      const isCat2 = (p: any) =>
+        !isPro(p) && (p.user?.handicap ?? 0) >= 10 && (p.user?.handicap ?? 0) <= 18;
+      const isCat3 = (p: any) =>
+        !isPro(p) && (p.user?.handicap ?? 0) >= 19 && (p.user?.handicap ?? 0) <= 28;
+      const isCat4 = (p: any) =>
+        !isPro(p) && (p.user?.handicap ?? 0) >= 29;
+
+      const pros = unassigned.filter(isPro);
+      const cat1 = unassigned.filter(isCat1);
+      const cat2 = unassigned.filter(isCat2);
+      const cat3 = unassigned.filter(isCat3);
+      const cat4 = unassigned.filter(isCat4);
+
+      // Step 1: Backfill open seats in existing groups first
       for (const group of existingGroups) {
-        const currentCount = group.players.length;
-        const availableSlots = maxPlayersPerGroup - currentCount;
-        
-        if (availableSlots > 0 && unassigned.length > 0) {
-          const playersToFill = unassigned.splice(0, availableSlots);
+        const openSlots = maxPlayersPerGroup - group.players.length;
+        if (openSlots > 0) {
+          const playersToBackfill: typeof unassigned = [];
+          for (let s = 0; s < openSlots; s++) {
+            let nextPlayer: any = null;
+            if (cat1.length > 0) nextPlayer = cat1.shift();
+            else if (cat2.length > 0) nextPlayer = cat2.shift();
+            else if (cat3.length > 0) nextPlayer = cat3.shift();
+            else if (cat4.length > 0) nextPlayer = cat4.shift();
+            else if (pros.length > 0) nextPlayer = pros.shift();
+
+            if (nextPlayer) {
+              playersToBackfill.push(nextPlayer);
+            }
+          }
+          if (playersToBackfill.length > 0) {
+            await this.prisma.groupPlayer.createMany({
+              data: playersToBackfill.map(p => ({
+                groupId: group.id,
+                registrationId: p.id
+              }))
+            });
+            group.players.push(...playersToBackfill);
+          }
+        }
+      }
+
+      // Step 2: Chunk remaining Pro players into new groups
+      while (pros.length > 0) {
+        const proGroup = pros.splice(0, 3);
+        if (cat1.length > 0) {
+          proGroup.push(cat1.shift()!);
+        }
+        playerChunks.push(proGroup);
+      }
+
+      // Step 3: Chunk remaining Category 1, 2, 3, and 4 players across new groups
+      const totalRemainingAmateurs = cat1.length + cat2.length + cat3.length + cat4.length;
+      if (totalRemainingAmateurs > 0) {
+        const numAmateurGroups = Math.max(1, Math.ceil(totalRemainingAmateurs / maxPlayersPerGroup));
+        const amateurGroups: (typeof unassigned)[] = Array.from({ length: numAmateurGroups }, () => []);
+
+        // Round 1 (Seat 1): Place 1 Category 1 into each group
+        let gIdx = 0;
+        while (cat1.length > 0 && amateurGroups.some(g => g.length === 0)) {
+          amateurGroups[gIdx % numAmateurGroups].push(cat1.shift()!);
+          gIdx++;
+        }
+
+        // Round 2 (Seat 2): Place 1 Category 2 into each group
+        gIdx = 0;
+        while (cat2.length > 0 && amateurGroups.some(g => g.length < 2)) {
+          const targetGroup = amateurGroups[gIdx % numAmateurGroups];
+          if (targetGroup.length < 2) {
+            targetGroup.push(cat2.shift()!);
+          }
+          gIdx++;
+        }
+
+        // Round 3 (Seat 3): Place 1 Category 3 into each group
+        gIdx = 0;
+        while (cat3.length > 0 && amateurGroups.some(g => g.length < 3)) {
+          const targetGroup = amateurGroups[gIdx % numAmateurGroups];
+          if (targetGroup.length < 3) {
+            targetGroup.push(cat3.shift()!);
+          }
+          gIdx++;
+        }
+
+        // Round 4 (Seat 4 & Remaining): Place Cat 4 or remaining players evenly
+        const remainingPool = [...cat1, ...cat2, ...cat3, ...cat4];
+        for (const player of remainingPool) {
+          const targetGroup = amateurGroups.find(g => g.length < maxPlayersPerGroup);
+          if (targetGroup) {
+            targetGroup.push(player);
+          } else {
+            amateurGroups.push([player]);
+          }
+        }
+
+        playerChunks.push(...amateurGroups.filter(g => g.length > 0));
+      }
+    } else if (rule === 'LEADERBOARD_REVERSE_GROSS') {
+      const scores = await this.prisma.score.findMany({
+        where: { group: { tournamentId } },
+      });
+      const playerGrossMap = new Map<string, number>();
+      for (const reg of unassigned) {
+        const pScores = scores.filter((s) => s.userId === reg.userId);
+        const gross = pScores.reduce((sum, s) => sum + s.strokes, 0);
+        playerGrossMap.set(reg.userId, gross);
+      }
+      // Sort descending: highest gross score (last place) tees off first, lowest gross score (leader) tees off last
+      unassigned.sort((a, b) => {
+        const scoreA = playerGrossMap.get(a.userId) ?? 999;
+        const scoreB = playerGrossMap.get(b.userId) ?? 999;
+        return scoreB - scoreA;
+      });
+
+      // Backfill existing groups first
+      for (const group of existingGroups) {
+        const openSlots = maxPlayersPerGroup - group.players.length;
+        if (openSlots > 0 && unassigned.length > 0) {
+          const toAdd = unassigned.splice(0, openSlots);
           await this.prisma.groupPlayer.createMany({
-            data: playersToFill.map(p => ({
+            data: toAdd.map(p => ({
               groupId: group.id,
               registrationId: p.id
             }))
           });
+          group.players.push(...toAdd);
         }
+      }
+
+      while (unassigned.length > 0) {
+        playerChunks.push(unassigned.splice(0, maxPlayersPerGroup));
+      }
+    } else if (rule === 'MANUAL_EMPTY') {
+      // Create empty group slots for manual assignment
+      const totalPlayers = unassigned.length;
+      const count = Math.max(1, Math.ceil(totalPlayers / maxPlayersPerGroup));
+      for (let i = 0; i < count; i++) {
+        playerChunks.push([]);
+      }
+    } else {
+      // Random
+      unassigned.sort(() => Math.random() - 0.5);
+
+      // Backfill existing groups first
+      for (const group of existingGroups) {
+        const openSlots = maxPlayersPerGroup - group.players.length;
+        if (openSlots > 0 && unassigned.length > 0) {
+          const toAdd = unassigned.splice(0, openSlots);
+          await this.prisma.groupPlayer.createMany({
+            data: toAdd.map(p => ({
+              groupId: group.id,
+              registrationId: p.id
+            }))
+          });
+          group.players.push(...toAdd);
+        }
+      }
+
+      while (unassigned.length > 0) {
+        playerChunks.push(unassigned.splice(0, maxPlayersPerGroup));
       }
     }
     
@@ -1397,9 +1551,7 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
       }
     }
     
-    while (unassigned.length > 0) {
-      const playersChunk = unassigned.splice(0, maxPlayersPerGroup);
-      
+    for (const playersChunk of playerChunks) {
       let groupName = "";
       if (startType === "SHOTGUN") {
         groupName = `Hole ${currentGroupIndex + 1}`;
@@ -1434,7 +1586,7 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
         }
       });
       
-      if (rule !== "MANUAL_EMPTY") {
+      if (playersChunk.length > 0) {
         await this.prisma.groupPlayer.createMany({
           data: playersChunk.map(p => ({
             groupId: group.id,

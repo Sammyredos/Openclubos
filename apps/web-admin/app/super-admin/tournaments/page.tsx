@@ -423,7 +423,9 @@ export default function TournamentsPage() {
   });
 
   const uniqueClubs = Array.from(new Set(rows.map((t) => t.clubName))).filter((c) => c !== "—");
-  const uniqueStatuses = Array.from(new Set(rows.map((t) => t.status)));
+  const uniqueStatuses = useMemo(() => {
+    return Array.from(new Set(Object.values(STATUS_META).map((m) => m.label)));
+  }, []);
 
   const uniqueMonths = useMemo(() => {
     const months = new Set<string>();

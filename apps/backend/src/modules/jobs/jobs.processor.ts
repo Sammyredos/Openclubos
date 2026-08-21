@@ -80,6 +80,13 @@ export class JobsProcessor extends WorkerHost {
           );
           break;
 
+        case 'CLEANUP_EXPIRED_INVITATIONS':
+          await this.purgeExpiredInvitations();
+          this.logger.log(
+            `Completed job CLEANUP_EXPIRED_INVITATIONS (ID: ${job.id}) successfully`,
+          );
+          break;
+
         case 'SEND_EMAIL': {
           const { template, to, data } = job.data as SendEmailJobPayload;
           this.logger.log(
@@ -362,6 +369,29 @@ export class JobsProcessor extends WorkerHost {
       );
     } else {
       this.logger.log('No old scores found to delete.');
+    }
+  }
+
+  async purgeExpiredInvitations() {
+    const now = new Date();
+    const expiredPendingUsers = await this.prisma.user.findMany({
+      where: {
+        status: 'PENDING',
+        inviteTokenExpires: { lt: now },
+      },
+      select: { id: true, email: true },
+    });
+
+    if (expiredPendingUsers.length > 0) {
+      const expiredIds = expiredPendingUsers.map((u) => u.id);
+      await this.prisma.$transaction(async (tx) => {
+        await tx.score.deleteMany({ where: { userId: { in: expiredIds } } });
+        await tx.registration.deleteMany({ where: { userId: { in: expiredIds } } });
+        await tx.user.deleteMany({ where: { id: { in: expiredIds } } });
+      });
+      this.logger.log(
+        `Automatically cleaned up ${expiredIds.length} expired unaccepted pending user invitations.`,
+      );
     }
   }
 }

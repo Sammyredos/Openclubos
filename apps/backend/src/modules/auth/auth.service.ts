@@ -593,6 +593,13 @@ export class AuthService {
     }
 
     if (user.inviteTokenExpires && user.inviteTokenExpires < new Date()) {
+      if (user.status === MemberStatus.PENDING) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.score.deleteMany({ where: { userId: user.id } });
+          await tx.registration.deleteMany({ where: { userId: user.id } });
+          await tx.user.delete({ where: { id: user.id } });
+        }).catch(() => {});
+      }
       throw new NotFoundException('This invitation has expired');
     }
 
@@ -629,6 +636,13 @@ export class AuthService {
     }
 
     if (user.inviteTokenExpires && user.inviteTokenExpires < new Date()) {
+      if (user.status === MemberStatus.PENDING) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.score.deleteMany({ where: { userId: user.id } });
+          await tx.registration.deleteMany({ where: { userId: user.id } });
+          await tx.user.delete({ where: { id: user.id } });
+        }).catch(() => {});
+      }
       throw new UnauthorizedException(
         'This invitation has expired. Please ask your organizer to send a new invitation.',
       );

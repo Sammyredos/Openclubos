@@ -519,7 +519,7 @@ function ViewTournamentPageInner() {
     }
   };
 
-  const handleGenerateGroupings = async (rule: "RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "LEADERBOARD_REVERSE_NET" | "LEADERBOARD_DIRECT_GROSS" | "LEADERBOARD_DIRECT_NET" | "MANUAL_EMPTY" = "RANDOM") => {
+  const handleGenerateGroupings = async (rule: "RANDOM" | "CATEGORY_RANDOM" | "LEADERBOARD_REVERSE_GROSS" | "MANUAL_EMPTY" = "RANDOM") => {
     if (!tournamentId) return;
     setGroupingsGenerating(true);
     if (rule === "MANUAL_EMPTY") setIsManualGenerating(true);
@@ -2366,11 +2366,8 @@ function ViewTournamentPageInner() {
         <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
           {[
             { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
-            { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Mixes different skill levels together so every group is balanced and fair.", icon: SlidersHorizontal },
-            { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reverse (Gross)", desc: "The top players tee off last. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowUp },
-            { value: "LEADERBOARD_REVERSE_NET", label: "Leaderboard Reverse (Net)", desc: "The top players tee off last. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowUp },
-            { value: "LEADERBOARD_DIRECT_GROSS", label: "Leaderboard Direct (Gross)", desc: "The top players tee off first. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowDown },
-            { value: "LEADERBOARD_DIRECT_NET", label: "Leaderboard Direct (Net)", desc: "The top players tee off first. (Only works after Day 1).", disabled: selectedDay === 1, icon: ArrowDown },
+            { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Evenly spreads top players and amateurs across flights so every group has a fair, balanced mix of skill levels.", icon: SlidersHorizontal },
+            { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reversed", desc: "Leaders tee off last: Best performers from previous rounds play in the final flights so the champions finish last. (Day 2+ only).", disabled: selectedDay === 1, icon: ArrowUp },
           ].map((rule) => {
             const Icon = rule.icon;
             return (

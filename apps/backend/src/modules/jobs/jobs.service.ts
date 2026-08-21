@@ -73,7 +73,23 @@ export class JobsService implements OnModuleInit {
         },
       );
       this.logger.log(
-        'Repeatable job RECONCILE_LEADERBOARDS (60s interval) registered successfully.',
+        'Repeatable job RECONCILE_LEADERBOARDS registered successfully.',
+      );
+
+      await this.queue.add(
+        'CLEANUP_EXPIRED_INVITATIONS',
+        {},
+        {
+          repeat: {
+            pattern: '*/5 * * * *', // Run every 5 minutes
+          },
+          jobId: 'cleanup-expired-invitations',
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      this.logger.log(
+        'Repeatable job CLEANUP_EXPIRED_INVITATIONS registered successfully.',
       );
     } catch (err) {
       this.logger.error(
