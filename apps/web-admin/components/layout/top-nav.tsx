@@ -40,6 +40,7 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/plans") return "Subscription Plans";
     if (pathname === "/super-admin/subscriptions") return "Subscriptions";
     if (pathname === "/super-admin/payments") return "Payments";
+    if (pathname === "/super-admin/analytics") return "Analytics";
     if (pathname === "/super-admin/golf-courses") return "Golf Courses";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Course Details";
     if (pathname === "/super-admin/settings") return "Settings";
@@ -49,6 +50,7 @@ export function TopNav() {
   const isMajorPage = pathname === "/super-admin/dashboard"
     || pathname === "/organizer-admin/dashboard"
     || pathname === "/"
+    || pathname === "/super-admin/analytics"
     || pathname === "/super-admin/users"
     || pathname === "/super-admin/users/players"
     || pathname === "/super-admin/users/organizers"
@@ -84,6 +86,7 @@ export function TopNav() {
       return "";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview of platform key metrics and recent activities.";
+    if (pathname === "/super-admin/analytics") return "Track performance, engagement and growth across your tournaments.";
     if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
     if (pathname === "/super-admin/users/players") return "View and manage all registered players and markers on the platform.";
     if (pathname === "/super-admin/users/organizers") return "View and manage all club management staff and administrators.";

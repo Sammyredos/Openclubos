@@ -419,6 +419,13 @@ function ViewTournamentPageInner() {
   const unassignedPerPage = 5;
   const groupsPerPage = 3;
 
+  const assignedFlight = useMemo(() => {
+    if (!actionRegistration || !groupingsData?.groups) return null;
+    return groupingsData.groups.find((g: any) =>
+      g.registrations?.some((r: any) => r.id === actionRegistration.id)
+    );
+  }, [actionRegistration, groupingsData]);
+
   // Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -1269,8 +1276,14 @@ function ViewTournamentPageInner() {
     setIsDisqualifyModalOpen(true);
   };
 
-  const openRemovePlayer = (reg: RegistrationListItem) => {
+  const openRemovePlayer = async (reg: RegistrationListItem) => {
     setActionRegistration(reg);
+    if (!groupingsData && tournamentId) {
+      try {
+        const data = await getGroupings(tournamentId, selectedDay || 1);
+        setGroupingsData(data);
+      } catch (err) {}
+    }
     setIsRemovePlayerModalOpen(true);
   };
 
@@ -1363,6 +1376,7 @@ function ViewTournamentPageInner() {
       toast.success("Player removed from tournament");
 
       await reloadSingleTournament();
+      await loadGroupingsData();
 
       if (registrationsMode === "client") {
         setRegistrationsAll(prev => prev.filter(x => x.id !== actionRegistration.id));
@@ -1721,7 +1735,6 @@ function ViewTournamentPageInner() {
                             <th className="px-6 py-4 text-center">HOLES</th>
                             <th className="px-6 py-4 text-center">TOTAL GROSS</th>
                             <th className="px-6 py-4 text-center">HCP</th>
-                            <th className="px-6 py-4 text-center">NET</th>
                             <th className="px-6 py-4 text-center">TO PAR</th>
                             <th className="px-6 py-4 text-center">STATUS</th>
                           </tr>
@@ -1746,7 +1759,6 @@ function ViewTournamentPageInner() {
                               <td className="px-6 py-4"><Skeleton className="h-4 w-10 mx-auto" /></td>
                               <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
                               <td className="px-6 py-4"><Skeleton className="h-5 w-8 rounded-lg mx-auto" /></td>
-                              <td className="px-6 py-4"><Skeleton className="h-4 w-8 mx-auto" /></td>
                               <td className="px-6 py-4"><Skeleton className="h-5 w-10 mx-auto" /></td>
                               <td className="px-6 py-4"><Skeleton className="h-5 w-16 rounded-lg mx-auto" /></td>
                             </tr>
@@ -1805,7 +1817,6 @@ function ViewTournamentPageInner() {
                               <th className="px-6 py-4 text-center">HOLES</th>
                               <th className="px-6 py-4 text-center">TOTAL GROSS</th>
                               <th className="px-6 py-4 text-center">HCP</th>
-                              <th className="px-6 py-4 text-center">NET</th>
                               <th className="px-6 py-4 text-center">TO PAR</th>
                               <th className="px-6 py-4 text-center">STATUS</th>
                             </tr>
@@ -1924,11 +1935,6 @@ function ViewTournamentPageInner() {
                                     <td className="px-6 py-4 text-center">
                                       <span className="text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
                                         {entry.user.handicap || 0}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                      <span className="text-[13px] font-medium text-gray-900">
-                                        {entry.grossStrokes > 0 ? entry.netStrokes : "-"}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
@@ -2154,15 +2160,16 @@ function ViewTournamentPageInner() {
           setIsRemovePlayerModalOpen(false);
           setActionRegistration(null);
         }}
-        title="Remove Player from Tournament?"
+        title={assignedFlight ? "Player Assigned to Flight" : "Remove Player from Tournament?"}
+        className="max-w-md"
         footer={
           (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-semibold">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                className="rounded-lg font-semibold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -2173,38 +2180,56 @@ function ViewTournamentPageInner() {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-semibold">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+                className="rounded-lg font-semibold px-8 text-white border bg-red-600 hover:bg-red-700 border-red-700/30"
                 onClick={confirmRemovePlayer}
               >
-                Remove
+                {assignedFlight ? "Remove & Vacate Slot" : "Remove"}
               </Button>
             </>
           )
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
+            (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0))
+              ? "bg-amber-50 text-amber-500 border border-amber-100"
+              : assignedFlight
+              ? "bg-amber-50 text-amber-600 border border-amber-200"
+              : "bg-red-50 text-red-500 border border-red-100"
+          }`}>
             {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
               <Ban className="h-10 w-10 text-amber-500" />
+            ) : assignedFlight ? (
+              <AlertTriangle className="h-10 w-10 text-amber-500" />
             ) : (
-              <UserMinus className="h-10 w-10" />
+              <UserMinus className="h-10 w-10 text-red-500" />
             )}
           </div>
-          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
-            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
+          <h4 className="text-base font-semibold text-gray-900 mb-2">
+            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0))
+              ? "Cannot Remove Player"
+              : assignedFlight
+              ? `Player Assigned to ${assignedFlight.name}`
+              : "Remove Player?"}
           </h4>
-          <p className="text-gray-500 max-w-sm">
+          <p className="text-sm text-gray-600 max-w-sm">
             {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
               <>
-                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong>Disqualify</strong> button instead.
+                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong className="font-semibold text-gray-900">Disqualify</strong> button instead.
+              </>
+            ) : assignedFlight ? (
+              <>
+                <strong className="font-semibold text-gray-900">{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "This player"}</strong> has already been assigned to <strong className="font-semibold text-gray-900">{assignedFlight.name}</strong>.
+                <br /><br />
+                Removing them will remove them from the tournament and leave an <strong className="font-semibold text-gray-900">empty slot</strong> in <strong className="font-semibold text-gray-900">{assignedFlight.name}</strong>. Are you sure you want to proceed?
               </>
             ) : (
               <>
-                Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+                Are you sure you want to permanently remove <strong className="font-semibold text-gray-900">{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
               </>
             )}
           </p>

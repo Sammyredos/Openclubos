@@ -451,6 +451,13 @@ function ViewTournamentPageInner() {
   const unassignedPerPage = 5;
   const groupsPerPage = 3;
 
+  const assignedFlight = useMemo(() => {
+    if (!actionRegistration || !groupingsData?.groups) return null;
+    return groupingsData.groups.find((g: any) =>
+      g.registrations?.some((r: any) => r.id === actionRegistration.id)
+    );
+  }, [actionRegistration, groupingsData]);
+
   // Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -1387,8 +1394,14 @@ function ViewTournamentPageInner() {
     setIsDisqualifyModalOpen(true);
   };
 
-  const openRemovePlayer = (reg: RegistrationListItem) => {
+  const openRemovePlayer = async (reg: RegistrationListItem) => {
     setActionRegistration(reg);
+    if (!groupingsData && tournamentId) {
+      try {
+        const data = await getGroupings(tournamentId, selectedDay || 1);
+        setGroupingsData(data);
+      } catch (err) {}
+    }
     setIsRemovePlayerModalOpen(true);
   };
 
@@ -2450,14 +2463,14 @@ function ViewTournamentPageInner() {
                 {groupingsLoading ? (
                   <div className="space-y-8">
                     {/* Day Selection Linear Flow Skeleton */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#e1efe5] relative">
-                      <div className="w-1/3 flex items-center">
+                    <div className="flex items-center justify-between py-3 mb-8 border-b border-[#e1efe5] relative min-h-[56px]">
+                      <div className="w-1/3 flex items-center min-h-[40px]">
                         <Skeleton className="h-10 w-36 rounded-xl bg-gray-100" />
                       </div>
-                      <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none">
+                      <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
                         <Skeleton className="h-10 w-64 rounded-xl bg-emerald-50/70 border border-emerald-100" />
                       </div>
-                      <div className="w-1/3 flex justify-end">
+                      <div className="w-1/3 flex justify-end min-h-[40px]">
                         <Skeleton className="h-10 w-40 rounded-xl bg-emerald-100/70" />
                       </div>
                     </div>
@@ -2477,46 +2490,16 @@ function ViewTournamentPageInner() {
                       </div>
                     </div>
 
-                    {/* Search & Sub-tabs Skeleton */}
-                    <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-                      <div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-xl" />
-                      <div className="flex gap-2 bg-background/50 p-1.5 rounded-xl border border-[#e1efe5]">
-                        <div className="w-36 h-9 bg-gray-100 animate-pulse rounded-lg" />
-                        <div className="w-32 h-9 bg-gray-100 animate-pulse rounded-lg" />
+                    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                          <div key={i} className="h-48 rounded-xl bg-gray-50 border border-gray-100 animate-pulse p-4 space-y-3">
+                            <div className="h-6 w-24 bg-gray-200 rounded-md" />
+                            <div className="h-4 w-32 bg-gray-200 rounded-md" />
+                            <div className="h-20 w-full bg-gray-100 rounded-lg mt-4" />
+                          </div>
+                        ))}
                       </div>
-                    </div>
-
-                    {/* Flights Grid Skeleton */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-white rounded-xl border border-[#e1efe5] flex flex-col shadow-lg">
-                          <div className="p-5 flex items-start justify-between bg-[#278a4c]/10 rounded-t-xl border-b border-[#1c6437]/10">
-                            <div className="flex items-start gap-4">
-                              <div className="w-10 h-10 rounded-full bg-[#278a4c]/20 animate-pulse shrink-0" />
-                              <div className="space-y-2 mt-0.5">
-                                <div className="w-24 h-5 bg-[#278a4c]/20 animate-pulse rounded" />
-                                <div className="w-20 h-3 bg-[#278a4c]/20 animate-pulse rounded" />
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end mt-0.5 space-y-2">
-                              <div className="w-8 h-4 bg-[#278a4c]/20 animate-pulse rounded" />
-                              <div className="w-12 h-3 bg-[#278a4c]/20 animate-pulse rounded" />
-                            </div>
-                          </div>
-                          <div className="h-[2px] w-full bg-gray-100" />
-                          <div className="flex-1 p-0">
-                            <div className="divide-y divide-[#efefef]">
-                              {[1, 2, 3, 4].map(j => (
-                                <div key={j} className="flex items-center gap-3 px-4 py-3">
-                                  <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse shrink-0 border border-[#e1efe5]" />
-                                  <div className="w-32 h-4 bg-gray-100 animate-pulse rounded" />
-                                  <div className="w-16 h-4 bg-gray-100 animate-pulse rounded ml-auto" />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 ) : (
@@ -2524,8 +2507,8 @@ function ViewTournamentPageInner() {
                     <div className="rounded-xl border border-[#e1efe5] bg-[#f5faf6] overflow-hidden">
                       <div className="p-5 space-y-8">
                         {/* Day Selection Linear Flow */}
-                        <div className="flex items-center justify-between pb-4 mb-12 border-b border-[#e1efe5] relative">
-                          <div className="flex items-center gap-3 z-10 w-1/3">
+                        <div className="flex items-center justify-between py-3 mb-8 border-b border-[#e1efe5] relative min-h-[56px]">
+                          <div className="flex items-center gap-3 z-10 w-1/3 min-h-[40px]">
                             {selectedDay > 1 && (
                               <button
                                 onClick={() => setSelectedDay(selectedDay - 1)}
@@ -2537,8 +2520,8 @@ function ViewTournamentPageInner() {
                             )}
                           </div>
 
-                          <div className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-0">
-                            <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2.5 shadow-sm">
+                          <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
+                            <div className="flex items-center gap-2.5 bg-emerald-50 backdrop-blur-md border border-emerald-200 rounded-2xl px-6 py-2 shadow-sm pointer-events-auto">
                               <div className="bg-emerald-200/60 p-1.5 rounded-lg">
                                 <Calendar className="w-4 h-4 text-emerald-800" />
                               </div>
@@ -2553,7 +2536,7 @@ function ViewTournamentPageInner() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-end gap-3 z-10 w-1/3">
+                          <div className="flex items-center justify-end gap-3 z-10 w-1/3 min-h-[40px]">
                             {selectedDay < getTournamentDays() && (
                               <button
                                 onClick={() => setSelectedDay(selectedDay + 1)}
@@ -3605,15 +3588,16 @@ function ViewTournamentPageInner() {
           setIsRemovePlayerModalOpen(false);
           setActionRegistration(null);
         }}
-        title="Remove Player from Tournament?"
+        title={assignedFlight ? "Player Assigned to Flight" : "Remove Player from Tournament?"}
+        className="max-w-md"
         footer={
           (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-semibold">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-normal px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
+                className="rounded-lg font-semibold px-8 text-white border bg-amber-500 hover:bg-amber-600 border-amber-600/30"
                 onClick={() => {
                   setIsRemovePlayerModalOpen(false);
                   confirmDisqualify();
@@ -3624,38 +3608,56 @@ function ViewTournamentPageInner() {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-normal">
+              <Button variant="outline" onClick={() => setIsRemovePlayerModalOpen(false)} className="rounded-lg font-semibold">
                 Cancel
               </Button>
               <Button
-                className="rounded-lg font-normal px-8 text-white border bg-red-500 hover:bg-red-600 border-red-650/30"
+                className="rounded-lg font-semibold px-8 text-white border bg-red-600 hover:bg-red-700 border-red-700/30"
                 onClick={confirmRemovePlayer}
               >
-                Remove
+                {assignedFlight ? "Remove & Vacate Slot" : "Remove"}
               </Button>
             </>
           )
         }
       >
         <div className="flex flex-col items-center text-center py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500 border border-red-100">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
+            (selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0))
+              ? "bg-amber-50 text-amber-500 border border-amber-100"
+              : assignedFlight
+              ? "bg-amber-50 text-amber-600 border border-amber-200"
+              : "bg-red-50 text-red-500 border border-red-100"
+          }`}>
             {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
               <Ban className="h-10 w-10 text-amber-500" />
+            ) : assignedFlight ? (
+              <AlertTriangle className="h-10 w-10 text-amber-500" />
             ) : (
-              <UserMinus className="h-10 w-10" />
+              <UserMinus className="h-10 w-10 text-red-500" />
             )}
           </div>
-          <h4 className="text-[14px] font-normal text-gray-900 mb-2">
-            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? "Cannot Remove Player" : "Remove Player?"}
+          <h4 className="text-base font-semibold text-gray-900 mb-2">
+            {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0))
+              ? "Cannot Remove Player"
+              : assignedFlight
+              ? `Player Assigned to ${assignedFlight.name}`
+              : "Remove Player?"}
           </h4>
-          <p className="text-gray-500 max-w-sm">
+          <p className="text-sm text-gray-600 max-w-sm">
             {(selectedTournament?.status === "ONGOING" || selectedTournament?.status === "COMPLETED" || (selectedTournament?.lockedGroupingsDays && selectedTournament.lockedGroupingsDays.length > 0)) ? (
               <>
-                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong>Disqualify</strong> button instead.
+                The tournament has already started. You cannot completely remove players from an ongoing tournament. Please use the <strong className="font-semibold text-gray-900">Disqualify</strong> button instead.
+              </>
+            ) : assignedFlight ? (
+              <>
+                <strong className="font-semibold text-gray-900">{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "This player"}</strong> has already been assigned to <strong className="font-semibold text-gray-900">{assignedFlight.name}</strong>.
+                <br /><br />
+                Removing them will remove them from the tournament and leave an <strong className="font-semibold text-gray-900">empty slot</strong> in <strong className="font-semibold text-gray-900">{assignedFlight.name}</strong>. Are you sure you want to proceed?
               </>
             ) : (
               <>
-                Are you sure you want to permanently remove <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
+                Are you sure you want to permanently remove <strong className="font-semibold text-gray-900">{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong> from the tournament?
               </>
             )}
           </p>

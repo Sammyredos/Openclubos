@@ -77,4 +77,14 @@ export class SuperAdminDashboardController {
   alerts() {
     return this.dashboard.alerts();
   }
+
+  @Get('analytics-overview')
+  analyticsOverview(
+    @Query('dateRange') dateRange?: string,
+    @Query('clubId') clubId?: string,
+    @Query('format') format?: string,
+    @Query('frequency') frequency?: string,
+  ) {
+    return this.dashboard.analyticsOverview({ dateRange, clubId, format, frequency });
+  }
 }
