@@ -867,7 +867,7 @@ export class MembersService {
     firstName: string;
     middleName?: string;
     lastName: string;
-    scope: string;
+    scope?: string;
     clubId: string;
     clubName: string;
   }) {

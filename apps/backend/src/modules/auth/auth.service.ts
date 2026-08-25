@@ -513,13 +513,13 @@ export class AuthService {
     });
     if (!user) return;
 
-    // Generate a cryptographically random single-use token (1 hour expiry)
+    // Generate a cryptographically random single-use token (5 minutes expiry)
     const resetToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
-    const passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    const passwordResetExpires = new Date(Date.now() + 5 * 60 * 1000);
 
     // Store tokenHash + expiry in DB
     await this.prisma.user.update({
@@ -794,3 +794,4 @@ export class AuthService {
     return updatedUser;
   }
 }
+

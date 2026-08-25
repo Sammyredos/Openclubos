@@ -71,9 +71,14 @@ import { JobsService } from './jobs.service.js';
         }
       },
     }),
-    BullModule.registerQueue({
-      name: 'background-jobs',
-    }),
+    BullModule.registerQueue(
+      {
+        name: 'background-jobs',
+      },
+      {
+        name: 'webhooks',
+      },
+    ),
     BullBoardModule.forFeature(
       {
         name: 'background-jobs',

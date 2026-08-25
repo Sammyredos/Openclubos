@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
 import { RegisterTournamentDto } from './dto/register-tournament.dto';
+import { InvitePlayerDto } from './dto/invite-player.dto';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -238,7 +239,7 @@ export class RegistrationsService {
     return registration;
   }
 
-  async invitePlayer(dto: import('./dto/invite-player.dto').InvitePlayerDto, inviter: any) {
+  async invitePlayer(dto: InvitePlayerDto, inviter: any) {
     const { tournamentId, email } = dto;
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },

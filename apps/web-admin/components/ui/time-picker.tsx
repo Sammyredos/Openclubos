@@ -64,7 +64,7 @@ export function TimePicker({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e1efe5] bg-background/50 px-4 text-left text-[12px] font-normal text-gray-700 transition-colors focus:bg-white focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#e1efe5] bg-white px-4 text-left text-[12px] font-normal text-gray-700 transition-colors focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           buttonClassName
         )}
       >

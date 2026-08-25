@@ -151,6 +151,7 @@ export async function checkTournamentName(name: string, clubId?: string, exclude
   const params = new URLSearchParams();
   params.append('name', name.trim());
   if (excludeId) params.append('excludeId', excludeId);
+  if (clubId) params.append('clubId', clubId);
   
   const res = await authedFetch(`/tournaments/check-name?${params.toString()}`, { method: 'GET' });
   if (!res.ok) {

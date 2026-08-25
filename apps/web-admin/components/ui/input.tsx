@@ -9,7 +9,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-11 w-full rounded-lg border border-[#e1efe5] shadow-sm bg-[#f5faf6] px-[15px] py-2 text-sm font-normal transition-all file:border-0 file:bg-transparent file:text-sm file:font-normal file:text-foreground placeholder:text-zinc-500 text-zinc-700 focus:border-openclub-700 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-11 w-full rounded-lg border border-[#e1efe5] shadow-sm bg-white px-[15px] py-2 text-sm font-normal transition-all file:border-0 file:bg-transparent file:text-sm file:font-normal file:text-foreground placeholder:text-zinc-500 text-zinc-700 focus:border-openclub-700 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}
@@ -88,7 +88,7 @@ function SearchableSelect({
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            "flex h-11 w-full items-center justify-between gap-3 rounded-lg border border-[#e1efe5] shadow-sm bg-[#f5faf6] px-4 text-left text-sm font-normal text-zinc-700 transition-colors focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-11 w-full items-center justify-between gap-3 rounded-lg border border-[#e1efe5] shadow-sm bg-white px-4 text-left text-sm font-normal text-zinc-700 transition-colors focus:border-openclub-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
             triggerClassName
           )}
         >
@@ -143,7 +143,7 @@ function SearchableSelect({
                   if (e.key === "Escape") setOpen(false)
                 }}
                 placeholder={searchPlaceholder}
-                className="h-11 w-full rounded-lg border border-[#e1efe5] shadow-sm bg-[#f5faf6] px-3 text-sm font-normal text-zinc-700 outline-none transition-colors placeholder:text-zinc-500 focus:border-openclub-700"
+                className="h-11 w-full rounded-lg border border-[#e1efe5] shadow-sm bg-white px-3 text-sm font-normal text-zinc-700 outline-none transition-colors placeholder:text-zinc-500 focus:border-openclub-700"
               />
             </div>
           )}

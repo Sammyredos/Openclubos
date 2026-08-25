@@ -144,13 +144,16 @@ export class TournamentsService {
     return result;
   }
 
-  async checkName(name: string, excludeId?: string): Promise<boolean> {
+  async checkName(name: string, excludeId?: string, clubId?: string): Promise<boolean> {
     if (!name || !name.trim()) return false;
     const existing = await this.prisma.tournament.findFirst({
       where: {
         name: { equals: name.trim(), mode: 'insensitive' },
+        deletedAt: null,
         ...(excludeId ? { id: { not: excludeId } } : {}),
+        ...(clubId ? { clubId } : {}),
       },
+      select: { id: true },
     });
     return !existing;
   }
@@ -1007,10 +1010,7 @@ Hi *${firstName}*, your tournament grouping has been confirmed:${dateLine}
 Please arrive at least 30 minutes before your tee time. Best of luck on the course!`;
 
         try {
-          await this.sendchampService.sendWhatsApp({
-            recipient: phone,
-            message,
-          });
+          await this.sendchampService.sendWhatsApp(phone, message);
           sentCount++;
         } catch (err: any) {
           errors.push(`${firstName} (${phone}): ${err.message}`);
@@ -1609,3 +1609,5 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
     return this.getGroupings(tournamentId, day);
   }
 }
+
+

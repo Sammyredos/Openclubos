@@ -357,7 +357,7 @@ export class EmailService {
       ${this.p('Hello,')}
       ${this.p('We received a request to reset the password associated with your OpenClubOS account. If you made this request, please proceed by clicking the button below to establish a new password.')}
       ${this.button('Reset My Password', resetUrl, '#2563eb')}
-      ${this.p('For security purposes, this link will expire in 1 hour.')}
+      ${this.p('For security purposes, this link will expire in 5 minutes.')}
       ${this.infoBox('<strong>Security Notice:</strong> If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged and your account is secure.', '#fef2f2', '#fecaca', '#991b1b')}
     `,
       '#1e40af, #2563eb',

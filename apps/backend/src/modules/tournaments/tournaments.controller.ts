@@ -37,9 +37,10 @@ export class TournamentsController {
   async checkName(
     @Query('name') name: string,
     @Query('excludeId') excludeId?: string,
+    @Query('clubId') clubId?: string,
   ) {
     if (!name || !name.trim()) return { isUnique: false };
-    const isUnique = await this.tournamentsService.checkName(name.trim(), excludeId);
+    const isUnique = await this.tournamentsService.checkName(name.trim(), excludeId, clubId);
     return { isUnique };
   }
 
