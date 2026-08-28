@@ -1805,9 +1805,9 @@ export default function SuperAdminTeamPage() {
         size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" className="h-10 rounded-xl text-xs font-medium px-4" onClick={() => setIsInviteManagerModalOpen(false)}>Cancel</Button>
             <Button
-              className="bg-[#15803D] hover:bg-[#15803D]/90 text-white"
+              className="h-10 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-medium px-5"
               disabled={!inviteEmail || !inviteFirstName || !inviteMiddleName || !inviteLastName || mutating}
               onClick={async () => {
                 setMutating(true);
@@ -1841,71 +1841,90 @@ export default function SuperAdminTeamPage() {
           </>
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column: Personal Information */}
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column: Encapsulated Personal Information Card */}
+          <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-3.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#e1efe5]">
+              <div className="w-6 h-6 rounded-full bg-emerald-100/80 text-[#15803D] flex items-center justify-center">
+                <UserPlus className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-medium text-gray-900 leading-tight">Manager Details</h4>
+                <p className="text-[11px] text-gray-500 font-normal">Personal details of the invited team member</p>
+              </div>
+            </div>
+
             <div>
-              <Label className="text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-medium text-gray-700">Email Address <span className="text-red-500">*</span></Label>
               <Input
                 type="email"
                 placeholder="manager@example.com"
                 value={inviteEmail}
                 onChange={(e: any) => setInviteEmail(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
+                className="mt-1 h-10 bg-white border-[#e1efe5] rounded-lg text-sm font-normal"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="John"
                 value={inviteFirstName}
                 onChange={(e: any) => setInviteFirstName(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
+                className="mt-1 h-10 bg-white border-[#e1efe5] rounded-lg text-sm font-normal"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-700">Middle Name <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-medium text-gray-700">Middle Name <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="Middle name"
                 value={inviteMiddleName}
                 onChange={(e: any) => setInviteMiddleName(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
+                className="mt-1 h-10 bg-white border-[#e1efe5] rounded-lg text-sm font-normal"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-medium text-gray-700">Surname (Last Name) <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="Doe"
                 value={inviteLastName}
                 onChange={(e: any) => setInviteLastName(e.target.value)}
-                className="mt-1 h-11 border-gray-200"
+                className="mt-1 h-10 bg-white border-[#e1efe5] rounded-lg text-sm font-normal"
               />
             </div>
           </div>
 
-          {/* Right Column: Access Scope */}
-          <div>
-            <Label className="text-sm font-medium text-gray-700 mb-3 block">Access Scope</Label>
+          {/* Right Column: Encapsulated Access Scope Card */}
+          <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-3.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#e1efe5]">
+              <div className="w-6 h-6 rounded-full bg-emerald-100/80 text-[#15803D] flex items-center justify-center">
+                <Shield className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-medium text-gray-900 leading-tight">Access Scope</h4>
+                <p className="text-[11px] text-gray-500 font-normal">Define permission boundaries for this user</p>
+              </div>
+            </div>
+
             <div className="space-y-3">
               {/* Full Access Card */}
               <div
                 onClick={() => setInviteScope("FULL")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FULL" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                className={`relative p-3.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FULL" ? "border-[#15803D] bg-white shadow-sm" : "border-[#e1efe5] bg-white/70 hover:bg-white"}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FULL" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <Shield className="w-5 h-5" />
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${inviteScope === "FULL" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Shield className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "FULL" ? "text-zinc-900" : "text-zinc-700"}`}>Full Access</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
+                    <h4 className={`text-xs font-medium ${inviteScope === "FULL" ? "text-zinc-900" : "text-zinc-700"}`}>Full Access</h4>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
                       Complete control over all operations including team, tournaments, financials, and settings.
                     </p>
                   </div>
                 </div>
                 {inviteScope === "FULL" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  <div className="absolute top-3.5 right-3.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
                   </div>
                 )}
               </div>
@@ -1913,22 +1932,22 @@ export default function SuperAdminTeamPage() {
               {/* Tournaments Card */}
               <div
                 onClick={() => setInviteScope("TOURNAMENTS")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "TOURNAMENTS" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                className={`relative p-3.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "TOURNAMENTS" ? "border-[#15803D] bg-white shadow-sm" : "border-[#e1efe5] bg-white/70 hover:bg-white"}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "TOURNAMENTS" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <Trophy className="w-5 h-5" />
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${inviteScope === "TOURNAMENTS" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Trophy className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "TOURNAMENTS" ? "text-zinc-900" : "text-zinc-700"}`}>Tournaments Only</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Manage events, leaderboards, and scores. Cannot view financials or team details.
+                    <h4 className={`text-xs font-medium ${inviteScope === "TOURNAMENTS" ? "text-zinc-900" : "text-zinc-700"}`}>Tournaments Manager</h4>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
+                      Create, manage and score tournaments, leaderboards, reports, and player handicaps.
                     </p>
                   </div>
                 </div>
                 {inviteScope === "TOURNAMENTS" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  <div className="absolute top-3.5 right-3.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
                   </div>
                 )}
               </div>
@@ -1936,22 +1955,22 @@ export default function SuperAdminTeamPage() {
               {/* Finance Card */}
               <div
                 onClick={() => setInviteScope("FINANCE")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FINANCE" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                className={`relative p-3.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "FINANCE" ? "border-[#15803D] bg-white shadow-sm" : "border-[#e1efe5] bg-white/70 hover:bg-white"}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "FINANCE" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <CreditCard className="w-5 h-5" />
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${inviteScope === "FINANCE" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <CreditCard className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "FINANCE" ? "text-zinc-900" : "text-zinc-700"}`}>Finance Only</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Manage payments, subscriptions, and financial reports. No access to events or team management.
+                    <h4 className={`text-xs font-medium ${inviteScope === "FINANCE" ? "text-zinc-900" : "text-zinc-700"}`}>Finance Manager</h4>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
+                      Manage player entry fees, payment records, financial reports, and transaction reconciliation.
                     </p>
                   </div>
                 </div>
                 {inviteScope === "FINANCE" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  <div className="absolute top-3.5 right-3.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
                   </div>
                 )}
               </div>
@@ -1959,22 +1978,22 @@ export default function SuperAdminTeamPage() {
               {/* Marker Card */}
               <div
                 onClick={() => setInviteScope("MARKER")}
-                className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "MARKER" ? "border-[#15803D] bg-[#f5faf6]" : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"}`}
+                className={`relative p-3.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${inviteScope === "MARKER" ? "border-[#15803D] bg-white shadow-sm" : "border-[#e1efe5] bg-white/70 hover:bg-white"}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${inviteScope === "MARKER" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                    <Target className="w-5 h-5" />
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${inviteScope === "MARKER" ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                    <Globe className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className={`text-sm font-medium ${inviteScope === "MARKER" ? "text-zinc-900" : "text-zinc-700"}`}>Marker Only</h4>
-                    <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                      Input scores and verify play during tournaments. No access to other management features.
+                    <h4 className={`text-xs font-medium ${inviteScope === "MARKER" ? "text-zinc-900" : "text-zinc-700"}`}>Live Scoring Marker</h4>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
+                      Dedicated live score entry on the course for assigned tournament groups.
                     </p>
                   </div>
                 </div>
                 {inviteScope === "MARKER" && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
+                  <div className="absolute top-3.5 right-3.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
                   </div>
                 )}
               </div>

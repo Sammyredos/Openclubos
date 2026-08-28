@@ -2386,85 +2386,106 @@ function ViewTournamentPageInner() {
         isOpen={isGroupingRulesModalOpen}
         onClose={() => setIsGroupingRulesModalOpen(false)}
         title="Select Auto Tee Rule"
-        className="max-w-xl"
+        className="max-w-2xl"
       >
-        <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          {[
-            { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
-            { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Evenly spreads top players and amateurs across flights so every group has a fair, balanced mix of skill levels.", icon: SlidersHorizontal },
-            { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reversed", desc: "Leaders tee off last: Best performers from previous rounds play in the final flights so the champions finish last. (Day 2+ only).", disabled: selectedDay === 1, icon: ArrowUp },
-          ].map((rule) => {
-            const Icon = rule.icon;
-            return (
-              <button
-                key={rule.value}
-                disabled={rule.disabled}
-                onClick={() => setSelectedAutoTeeRule(rule.value)}
-                className={`w-full text-left p-4 bg-background rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${selectedAutoTeeRule === rule.value
-                  ? "border-openclub-600 bg-openclub-50/50 ring-1 ring-openclub-600"
-                  : "border-gray-200 hover:border-gray-300"
-                  }`}
-              >
-                <div className="flex items-start gap-4 flex-1 pr-4">
-                  <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${selectedAutoTeeRule === rule.value
-                    ? 'bg-openclub-100 border-openclub-200 text-openclub-700'
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
-                    }`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="text-left flex-1 min-w-0">
-                    <h4 className="text-[14px] font-medium text-gray-900 mb-0.5">{rule.label}</h4>
-                    <p className="text-[13px] text-gray-500">{rule.desc}</p>
-                  </div>
-                </div>
-                <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border ${selectedAutoTeeRule === rule.value ? 'border-openclub-600 bg-white' : 'border-gray-300 bg-white'}`}>
-                  {selectedAutoTeeRule === rule.value && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-openclub-600" />
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <div className="space-y-4 pt-2">
+          {/* Encapsulated Grouping Rules Card */}
+          <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-3">
+            <div className="flex items-center gap-3 pb-3 border-b border-[#e1efe5]">
+              <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-[#15803D] flex items-center justify-center shrink-0">
+                <SlidersHorizontal className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-base font-semibold text-gray-900 leading-snug">Grouping & Flight Rules</h4>
+                <p className="text-xs text-gray-500 font-normal">Choose the algorithm to automatically distribute players into flights</p>
+              </div>
+            </div>
 
-        <div className="mt-2 flex justify-end">
-          <Button
-            disabled={!selectedAutoTeeRule}
-            onClick={async () => {
-              const val = selectedAutoTeeRule as any;
-              if (!val) return;
-              setIsGroupingRulesModalOpen(false);
-              if (selectedDay > 1 && !selectedTournament?.lockedGroupingsDays?.includes(selectedDay - 1)) {
-                if (tournamentId) {
-                  setIsCheckingPreviousDay(true);
-                  try {
-                    const prevData = await getGroupings(tournamentId, selectedDay - 1);
-                    if (prevData && prevData.unassigned.length > 0) {
-                      setIsUngroupedPlayersModalOpen(true);
+            <div className="space-y-2.5 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+              {[
+                { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
+                { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Evenly spreads top players and amateurs across flights so every group has a fair, balanced mix of skill levels.", icon: SlidersHorizontal },
+                { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reversed", desc: "Leaders tee off last: Best performers from previous rounds play in the final flights so the champions finish last. (Day 2+ only).", disabled: selectedDay === 1, icon: ArrowUp },
+              ].map((rule) => {
+                const Icon = rule.icon;
+                return (
+                  <button
+                    key={rule.value}
+                    disabled={rule.disabled}
+                    onClick={() => setSelectedAutoTeeRule(rule.value)}
+                    className={`relative w-full text-left p-3.5 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAutoTeeRule === rule.value
+                      ? "border-[#15803D] bg-white shadow-sm"
+                      : "border-[#e1efe5] bg-white/70 hover:bg-white"
+                      }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 p-1.5 flex-shrink-0 rounded-lg ${selectedAutoTeeRule === rule.value ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h5 className={`text-[14px] font-medium ${selectedAutoTeeRule === rule.value ? "text-zinc-900" : "text-zinc-800"}`}>{rule.label}</h5>
+                        <p className="text-[12px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
+                          {rule.desc}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedAutoTeeRule === rule.value && (
+                      <div className="absolute top-3.5 right-3.5">
+                        <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex justify-end items-center gap-3 pt-3 border-t border-gray-100">
+            <Button
+              variant="outline"
+              onClick={() => setIsGroupingRulesModalOpen(false)}
+              className="h-10 rounded-xl text-xs font-medium px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!selectedAutoTeeRule}
+              onClick={async () => {
+                const val = selectedAutoTeeRule as any;
+                if (!val) return;
+                setIsGroupingRulesModalOpen(false);
+                if (selectedDay > 1 && !selectedTournament?.lockedGroupingsDays?.includes(selectedDay - 1)) {
+                  if (tournamentId) {
+                    setIsCheckingPreviousDay(true);
+                    try {
+                      const prevData = await getGroupings(tournamentId, selectedDay - 1);
+                      if (prevData && prevData.unassigned.length > 0) {
+                        setIsUngroupedPlayersModalOpen(true);
+                        return;
+                      }
+                    } catch (err) {
+                      toast.error("Failed to verify previous day's groupings");
                       return;
+                    } finally {
+                      setIsCheckingPreviousDay(false);
                     }
-                  } catch (err) {
-                    toast.error("Failed to verify previous day's groupings");
-                    return;
-                  } finally {
-                    setIsCheckingPreviousDay(false);
+                  }
+                  setPendingGroupingRule(val);
+                  setIsDayLockModalOpen(true);
+                } else {
+                  if (groupingsData?.groups && groupingsData.groups.length > 0 && groupingsData.rule && groupingsData.rule !== 'MANUAL_EMPTY' && groupingsData.rule !== val) {
+                    setPendingGroupingRule(val);
+                    setIsAppendGroupingsModalOpen(true);
+                  } else {
+                    handleGenerateGroupings(val);
                   }
                 }
-                setPendingGroupingRule(val);
-                setIsDayLockModalOpen(true);
-              } else {
-                if (groupingsData?.groups && groupingsData.groups.length > 0 && groupingsData.rule && groupingsData.rule !== 'MANUAL_EMPTY' && groupingsData.rule !== val) {
-                  setPendingGroupingRule(val);
-                  setIsAppendGroupingsModalOpen(true);
-                } else {
-                  handleGenerateGroupings(val);
-                }
-              }
-            }}
-            className="bg-openclub-700 hover:bg-openclub-800 text-white rounded-xl h-11 px-8 text-[13px] font-normal shadow-sm border border-openclub-800/20 disabled:bg-slate-100 disabled:text-gray-400 disabled:border-slate-200 disabled:cursor-not-allowed"
-          >
-            Confirm Selection
-          </Button>
+              }}
+              className="h-10 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-medium px-5 shadow-sm disabled:bg-slate-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              Confirm Selection
+            </Button>
+          </div>
         </div>
       </Modal>
 

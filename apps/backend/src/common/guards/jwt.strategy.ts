@@ -105,7 +105,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: payload.sub,
       email: payload.email,
       role: payload.role === UserRole.STAFF ? UserRole.PLAYER : payload.role,
-      clubId: payload.clubId,
+      clubId: user.clubId || payload.clubId,
       name:
         user.firstName || user.lastName
           ? `${user.firstName} ${user.lastName}`.trim()

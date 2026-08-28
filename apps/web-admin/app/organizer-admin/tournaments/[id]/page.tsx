@@ -3816,54 +3816,63 @@ function ViewTournamentPageInner() {
         title="Select Auto Tee Rule"
         className="max-w-2xl"
       >
-        <div className="space-y-6 pt-4">
-          <p className="text-[14px] text-gray-600">
-            Select a rule below to automatically group your players into flights. This will instantly generate groupings based on your selection.
-          </p>
+        <div className="space-y-4 pt-2">
+          {/* Encapsulated Grouping Rules Card */}
+          <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-3">
+            <div className="flex items-center gap-3 pb-3 border-b border-[#e1efe5]">
+              <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-[#15803D] flex items-center justify-center shrink-0">
+                <SlidersHorizontal className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-base font-semibold text-gray-900 leading-snug">Grouping & Flight Rules</h4>
+                <p className="text-xs text-gray-500 font-normal">Choose the algorithm to automatically distribute players into flights</p>
+              </div>
+            </div>
 
-          <div className="space-y-3 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
-            {[
-              { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
-              { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Evenly spreads top players and amateurs across flights so every group has a fair, balanced mix of skill levels.", icon: SlidersHorizontal },
-              { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reversed", desc: "Leaders tee off last: Best performers from previous rounds play in the final flights so the champions finish last. (Day 2+ only).", disabled: selectedDay === 1, icon: ArrowUp },
-            ].map((rule) => {
-              const Icon = rule.icon;
-              return (
-                <button
-                  key={rule.value}
-                  disabled={rule.disabled}
-                  onClick={() => setSelectedAutoTeeRule(rule.value)}
-                  className={`relative w-full text-left p-4 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAutoTeeRule === rule.value
-                    ? "border-[#15803D] bg-[#f5faf6]"
-                    : "border-[#e1efe5] bg-white hover:bg-[#f5faf6]"
-                    }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 p-2 flex-shrink-0 rounded-lg ${selectedAutoTeeRule === rule.value ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
-                      <Icon className="w-5 h-5" />
+            <div className="space-y-2.5 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+              {[
+                { value: "RANDOM", label: "Random Grouping", desc: "Mixes all players randomly. Great for fun and social games.", icon: Shuffle },
+                { value: "CATEGORY_RANDOM", label: "Category Balanced", desc: "Evenly spreads top players and amateurs across flights so every group has a fair, balanced mix of skill levels.", icon: SlidersHorizontal },
+                { value: "LEADERBOARD_REVERSE_GROSS", label: "Leaderboard Reversed", desc: "Leaders tee off last: Best performers from previous rounds play in the final flights so the champions finish last. (Day 2+ only).", disabled: selectedDay === 1, icon: ArrowUp },
+              ].map((rule) => {
+                const Icon = rule.icon;
+                return (
+                  <button
+                    key={rule.value}
+                    disabled={rule.disabled}
+                    onClick={() => setSelectedAutoTeeRule(rule.value)}
+                    className={`relative w-full text-left p-3.5 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAutoTeeRule === rule.value
+                      ? "border-[#15803D] bg-white shadow-sm"
+                      : "border-[#e1efe5] bg-white/70 hover:bg-white"
+                      }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 p-1.5 flex-shrink-0 rounded-lg ${selectedAutoTeeRule === rule.value ? "bg-[#15803D] text-white" : "bg-[#f5faf6] text-zinc-500 border border-[#e1efe5]"}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h5 className={`text-[14px] font-medium ${selectedAutoTeeRule === rule.value ? "text-zinc-900" : "text-zinc-800"}`}>{rule.label}</h5>
+                        <p className="text-[12px] text-zinc-500 mt-0.5 leading-relaxed pr-6">
+                          {rule.desc}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className={`text-sm font-medium ${selectedAutoTeeRule === rule.value ? "text-zinc-900" : "text-zinc-700"}`}>{rule.label}</h4>
-                      <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed pr-6">
-                        {rule.desc}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedAutoTeeRule === rule.value && (
-                    <div className="absolute top-4 right-4">
-                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                    {selectedAutoTeeRule === rule.value && (
+                      <div className="absolute top-3.5 right-3.5">
+                        <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[#e1efe5]">
+          <div className="flex justify-end items-center gap-3 pt-3 border-t border-gray-100">
             <Button
               variant="outline"
               onClick={() => setIsGroupingRulesModalOpen(false)}
-              className="rounded-xl"
+              className="h-10 rounded-xl text-xs font-medium px-4"
             >
               Cancel
             </Button>
@@ -3900,7 +3909,7 @@ function ViewTournamentPageInner() {
                   }
                 }
               }}
-              className="bg-openclub-800 hover:bg-emerald-700 text-white rounded-xl px-8 font-normal shadow-sm disabled:bg-slate-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="h-10 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-medium px-5 shadow-sm disabled:bg-slate-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               Confirm Selection
             </Button>

@@ -3,7 +3,7 @@
 import {
   AlertCircle,
   CheckCircle2,
-  DollarSign
+  Receipt
 } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import * as React from "react"
@@ -274,7 +274,7 @@ export default function TournamentRegistrationPage() {
                   <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Payment Reference <span className="text-red-500">*</span></p>
                   <p className="text-[12px] text-gray-400 mb-2">Simulated payment reference for this transaction.</p>
                   <div className="relative group">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <Input
                       placeholder="e.g. TRN-12345678"
                       className="pl-9 h-[42px] bg-white border-[#e5efe7] focus:border-primary transition-all rounded-lg text-[14px]"

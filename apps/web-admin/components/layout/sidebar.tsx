@@ -112,7 +112,15 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
     items: [
       { name: "Tournaments", href: "/super-admin/tournaments", icon: Trophy },
       { name: "Leaderboard", href: "/super-admin/leaderboard", icon: BarChart3 },
-      { name: "Payments", href: "/super-admin/payments", icon: CreditCard },
+      {
+        name: "Payments",
+        href: "/super-admin/payments",
+        icon: CreditCard,
+        subItems: [
+          { name: "Withdrawals", href: "/super-admin/payments/withdrawals" },
+          { name: "All Transactions", href: "/super-admin/payments/transactions" }
+        ]
+      },
     ],
   },
   {
@@ -143,7 +151,15 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   },
   {
     items: [
-      { name: "Payments", href: "/organizer-admin/payments", icon: CreditCard },
+      {
+        name: "Payments",
+        href: "/organizer-admin/payments",
+        icon: CreditCard,
+        subItems: [
+          { name: "All Transactions", href: "/organizer-admin/payments/transactions" },
+          { name: "Withdrawals", href: "/organizer-admin/payments/withdrawals" }
+        ]
+      },
       { name: "Reports", href: "/organizer-admin/reports", icon: FileText },
     ],
   },

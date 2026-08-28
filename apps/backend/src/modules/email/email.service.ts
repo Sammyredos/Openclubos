@@ -1196,4 +1196,121 @@ export class EmailService {
       `Tournament invite email sent to ${to} for ${tournamentName}`,
     );
   }
+
+  // ────────────────────────────────────────────────────────────────
+  // Withdrawal & Payout Notifications
+  // ────────────────────────────────────────────────────────────────
+
+  async sendWithdrawalRequested(
+    to: string,
+    clubName: string,
+    amount: number,
+    bankName: string,
+    accountNumber: string,
+    accountName: string,
+    currency = 'NGN',
+  ): Promise<EmailResult> {
+    const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = this.wrap(
+      'Withdrawal Request Received',
+      `
+      ${this.p(`Your payout withdrawal request for <strong>${clubName}</strong> has been received and is currently in review.`)}
+      ${this.infoBox(`
+        <strong>Withdrawal Summary:</strong><br/>
+        • <strong>Amount:</strong> ${formattedAmount}<br/>
+        • <strong>Bank:</strong> ${bankName}<br/>
+        • <strong>Account Number:</strong> ${accountNumber}<br/>
+        • <strong>Account Name:</strong> ${accountName}<br/>
+        • <strong>Status:</strong> Pending Admin Review
+      `, '#f0fdf4', '#bbf7d0', '#166534')}
+      ${this.p('Our finance team is reviewing the payout. You will receive an email confirmation once the transfer is disbursed or if further details are required.')}
+      ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
+      `,
+      '#15803d, #166534',
+    );
+    return this.send(
+      to,
+      `Withdrawal Request Received: ${formattedAmount} - ${clubName}`,
+      html,
+      `Withdrawal requested email sent to ${to} for ${clubName}`,
+    );
+  }
+
+  async sendWithdrawalApproved(
+    to: string,
+    clubName: string,
+    amount: number,
+    bankName: string,
+    accountNumber: string,
+    accountName: string,
+    reference: string,
+    currency = 'NGN',
+    notes?: string,
+  ): Promise<EmailResult> {
+    const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = this.wrap(
+      'Payout Disbursed Successfully',
+      `
+      ${this.p(`Great news! Your payout withdrawal request for <strong>${clubName}</strong> has been approved and disbursed.`)}
+      ${this.infoBox(`
+        <strong>Payout Details:</strong><br/>
+        • <strong>Amount Paid:</strong> ${formattedAmount}<br/>
+        • <strong>Destination Bank:</strong> ${bankName}<br/>
+        • <strong>Account Number:</strong> ${accountNumber}<br/>
+        • <strong>Account Name:</strong> ${accountName}<br/>
+        • <strong>Transfer Reference:</strong> ${reference}<br/>
+        • <strong>Status:</strong> Paid / Completed
+        ${notes ? `<br/>• <strong>Notes:</strong> ${notes}` : ''}
+      `, '#ecfdf5', '#a7f3d0', '#065f46')}
+      ${this.p('The funds have been transferred to your destination bank account. Depending on your bank, settlement usually reflects within minutes.')}
+      ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
+      `,
+      '#15803d, #047857',
+    );
+    return this.send(
+      to,
+      `Payout Disbursed: ${formattedAmount} sent to ${bankName}`,
+      html,
+      `Withdrawal approved email sent to ${to} for ${clubName}`,
+    );
+  }
+
+  async sendWithdrawalRejected(
+    to: string,
+    clubName: string,
+    amount: number,
+    bankName: string,
+    accountNumber: string,
+    accountName: string,
+    reason: string,
+    currency = 'NGN',
+  ): Promise<EmailResult> {
+    const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = this.wrap(
+      'Withdrawal Request Update',
+      `
+      ${this.p(`Your payout withdrawal request for <strong>${clubName}</strong> could not be processed and has been returned.`)}
+      ${this.infoBox(`
+        <strong>Reason for Decline:</strong><br/>
+        ${reason}
+      `, '#fef2f2', '#fecaca', '#991b1b')}
+      ${this.infoBox(`
+        <strong>Returned Request Summary:</strong><br/>
+        • <strong>Amount:</strong> ${formattedAmount}<br/>
+        • <strong>Bank:</strong> ${bankName}<br/>
+        • <strong>Account:</strong> ${accountNumber} (${accountName})<br/>
+        • <strong>Wallet Status:</strong> 100% Restored to your Club Available Balance
+      `, '#f9fafb', '#e5e7eb', '#374151')}
+      ${this.p('Your full balance has been automatically restored to your club wallet. You can submit a new withdrawal request with updated banking details at any time.')}
+      ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
+      `,
+      '#dc2626, #b91c1c',
+    );
+    return this.send(
+      to,
+      `Action Required: Withdrawal Request Declined (${formattedAmount})`,
+      html,
+      `Withdrawal rejected email sent to ${to} for ${clubName}`,
+    );
+  }
 }

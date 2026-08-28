@@ -19,7 +19,7 @@ export function TopNav() {
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Tournament Details";
       if (pathname === "/organizer-admin/leaderboard") return "Leaderboard";
       if (pathname.startsWith("/organizer-admin/leaderboard/")) return "Tournament Leaderboard";
-      if (pathname === "/organizer-admin/payments") return "Payments";
+      if (pathname === "/organizer-admin/payments" || pathname.startsWith("/organizer-admin/payments/")) return "Payments";
       if (pathname === "/organizer-admin/reports") return "Reports";
       if (pathname === "/organizer-admin/handicaps") return "Handicaps";
       if (pathname === "/organizer-admin/notifications") return "Notifications";
@@ -39,7 +39,7 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/players") return "Subscribed Players";
     if (pathname === "/super-admin/subscriptions/plans") return "Subscription Plans";
     if (pathname === "/super-admin/subscriptions") return "Subscriptions";
-    if (pathname === "/super-admin/payments") return "Payments";
+    if (pathname === "/super-admin/payments" || pathname.startsWith("/super-admin/payments/")) return "Payments";
     if (pathname === "/super-admin/analytics") return "Analytics";
     if (pathname === "/super-admin/golf-courses") return "Golf Courses";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Course Details";
@@ -57,6 +57,8 @@ export function TopNav() {
     || pathname === "/super-admin/tournaments"
     || pathname === "/super-admin/leaderboard"
     || pathname === "/super-admin/payments"
+    || pathname === "/super-admin/payments/withdrawals"
+    || pathname === "/super-admin/payments/transactions"
     || pathname === "/super-admin/subscriptions"
     || pathname === "/super-admin/golf-courses"
     || pathname === "/super-admin/settings"
@@ -64,6 +66,8 @@ export function TopNav() {
     || pathname === "/organizer-admin/tournaments"
     || pathname === "/organizer-admin/leaderboard"
     || pathname === "/organizer-admin/payments"
+    || pathname === "/organizer-admin/payments/transactions"
+    || pathname === "/organizer-admin/payments/withdrawals"
     || pathname === "/organizer-admin/reports"
     || pathname === "/organizer-admin/handicaps"
     || pathname === "/organizer-admin/notifications"
@@ -78,7 +82,8 @@ export function TopNav() {
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Detailed view and settings for the selected tournament.";
       if (pathname === "/organizer-admin/leaderboard") return "View tournament leaderboards and standings.";
       if (pathname.startsWith("/organizer-admin/leaderboard/")) return "Detailed leaderboard view for the selected tournament.";
-      if (pathname === "/organizer-admin/payments") return "Track tournament entry fees and other payments.";
+      if (pathname === "/organizer-admin/payments" || pathname === "/organizer-admin/payments/transactions") return "Track tournament entry fees, payments, and receipts.";
+      if (pathname === "/organizer-admin/payments/withdrawals") return "Track club payout requests, bank accounts, and settlement statuses.";
       if (pathname === "/organizer-admin/reports") return "Generate and view club and tournament reports.";
       if (pathname === "/organizer-admin/handicaps") return "Manage and update player handicaps.";
       if (pathname === "/organizer-admin/notifications") return "Send and manage notifications to members.";
@@ -99,7 +104,8 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/players") return "Monitor billing, plans, and player subscription statuses.";
     if (pathname === "/super-admin/subscriptions/plans") return "Create and manage subscription plans and pricing.";
     if (pathname === "/super-admin/subscriptions") return "Monitor billing, plans, and subscription statuses.";
-    if (pathname === "/super-admin/payments") return "Track all platform transactions, entry fees and refunds.";
+    if (pathname === "/super-admin/payments" || pathname === "/super-admin/payments/transactions") return "Track all platform transactions, entry fees, and receipts across clubs.";
+    if (pathname === "/super-admin/payments/withdrawals") return "Review, process, and disburse club organizer withdrawal requests.";
     if (pathname === "/super-admin/golf-courses") return "Manage the database of available golf courses.";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Detailed view and settings for the selected course.";
     if (pathname === "/super-admin/settings") return "Configure global platform preferences and settings.";

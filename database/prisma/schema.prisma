@@ -54,6 +54,8 @@ model User {
   registrations Registration[]
   auditLogs     AuditLog[]
   subscriptions Subscription[]
+  requestedWithdrawals WithdrawalRequest[] @relation("RequestedBy")
+  processedWithdrawals WithdrawalRequest[] @relation("ProcessedBy")
 
   @@index([clubId])
   @@index([role])
@@ -129,6 +131,9 @@ model Club {
   tournaments  Tournament[]
   subscriptions Subscription[]
   reports      Report[]
+  wallet       ClubWallet?
+  withdrawals  WithdrawalRequest[]
+  bankAccounts ClubBankAccount[]
 
   @@index([createdAt])
   @@index([deletedAt])
@@ -551,3 +556,98 @@ model EmailOutbox {
 
   @@index([status, createdAt])
 }
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum WalletTransactionType {
+  REGISTRATION_CREDIT
+  WITHDRAWAL_LOCK
+  WITHDRAWAL_PAID
+  WITHDRAWAL_REFUND
+  MANUAL_ADJUSTMENT
+}
+
+model ClubWallet {
+  id              String   @id @default(uuid(7))
+  clubId          String   @unique
+  club            Club     @relation(fields: [clubId], references: [id])
+  currency        String   @default("NGN")
+  balance         Float    @default(0.0) // Total available balance
+  lockedBalance   Float    @default(0.0) // Balance currently locked in pending withdrawals
+  totalWithdrawn  Float    @default(0.0) // Cumulative successfully paid out
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions    WalletTransaction[]
+  withdrawals     WithdrawalRequest[]
+
+  @@index([clubId])
+}
+
+model WithdrawalRequest {
+  id              String           @id @default(uuid(7))
+  clubId          String
+  club            Club             @relation(fields: [clubId], references: [id])
+  walletId        String
+  wallet          ClubWallet       @relation(fields: [walletId], references: [id])
+  userId          String
+  requestedBy     User             @relation("RequestedBy", fields: [userId], references: [id])
+  
+  amount          Float
+  currency        String           @default("NGN")
+  bankName        String
+  accountNumber   String
+  accountName     String
+  routingCode     String?
+  status          WithdrawalStatus @default(PENDING)
+  notes           String?
+  rejectionReason String?
+  reference       String?          // Payout transaction ref / bank receipt ref
+  
+  processedAt     DateTime?
+  processedById   String?
+  processedBy     User?            @relation("ProcessedBy", fields: [processedById], references: [id])
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([clubId, status])
+  @@index([status, createdAt])
+}
+
+model WalletTransaction {
+  id            String                @id @default(uuid(7))
+  walletId      String
+  wallet        ClubWallet            @relation(fields: [walletId], references: [id])
+  type          WalletTransactionType
+  amount        Float
+  balanceBefore Float
+  balanceAfter  Float
+  reference     String?
+  description   String
+  metadata      Json?
+  createdAt     DateTime              @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model ClubBankAccount {
+  id            String   @id @default(uuid(7))
+  clubId        String
+  club          Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  bankName      String
+  accountNumber String
+  accountName   String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clubId])
+}
+

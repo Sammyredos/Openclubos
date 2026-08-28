@@ -305,6 +305,42 @@ export class JobsProcessor extends WorkerHost {
           data.expiresIn || '10 minutes',
         );
 
+      case 'WITHDRAWAL_REQUESTED':
+        return this.emailService.sendWithdrawalRequested(
+          to,
+          data.clubName || 'Your Club',
+          data.amount || 0,
+          data.bankName || '',
+          data.accountNumber || '',
+          data.accountName || '',
+          data.currency || 'NGN',
+        );
+
+      case 'WITHDRAWAL_APPROVED':
+        return this.emailService.sendWithdrawalApproved(
+          to,
+          data.clubName || 'Your Club',
+          data.amount || 0,
+          data.bankName || '',
+          data.accountNumber || '',
+          data.accountName || '',
+          data.reference || '',
+          data.currency || 'NGN',
+          data.notes,
+        );
+
+      case 'WITHDRAWAL_REJECTED':
+        return this.emailService.sendWithdrawalRejected(
+          to,
+          data.clubName || 'Your Club',
+          data.amount || 0,
+          data.bankName || '',
+          data.accountNumber || '',
+          data.accountName || '',
+          data.reason || 'Details could not be verified.',
+          data.currency || 'NGN',
+        );
+
       default:
         throw new Error(`Unsupported email template: ${template}`);
     }
