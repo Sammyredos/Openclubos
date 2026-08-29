@@ -56,6 +56,8 @@ model User {
   subscriptions Subscription[]
   requestedWithdrawals WithdrawalRequest[] @relation("RequestedBy")
   processedWithdrawals WithdrawalRequest[] @relation("ProcessedBy")
+  notifications        Notification[]
+  deviceTokens         DeviceToken[]
 
   @@index([clubId])
   @@index([role])
@@ -650,4 +652,51 @@ model ClubBankAccount {
 
   @@index([clubId])
 }
+
+enum NotificationType {
+  WITHDRAWAL_REQUESTED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  TOURNAMENT_UPDATE
+  PAYMENT_RECEIVED
+  SYSTEM
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+model Notification {
+  id        String           @id @default(uuid(7))
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      NotificationType @default(SYSTEM)
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model DeviceToken {
+  id         String         @id @default(uuid(7))
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String
+  platform   DevicePlatform @default(ANDROID)
+  deviceInfo String?
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([userId, token])
+  @@index([userId, isActive])
+}
+
 

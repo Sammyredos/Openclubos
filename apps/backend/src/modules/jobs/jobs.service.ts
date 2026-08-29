@@ -172,4 +172,35 @@ export class JobsService implements OnModuleInit {
       throw err;
     }
   }
+
+  /**
+   * Enqueues a push notification job into the background-jobs queue.
+   */
+  async queuePushNotification(payload: {
+    tokens: string[];
+    title: string;
+    body: string;
+    data?: Record<string, string>;
+  }) {
+    const correlationId = TraceContextService.getCorrelationId();
+    const sentryTrace = TraceContextService.getSentryTrace();
+
+    this.logger.log(
+      `Enqueuing SEND_PUSH_NOTIFICATION job ("${payload.title}" to ${payload.tokens.length} tokens, correlationId=${correlationId})`,
+    );
+    try {
+      const job = await this.queue.add(
+        'SEND_PUSH_NOTIFICATION',
+        { ...payload, _correlationId: correlationId, _sentryTrace: sentryTrace },
+        {
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+      return job;
+    } catch (err: any) {
+      this.logger.error(`Failed to enqueue SEND_PUSH_NOTIFICATION job: ${err.message}`);
+      throw err;
+    }
+  }
 }

@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
@@ -8,12 +15,23 @@ import { EmailService } from './email.service';
 /**
  * Email testing controller — restricted to SUPER_ADMIN only.
  * Use these endpoints to verify email templates during local development.
+ * Automatically disabled in production.
  */
 @Controller('email')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
 export class EmailController {
-  constructor(private readonly emailService: EmailService) {}
+  constructor(private readonly emailService: EmailService) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new NotFoundException('Email test endpoints are disabled in production.');
+    }
+  }
+
+  private assertNonProduction() {
+    if (process.env.NODE_ENV === 'production') {
+      throw new NotFoundException('Email test endpoints are disabled in production.');
+    }
+  }
 
   /**
    * POST /api/email/test-welcome
@@ -22,6 +40,7 @@ export class EmailController {
   @Post('test-welcome')
   @HttpCode(200)
   async testWelcome(@Body() body: { to: string; firstName?: string }) {
+    this.assertNonProduction();
     const result = await this.emailService.sendWelcome(
       body.to,
       body.firstName || 'Test User',
@@ -36,6 +55,7 @@ export class EmailController {
   @Post('test-reset')
   @HttpCode(200)
   async testReset(@Body() body: { to: string }) {
+    this.assertNonProduction();
     const result = await this.emailService.sendPasswordReset(
       body.to,
       'test-token-abc123',
@@ -53,6 +73,7 @@ export class EmailController {
   async testRegistration(
     @Body() body: { to: string; tournamentName?: string; status?: string },
   ) {
+    this.assertNonProduction();
     const result = await this.emailService.sendRegistrationConfirmation(
       body.to,
       body.tournamentName || 'Test Tournament',
@@ -69,6 +90,7 @@ export class EmailController {
   @Post('test-reminder')
   @HttpCode(200)
   async testReminder(@Body() body: { to: string; tournamentName?: string }) {
+    this.assertNonProduction();
     const result = await this.emailService.sendTournamentReminder(
       body.to,
       body.tournamentName || 'Test Tournament',
@@ -87,6 +109,7 @@ export class EmailController {
   async testPayment(
     @Body() body: { to: string; amount?: number; tournamentName?: string },
   ) {
+    this.assertNonProduction();
     const result = await this.emailService.sendPaymentReceipt(
       body.to,
       body.tournamentName || 'Test Tournament',
@@ -104,6 +127,7 @@ export class EmailController {
   @Post('test-admin-credentials')
   @HttpCode(200)
   async testAdminCredentials(@Body() body: { to: string; clubName?: string }) {
+    this.assertNonProduction();
     const result = await this.emailService.sendAdminCredentials(
       body.to,
       body.clubName || 'Test Golf Club',
@@ -120,6 +144,7 @@ export class EmailController {
   @Post('test-security-alert')
   @HttpCode(200)
   async testSecurityAlert(@Body() body: { to: string; action?: string }) {
+    this.assertNonProduction();
     const result = await this.emailService.sendSecurityAlert(
       body.to,
       body.action || 'Login from new device — Chrome on Windows',

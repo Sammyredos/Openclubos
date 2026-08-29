@@ -126,6 +126,7 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Analytics", href: "/super-admin/analytics", icon: PieChart },
+      { name: "Notifications", href: "/super-admin/notifications", icon: Bell },
     ],
   },
   {
@@ -166,6 +167,7 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "Handicaps", href: "/organizer-admin/handicaps", icon: ShieldCheck },
+      { name: "Notifications", href: "/organizer-admin/notifications", icon: Bell },
     ],
   },
 ];

@@ -37,6 +37,7 @@ import { SendchampModule } from './modules/sendchamp/sendchamp.module';
 import { ResendModule } from './modules/resend/resend.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 
@@ -115,6 +116,7 @@ if (process.env.SENTRY_DSN) {
     ResendModule,
     SubscriptionsModule,
     WithdrawalsModule,
+    NotificationsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

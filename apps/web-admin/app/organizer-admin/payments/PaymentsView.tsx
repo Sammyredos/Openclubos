@@ -986,7 +986,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
             <button
               type="button"
               onClick={() => setWithdrawAmount(availableBalance > 0 ? availableBalance.toLocaleString("en-US") : "0")}
-              className="h-8 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-white hover:bg-[#116731] transition-all text-xs font-semibold shadow-xs active:scale-95 cursor-pointer"
+              className="h-8 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-white hover:bg-[#116731] transition-all text-xs font-normal shadow-xs active:scale-95 cursor-pointer"
             >
               Withdraw Max
             </button>
@@ -994,7 +994,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
           {/* Amount Field */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-gray-800">
+            <label className="block text-xs font-medium text-gray-800">
               Withdrawal Amount (₦) <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -1032,7 +1032,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           {bankAccounts.length > 0 ? (
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-gray-800">
+                <label className="text-xs font-medium text-gray-800">
                   Select Destination Bank Account *
                 </label>
                 <button
@@ -1248,7 +1248,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-800">Select Bank *</label>
+                <label className="block text-xs font-medium text-gray-800">Select Bank *</label>
                 {banksList.length > 0 ? (
                   <SearchableSelect
                     value={selectedBankCode}
@@ -1277,7 +1277,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-gray-800">10-Digit Account Number *</label>
+                  <label className="block text-xs font-medium text-gray-800">10-Digit Account Number *</label>
                   {isResolvingAccount && (
                     <span className="text-[11px] font-medium text-[#15803D] flex items-center gap-1.5">
                       <Loader2 className="w-3 h-3 animate-spin" /> Verifying...

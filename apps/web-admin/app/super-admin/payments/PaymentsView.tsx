@@ -341,7 +341,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
           {/* Card 4: Platform Total Revenue */}
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
             <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Platform Revenue</div>
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Club Revenue</div>
             </div>
             <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
@@ -871,32 +871,29 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                     <p className="text-[11px] text-gray-500 font-normal">Auto-generated audit reference and transfer confirmation notes</p>
                   </div>
                 </div>
-                <span className="text-[10px] uppercase font-medium text-[#15803D] bg-emerald-100/80 px-2 py-0.5 rounded-md">
-                  Auto-Generated
-                </span>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-800">
+                <label className="block text-xs font-medium text-gray-800">
                   Transaction Reference / Transfer Receipt
                 </label>
                 <Input
                   placeholder="e.g. NIP/2026/08/987123"
                   value={payoutReference}
-                  onChange={(e) => setPayoutReference(e.target.value)}
-                  className="h-10 rounded-xl text-xs font-mono bg-white border-[#e1efe5] px-3.5 text-gray-900"
+                  readOnly
+                  className="h-10 rounded-xl text-xs font-mono bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-800">
+                <label className="block text-xs font-medium text-gray-800">
                   Disbursement Notes
                 </label>
                 <Input
                   placeholder="e.g. Disbursed via Zenith Bank Corporate Portal"
                   value={payoutNotes}
-                  onChange={(e) => setPayoutNotes(e.target.value)}
-                  className="h-10 rounded-xl text-xs font-normal bg-white border-[#e1efe5] px-3.5 text-gray-900"
+                  readOnly
+                  className="h-10 rounded-xl text-xs font-normal bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
                 />
               </div>
             </div>

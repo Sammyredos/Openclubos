@@ -1,9 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/login_screen.dart';
 import 'features/tournaments/screens/tournament_list_screen.dart';
 import 'features/tournaments/screens/leaderboard_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +13,15 @@ void main() async {
   // Initialize Hive
   await Hive.initFlutter();
   await Hive.openBox('auth');
+
+  // Initialize Firebase & Push Notification Service
+  try {
+    await Firebase.initializeApp();
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+  } catch (e) {
+    debugPrint('Firebase/Notification init note: $e');
+  }
   
   runApp(
     const ProviderScope(

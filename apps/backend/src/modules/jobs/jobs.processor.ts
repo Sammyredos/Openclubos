@@ -7,11 +7,19 @@ import { TraceContextService } from '../../common/services/trace-context.service
 import { EmailService } from '../email/email.service';
 import { ScoresService } from '../scores/scores.service';
 import { TournamentsService } from '../tournaments/tournaments.service';
+import { PushNotificationService } from '../notifications/push-notification.service';
 
 interface SendEmailJobPayload {
   template: string;
   to: string;
   data: Record<string, any>;
+}
+
+interface SendPushJobPayload {
+  tokens: string[];
+  title: string;
+  body: string;
+  data?: Record<string, string>;
 }
 
 @Processor('background-jobs')
@@ -23,6 +31,8 @@ export class JobsProcessor extends WorkerHost {
     private readonly tournamentsService: TournamentsService,
     @Inject(forwardRef(() => ScoresService))
     private readonly scoresService: ScoresService,
+    @Inject(forwardRef(() => PushNotificationService))
+    private readonly pushNotificationService: PushNotificationService,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
   ) {
@@ -95,6 +105,23 @@ export class JobsProcessor extends WorkerHost {
           const result = await this.dispatchEmail(template, to, data);
           this.logger.log(
             `Completed email job "${template}" to ${to} (ID: ${job.id}) | messageId=${result.messageId}`,
+          );
+          return result;
+        }
+
+        case 'SEND_PUSH_NOTIFICATION': {
+          const { tokens, title, body, data } = job.data as SendPushJobPayload;
+          this.logger.log(
+            `Processing push notification job "${title}" to ${tokens.length} token(s) (ID: ${job.id})`,
+          );
+          const result = await this.pushNotificationService.sendPushNotification({
+            tokens,
+            title,
+            body,
+            data,
+          });
+          this.logger.log(
+            `Completed push notification job "${title}" (ID: ${job.id}) | success=${result.successCount}, failure=${result.failureCount}`,
           );
           return result;
         }

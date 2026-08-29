@@ -6,6 +6,7 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { EmailModule } from '../email/email.module';
 import { ScoresModule } from '../scores/scores.module';
 import { TournamentsModule } from '../tournaments/tournaments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { JobsProcessor } from './jobs.processor.js';
 import { JobsService } from './jobs.service.js';
 
@@ -91,6 +92,7 @@ import { JobsService } from './jobs.service.js';
     ),
     forwardRef(() => TournamentsModule),
     forwardRef(() => ScoresModule),
+    forwardRef(() => NotificationsModule),
     EmailModule,
   ],
   providers: [JobsService, JobsProcessor],

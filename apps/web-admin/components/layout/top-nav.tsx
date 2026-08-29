@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 export function TopNav() {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export function TopNav() {
     if (pathname === "/super-admin/payments/transactions") return "All Transactions";
     if (pathname === "/super-admin/payments" || pathname.startsWith("/super-admin/payments/")) return "Payments";
     if (pathname === "/super-admin/analytics") return "Analytics";
+    if (pathname === "/super-admin/notifications") return "Notifications";
     if (pathname === "/super-admin/golf-courses") return "Golf Courses";
     if (pathname.startsWith("/super-admin/golf-courses/")) return "Course Details";
     if (pathname === "/super-admin/settings") return "Settings";
@@ -55,6 +57,7 @@ export function TopNav() {
     || pathname === "/organizer-admin/dashboard"
     || pathname === "/"
     || pathname === "/super-admin/analytics"
+    || pathname === "/super-admin/notifications"
     || pathname === "/super-admin/users"
     || pathname === "/super-admin/users/players"
     || pathname === "/super-admin/users/organizers"
@@ -90,12 +93,13 @@ export function TopNav() {
       if (pathname === "/organizer-admin/payments/withdrawals") return "Track club payout requests, bank accounts, and settlement statuses.";
       if (pathname === "/organizer-admin/reports") return "Generate and view club and tournament reports.";
       if (pathname === "/organizer-admin/handicaps") return "Manage and update player handicaps.";
-      if (pathname === "/organizer-admin/notifications") return "Send and manage notifications to members.";
+      if (pathname === "/organizer-admin/notifications") return "View and manage all real-time alerts, payout updates, and club notifications.";
       if (pathname === "/organizer-admin/settings") return "Configure your club's preferences and settings.";
       return "";
     }
     if (pathname === "/" || pathname === "/super-admin/dashboard") return "Overview of platform key metrics and recent activities.";
     if (pathname === "/super-admin/analytics") return "Track performance, engagement and growth across your tournaments.";
+    if (pathname === "/super-admin/notifications") return "Monitor real-time system alerts, payout activities, and platform events.";
     if (pathname === "/super-admin/users") return "View and manage all registered users on the platform.";
     if (pathname === "/super-admin/users/players") return "View and manage all registered players and markers on the platform.";
     if (pathname === "/super-admin/users/organizers") return "View and manage all club management staff and administrators.";
@@ -128,15 +132,18 @@ export function TopNav() {
           </div>
         )}
       </div>
-      {isMajorPage && (
-        <div className="w-[330px] h-11 relative bg-white rounded-[30px] border border-[#e1efe5] overflow-hidden flex items-center px-4 shadow-sm">
-          <Input
-            placeholder="Search anything here..."
-            className="border-none bg-transparent shadow-none px-0 h-full text-zinc-500 text-[14px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 placeholder:text-zinc-400"
-          />
-          <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-        </div>
-      )}
+      <div className="flex items-center gap-3.5 shrink-0">
+        {isMajorPage && (
+          <div className="w-[330px] h-11 relative bg-white rounded-[30px] border border-[#e1efe5] overflow-hidden flex items-center px-4 shadow-sm">
+            <Input
+              placeholder="Search anything here..."
+              className="border-none bg-transparent shadow-none px-0 h-full text-zinc-500 text-[14px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 placeholder:text-zinc-400"
+            />
+            <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+          </div>
+        )}
+        <NotificationDropdown />
+      </div>
     </div>
   );
 }

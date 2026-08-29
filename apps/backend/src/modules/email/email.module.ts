@@ -55,7 +55,7 @@ const logger = new Logger('EmailModule');
     SendchampModule,
     ResendModule,
   ],
-  controllers: [EmailController],
+  controllers: process.env.NODE_ENV === 'production' ? [] : [EmailController],
   providers: [EmailService, EmailCircuitBreakerService],
   exports: [EmailService, EmailCircuitBreakerService],
 })
