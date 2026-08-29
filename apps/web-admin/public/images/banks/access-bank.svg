@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#001489"/>
+  <!-- Access Bank iconic orange & blue overlapping chevrons -->
+  <path d="M14 38 L24 24 L34 38 L28 38 L24 32 L20 38 Z" fill="#F37021"/>
+  <path d="M26 38 L36 24 L46 38 L40 38 L36 32 L32 38 Z" fill="#F37021"/>
+  <path d="M38 38 L48 24 L58 38 L52 38 L48 32 L44 38 Z" fill="#FDB913"/>
+</svg>

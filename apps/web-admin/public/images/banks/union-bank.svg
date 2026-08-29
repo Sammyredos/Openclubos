@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#0099DA"/>
+  <!-- Union Bank Stallion icon -->
+  <path d="M20 42 C22 34, 28 26, 36 22 C34 26, 36 30, 42 26 C44 32, 40 38, 44 42" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" fill="none"/>
+</svg>

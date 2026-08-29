@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#40196D"/>
+  <!-- Kuda iconic modern K -->
+  <path d="M22 18 V46 M42 18 L25 32 L42 46" stroke="#48D1CC" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

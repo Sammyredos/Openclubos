@@ -45,6 +45,7 @@ import {
   type AdminWithdrawalStats,
   type WithdrawalStatus
 } from "@/lib/api/withdrawals";
+import { BankLogo } from "@/components/ui/bank-logo";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { toast } from "sonner";
@@ -119,6 +120,10 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"withdrawals" | "transactions">(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Registration data
   const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
@@ -294,11 +299,11 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
         <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
 
-          {/* Card 1: Pending Payout Queue */}
+          {/* Card 1: Pending Withdrawal Disbursal */}
           <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
             <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payout Queue</div>
-              {withdrawalStats?.pendingCount ? (
+              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payout Requests</div>
+              {withdrawalStats?.pendingCount && withdrawalStats.pendingCount > 0 ? (
                 <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
                   <Clock className="w-3.5 h-3.5 text-[#15803D]" />
                   <div className="text-[#15803D] text-xs font-medium">{withdrawalStats.pendingCount} Pending</div>
@@ -545,9 +550,12 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                                 <span className="text-slate-900 text-[14px] font-medium text-[#15803D]">{formatCurrency(req.amount)}</span>
                               </td>
                               <td className="px-6 py-5">
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[13px] text-gray-900 font-semibold leading-tight">{req.bankName}</span>
-                                  <span className="text-[12px] text-gray-500 font-mono mt-0.5">{req.accountNumber} • {req.accountName}</span>
+                                <div className="flex items-center gap-3 min-w-[200px]">
+                                  <BankLogo bankName={req.bankName} size="md" />
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[13px] text-gray-900 font-semibold leading-tight">{req.bankName}</span>
+                                    <span className="text-[12px] text-gray-500 font-mono mt-0.5">{req.accountNumber} • {req.accountName}</span>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-6 py-5">
@@ -681,7 +689,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                                   <StatusPill status={txn.paymentStatus} />
                                 </td>
                                 <td className="px-6 py-5 text-right">
-                                  <span className="text-slate-900 text-[14px] font-bold text-[#15803D] whitespace-nowrap">
+                                  <span className="text-slate-900 text-[14px] font-medium text-[#15803D] whitespace-nowrap">
                                     {formatCurrency(txn.tournament?.entryFee || 0)}
                                   </span>
                                 </td>
@@ -750,7 +758,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament Entry Receipt</p>
-              <h3 className="text-2xl font-bold text-[#15803D]">
+              <h3 className="text-2xl font-semibold text-[#15803D]">
                 {formatCurrency(selectedTxn.tournament?.entryFee || 0)}
               </h3>
               <div className="inline-block">
@@ -815,12 +823,12 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
         )}
       </Modal>
 
-      {/* COMPACT MODAL: APPROVE & MARK PAID */}
+      {/* MODAL: APPROVE & MARK PAID */}
       <Modal
         isOpen={approvingWithdrawal !== null}
         onClose={() => !isProcessingAction && setApprovingWithdrawal(null)}
         title="Approve & Mark Payout as Disbursed"
-        className="max-w-md"
+        className="max-w-lg"
       >
         {approvingWithdrawal && (
           <div className="space-y-4 font-sans text-left text-sm">
@@ -834,9 +842,12 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 <span className="text-xs text-gray-500 font-medium">Amount to Transfer:</span>
                 <span className="text-base font-medium text-[#15803D]">{formatCurrency(approvingWithdrawal.amount)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 font-medium">Bank Name:</span>
-                <span className="text-xs font-medium text-gray-800">{approvingWithdrawal.bankName}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500 font-medium">Bank:</span>
+                <div className="flex items-center gap-2">
+                  <BankLogo bankName={approvingWithdrawal.bankName} size="sm" />
+                  <span className="text-xs font-semibold text-gray-800">{approvingWithdrawal.bankName}</span>
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 font-medium">Account Number:</span>
@@ -856,11 +867,11 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-gray-900 leading-tight">Disbursement Settlement Details</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 leading-tight">Disbursement Settlement Details</h4>
                     <p className="text-[11px] text-gray-500 font-normal">Auto-generated audit reference and transfer confirmation notes</p>
                   </div>
                 </div>
-                <span className="text-[10px] uppercase font-bold text-[#15803D] bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] uppercase font-medium text-[#15803D] bg-emerald-100/80 px-2 py-0.5 rounded-md">
                   Auto-Generated
                 </span>
               </div>
@@ -926,12 +937,12 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
         )}
       </Modal>
 
-      {/* COMPACT MODAL: REJECT WITHDRAWAL */}
+      {/* MODAL: REJECT WITHDRAWAL */}
       <Modal
         isOpen={rejectingWithdrawal !== null}
         onClose={() => !isProcessingAction && setRejectingWithdrawal(null)}
         title="Reject Withdrawal Request"
-        className="max-w-md"
+        className="max-w-lg"
       >
         {rejectingWithdrawal && (
           <div className="space-y-4 font-sans text-left text-sm">
@@ -992,7 +1003,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
         isOpen={selectedWithdrawal !== null}
         onClose={() => setSelectedWithdrawal(null)}
         title="Withdrawal Request Audit"
-        className="max-w-md"
+        className="max-w-lg"
       >
         {selectedWithdrawal && (
           <div className="space-y-4 text-left font-sans text-sm">
@@ -1011,9 +1022,12 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 <span className="text-gray-500 font-medium">Amount:</span>
                 <span className="text-base font-medium text-gray-900">{formatCurrency(selectedWithdrawal.amount)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
+              <div className="flex justify-between items-center py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Bank:</span>
-                <span className="font-medium text-gray-800">{selectedWithdrawal.bankName}</span>
+                <div className="flex items-center gap-2">
+                  <BankLogo bankName={selectedWithdrawal.bankName} size="sm" />
+                  <span className="font-semibold text-gray-800">{selectedWithdrawal.bankName}</span>
+                </div>
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Account Number:</span>
@@ -1030,7 +1044,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
               {selectedWithdrawal.reference && (
                 <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
                   <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="font-mono font-bold text-[#15803D]">{selectedWithdrawal.reference}</span>
+                  <span className="font-mono font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (

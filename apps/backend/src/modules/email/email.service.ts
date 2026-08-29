@@ -1201,6 +1201,10 @@ export class EmailService {
   // Withdrawal & Payout Notifications
   // ────────────────────────────────────────────────────────────────
 
+  // ────────────────────────────────────────────────────────────────
+  // Withdrawal & Payout Notifications
+  // ────────────────────────────────────────────────────────────────
+
   async sendWithdrawalRequested(
     to: string,
     clubName: string,
@@ -1210,27 +1214,60 @@ export class EmailService {
     accountName: string,
     currency = 'NGN',
   ): Promise<EmailResult> {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const maskedAccount = accountNumber.length >= 4 ? `•••• ${accountNumber.slice(-4)}` : accountNumber;
+
     const html = this.wrap(
-      'Withdrawal Request Received',
+      'Payout Request Received',
       `
-      ${this.p(`Your payout withdrawal request for <strong>${clubName}</strong> has been received and is currently in review.`)}
-      ${this.infoBox(`
-        <strong>Withdrawal Summary:</strong><br/>
-        • <strong>Amount:</strong> ${formattedAmount}<br/>
-        • <strong>Bank:</strong> ${bankName}<br/>
-        • <strong>Account Number:</strong> ${accountNumber}<br/>
-        • <strong>Account Name:</strong> ${accountName}<br/>
-        • <strong>Status:</strong> Pending Admin Review
-      `, '#f0fdf4', '#bbf7d0', '#166534')}
-      ${this.p('Our finance team is reviewing the payout. You will receive an email confirmation once the transfer is disbursed or if further details are required.')}
+      <div style="text-align: center; padding: 16px 0 8px 0;">
+        <div style="display: inline-block; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 9999px; padding: 6px 16px; margin-bottom: 14px;">
+          <span style="color: #15803d; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">● Under Financial Review</span>
+        </div>
+        <h2 style="font-size: 34px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">${formattedAmount}</h2>
+        <p style="font-size: 14px; color: #64748b; margin: 0; font-weight: 500;">Withdrawal request for <strong>${clubName}</strong></p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin: 24px 0; border-collapse: separate; overflow: hidden;">
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500; width: 38%;">Club / Organizer</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${clubName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Destination Bank</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${bankName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Account Number</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: monospace, Courier, sans-serif; text-align: right;">${accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Beneficiary Name</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${accountName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; color: #64748b; font-size: 13px; font-weight: 500;">Current Status</td>
+          <td style="padding: 14px 20px; text-align: right;">
+            <span style="background-color: #fef9c3; color: #854d0e; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">⏳ Pending Admin Review</span>
+          </td>
+        </tr>
+      </table>
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #15803d; border-radius: 8px; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+          <strong>Next Steps:</strong> Your payout request has been queued for verification. Requested funds are locked atomically and will be disbursed to your bank account upon Super Admin approval.
+        </p>
+      </div>
+
+      ${this.button('View Financial Ledger', `${frontendUrl}/organizer-admin/payments/withdrawals`, '#15803d')}
       ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
       `,
       '#15803d, #166534',
     );
     return this.send(
       to,
-      `Withdrawal Request Received: ${formattedAmount} - ${clubName}`,
+      `Payout Request Queued: ${formattedAmount} - ${clubName}`,
       html,
       `Withdrawal requested email sent to ${to} for ${clubName}`,
     );
@@ -1247,22 +1284,65 @@ export class EmailService {
     currency = 'NGN',
     notes?: string,
   ): Promise<EmailResult> {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const maskedAccount = accountNumber.length >= 4 ? `•••• ${accountNumber.slice(-4)}` : accountNumber;
+
     const html = this.wrap(
       'Payout Disbursed Successfully',
       `
-      ${this.p(`Great news! Your payout withdrawal request for <strong>${clubName}</strong> has been approved and disbursed.`)}
-      ${this.infoBox(`
-        <strong>Payout Details:</strong><br/>
-        • <strong>Amount Paid:</strong> ${formattedAmount}<br/>
-        • <strong>Destination Bank:</strong> ${bankName}<br/>
-        • <strong>Account Number:</strong> ${accountNumber}<br/>
-        • <strong>Account Name:</strong> ${accountName}<br/>
-        • <strong>Transfer Reference:</strong> ${reference}<br/>
-        • <strong>Status:</strong> Paid / Completed
-        ${notes ? `<br/>• <strong>Notes:</strong> ${notes}` : ''}
-      `, '#ecfdf5', '#a7f3d0', '#065f46')}
-      ${this.p('The funds have been transferred to your destination bank account. Depending on your bank, settlement usually reflects within minutes.')}
+      <div style="text-align: center; padding: 16px 0 8px 0;">
+        <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px; padding: 6px 16px; margin-bottom: 14px;">
+          <span style="color: #047857; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">✓ Payout Disbursed</span>
+        </div>
+        <h2 style="font-size: 34px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">${formattedAmount}</h2>
+        <p style="font-size: 14px; color: #64748b; margin: 0; font-weight: 500;">Transferred to ${bankName} (${maskedAccount})</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin: 24px 0; border-collapse: separate; overflow: hidden;">
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500; width: 38%;">Club / Organizer</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${clubName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Account Name</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${accountName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Destination Bank</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${bankName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Account Number</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: monospace, Courier, sans-serif; text-align: right;">${accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Transfer Reference</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+            <span style="font-family: monospace, Courier, sans-serif; font-size: 12px; font-weight: 600; color: #0f172a; background-color: #e2e8f0; padding: 4px 8px; border-radius: 6px;">${reference}</span>
+          </td>
+        </tr>
+        ${notes ? `
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Disbursement Notes</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 13px; text-align: right;">${notes}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="padding: 14px 20px; color: #64748b; font-size: 13px; font-weight: 500;">Settlement Status</td>
+          <td style="padding: 14px 20px; text-align: right;">
+            <span style="background-color: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">● Paid & Completed</span>
+          </td>
+        </tr>
+      </table>
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #15803d; border-radius: 8px; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+          <strong>Settlement Confirmation:</strong> The funds have been transferred to your destination bank account via Central Bank / NIBSS interbank routing. Depending on your bank network, settlement usually reflects immediately.
+        </p>
+      </div>
+
+      ${this.button('View Wallet & Payout History', `${frontendUrl}/organizer-admin/payments/withdrawals`, '#15803d')}
       ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
       `,
       '#15803d, #047857',
@@ -1285,23 +1365,43 @@ export class EmailService {
     reason: string,
     currency = 'NGN',
   ): Promise<EmailResult> {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const formattedAmount = `${currency === 'NGN' ? '₦' : currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
     const html = this.wrap(
-      'Withdrawal Request Update',
+      'Withdrawal Request Declined',
       `
-      ${this.p(`Your payout withdrawal request for <strong>${clubName}</strong> could not be processed and has been returned.`)}
-      ${this.infoBox(`
-        <strong>Reason for Decline:</strong><br/>
-        ${reason}
-      `, '#fef2f2', '#fecaca', '#991b1b')}
-      ${this.infoBox(`
-        <strong>Returned Request Summary:</strong><br/>
-        • <strong>Amount:</strong> ${formattedAmount}<br/>
-        • <strong>Bank:</strong> ${bankName}<br/>
-        • <strong>Account:</strong> ${accountNumber} (${accountName})<br/>
-        • <strong>Wallet Status:</strong> 100% Restored to your Club Available Balance
-      `, '#f9fafb', '#e5e7eb', '#374151')}
-      ${this.p('Your full balance has been automatically restored to your club wallet. You can submit a new withdrawal request with updated banking details at any time.')}
+      <div style="text-align: center; padding: 16px 0 8px 0;">
+        <div style="display: inline-block; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 9999px; padding: 6px 16px; margin-bottom: 14px;">
+          <span style="color: #dc2626; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">✕ Request Returned</span>
+        </div>
+        <h2 style="font-size: 34px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">${formattedAmount}</h2>
+        <p style="font-size: 14px; color: #64748b; margin: 0; font-weight: 500;">Funds 100% restored to your club wallet balance</p>
+      </div>
+
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 8px; padding: 16px 20px; margin: 20px 0;">
+        <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">Reason for Decline</p>
+        <p style="margin: 0; font-size: 14px; color: #7f1d1d; line-height: 1.5; font-weight: 500;">${reason}</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin: 24px 0; border-collapse: separate; overflow: hidden;">
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500; width: 38%;">Club / Organizer</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${clubName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; font-weight: 500;">Bank / Account</td>
+          <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-align: right;">${bankName} (${accountNumber})</td>
+        </tr>
+        <tr>
+          <td style="padding: 14px 20px; color: #64748b; font-size: 13px; font-weight: 500;">Wallet Status</td>
+          <td style="padding: 14px 20px; text-align: right;">
+            <span style="background-color: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">● 100% Restored</span>
+          </td>
+        </tr>
+      </table>
+
+      ${this.button('Update Details & Re-Submit', `${frontendUrl}/organizer-admin/payments/withdrawals`, '#15803d')}
       ${this.p(`Best regards,<br/><strong>OpenClubOS Financial Operations</strong>`)}
       `,
       '#dc2626, #b91c1c',

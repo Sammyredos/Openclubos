@@ -59,6 +59,8 @@ import {
   type ClubBankAccount,
   type NigerianBank
 } from "@/lib/api/withdrawals";
+import { BankLogo } from "@/components/ui/bank-logo";
+import { getBankLogoUrl } from "@/lib/bank-logos";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { toast } from "sonner";
@@ -134,6 +136,10 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">(initialTab);
 
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   // Registration data
   const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -170,6 +176,21 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
   const [isPendingWithdrawalAfterBankAdd, setIsPendingWithdrawalAfterBankAdd] = useState(false);
+
+  const registeredClubName = user?.club?.name || user?.name || "";
+  const isNameTally = useMemo(() => {
+    if (!resolvedAccountName || !registeredClubName) return true;
+    const clean = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, " ")
+        .replace(/\b(limited|ltd|plc|club|country|golf|international|nigeria|ng|integrated|services|enterprises)\b/g, "")
+        .trim();
+    const rWords = clean(resolvedAccountName).split(/\s+/).filter((w) => w.length > 2);
+    const regWords = clean(registeredClubName).split(/\s+/).filter((w) => w.length > 2);
+    if (rWords.length === 0 || regWords.length === 0) return true;
+    return rWords.some((w) => regWords.some((reg) => reg.includes(w) || w.includes(reg)));
+  }, [resolvedAccountName, registeredClubName]);
 
   // Request Withdrawal Modal State
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -829,7 +850,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                                   <StatusPill status={txn.paymentStatus} />
                                 </td>
                                 <td className="px-6 py-5 text-right">
-                                  <span className="text-slate-900 text-[14px] font-bold text-[#15803D] whitespace-nowrap">
+                                  <span className="text-slate-900 text-[14px] font-medium text-[#15803D] whitespace-nowrap">
                                     {formatCurrency(txn.tournament?.entryFee || 0)}
                                   </span>
                                 </td>
@@ -874,9 +895,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                             <tr key={req.id} className="hover:bg-background/50 transition-colors group">
                               <td className="px-6 py-5">
                                 <div className="flex items-center gap-3 min-w-[220px]">
-                                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5] font-semibold">
-                                    <Building2 className="w-5 h-5 text-[#15803D]" />
-                                  </div>
+                                  <BankLogo bankName={req.bankName} size="md" />
                                   <div className="flex flex-col min-w-0 gap-0.5">
                                     <span className="text-slate-900 text-[14px] font-medium truncate leading-tight">{req.bankName}</span>
                                     <span className="text-gray-500 text-[12px] font-mono truncate mt-0.5">{req.accountNumber} • {req.accountName}</span>
@@ -945,12 +964,12 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
         </Card>
       </div>
 
-      {/* COMPACT MODAL: REQUEST WITHDRAWAL */}
+      {/* MODAL: REQUEST WITHDRAWAL */}
       <Modal
         isOpen={isWithdrawModalOpen}
         onClose={() => !isSubmittingWithdrawal && setIsWithdrawModalOpen(false)}
         title="Request Payout Withdrawal"
-        className="max-w-md"
+        className="max-w-xl"
       >
         <form onSubmit={handleWithdrawSubmit} className="space-y-5 font-sans text-left">
           {/* Balance Banner */}
@@ -961,7 +980,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               </div>
               <div>
                 <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Available Balance</p>
-                <p className="text-lg font-bold text-[#15803D] leading-tight">{formatCurrency(availableBalance)}</p>
+                <p className="text-lg font-semibold text-[#15803D] leading-tight">{formatCurrency(availableBalance)}</p>
               </div>
             </div>
             <button
@@ -1043,21 +1062,12 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-xs",
-                            isSelected
-                              ? "bg-[#15803D] text-white"
-                              : "bg-emerald-50 text-[#15803D]"
-                          )}
-                        >
-                          <Building2 className="w-4 h-4" />
-                        </div>
+                        <BankLogo bankName={acc.bankName} size="md" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-gray-900 truncate">{acc.bankName}</span>
                             {acc.isDefault && (
-                              <span className="text-[10px] uppercase font-bold bg-emerald-100 text-[#15803D] px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] uppercase font-medium bg-emerald-100 text-[#15803D] px-1.5 py-0.5 rounded">
                                 Default
                               </span>
                             )}
@@ -1165,7 +1175,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           setIsAddingAccount(false);
         }}
         title="Payout Bank Accounts"
-        className="max-w-md"
+        className="max-w-xl"
       >
         <div className="space-y-5 text-left font-sans text-sm">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -1187,14 +1197,12 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                 className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4 flex items-center justify-between shadow-xs"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-[#e1efe5] text-[#15803D] flex items-center justify-center shrink-0 shadow-xs">
-                    <Building2 className="w-5 h-5" />
-                  </div>
+                  <BankLogo bankName={acc.bankName} size="md" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-gray-900 truncate">{acc.bankName}</span>
                       {acc.isDefault && (
-                        <span className="text-[10px] font-bold bg-[#15803D] text-white px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-medium bg-[#15803D] text-white px-1.5 py-0.5 rounded">
                           Default
                         </span>
                       )}
@@ -1236,7 +1244,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           {isAddingAccount ? (
             <form onSubmit={handleSaveBankAccount} className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4.5 sm:p-5 space-y-4 shadow-xs">
               <div className="pb-2.5 border-b border-[#e1efe5]">
-                <h4 className="text-xs font-bold text-gray-900">Add New Payout Account</h4>
+                <h4 className="text-xs font-semibold text-gray-900">Add New Payout Account</h4>
               </div>
 
               <div className="space-y-1.5">
@@ -1245,7 +1253,11 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   <SearchableSelect
                     value={selectedBankCode}
                     onValueChange={(code) => handleBankChange(code)}
-                    options={banksList.map((b) => ({ value: b.code, label: b.name }))}
+                    options={banksList.map((b) => ({
+                      value: b.code,
+                      label: b.name,
+                      image: getBankLogoUrl(b.code || b.slug || b.name),
+                    }))}
                     placeholder="Choose your bank..."
                     triggerClassName="h-10 rounded-xl text-xs bg-white border-[#e1efe5] text-gray-900 px-3.5"
                   />
@@ -1286,36 +1298,74 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
               {/* Real-time Verification Feedback Banner */}
               {resolvedAccountName && (
-                <div className="bg-emerald-50/90 border border-emerald-200/80 rounded-xl p-3.5 flex items-center gap-2.5 shadow-xs">
-                  <CheckCircle className="w-4 h-4 text-[#15803D] shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase font-bold text-[#15803D] tracking-wider">Verified Account Name</p>
-                    <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{resolvedAccountName}</p>
+                <div
+                  className={cn(
+                    "rounded-xl p-3.5 border transition-all shadow-xs",
+                    isNameTally
+                      ? "bg-emerald-50/70 border-emerald-200/80"
+                      : "bg-amber-50/80 border-amber-200/90"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {isNameTally ? (
+                        <CheckCircle className="w-4 h-4 text-[#15803D] shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          "text-[10px] uppercase font-medium tracking-wider px-2 py-0.5 rounded-md",
+                          isNameTally
+                            ? "bg-emerald-100/90 text-[#15803D]"
+                            : "bg-amber-100/90 text-amber-800"
+                        )}
+                      >
+                        {isNameTally ? "Verified Account Name" : "Account Name Mismatch"}
+                      </span>
+                    </div>
+                    {isNameTally ? (
+                      <span className="text-[11px] font-medium text-[#15803D]">✓ Tallies with Club</span>
+                    ) : (
+                      <span className="text-[11px] font-medium text-amber-700">Does not tally</span>
+                    )}
+                  </div>
+
+                  <div className="mt-2 pl-6 space-y-1">
+                    <p
+                      className={cn(
+                        "text-xs font-semibold truncate",
+                        isNameTally ? "text-gray-900" : "text-amber-950"
+                      )}
+                    >
+                      {resolvedAccountName}
+                    </p>
+
+                    {!isNameTally && registeredClubName && (
+                      <p className="text-[11px] text-amber-800 font-normal leading-relaxed">
+                        Notice: The account holder returned by the bank does not match your registered organization (<span className="font-medium text-amber-900">{registeredClubName}</span>). Please confirm this account is authorized for your disbursements.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
 
               {resolveError && (
-                <div className={cn(
-                  "border rounded-xl p-3.5 flex items-start gap-2.5 shadow-xs",
-                  user?.role === "SUPER_ADMIN" ? "bg-amber-50/80 border-amber-200" : "bg-rose-50/80 border-rose-200"
-                )}>
-                  <AlertTriangle className={cn("w-4 h-4 shrink-0 mt-0.5", user?.role === "SUPER_ADMIN" ? "text-amber-600" : "text-rose-600")} />
-                  <div className="space-y-1 min-w-0">
-                    <p className={cn("text-xs font-semibold", user?.role === "SUPER_ADMIN" ? "text-amber-900" : "text-rose-900")}>
-                      {user?.role === "SUPER_ADMIN" ? "Corporate Account Verification Notice" : "Corporate Account Verification Required"}
+                <div className="border border-rose-200 bg-rose-50/80 rounded-xl p-3.5 flex items-start gap-2.5 shadow-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="text-xs font-medium text-rose-900">
+                      Account Verification Failed
                     </p>
-                    <p className={cn("text-[11px] leading-relaxed", user?.role === "SUPER_ADMIN" ? "text-amber-800" : "text-rose-700")}>
-                      {user?.role === "SUPER_ADMIN"
-                        ? `The provided account details do not match the registered organization name on record. As a Super Admin, you have administrative override privileges to proceed and update this account directly.`
-                        : `The account number does not tally with the organization name you registered with. For compliance and accounting integrity, payout disbursements must be paid into a verified corporate or Organizer bank account.`}
+                    <p className="text-[11px] leading-relaxed text-rose-700">
+                      {resolveError}
                     </p>
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-800">Account Holder Name *</label>
+                <label className="block text-xs font-medium text-gray-800">Account Holder Name *</label>
                 <Input
                   placeholder={isResolvingAccount ? "Resolving verified name..." : "Auto-filled upon 10-digit NUBAN verification"}
                   value={accName}
@@ -1324,7 +1374,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   className={cn(
                     "h-10 rounded-xl text-xs border-[#e1efe5] transition-all px-3.5",
                     user?.role !== "SUPER_ADMIN"
-                      ? "bg-slate-50 text-gray-800 font-semibold cursor-not-allowed select-none"
+                      ? "bg-slate-50 text-gray-800 font-medium cursor-not-allowed select-none"
                       : "bg-white text-gray-900 font-medium"
                   )}
                   required
@@ -1421,7 +1471,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
         isOpen={selectedTxn !== null}
         onClose={() => setSelectedTxn(null)}
         title="Payment Receipt"
-        className="max-w-md"
+        className="max-w-lg"
       >
         {selectedTxn && (
           <div className="space-y-4 text-left font-sans text-sm">
@@ -1430,7 +1480,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament Entry Receipt</p>
-              <h3 className="text-2xl font-bold text-[#15803D]">
+              <h3 className="text-2xl font-semibold text-[#15803D]">
                 {formatCurrency(selectedTxn.tournament?.entryFee || 0)}
               </h3>
               <div className="inline-block">
@@ -1496,7 +1546,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
         isOpen={selectedWithdrawal !== null}
         onClose={() => setSelectedWithdrawal(null)}
         title="Withdrawal Details"
-        className="max-w-md"
+        className="max-w-lg"
       >
         {selectedWithdrawal && (
           <div className="space-y-4 text-left font-sans text-sm">
@@ -1530,7 +1580,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               {selectedWithdrawal.reference && (
                 <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
                   <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="font-mono font-bold text-[#15803D]">{selectedWithdrawal.reference}</span>
+                  <span className="font-mono font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (

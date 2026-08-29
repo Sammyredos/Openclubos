@@ -19,6 +19,8 @@ export function TopNav() {
       if (pathname.startsWith("/organizer-admin/tournaments/")) return "Tournament Details";
       if (pathname === "/organizer-admin/leaderboard") return "Leaderboard";
       if (pathname.startsWith("/organizer-admin/leaderboard/")) return "Tournament Leaderboard";
+      if (pathname === "/organizer-admin/payments/withdrawals") return "Withdrawal Requests";
+      if (pathname === "/organizer-admin/payments/transactions") return "All Transactions";
       if (pathname === "/organizer-admin/payments" || pathname.startsWith("/organizer-admin/payments/")) return "Payments";
       if (pathname === "/organizer-admin/reports") return "Reports";
       if (pathname === "/organizer-admin/handicaps") return "Handicaps";
@@ -39,6 +41,8 @@ export function TopNav() {
     if (pathname === "/super-admin/subscriptions/players") return "Subscribed Players";
     if (pathname === "/super-admin/subscriptions/plans") return "Subscription Plans";
     if (pathname === "/super-admin/subscriptions") return "Subscriptions";
+    if (pathname === "/super-admin/payments/withdrawals") return "Withdrawal Requests";
+    if (pathname === "/super-admin/payments/transactions") return "All Transactions";
     if (pathname === "/super-admin/payments" || pathname.startsWith("/super-admin/payments/")) return "Payments";
     if (pathname === "/super-admin/analytics") return "Analytics";
     if (pathname === "/super-admin/golf-courses") return "Golf Courses";

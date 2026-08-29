@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#0033A0"/>
+  <!-- Stanbic IBTC Shield & stylized sail -->
+  <path d="M32 16 L46 22 V34 C46 42, 32 48, 32 48 C32 48, 18 42, 18 34 V22 Z" fill="#00A3E0"/>
+  <path d="M32 20 L40 24 V32 C40 37, 32 42, 32 42 Z" fill="#FFFFFF"/>
+</svg>
