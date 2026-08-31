@@ -14,6 +14,16 @@ import { UpdateClubDto } from './dto/update-club.dto';
 export class ClubsService {
   constructor(private prisma: PrismaService) {}
 
+  private formatPercentChange(current: number, previous: number): string {
+    if (previous === 0) {
+      if (current === 0) return '0.0%';
+      return '+100.0%';
+    }
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${pct.toFixed(1)}%`;
+  }
+
   async stats(id: string) {
     const club = await this.prisma.club.findFirst({
       where: { id, deletedAt: null },
@@ -34,6 +44,7 @@ export class ClubsService {
       unpaidRegistrations,
       totalMembers,
       membersThisMonth,
+      membersLastMonth,
     ] = await Promise.all([
       this.prisma.tournament.count({ where: { deletedAt: null, clubId: id } }),
       this.prisma.tournament.count({
@@ -93,6 +104,21 @@ export class ClubsService {
           createdAt: { gte: startThisMonth, lt: startNextMonth },
         },
       }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          clubId: id,
+          role: {
+            in: [
+              UserRole.CLUB_ADMIN,
+              UserRole.STAFF,
+              UserRole.MARKER,
+              UserRole.MANAGER,
+            ],
+          },
+          createdAt: { gte: startLastMonth, lt: startThisMonth },
+        },
+      }),
     ]);
 
     const totalRevenueRow = await this.prisma.$queryRaw<
@@ -145,9 +171,14 @@ export class ClubsService {
     const revenueLastMonth = Number(revenueLastMonthRow?.[0]?.amount ?? 0);
     const unpaidAmount = Number(unpaidAmountRow?.[0]?.amount ?? 0);
 
+    const membersGrowth = this.formatPercentChange(membersThisMonth, membersLastMonth);
+    const revenueGrowth = this.formatPercentChange(revenueThisMonth, revenueLastMonth);
+
     return {
       totalMembers,
       membersThisMonth,
+      membersLastMonth,
+      membersGrowth,
       totalTournaments,
       activeTournaments,
       ongoingTournaments,
@@ -156,6 +187,7 @@ export class ClubsService {
       totalRevenue: Math.round(totalRevenue),
       revenueThisMonth: Math.round(revenueThisMonth),
       revenueLastMonth: Math.round(revenueLastMonth),
+      revenueGrowth,
       unpaidAmount: Math.round(unpaidAmount),
     };
   }

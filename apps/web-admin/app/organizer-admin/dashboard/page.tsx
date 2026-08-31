@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { getClubStats, getClubChartData } from "@/lib/api/clubs";
 import { getTournaments } from "@/lib/api/tournaments";
+import { getClubWallet, type ClubWalletSummary } from "@/lib/api/withdrawals";
 import { toast } from "sonner";
 
 // Mock data removed in favor of live data
@@ -52,6 +53,7 @@ interface ActivityItemProps {
 export default function OrganizerAdminDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<any>(null);
+  const [wallet, setWallet] = useState<ClubWalletSummary | null>(null);
   const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,11 +69,13 @@ export default function OrganizerAdminDashboard() {
       setLoading(true);
       Promise.all([
         getClubStats(user.clubId),
-        getTournaments({ clubId: user.clubId, take: 3, status: "REGISTRATION_OPEN" })
+        getTournaments({ clubId: user.clubId, take: 3, status: "REGISTRATION_OPEN" }),
+        getClubWallet().catch(() => null),
       ])
-        .then(([statsData, tournamentsData]: [any, any]) => {
+        .then(([statsData, tournamentsData, walletData]: [any, any, any]) => {
           setStats(statsData);
           setUpcomingTournaments(Array.isArray(tournamentsData) ? tournamentsData : []);
+          if (walletData) setWallet(walletData);
         })
         .catch((err) => {
           console.error("Failed to fetch dashboard data:", err);
@@ -196,10 +200,10 @@ export default function OrganizerAdminDashboard() {
 
           <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />
 
-          {/* Stat 4: Total Entry Fees */}
+          {/* Stat 4: Wallet Balance & All Time Balance */}
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-3.5">
-              <div className="text-zinc-700 text-base font-medium">Total Entry Fees</div>
+              <div className="text-zinc-700 text-base font-medium">Wallet Balance</div>
               {stats?.revenueGrowth?.startsWith('-') ? (
                 <div className="px-2 py-1 bg-rose-50 rounded-lg flex justify-center items-center gap-1.5">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-500 rotate-180">
@@ -217,9 +221,11 @@ export default function OrganizerAdminDashboard() {
               )}
             </div>
             <div className="text-openclub-700 text-3xl font-semibold">
-              {stats?.totalRevenue != null ? `₦${formatNumber(stats.totalRevenue)}` : "₦0"}
+              ₦{formatNumber(wallet?.availableBalance ?? stats?.availableBalance ?? stats?.totalRevenue ?? 0)}
             </div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            <div className="text-zinc-500 text-sm font-normal">
+              All Time: ₦{formatNumber(wallet?.totalRevenue ?? stats?.totalRevenue ?? 0)}
+            </div>
           </div>
 
           <div className="w-px h-28 bg-[oklch(0.94_0.02_154.09)]" />

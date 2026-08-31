@@ -33,7 +33,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber, toTitleCase } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { getRegistrations, getRegistrationStats, type RegistrationListItem } from "@/lib/api/registrations";
 import {
@@ -553,8 +553,8 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                                 <div className="flex items-center gap-3 min-w-[200px]">
                                   <BankLogo bankName={req.bankName} size="md" />
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[13px] text-gray-900 font-semibold leading-tight">{req.bankName}</span>
-                                    <span className="text-[12px] text-gray-500 font-mono mt-0.5">{req.accountNumber} • {req.accountName}</span>
+                                    <span className="text-[14px] text-gray-900 font-medium capitalize leading-tight">{req.bankName}</span>
+                                    <span className="text-[12px] text-gray-500 font-normal truncate mt-0.5">{req.accountNumber} • {toTitleCase(req.accountName)}</span>
                                   </div>
                                 </div>
                               </td>
@@ -564,7 +564,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                               <td className="px-6 py-5">
                                 <StatusPill status={req.status} />
                                 {req.status === "COMPLETED" && req.reference && (
-                                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">Ref: {req.reference}</p>
+                                  <p className="text-[12px] text-gray-500 font-normal mt-0.5">Ref: {req.reference}</p>
                                 )}
                               </td>
                               <td className="px-6 py-5 text-center">
@@ -792,7 +792,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Transaction Ref:</span>
-                <span className="font-mono font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
+                <span className="text-xs font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 font-medium">Payment Date:</span>
@@ -846,16 +846,16 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 <span className="text-xs text-gray-500 font-medium">Bank:</span>
                 <div className="flex items-center gap-2">
                   <BankLogo bankName={approvingWithdrawal.bankName} size="sm" />
-                  <span className="text-xs font-semibold text-gray-800">{approvingWithdrawal.bankName}</span>
+                  <span className="text-xs font-medium text-gray-800 capitalize">{approvingWithdrawal.bankName}</span>
                 </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 font-medium">Account Number:</span>
-                <span className="text-xs font-mono font-medium text-gray-900">{approvingWithdrawal.accountNumber}</span>
+                <span className="text-xs font-medium text-gray-900">{approvingWithdrawal.accountNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 font-medium">Account Name:</span>
-                <span className="text-xs font-medium text-gray-800">{approvingWithdrawal.accountName}</span>
+                <span className="text-xs font-medium text-gray-800">{toTitleCase(approvingWithdrawal.accountName)}</span>
               </div>
             </div>
 
@@ -881,7 +881,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                   placeholder="e.g. NIP/2026/08/987123"
                   value={payoutReference}
                   readOnly
-                  className="h-10 rounded-xl text-xs font-mono bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
+                  className="h-10 rounded-xl text-xs font-normal bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
                 />
               </div>
 
@@ -1023,16 +1023,16 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 <span className="text-gray-500 font-medium">Bank:</span>
                 <div className="flex items-center gap-2">
                   <BankLogo bankName={selectedWithdrawal.bankName} size="sm" />
-                  <span className="font-semibold text-gray-800">{selectedWithdrawal.bankName}</span>
+                  <span className="font-medium text-gray-800 capitalize">{selectedWithdrawal.bankName}</span>
                 </div>
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Account Number:</span>
-                <span className="font-mono font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
+                <span className="text-xs font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Account Name:</span>
-                <span className="text-xs font-medium text-gray-800">{selectedWithdrawal.accountName}</span>
+                <span className="text-xs font-medium text-gray-800">{toTitleCase(selectedWithdrawal.accountName)}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 font-medium">Requested On:</span>
@@ -1041,7 +1041,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
               {selectedWithdrawal.reference && (
                 <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
                   <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="font-mono font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
+                  <span className="text-xs font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (

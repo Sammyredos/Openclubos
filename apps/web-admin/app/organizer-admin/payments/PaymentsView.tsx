@@ -40,7 +40,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber, toTitleCase } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { getRegistrations, getRegistrationStats, type RegistrationListItem } from "@/lib/api/registrations";
 import {
@@ -834,7 +834,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                                 <td className="px-6 py-5">
                                   <div className="flex flex-col min-w-0">
                                     <span className="text-[13px] text-gray-800 font-medium truncate leading-tight">{txn.tournament?.name || "Tournament"}</span>
-                                    <span className="text-[11px] text-gray-400 font-mono mt-0.5">{txn.id.substring(0, 16)}</span>
+                                    <span className="text-[12px] text-gray-500 font-normal truncate mt-0.5">{txn.id.substring(0, 16)}</span>
                                   </div>
                                 </td>
                                 <td className="px-6 py-5">
@@ -897,8 +897,8 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                                 <div className="flex items-center gap-3 min-w-[220px]">
                                   <BankLogo bankName={req.bankName} size="md" />
                                   <div className="flex flex-col min-w-0 gap-0.5">
-                                    <span className="text-slate-900 text-[14px] font-medium truncate leading-tight">{req.bankName}</span>
-                                    <span className="text-gray-500 text-[12px] font-mono truncate mt-0.5">{req.accountNumber} • {req.accountName}</span>
+                                    <span className="text-slate-900 text-[14px] font-medium capitalize truncate leading-tight">{req.bankName}</span>
+                                    <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5">{req.accountNumber} • {toTitleCase(req.accountName)}</span>
                                   </div>
                                 </div>
                               </td>
@@ -912,7 +912,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                                 <StatusPill status={req.status} />
                               </td>
                               <td className="px-6 py-5">
-                                <span className="text-[12px] font-mono text-gray-600">{req.reference || "—"}</span>
+                                <span className="text-[13px] text-gray-600 font-normal">{req.reference || "—"}</span>
                               </td>
                               <td className="px-6 py-5 text-center">
                                 <button
@@ -1065,15 +1065,15 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                         <BankLogo bankName={acc.bankName} size="md" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-900 truncate">{acc.bankName}</span>
+                            <span className="text-xs font-medium text-gray-900 capitalize truncate">{acc.bankName}</span>
                             {acc.isDefault && (
                               <span className="text-[10px] uppercase font-medium bg-emerald-100 text-[#15803D] px-1.5 py-0.5 rounded">
                                 Default
                               </span>
                             )}
                           </div>
-                          <p className="text-xs font-mono font-medium text-gray-700 mt-0.5">
-                            {acc.accountNumber} <span className="text-gray-400 font-sans font-normal">•</span> <span className="font-sans font-normal text-gray-600 truncate">{acc.accountName}</span>
+                          <p className="text-xs font-normal text-gray-700 mt-0.5">
+                            {acc.accountNumber} <span className="text-gray-400 font-normal">•</span> <span className="font-normal text-gray-600 truncate">{toTitleCase(acc.accountName)}</span>
                           </p>
                         </div>
                       </div>
@@ -1200,18 +1200,18 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   <BankLogo bankName={acc.bankName} size="md" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-900 truncate">{acc.bankName}</span>
+                      <span className="text-xs font-medium text-gray-900 capitalize truncate">{acc.bankName}</span>
                       {acc.isDefault && (
                         <span className="text-[10px] font-medium bg-[#15803D] text-white px-1.5 py-0.5 rounded">
                           Default
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-mono font-medium text-gray-700 mt-0.5">
+                    <p className="text-xs font-normal text-gray-700 mt-0.5">
                       {acc.accountNumber}
                     </p>
                     <p className="text-[11px] text-gray-500 font-normal truncate max-w-[200px]">
-                      {acc.accountName}
+                      {toTitleCase(acc.accountName)}
                     </p>
                   </div>
                 </div>
@@ -1291,7 +1291,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   value={accNumber}
                   onChange={(e) => handleAccountNumberChange(e.target.value)}
                   maxLength={10}
-                  className="h-10 rounded-xl text-xs font-mono bg-white border-[#e1efe5] px-3.5"
+                  className="h-10 rounded-xl text-xs font-normal bg-white border-[#e1efe5] px-3.5"
                   required
                 />
               </div>
@@ -1338,7 +1338,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                         isNameTally ? "text-gray-900" : "text-amber-950"
                       )}
                     >
-                      {resolvedAccountName}
+                      {toTitleCase(resolvedAccountName)}
                     </p>
 
                     {!isNameTally && registeredClubName && (
@@ -1510,7 +1510,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Transaction Ref:</span>
-                <span className="font-mono font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
+                <span className="text-xs font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 font-medium">Payment Date:</span>
@@ -1563,15 +1563,15 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Bank:</span>
-                <span className="font-medium text-gray-800">{selectedWithdrawal.bankName}</span>
+                <span className="font-medium text-gray-800 capitalize">{selectedWithdrawal.bankName}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Account Number:</span>
-                <span className="font-mono font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
+                <span className="text-xs font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
                 <span className="text-gray-500 font-medium">Account Name:</span>
-                <span className="font-medium text-gray-800">{selectedWithdrawal.accountName}</span>
+                <span className="font-medium text-gray-800">{toTitleCase(selectedWithdrawal.accountName)}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 font-medium">Requested On:</span>
@@ -1580,7 +1580,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               {selectedWithdrawal.reference && (
                 <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
                   <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="font-mono font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
+                  <span className="text-xs font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (
