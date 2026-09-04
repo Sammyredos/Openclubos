@@ -39,6 +39,7 @@ import {
   Mail,
   UserPlus,
   MapPin,
+  MapPinOff,
   Search,
   Camera,
   Upload,
@@ -340,6 +341,19 @@ export default function MobilePreviewPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Default Scroll Reset Refs
+  const phoneContentScrollRef = useRef<HTMLDivElement>(null);
+  const regScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTopAll = () => {
+    if (regScrollRef.current) {
+      regScrollRef.current.scrollTop = 0;
+    }
+    if (phoneContentScrollRef.current) {
+      phoneContentScrollRef.current.scrollTop = 0;
+    }
+  };
+
   // Sync screen with URL ?screen= query param
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -351,6 +365,11 @@ export default function MobilePreviewPage() {
     }
   }, []);
 
+  // Always reset scroll to top on screen change
+  useEffect(() => {
+    scrollToTopAll();
+  }, [activeScreen]);
+
   const switchScreen = (screen: ScreenId) => {
     setActiveScreen(screen);
     if (typeof window !== "undefined") {
@@ -358,6 +377,7 @@ export default function MobilePreviewPage() {
       url.searchParams.set("screen", screen);
       window.history.replaceState({}, "", url.toString());
     }
+    scrollToTopAll();
   };
 
   // --- Scoring Screen State ---
@@ -488,6 +508,12 @@ export default function MobilePreviewPage() {
 
   // --- Registration Wizard State (Steps 1 - 4) ---
   const [regStep, setRegStep] = useState<1 | 2 | 3 | 4>(1);
+
+  // Always reset scroll to top on registration step change
+  useEffect(() => {
+    scrollToTopAll();
+  }, [regStep]);
+
   const [regFirstName, setRegFirstName] = useState("Alex");
   const [regLastName, setRegLastName] = useState("Wright");
   const [regEmail, setRegEmail] = useState("player@domain.com");
@@ -499,9 +525,92 @@ export default function MobilePreviewPage() {
   // Step 2
   const [regHandicap, setRegHandicap] = useState("2.4");
   const [regNoHandicap, setRegNoHandicap] = useState(false);
-  const [regHomeClub, setRegHomeClub] = useState("Oakwood Country Club");
+  const [regHomeClub, setRegHomeClub] = useState("");
   const [regGender, setRegGender] = useState<"MALE" | "FEMALE">("MALE");
   const [regDob, setRegDob] = useState("05 / 14 / 1994");
+  const [showClubSuggestions, setShowClubSuggestions] = useState(false);
+  const clubDropdownRef = useRef<HTMLDivElement>(null);
+  const [showDobCalendar, setShowDobCalendar] = useState(false);
+  const dobCalendarRef = useRef<HTMLDivElement>(null);
+  const [dobCalendarMonth, setDobCalendarMonth] = useState<Date>(() => new Date(1994, 4, 14));
+  const [showClubModal, setShowClubModal] = useState(false);
+  const [clubSearchQuery, setClubSearchQuery] = useState("");
+  const [coursesList, setCoursesList] = useState<{
+    id: string;
+    name: string;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+    type?: string | null;
+    holes?: number | null;
+  }[]>([
+    { id: "seed_1", name: "Oakwood Country Club Course", city: "Augusta", state: "GA", country: "US", type: "Parkland", holes: 18 },
+    { id: "seed_2", name: "Augusta National Golf Club", city: "Augusta", state: "GA", country: "US", type: "Parkland", holes: 18 },
+    { id: "seed_3", name: "Pinehurst Resort No. 2", city: "Pinehurst", state: "NC", country: "US", type: "Sandhills", holes: 18 },
+    { id: "seed_4", name: "St Andrews Old Course", city: "St Andrews", state: "Fife", country: "GB", type: "Links", holes: 18 },
+    { id: "seed_5", name: "Pebble Beach Golf Links", city: "Pebble Beach", state: "CA", country: "US", type: "Links", holes: 18 },
+    ...Array.from({ length: 19 }, (_, i) => ({
+      id: `openclub_seed_${i + 2}`,
+      name: `OpenClub Golf Club ${i + 2} Course`,
+      city: `City ${i + 2}`,
+      state: "State",
+      country: "NG",
+      type: "Parkland",
+      holes: 18,
+    })),
+  ]);
+
+  // Fetch courses from backend to sync dynamically with registered golf courses
+  useEffect(() => {
+    fetch("/api/courses")
+      .then((res) => {
+        if (!res.ok) return [];
+        return res.json();
+      })
+      .then((data) => {
+        const fetched = Array.isArray(data) ? data : data?.items || [];
+        if (fetched.length > 0) {
+          setCoursesList((prev) => {
+            const map = new Map<string, any>();
+            fetched.forEach((c: any) => {
+              if (c?.name) map.set(c.name.trim().toLowerCase(), c);
+            });
+            prev.forEach((c) => {
+              if (!map.has(c.name.trim().toLowerCase())) {
+                map.set(c.name.trim().toLowerCase(), c);
+              }
+            });
+            return Array.from(map.values());
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Close suggestions / modals on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (clubDropdownRef.current && !clubDropdownRef.current.contains(e.target as Node)) {
+        setShowClubSuggestions(false);
+      }
+      if (dobCalendarRef.current && !dobCalendarRef.current.contains(e.target as Node)) {
+        setShowDobCalendar(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCourses = coursesList.filter((c) => {
+    const query = (showClubModal ? clubSearchQuery : regHomeClub).toLowerCase().trim();
+    if (!query) return true;
+    return (
+      c.name.toLowerCase().includes(query) ||
+      (c.city && c.city.toLowerCase().includes(query)) ||
+      (c.state && c.state.toLowerCase().includes(query)) ||
+      (c.country && c.country.toLowerCase().includes(query))
+    );
+  });
 
   // Step 3
   const [regPhone, setRegPhone] = useState("(706) 555-0192");
@@ -514,6 +623,30 @@ export default function MobilePreviewPage() {
   const [regAgreedMarker, setRegAgreedMarker] = useState(true);
   const [regError, setRegError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+
+  // Reactive Step Completion Validation for Disabled Button States
+  const isRegStep1Valid = Boolean(
+    regFirstName.trim() &&
+    regLastName.trim() &&
+    regEmail.includes("@") &&
+    regEmail.includes(".") &&
+    regPassword.length >= 8 &&
+    regPassword === regConfirmPassword
+  );
+
+  const isRegStep2Valid = Boolean(
+    (regNoHandicap || (regHandicap.trim() && !isNaN(Number(regHandicap)))) &&
+    regGender &&
+    regDob.trim()
+  );
+
+  const isRegStep3Valid = Boolean(
+    regPhone.replace(/\D/g, "").length >= 7 &&
+    regCity.trim() &&
+    regState.trim()
+  );
+
+  const isRegStep4Valid = Boolean(regAgreedRules && regAgreedMarker);
 
   const calcPasswordStrength = (pass: string) => {
     if (!pass) return 0;
@@ -547,6 +680,7 @@ export default function MobilePreviewPage() {
     }
     if (regStep < 4) {
       setRegStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
+      scrollToTopAll();
     }
   };
 
@@ -554,6 +688,7 @@ export default function MobilePreviewPage() {
     setRegError(null);
     if (regStep > 1) {
       setRegStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
+      scrollToTopAll();
     } else {
       switchScreen("login");
     }
@@ -982,45 +1117,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Google OAuth
               OutlinedButton(
                 onPressed: () {},
-                child: Row(children: [_buildGoogleIcon(), Text('Continue with Google')]),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                child: Row(children: [_buildGoogleIcon(), Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.w500))]),
               ),
               
               // Divider
               Row(children: [Divider(), Text('OR CONTINUE WITH EMAIL'), Divider()]),
               
-              // Email Address
+              // Email Address (48px height, pale-mint green)
               Text('Email Address'),
               Container(
-                decoration: BoxDecoration(color: Color(0xFFEDF4FE), borderRadius: BorderRadius.circular(12)),
-                child: TextField(controller: _emailController),
+                height: 48,
+                decoration: BoxDecoration(color: Color(0xFFF5FAF6), border: Border.all(color: Color(0xFFE1EFE5)), borderRadius: BorderRadius.circular(12)),
+                child: TextField(controller: _emailController, onChanged: (_) => setState(() {})),
               ),
               
-              // Password
+              // Password (48px height, pale-mint green)
               Text('Password'),
               Container(
-                decoration: BoxDecoration(color: Color(0xFFEDF4FE), borderRadius: BorderRadius.circular(12)),
-                child: TextField(controller: _passwordController, obscureText: _obscurePassword),
+                height: 48,
+                decoration: BoxDecoration(color: Color(0xFFF5FAF6), border: Border.all(color: Color(0xFFE1EFE5)), borderRadius: BorderRadius.circular(12)),
+                child: TextField(controller: _passwordController, obscureText: _obscurePassword, onChanged: (_) => setState(() {})),
               ),
               
               // Remember me & Forgot Password
               Row(
                 children: [
                   _buildCheckbox(_rememberMe),
-                  Text('Remember me'),
+                  Text('Remember me', style: TextStyle(fontWeight: FontWeight.w500)),
                   Spacer(),
-                  Text('Forgot password?', style: TextStyle(color: Color(0xFF00875A))),
+                  Text('Forgot password?', style: TextStyle(color: Color(0xFF00875A), fontWeight: FontWeight.w500)),
                 ],
               ),
               
-              // Sign In Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF009A60)),
-                onPressed: _handleLogin,
-                child: Text('Sign In'),
+              // Sign In Button (Disabled when incomplete, 48px, font-medium)
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF009A60),
+                    disabledBackgroundColor: Color(0xFF009A60).withOpacity(0.35),
+                  ),
+                  onPressed: _isLoginValid ? _handleLogin : null,
+                  child: Text('Sign In', style: TextStyle(fontWeight: FontWeight.w500)),
+                ),
               ),
               
               // Footer
-              Row(children: [Text("Don't have an account? "), Text("Create one", style: TextStyle(color: Color(0xFF00875A)))]),
+              Row(children: [Text("Don't have an account? "), Text("Create one", style: TextStyle(color: Color(0xFF00875A), fontWeight: FontWeight.w500))]),
             ],
           ),
         ),
@@ -1051,9 +1196,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isCodeComplete = _controllers.every((c) => c.text.isNotEmpty);
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: Text('Step 4 of 4')),
       body: Column(
         children: [
           // 1. Icon Badge
@@ -1070,13 +1216,20 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           ),
           
           // 4. Resend Timer Row
-          Text("Didn't get the code? Resend Code (0:\$_resendSeconds)"),
+          Text("Didn't get the code? Resend Code (0:\$_resendSeconds)", style: TextStyle(fontWeight: FontWeight.w500)),
           
-          // 5. Action Button
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF009A60)),
-            onPressed: _handleVerify,
-            child: Text('Verify & Activate Account'),
+          // 5. Action Button (48px, font-medium, disabled until all 6 digits entered)
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF009A60),
+                disabledBackgroundColor: Color(0xFF009A60).withOpacity(0.35),
+              ),
+              onPressed: isCodeComplete ? _handleVerify : null,
+              child: Text('Verify & Activate Account', style: TextStyle(fontWeight: FontWeight.w500)),
+            ),
           ),
         ],
       ),
@@ -1111,7 +1264,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _passwordController = TextEditingController(text: 'Password123!');
   final _confirmPasswordController = TextEditingController(text: 'Password123!');
   final _handicapController = TextEditingController(text: '2.4');
-  final _homeClubController = TextEditingController(text: 'Oakwood Country Club');
+  final _homeClubController = TextEditingController(text: '');
   final _dobController = TextEditingController(text: '05 / 14 / 1994');
   final _phoneController = TextEditingController(text: '(706) 555-0192');
   final _cityController = TextEditingController(text: 'Augusta');
@@ -1188,7 +1341,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             }`}
           >
             <UserPlus className="h-3.5 w-3.5" />
-            Register (Steps 1-4)
+            Register
           </button>
           <button
             onClick={() => switchScreen("verify")}
@@ -1371,8 +1524,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                 {/* SCREEN CONTENT VIEW */}
                 <div
+                  ref={phoneContentScrollRef}
                   className={`flex-1 relative flex flex-col ${
-                    activeScreen === "scoring"
+                    activeScreen === "scoring" || activeScreen === "register"
                       ? "overflow-hidden"
                       : "overflow-y-auto scrollbar-hide no-scrollbar"
                   }`}
@@ -1627,7 +1781,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         <button
                           type="button"
                           onClick={handleSaveHole}
-                          className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-white font-bold text-xs tracking-wide shadow-xl shadow-emerald-950/70 border border-emerald-400/30 flex items-center justify-center gap-2 transition-all mt-1"
+                          className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-white font-medium text-xs tracking-wide shadow-xl shadow-emerald-950/70 border border-emerald-400/30 flex items-center justify-center gap-2 transition-all mt-1 cursor-pointer"
                         >
                           <Check className="h-4 w-4" />
                           <span>SAVE HOLE {currentHole.number} SCORE</span>
@@ -1733,7 +1887,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         {/* Attest Action Button */}
                         <button
                           onClick={() => setShowAttestModal(true)}
-                          className={`w-full py-3.5 rounded-2xl font-bold text-xs tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all ${
+                          className={`w-full h-12 rounded-2xl font-medium text-xs tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all ${
                             attestationConfirmed
                               ? "bg-slate-800 text-slate-400 border border-slate-700 cursor-default"
                               : "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-emerald-950 border border-emerald-400/30 active:scale-[0.98]"
@@ -1813,13 +1967,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               onClick={() => setActiveScreen("scoring")}
-                              className="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] text-center transition-colors shadow-md shadow-emerald-950"
+                              className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs text-center transition-colors shadow-md shadow-emerald-950 flex items-center justify-center cursor-pointer"
                             >
                               Enter Scoring
                             </button>
                             <button
                               onClick={() => setActiveScreen("leaderboard")}
-                              className="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-[11px] text-center border border-slate-700 transition-colors"
+                              className="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs text-center border border-slate-700 transition-colors flex items-center justify-center cursor-pointer"
                             >
                               Leaderboard
                             </button>
@@ -1961,7 +2115,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           onClick={() => {
                             showToast("Google Sign-In is configured for Player accounts");
                           }}
-                          className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 transition-all flex items-center justify-center gap-2.5 shadow-2xs group"
+                          className="w-full h-12 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 transition-all flex items-center justify-center gap-2.5 shadow-2xs group"
                         >
                           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                             <path
@@ -1981,13 +2135,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                             />
                           </svg>
-                          <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">
+                          <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
                             Continue with Google
                           </span>
                         </button>
 
                         {/* 3. Divider: "OR CONTINUE WITH EMAIL" */}
-                        <div className="flex items-center gap-3 my-1">
+                        <div className="flex items-center gap-3 my-5">
                           <div className="flex-1 h-px bg-slate-200" />
                           <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
                             OR CONTINUE WITH EMAIL
@@ -2011,10 +2165,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         )}
 
                         {/* 4. Form Inputs */}
-                        <div className="space-y-3">
+                        <div className="space-y-6">
                           {/* Email Address */}
                           <div>
-                            <label className="text-xs font-medium text-slate-700 block mb-1">
+                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
                               Email Address
                             </label>
                             <input
@@ -2025,13 +2179,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 if (loginError) setLoginError(null);
                               }}
                               placeholder="player@openclub.os"
-                              className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-hidden transition-colors"
+                              className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-colors"
                             />
                           </div>
 
                           {/* Password */}
                           <div>
-                            <label className="text-xs font-medium text-slate-700 block mb-1">
+                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
                               Password
                             </label>
                             <div className="relative">
@@ -2039,7 +2193,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 type={showPassword ? "text" : "password"}
                                 value={loginPassword}
                                 onChange={(e) => setLoginPassword(e.target.value)}
-                                className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 py-2.5 pr-10 text-xs text-slate-800 focus:outline-hidden transition-colors"
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-colors"
                               />
                               <button
                                 type="button"
@@ -2076,7 +2230,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           <button
                             type="button"
                             onClick={() => showToast("Password reset link sent to your email")}
-                            className="text-xs font-medium text-[#00875A] hover:underline"
+                            className="text-sm font-medium text-[#00875A] hover:underline cursor-pointer"
                           >
                             Forgot password?
                           </button>
@@ -2085,8 +2239,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         {/* 6. Sign In Primary Button */}
                         <button
                           type="button"
+                          disabled={!loginEmail.trim() || !loginPassword.trim()}
                           onClick={() => handleLoginSubmit(loginEmail)}
-                          className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                          className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                            loginEmail.trim() && loginPassword.trim()
+                              ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                              : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                          }`}
                         >
                           <span>Sign In</span>
                         </button>
@@ -2099,7 +2258,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           <button
                             type="button"
                             onClick={() => switchScreen("register")}
-                            className="text-xs font-semibold text-[#00875A] underline underline-offset-2 hover:text-[#006C47]"
+                            className="text-sm font-medium text-[#00875A] underline underline-offset-2 hover:text-[#006C47] cursor-pointer"
                           >
                             Create one
                           </button>
@@ -2154,14 +2313,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                   {/* SCREEN: REGISTRATION (STEPS 1 - 4 WIZARD) */}
                   {activeScreen === "register" && (
-                    <div className="h-full bg-white text-slate-900 flex flex-col overflow-y-auto">
-                      {/* Top Header Navigation */}
-                      <div className="p-6 pb-4 border-b border-slate-100 bg-white sticky top-0 z-10">
+                    <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative">
+                      {/* Top Header Navigation (Fixed pinned header) */}
+                      <div className="p-6 pb-4 border-b border-slate-100 bg-white shrink-0 z-10">
                         <div className="flex items-center justify-between mb-3.5">
                           <button
                             type="button"
                             onClick={handleRegPrev}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs"
+                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                             title="Back"
                           >
                             <ChevronLeft className="h-4 w-4" />
@@ -2187,8 +2346,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         </div>
                       </div>
 
-                      {/* Step Content */}
-                      <div className="p-6 pt-2 space-y-4">
+                      {/* Step Content (Scrollable with regScrollRef) */}
+                      <div
+                        ref={regScrollRef}
+                        className="flex-1 overflow-y-auto p-6 pt-3 space-y-4 scrollbar-hide no-scrollbar"
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                      >
                         {/* Error Banner */}
                         {regError && (
                           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2 animate-in fade-in">
@@ -2199,7 +2362,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 1: CREATE PLAYER ACCOUNT --- */}
                         {regStep === 1 && (
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Create Player Account
@@ -2213,7 +2376,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             <button
                               type="button"
                               onClick={() => showToast("Google Sign-In ready for Player accounts.")}
-                              className="w-full bg-white border border-[#E5E7EB] py-2.5 px-4 rounded-xl flex items-center justify-center gap-2.5 text-xs font-semibold text-[#1F2937] hover:bg-slate-50 transition-all shadow-2xs"
+                              className="w-full h-12 bg-white border border-[#E5E7EB] px-4 rounded-xl flex items-center justify-center gap-2.5 text-sm font-medium text-[#1F2937] hover:bg-slate-50 transition-all shadow-2xs cursor-pointer"
                             >
                               <svg className="w-4 h-4" viewBox="0 0 24 24">
                                 <path
@@ -2237,60 +2400,60 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             </button>
 
                             {/* Divider */}
-                            <div className="flex items-center gap-3 my-3">
+                            <div className="flex items-center gap-3 my-6">
                               <div className="flex-1 h-px bg-[#E2E8F0]" />
-                              <span className="text-[10px] font-extrabold text-[#8C9BAB] tracking-wider uppercase">
+                              <span className="text-[10px] font-medium text-[#8C9BAB] tracking-wider uppercase">
                                 OR REGISTER WITH EMAIL
                               </span>
                               <div className="flex-1 h-px bg-[#E2E8F0]" />
                             </div>
 
                             {/* First & Last Name */}
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                  FIRST NAME
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                  First Name
                                 </label>
                                 <input
                                   type="text"
                                   value={regFirstName}
                                   onChange={(e) => setRegFirstName(e.target.value)}
                                   placeholder="Alex"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
                               <div>
-                                <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                  LAST NAME
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                  Last Name
                                 </label>
                                 <input
                                   type="text"
                                   value={regLastName}
                                   onChange={(e) => setRegLastName(e.target.value)}
                                   placeholder="Wright"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
                             </div>
 
                             {/* Email Address */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                EMAIL ADDRESS
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Email Address
                               </label>
                               <input
                                 type="email"
                                 value={regEmail}
                                 onChange={(e) => setRegEmail(e.target.value)}
                                 placeholder="player@domain.com"
-                                className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                               />
                             </div>
 
                             {/* Password */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                PASSWORD
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Password
                               </label>
                               <div className="relative">
                                 <input
@@ -2298,19 +2461,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   value={regPassword}
                                   onChange={(e) => setRegPassword(e.target.value)}
                                   placeholder="••••••••••••"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 pr-9 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setRegShowPassword(!regShowPassword)}
-                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#5B6B7F]"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#5B6B7F] cursor-pointer"
                                 >
-                                  {regShowPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                  {regShowPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
                               </div>
 
                               {/* Password Strength Indicator */}
-                              <div className="flex items-center gap-2 mt-1.5">
+                              <div className="flex items-center gap-2 mt-2">
                                 <div className="flex-1 grid grid-cols-4 gap-1">
                                   {[1, 2, 3, 4].map((bar) => {
                                     const strength = calcPasswordStrength(regPassword);
@@ -2324,7 +2487,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     );
                                   })}
                                 </div>
-                                <span className="text-[9px] font-extrabold text-[#5B6B7F] tracking-wider uppercase">
+                                <span className="text-[9px] font-medium text-[#5B6B7F] tracking-wider uppercase">
                                   MIN. 8 CHARACTERS
                                 </span>
                               </div>
@@ -2332,8 +2495,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Confirm Password */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                CONFIRM PASSWORD
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Confirm Password
                               </label>
                               <div className="relative">
                                 <input
@@ -2341,19 +2504,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   value={regConfirmPassword}
                                   onChange={(e) => setRegConfirmPassword(e.target.value)}
                                   placeholder="••••••••••••"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 pr-9 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                                 {regConfirmPassword && regConfirmPassword === regPassword ? (
-                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#009A60]">
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#009A60]">
                                     <CheckCircle2 className="h-4 w-4 fill-emerald-100 text-[#009A60]" />
                                   </div>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => setRegShowConfirm(!regShowConfirm)}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#5B6B7F]"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#5B6B7F] cursor-pointer"
                                   >
-                                    {regShowConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                    {regShowConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                   </button>
                                 )}
                               </div>
@@ -2362,8 +2525,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             {/* CTA Button */}
                             <button
                               type="button"
+                              disabled={!isRegStep1Valid}
                               onClick={handleRegNext}
-                              className="w-full mt-2 bg-[#009A60] hover:bg-[#008754] text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2"
+                              className={`w-full mt-2 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                isRegStep1Valid
+                                  ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                  : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                              }`}
                             >
                               <span>Continue to Golf Profile →</span>
                             </button>
@@ -2374,7 +2542,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <button
                                 type="button"
                                 onClick={() => switchScreen("login")}
-                                className="font-bold text-[#009A60] hover:underline underline-offset-2"
+                                className="text-sm font-medium text-[#009A60] hover:underline underline-offset-2 cursor-pointer"
                               >
                                 Sign In
                               </button>
@@ -2384,7 +2552,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 2: YOUR GOLF PROFILE --- */}
                         {regStep === 2 && (
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Your Golf Profile
@@ -2396,8 +2564,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Official Handicap Index */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                OFFICIAL HANDICAP INDEX
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Official Handicap Index
                               </label>
                               <div className="relative">
                                 <input
@@ -2406,11 +2574,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   disabled={regNoHandicap}
                                   onChange={(e) => setRegHandicap(e.target.value)}
                                   placeholder="e.g. 2.4"
-                                  className={`w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 pr-14 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all ${
+                                  className={`w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-14 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all ${
                                     regNoHandicap ? "opacity-60 bg-slate-100" : ""
                                   }`}
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-[#009A60] tracking-wider uppercase">
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#009A60] tracking-wider uppercase">
                                   GHIN
                                 </span>
                               </div>
@@ -2440,67 +2608,104 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Home Golf Club */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                HOME GOLF CLUB
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Home Golf Club
                               </label>
                               <div className="relative">
-                                <MapPin className="h-3.5 w-3.5 text-[#5B6B7F] absolute left-3 top-1/2 -translate-y-1/2" />
+                                <MapPin className="h-4 w-4 text-[#5B6B7F] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <input
                                   type="text"
+                                  readOnly
                                   value={regHomeClub}
-                                  onChange={(e) => setRegHomeClub(e.target.value)}
-                                  placeholder="Oakwood Country Club"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-9 pr-9 py-2 text-xs font-semibold text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  onClick={() => {
+                                    setClubSearchQuery(regHomeClub);
+                                    setShowClubModal(true);
+                                  }}
+                                  placeholder="Select or search home golf club..."
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all cursor-pointer select-none"
                                 />
-                                <Search className="h-3.5 w-3.5 text-[#8CA0BA] absolute right-3 top-1/2 -translate-y-1/2" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setClubSearchQuery(regHomeClub);
+                                    setShowClubModal(true);
+                                  }}
+                                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#009A60] transition-colors cursor-pointer"
+                                >
+                                  <Search className="h-4 w-4" />
+                                </button>
                               </div>
+                              <p className="text-[11px] text-[#8CA0BA] italic mt-1.5">
+                                Tap to search or select from registered golf courses.
+                              </p>
                             </div>
 
-                            {/* Gender / Competition Flight Segmented Control */}
+                            {/* Gender Segmented Control */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                GENDER / COMPETITION FLIGHT
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Gender
                               </label>
-                              <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1 grid grid-cols-2 gap-1">
+                              <div className="h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1 grid grid-cols-2 gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("MALE")}
-                                  className={`py-1.5 rounded-lg text-xs font-black transition-all ${
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer ${
                                     regGender === "MALE"
-                                      ? "bg-white text-[#009A60] shadow-xs"
-                                      : "text-[#62758D] font-bold hover:text-slate-800"
+                                      ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
+                                      : "text-[#62758D] hover:text-slate-800 border border-transparent"
                                   }`}
                                 >
-                                  MALE
+                                  Male
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("FEMALE")}
-                                  className={`py-1.5 rounded-lg text-xs font-black transition-all ${
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer ${
                                     regGender === "FEMALE"
-                                      ? "bg-white text-[#009A60] shadow-xs"
-                                      : "text-[#62758D] font-bold hover:text-slate-800"
+                                      ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
+                                      : "text-[#62758D] hover:text-slate-800 border border-transparent"
                                   }`}
                                 >
-                                  FEMALE
+                                  Female
                                 </button>
                               </div>
                             </div>
 
                             {/* Date of Birth */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                DATE OF BIRTH
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Date of Birth
                               </label>
                               <div className="relative">
                                 <input
                                   type="text"
+                                  readOnly
                                   value={regDob}
-                                  onChange={(e) => setRegDob(e.target.value)}
+                                  onClick={() => {
+                                    const parts = regDob.split("/").map((p) => parseInt(p.trim(), 10));
+                                    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                                      const parsed = new Date(parts[2], parts[0] - 1, parts[1]);
+                                      if (!isNaN(parsed.getTime())) setDobCalendarMonth(parsed);
+                                    }
+                                    setShowDobCalendar(true);
+                                  }}
                                   placeholder="MM / DD / YYYY"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 pr-9 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all cursor-pointer select-none"
                                 />
-                                <Calendar className="h-3.5 w-3.5 text-[#8CA0BA] absolute right-3 top-1/2 -translate-y-1/2" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const parts = regDob.split("/").map((p) => parseInt(p.trim(), 10));
+                                    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                                      const parsed = new Date(parts[2], parts[0] - 1, parts[1]);
+                                      if (!isNaN(parsed.getTime())) setDobCalendarMonth(parsed);
+                                    }
+                                    setShowDobCalendar(true);
+                                  }}
+                                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#009A60] transition-colors cursor-pointer"
+                                >
+                                  <Calendar className="h-4 w-4" />
+                                </button>
                               </div>
                               <p className="text-[11px] text-[#8CA0BA] italic mt-1.5">
                                 For Junior / Senior bracket eligibility verification.
@@ -2508,7 +2713,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             </div>
 
                             {/* Verification Notice */}
-                            <div className="p-3 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-start gap-2.5">
+                            <div className="p-3.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-start gap-2.5">
                               <ShieldCheck className="h-4 w-4 text-[#5B6B7F] shrink-0 mt-0.5" />
                               <p className="text-[11px] text-[#475569] leading-relaxed font-normal">
                                 Handicap indexes are verified against the national golf registry (GHIN/USGA) before tournament play begins.
@@ -2520,14 +2725,20 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
-                                className="px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-xs font-extrabold transition-all"
+                                className="h-12 w-12 shrink-0 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                                title="Back"
                               >
-                                Back
+                                <ArrowLeft className="h-5 w-5" />
                               </button>
                               <button
                                 type="button"
+                                disabled={!isRegStep2Valid}
                                 onClick={handleRegNext}
-                                className="flex-1 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-bold transition-all shadow-md shadow-emerald-700/20"
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                  isRegStep2Valid
+                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                }`}
                               >
                                 Continue to Contact →
                               </button>
@@ -2537,7 +2748,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 3: PLAYER CONTACT & AVATAR --- */}
                         {regStep === 3 && (
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Player Contact & Avatar
@@ -2551,12 +2762,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             <div className="flex flex-col items-center py-2">
                               <div className="w-20 h-20 rounded-full bg-[#f5faf6] border-2 border-dashed border-[#e1efe5] flex flex-col items-center justify-center text-[#009A60] shadow-2xs">
                                 <Camera className="h-5 w-5 mb-0.5 text-[#009A60]" />
-                                <span className="text-[9px] font-black text-[#009A60] tracking-wider uppercase">PHOTO</span>
+                                <span className="text-[9px] font-medium text-[#009A60] tracking-wider uppercase">PHOTO</span>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => showToast("Avatar picker opened")}
-                                className="mt-2.5 px-3 py-1 rounded-full border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-xs font-bold transition-all shadow-2xs"
+                                className="mt-2.5 h-9 px-4 rounded-full border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-sm font-medium transition-all shadow-2xs cursor-pointer"
                               >
                                 Upload Player Photo
                               </button>
@@ -2567,11 +2778,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Mobile Phone Number */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                MOBILE PHONE NUMBER
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Mobile Phone Number
                               </label>
                               <div className="flex gap-2">
-                                <div className="w-20 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-2.5 py-2 flex items-center justify-between text-xs font-black text-[#0F172A]">
+                                <div className="h-12 w-20 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-2.5 flex items-center justify-between text-xs font-medium text-[#0F172A]">
                                   <span>US +1</span>
                                   <span className="text-[#8CA0BA] text-[10px]">▼</span>
                                 </div>
@@ -2580,7 +2791,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   value={regPhone}
                                   onChange={(e) => setRegPhone(e.target.value)}
                                   placeholder="(555) 000-0000"
-                                  className="flex-1 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="flex-1 h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
                               <p className="text-[11px] text-[#8CA0BA] mt-1.5 font-normal">
@@ -2591,27 +2802,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             {/* City & State */}
                             <div className="grid grid-cols-2 gap-2.5">
                               <div>
-                                <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                  CITY
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                  City
                                 </label>
                                 <input
                                   type="text"
                                   value={regCity}
                                   onChange={(e) => setRegCity(e.target.value)}
                                   placeholder="Augusta"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
                               <div>
-                                <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                  STATE
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                  State
                                 </label>
                                 <input
                                   type="text"
                                   value={regState}
                                   onChange={(e) => setRegState(e.target.value)}
                                   placeholder="GA"
-                                  className="w-full bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3 py-2 text-xs text-[#475569] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
                             </div>
@@ -2619,7 +2830,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             {/* Push Notifications Card */}
                             <div className="p-3.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-between">
                               <div>
-                                <p className="text-xs font-bold text-[#0F172A]">Push Notifications</p>
+                                <p className="text-xs font-medium text-[#0F172A]">Push Notifications</p>
                                 <p className="text-[11px] text-[#5B6B7F] mt-0.5 font-normal">
                                   Instant Tee Time & Marker Pairing Alerts
                                 </p>
@@ -2627,7 +2838,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <button
                                 type="button"
                                 onClick={() => setRegPushNotifications(!regPushNotifications)}
-                                className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${
+                                className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer ${
                                   regPushNotifications ? "bg-[#009A60]" : "bg-slate-300"
                                 }`}
                               >
@@ -2644,14 +2855,20 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
-                                className="px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-xs font-extrabold transition-all"
+                                className="h-12 w-12 shrink-0 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                                title="Back"
                               >
-                                Back
+                                <ArrowLeft className="h-5 w-5" />
                               </button>
                               <button
                                 type="button"
+                                disabled={!isRegStep3Valid}
                                 onClick={handleRegNext}
-                                className="flex-1 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-bold transition-all shadow-md shadow-emerald-700/20"
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                  isRegStep3Valid
+                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                }`}
                               >
                                 Review & Finish →
                               </button>
@@ -2661,7 +2878,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 4: REVIEW & COMPETITOR PLEDGE --- */}
                         {regStep === 4 && (
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Review & Competitor Pledge
@@ -2673,24 +2890,24 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Summary Profile Card */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                SUMMARY PROFILE CARD
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Summary Profile Card
                               </label>
                               <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-11 h-11 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-[#009A60] font-bold text-sm">
+                                  <div className="w-11 h-11 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-[#009A60] font-medium text-sm">
                                     🏌️
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-base font-black text-[#0F172A] truncate">
+                                    <p className="text-base font-medium text-[#0F172A] truncate">
                                       {regFirstName} {regLastName}
                                     </p>
-                                    <div className="mt-0.5 inline-block bg-[#f5faf6] border border-[#e1efe5] text-[#009A60] font-bold text-[10px] px-2 py-0.5 rounded-full truncate max-w-full">
-                                      HCP Index {regHandicap} • {regHomeClub} • {regGender === "MALE" ? "Men's" : "Women's"} Championship Flight
+                                    <div className="mt-0.5 inline-block bg-[#f5faf6] border border-[#e1efe5] text-[#009A60] font-medium text-[10px] px-2 py-0.5 rounded-full truncate max-w-full">
+                                      HCP Index {regHandicap}{regHomeClub.trim() ? ` • ${regHomeClub.trim()}` : ""} • {regGender === "MALE" ? "Men's" : "Women's"} Championship Flight
                                     </div>
                                   </div>
                                 </div>
-                                <div className="border-t border-slate-100 mt-2.5 pt-2 text-xs font-medium text-[#475569] truncate">
+                                <div className="border-t border-slate-100 mt-2.5 pt-2 text-xs font-normal text-[#475569] truncate">
                                   {regEmail} • +1 {regPhone} • {regCity}, {regState}
                                 </div>
                               </div>
@@ -2698,13 +2915,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Rules & Attestation Pledge Box */}
                             <div>
-                              <label className="text-[10.5px] font-black text-[#0F172A] block uppercase tracking-wider mb-1.5">
-                                RULES & ATTESTATION PLEDGE BOX
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                Rules & Attestation Pledge
                               </label>
                               <div className="bg-[#f5faf6] border border-[#bbf7d0] rounded-2xl p-3.5 space-y-2.5">
                                 <div className="flex items-center gap-2">
                                   <ShieldCheck className="h-4 w-4 text-[#009A60]" />
-                                  <span className="text-xs font-extrabold text-[#166534]">
+                                  <span className="text-xs font-medium text-[#166534]">
                                     Official Competitor Attestation Pledge
                                   </span>
                                 </div>
@@ -2719,7 +2936,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   >
                                     {regAgreedRules && <Check className="h-3 w-3 stroke-[3]" />}
                                   </button>
-                                  <span className="text-[11.5px] font-medium text-[#1E293B] leading-snug">
+                                  <span className="text-[11.5px] font-normal text-[#1E293B] leading-snug">
                                     I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.
                                   </span>
                                 </label>
@@ -2734,7 +2951,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   >
                                     {regAgreedMarker && <Check className="h-3 w-3 stroke-[3]" />}
                                   </button>
-                                  <span className="text-[11.5px] font-medium text-[#1E293B] leading-snug">
+                                  <span className="text-[11.5px] font-normal text-[#1E293B] leading-snug">
                                     I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.
                                   </span>
                                 </label>
@@ -2746,18 +2963,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
-                                className="px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-xs font-extrabold transition-all"
+                                className="h-12 w-12 shrink-0 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                                title="Back"
                               >
-                                Back
+                                <ArrowLeft className="h-5 w-5" />
                               </button>
                               <button
                                 type="button"
-                                disabled={isRegistering}
+                                disabled={!isRegStep4Valid || isRegistering}
                                 onClick={handleRegComplete}
-                                className="flex-1 py-3 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-bold transition-all shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2"
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                  isRegStep4Valid && !isRegistering
+                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                }`}
                               >
                                 {isRegistering ? (
-                                  <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                   <>
                                     <span>Complete Registration →</span>
@@ -2768,6 +2990,350 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           </div>
                         )}
                       </div>
+
+                      {/* Ultra-Modern Realistic Home Golf Club Bottom Sheet (Contained 100% inside phone display grid) */}
+                      {showClubModal && (
+                        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                          {/* Dark Backdrop Overlay */}
+                          <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                            onClick={() => setShowClubModal(false)}
+                          />
+
+                          {/* Bottom Sheet Card */}
+                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col">
+                            {/* Drag Pill Handle */}
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3 shrink-0">
+                              <div>
+                                <h3 className="text-base font-semibold text-[#0F172A] tracking-tight">
+                                  Select Home Golf Club
+                                </h3>
+                                <p className="text-[11px] text-[#64748B] mt-0.5 font-normal">
+                                  Choose your registered course or enter location
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowClubModal(false)}
+                                className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                              >
+                                <span className="text-sm font-semibold">✕</span>
+                              </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative mb-3 shrink-0">
+                              <MapPin className="h-4 w-4 text-[#009A60] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="text"
+                                autoFocus
+                                value={clubSearchQuery}
+                                onChange={(e) => setClubSearchQuery(e.target.value)}
+                                placeholder="Search golf club or location..."
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-10 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
+                              />
+                              {clubSearchQuery ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setClubSearchQuery("")}
+                                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#0F172A] transition-colors cursor-pointer"
+                                >
+                                  <span className="text-xs font-semibold bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full w-4 h-4 flex items-center justify-center">✕</span>
+                                </button>
+                              ) : (
+                                <Search className="h-4 w-4 text-[#8CA0BA] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              )}
+                            </div>
+
+                            {/* Courses List */}
+                            <div className="overflow-y-auto flex-1 divide-y divide-[#f1f5f9] -mx-5 px-5 min-h-48 max-h-72">
+                              {filteredCourses.length > 0 ? (
+                                filteredCourses.map((c) => {
+                                  const isSelected = regHomeClub === c.name;
+                                  return (
+                                    <button
+                                      key={c.id || c.name}
+                                      type="button"
+                                      onClick={() => {
+                                        setRegHomeClub(c.name);
+                                        setShowClubModal(false);
+                                      }}
+                                      className={`w-full text-left py-3 px-3 rounded-xl flex items-center gap-3 transition-colors cursor-pointer ${
+                                        isSelected ? "bg-[#e8f5ed] border border-[#bce3cb]" : "hover:bg-[#f8fbf9]"
+                                      }`}
+                                    >
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                        isSelected ? "bg-[#009A60] text-white" : "bg-[#f5faf6] border border-[#e1efe5] text-[#009A60]"
+                                      }`}>
+                                        <MapPin className="h-4 w-4" />
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-[13px] font-medium text-[#0F172A] truncate" style={{ fontWeight: 500 }}>
+                                          {c.name}
+                                        </div>
+                                        <div className="text-[11px] font-normal text-[#64748B] truncate" style={{ fontWeight: 400 }}>
+                                          {[c.city, c.state, c.country].filter(Boolean).join(", ")}
+                                          {c.holes ? ` • ${c.holes} Holes` : ""}
+                                        </div>
+                                      </div>
+                                      {isSelected && (
+                                        <Check className="h-4 w-4 text-[#009A60] shrink-0" />
+                                      )}
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="py-8 text-center px-4">
+                                  <div className="w-12 h-12 mx-auto rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-[#5B6B7F] mb-2.5">
+                                    <MapPinOff className="h-5 w-5 text-[#8CA0BA]" />
+                                  </div>
+                                  <p className="text-xs font-semibold text-[#0F172A]">
+                                    No golf clubs found
+                                  </p>
+                                  <p className="text-[11px] text-[#64748B] font-normal mt-1 leading-relaxed">
+                                    No registered courses matching &ldquo;{clubSearchQuery.trim()}&rdquo;.
+                                  </p>
+                                  {clubSearchQuery.trim().length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRegHomeClub(clubSearchQuery.trim());
+                                        setShowClubModal(false);
+                                      }}
+                                      className="mt-4 px-4 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-medium shadow-sm transition-all cursor-pointer"
+                                    >
+                                      Use &ldquo;{clubSearchQuery.trim()}&rdquo; as my Home Club
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Footer / Clear selection if selected */}
+                            {regHomeClub && (
+                              <div className="pt-3 border-t border-[#f1f5f9] mt-2 flex items-center justify-between shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRegHomeClub("");
+                                    setClubSearchQuery("");
+                                  }}
+                                  className="text-xs font-medium text-[#EF4444] hover:underline cursor-pointer"
+                                >
+                                  Clear Selection
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowClubModal(false)}
+                                  className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-medium shadow-xs transition-all cursor-pointer"
+                                >
+                                  Confirm
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ultra-Modern Realistic Date of Birth Bottom Sheet (Contained 100% inside phone display grid) */}
+                      {showDobCalendar && (() => {
+                        const parts = regDob.split("/").map((p) => parseInt(p.trim(), 10));
+                        const selectedDate = parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])
+                          ? new Date(parts[2], parts[0] - 1, parts[1])
+                          : null;
+
+                        const y = dobCalendarMonth.getFullYear();
+                        const m = dobCalendarMonth.getMonth();
+                        const daysInMonth = new Date(y, m + 1, 0).getDate();
+                        const startDay = new Date(y, m, 1).getDay();
+                        const today = new Date();
+
+                        const cells: (number | null)[] = [];
+                        for (let i = 0; i < startDay; i++) cells.push(null);
+                        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+                        return (
+                          <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                            {/* Dark Backdrop Overlay */}
+                            <div
+                              className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                              onClick={() => setShowDobCalendar(false)}
+                            />
+
+                            {/* Bottom Sheet Card */}
+                            <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[92%] overflow-y-auto">
+                              {/* Drag Pill Handle */}
+                              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3" />
+
+                              {/* Header */}
+                              <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3">
+                                <div>
+                                  <h3 className="text-base font-semibold text-[#0F172A] tracking-tight">
+                                    Select Date of Birth
+                                  </h3>
+                                  <p className="text-[11px] text-[#64748B] mt-0.5 font-normal">
+                                    Choose year, month, and day
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowDobCalendar(false)}
+                                  className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                                >
+                                  <span className="text-sm font-semibold">✕</span>
+                                </button>
+                              </div>
+
+                              {/* Month & Year Selectors with Large, Comfortable Touch Targets */}
+                              <div className="flex items-center justify-between gap-2 p-2 bg-[#f5faf6] border border-[#e1efe5] rounded-2xl mb-3.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setDobCalendarMonth(new Date(y, m - 1, 1))}
+                                  className="h-10 w-10 rounded-xl bg-white border border-[#e1efe5] flex items-center justify-center text-slate-700 hover:text-[#009A60] hover:border-[#009A60] shadow-2xs transition-all cursor-pointer shrink-0"
+                                  title="Previous Month"
+                                >
+                                  <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
+                                </button>
+
+                                <div className="flex items-center gap-2 flex-1 justify-center min-w-0">
+                                  {/* Month Selector */}
+                                  <div className="relative flex-1 min-w-0">
+                                    <select
+                                      value={m}
+                                      onChange={(e) => setDobCalendarMonth(new Date(y, parseInt(e.target.value, 10), 1))}
+                                      className="w-full h-10 bg-white border border-[#e1efe5] rounded-xl text-[13.5px] font-medium text-[#0F172A] px-3 pr-7 focus:outline-hidden focus:border-[#009A60] shadow-2xs cursor-pointer appearance-none truncate"
+                                    >
+                                      {[
+                                        "January", "February", "March", "April", "May", "June",
+                                        "July", "August", "September", "October", "November", "December"
+                                      ].map((mName, idx) => (
+                                        <option key={mName} value={idx}>
+                                          {mName}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+                                      ▼
+                                    </span>
+                                  </div>
+
+                                  {/* Year Selector */}
+                                  <div className="relative w-28 shrink-0">
+                                    <select
+                                      value={y}
+                                      onChange={(e) => setDobCalendarMonth(new Date(parseInt(e.target.value, 10), m, 1))}
+                                      className="w-full h-10 bg-white border border-[#e1efe5] rounded-xl text-[13.5px] font-medium text-[#0F172A] px-3 pr-7 focus:outline-hidden focus:border-[#009A60] shadow-2xs cursor-pointer appearance-none"
+                                    >
+                                      {Array.from({ length: 100 }, (_, i) => today.getFullYear() - i).map((yr) => (
+                                        <option key={yr} value={yr}>
+                                          {yr}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+                                      ▼
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={y >= today.getFullYear() && m >= today.getMonth()}
+                                  onClick={() => setDobCalendarMonth(new Date(y, m + 1, 1))}
+                                  className={`h-10 w-10 rounded-xl bg-white border border-[#e1efe5] flex items-center justify-center shadow-2xs transition-all shrink-0 ${
+                                    y >= today.getFullYear() && m >= today.getMonth()
+                                      ? "opacity-30 cursor-not-allowed text-slate-300"
+                                      : "text-slate-700 hover:text-[#009A60] hover:border-[#009A60] cursor-pointer"
+                                  }`}
+                                  title="Next Month"
+                                >
+                                  <ChevronRight className="h-5 w-5 stroke-[2.5]" />
+                                </button>
+                              </div>
+
+                              {/* Weekday Row */}
+                              <div className="grid grid-cols-7 gap-1 mb-1 text-center">
+                                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                                  <div key={d} className="text-[11px] font-medium text-[#8CA0BA] py-1">
+                                    {d}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Days Grid */}
+                              <div className="grid grid-cols-7 gap-1">
+                                {cells.map((day, idx) => {
+                                  if (day === null) {
+                                    return <div key={`empty-${idx}`} className="h-9" />;
+                                  }
+
+                                  const cellDate = new Date(y, m, day);
+                                  const isFuture = cellDate > today;
+                                  const isSelected =
+                                    selectedDate &&
+                                    selectedDate.getFullYear() === y &&
+                                    selectedDate.getMonth() === m &&
+                                    selectedDate.getDate() === day;
+                                  const isToday =
+                                    today.getFullYear() === y &&
+                                    today.getMonth() === m &&
+                                    today.getDate() === day;
+
+                                  return (
+                                    <button
+                                      key={`day-${day}`}
+                                      type="button"
+                                      disabled={isFuture}
+                                      onClick={() => {
+                                        const formatted = `${String(m + 1).padStart(2, "0")} / ${String(day).padStart(2, "0")} / ${y}`;
+                                        setRegDob(formatted);
+                                        setShowDobCalendar(false);
+                                      }}
+                                      className={`h-9 rounded-xl text-[13px] font-medium transition-all flex items-center justify-center relative cursor-pointer ${
+                                        isFuture
+                                          ? "text-slate-300 opacity-40 cursor-not-allowed"
+                                          : isSelected
+                                          ? "bg-[#009A60] text-white shadow-sm font-semibold"
+                                          : isToday
+                                          ? "text-[#009A60] ring-1.5 ring-[#009A60] bg-emerald-50 hover:bg-emerald-100"
+                                          : "text-[#1E293B] hover:bg-[#f5faf6]"
+                                      }`}
+                                    >
+                                      {day}
+                                      {isToday && !isSelected && (
+                                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#009A60]" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Footer Details & Confirm Action */}
+                              <div className="pt-3.5 mt-3.5 border-t border-[#f1f5f9] flex items-center justify-between gap-3">
+                                <div className="text-xs text-[#64748B] font-medium">
+                                  {selectedDate ? (
+                                    <span>
+                                      Age: <strong className="text-[#0F172A] font-semibold">{Math.floor((today.getTime() - selectedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))}</strong> years
+                                    </span>
+                                  ) : (
+                                    <span>Select a date</span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowDobCalendar(false)}
+                                  className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-sm font-medium shadow-sm transition-all cursor-pointer"
+                                >
+                                  Confirm Date
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -2783,8 +3349,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         >
                           <ChevronLeft className="h-5 w-5" />
                         </button>
-                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                          Step 4 of 4
+                        <span className="text-[10px] font-extrabold text-[#5B6B7F] bg-[#EEF2F6] px-3 py-1 rounded-full tracking-wider uppercase">
+                          VERIFICATION
                         </span>
                       </div>
 
@@ -2844,10 +3410,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           type="button"
                           disabled={resendCooldown > 0}
                           onClick={handleResendCode}
-                          className={`font-bold transition-colors ${
+                          className={`text-sm font-medium transition-colors ${
                             resendCooldown > 0
                               ? "text-slate-400 cursor-not-allowed"
-                              : "text-[#00875A] hover:text-[#006C47] underline underline-offset-2"
+                              : "text-[#00875A] hover:text-[#006C47] underline underline-offset-2 cursor-pointer"
                           }`}
                         >
                           {resendCooldown > 0
@@ -2860,15 +3426,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       <button
                         type="button"
                         onClick={handleVerifySubmit}
-                        disabled={isVerifying}
-                        className="w-full bg-[#009A60] hover:bg-[#00875A] active:scale-[0.98] text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-700/20"
+                        disabled={otpDigits.some((d) => !d) || isVerifying}
+                        className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                          !otpDigits.some((d) => !d) && !isVerifying
+                            ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                            : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                        }`}
                       >
                         {isVerifying ? (
                           <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                           <>
                             <ShieldCheck className="h-4 w-4" />
-                            Verify & Activate Account
+                            <span>Verify & Activate Account</span>
                           </>
                         )}
                       </button>
@@ -2892,7 +3462,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             href="http://localhost:8025"
                             target="_blank"
                             rel="noreferrer"
-                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors no-underline"
+                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors no-underline"
                           >
                             <ExternalLink className="h-3 w-3" />
                             Open Mailpit Web UI

@@ -20,14 +20,25 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createCourseDto: CreateCourseDto) {
     return this.coursesService.create(createCourseDto);
+  }
+
+  @Get('public')
+  findAllPublic(
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.coursesService.findAll({
+      skip: skip ? parseInt(skip, 10) : undefined,
+      take: take ? parseInt(take, 10) : 100,
+    });
   }
 
   @Get()
@@ -38,11 +49,12 @@ export class CoursesController {
   ) {
     return this.coursesService.findAll({
       skip: skip ? parseInt(skip, 10) : undefined,
-      take: take ? parseInt(take, 10) : undefined,
+      take: take ? parseInt(take, 10) : 100,
     });
   }
 
   @Get('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   findAllPaged(
     @Request() req: any,
     @Query('skip') skip?: string,

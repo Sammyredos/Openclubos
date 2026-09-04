@@ -262,6 +262,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             focusNode: _focusNodes[index],
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.center,
+                            textAlignVertical: TextAlignVertical.center,
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -314,7 +315,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               : "Resend Code",
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                             color: _resendSeconds == 0
                                 ? const Color(0xFF00875A)
                                 : const Color(0xFF9CA3AF),
@@ -329,37 +330,46 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   const SizedBox(height: 32),
 
                   // Primary Action: "Verify & Activate Account"
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleVerify,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF009A60),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'Verify & Activate Account',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                  Builder(
+                    builder: (context) {
+                      final isCodeComplete = _currentCode.length == _pinLength;
+                      final isButtonEnabled = isCodeComplete && !_isLoading;
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isButtonEnabled ? _handleVerify : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF009A60),
+                            disabledBackgroundColor: const Color(0xFF009A60).withOpacity(0.35),
+                            foregroundColor: Colors.white,
+                            disabledForegroundColor: Colors.white.withOpacity(0.75),
+                            elevation: isButtonEnabled ? 2 : 0,
+                            shadowColor: const Color(0xFF009A60).withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                    ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Verify & Activate Account',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: isButtonEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

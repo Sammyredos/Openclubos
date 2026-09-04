@@ -143,12 +143,12 @@ function LoginPageInner() {
             >
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block font-medium text-sm text-zinc-700 mb-2">Email Address</label>
+                <label htmlFor="email" className="block text-[13.5px] font-semibold text-[#0F172A] tracking-tight mb-2">Email Address</label>
                 <input
                   id="email"
                   type="email"
                   placeholder="golfer@example.com"
-                  className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 text-sm leading-normal text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
@@ -158,13 +158,13 @@ function LoginPageInner() {
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block font-medium text-sm text-zinc-700 mb-2">Password</label>
+                <label htmlFor="password" className="block text-[13.5px] font-semibold text-[#0F172A] tracking-tight mb-2">Password</label>
                 <div className="relative">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 pr-12 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 pr-12 text-sm leading-normal text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                     {...form.register("password")}
                   />
                   <button
@@ -181,7 +181,7 @@ function LoginPageInner() {
               </div>
 
               {/* Options */}
-              <div className="flex items-center justify-between font-semibold text-sm">
+              <div className="flex items-center justify-between font-medium text-sm">
                 <label className="flex items-center cursor-pointer group">
                   <div className="relative flex items-center">
                     <input
@@ -202,8 +202,13 @@ function LoginPageInner() {
               {/* Sign In Button */}
               <button
                 type="submit"
-                disabled={isLoading || form.formState.isSubmitting}
-                className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-4"
+                disabled={
+                  isLoading ||
+                  form.formState.isSubmitting ||
+                  !form.watch("email")?.trim() ||
+                  !form.watch("password")?.trim()
+                }
+                className="w-full h-12 bg-emerald-600 text-white rounded-xl px-6 flex items-center justify-center font-medium text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed mt-4"
               >
                 {isLoading ? (
                   <Icons.spinner className="w-5 h-5 animate-spin text-white" />
@@ -215,7 +220,7 @@ function LoginPageInner() {
 
             <div className="mt-8 text-center font-medium text-sm">
               <p className="text-zinc-500">
-                Don't have an account? <a href="/signup-organisation" className="text-emerald-600 hover:text-emerald-700 transition-colors">Create one</a>
+                Don't have an account? <a href="/signup-organisation" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">Create one</a>
               </p>
             </div>
           </div>

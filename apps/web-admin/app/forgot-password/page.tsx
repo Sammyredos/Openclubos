@@ -81,12 +81,12 @@ export default function ForgotPasswordPage() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
                   {/* Email */}
                   <div>
-                    <label htmlFor="reset-email" className="block font-medium text-sm text-zinc-700 mb-2">Email</label>
+                    <label htmlFor="reset-email" className="block text-[13.5px] font-semibold text-[#0F172A] tracking-tight mb-2">Email Address</label>
                     <input
                       id="reset-email"
                       type="email"
                       placeholder="Enter your email"
-                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 text-sm leading-normal text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       disabled={pageState === "loading"}
                       {...form.register("email")}
                     />
@@ -98,8 +98,8 @@ export default function ForgotPasswordPage() {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={pageState === "loading"}
-                    className="w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-2"
+                    disabled={pageState === "loading" || !form.watch("email")?.trim()}
+                    className="w-full h-12 bg-emerald-600 text-white rounded-xl px-6 flex items-center justify-center font-medium text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed mt-2"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-white" />
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                 </form>
 
                 <div className="mt-8 text-center font-medium text-sm">
-                  <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-2">
+                  <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-2 font-medium">
                     Back to login
                   </a>
                 </div>
@@ -130,13 +130,13 @@ export default function ForgotPasswordPage() {
                   <button
                     onClick={handleResend}
                     disabled={countdown > 0}
-                    className="w-full bg-white border border-zinc-200 py-3 px-6 rounded-xl flex items-center justify-center font-semibold text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-12 bg-white border border-zinc-200 px-6 rounded-xl flex items-center justify-center font-medium text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {countdown > 0 ? `Resend Email in ${countdown}s` : "Resend Email"}
                   </button>
 
                   <div className="text-center font-medium text-sm">
-                    <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors">Back to Sign In</a>
+                    <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">Back to Sign In</a>
                   </div>
                 </div>
               </>

@@ -239,7 +239,7 @@ export default function SignupOrganisationPage() {
   const isStep4Valid = !!watch("adminFirstName") && !!watch("adminMiddleName") && !!watch("adminLastName") && !!watch("adminGender") && !!watch("adminPhone") && !errors.adminPhone && !!watch("adminEmail") && !errors.adminEmail && !errors.adminGender;
   const isStep5Valid = !!watch("adminPassword") && watch("adminPassword").length >= 8 && watch("adminPassword") === watch("confirmPassword");
 
-  const inputClasses = "w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-sm text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+  const inputClasses = "w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 text-sm leading-normal text-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
   const labelClasses = "block font-medium text-sm text-zinc-700 mb-2"
   const btnClasses = "w-full bg-emerald-600 text-white rounded-xl py-3 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-4"
   const errorClasses = "text-xs text-red-600 font-medium mt-2"

@@ -63,8 +63,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  bool get _isLoginValid {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text;
+    return email.isNotEmpty && email.contains('@') && pass.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isButtonEnabled = _isLoginValid && !_isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -203,13 +211,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Email Address',
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1F2937),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Container(
+                    height: 48,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5FAF6),
                       borderRadius: BorderRadius.circular(12),
@@ -217,34 +227,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     child: TextField(
                       controller: _emailController,
+                      textAlignVertical: TextAlignVertical.center,
+                      onChanged: (_) => setState(() {}),
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF1E293B),
+                        height: 1.2,
+                        color: Color(0xFF0F172A),
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: const InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: InputBorder.none,
                         hintText: 'player@openclub.os',
-                        hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+                        hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5, height: 1.2),
                       ),
                       keyboardType: TextInputType.emailAddress,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 22),
 
                   // 5. Password Input
                   const Text(
                     'Password',
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1F2937),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Container(
+                    height: 48,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5FAF6),
                       borderRadius: BorderRadius.circular(12),
@@ -253,15 +268,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      textAlignVertical: TextAlignVertical.center,
+                      onChanged: (_) => setState(() {}),
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF1E293B),
+                        height: 1.2,
+                        color: Color(0xFF0F172A),
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: InputBorder.none,
+                        hintText: '••••••••',
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5, height: 1.2),
                         suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                         suffixIcon: IconButton(
                           padding: EdgeInsets.zero,
@@ -317,7 +337,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF374151),
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
@@ -334,7 +354,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: const Text(
                           'Forgot password?',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             color: Color(0xFF00875A),
                             fontWeight: FontWeight.w500,
                           ),
@@ -349,11 +369,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
+                      onPressed: isButtonEnabled ? _handleLogin : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF009A60),
+                        disabledBackgroundColor: const Color(0xFF009A60).withOpacity(0.35),
                         foregroundColor: Colors.white,
-                        elevation: 0,
+                        disabledForegroundColor: Colors.white.withOpacity(0.75),
+                        elevation: isButtonEnabled ? 2 : 0,
+                        shadowColor: const Color(0xFF009A60).withOpacity(0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -367,12 +390,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text(
+                          : Text(
                               'Sign In',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isButtonEnabled ? Colors.white : Colors.white.withOpacity(0.75),
                               ),
                             ),
                     ),
@@ -398,9 +421,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: const Text(
                             'Create one',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               color: Color(0xFF00875A),
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                               decoration: TextDecoration.underline,
                               decorationColor: Color(0xFF00875A),
                             ),

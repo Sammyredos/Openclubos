@@ -21,12 +21,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _confirmPasswordController = TextEditingController(text: 'Password123!');
 
   final _handicapController = TextEditingController(text: '2.4');
-  final _homeClubController = TextEditingController(text: 'Oakwood Country Club');
+  final _homeClubController = TextEditingController(text: '');
   final _dobController = TextEditingController(text: '05 / 14 / 1994');
 
   final _phoneController = TextEditingController(text: '(706) 555-0192');
   final _cityController = TextEditingController(text: 'Augusta');
   final _stateController = TextEditingController(text: 'GA');
+  final _scrollController = ScrollController();
 
   // Interactive UI States
   bool _obscurePassword = true;
@@ -42,9 +43,76 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   // Custom Brand Colors
   static const Color kGreenInputBg = Color(0xFFF5FAF6);
   static const Color kGreenInputBorder = Color(0xFFE1EFE5);
+  static const Color kGreenActiveBorder = Color(0xFFD1E7D8);
   static const Color kTournamentEmerald = Color(0xFF009A60);
   static const Color kTextDark = Color(0xFF111827);
-  static const Color kTextMuted = Color(0xFF64748B);
+  static const Color kTextLabel = Color(0xFF0F172A);
+  static const Color kTextMuted = Color(0xFF5B6B7F);
+  static const Color kTextHint = Color(0xFF8CA0BA);
+  static const Color kPillBg = Color(0xFFEEF2F6);
+
+  bool _showClubSuggestions = false;
+
+  final List<Map<String, String>> _allGolfCourses = [
+    {'name': 'Oakwood Country Club Course', 'location': 'Augusta, GA • 18 Holes'},
+    {'name': 'Augusta National Golf Club', 'location': 'Augusta, GA • 18 Holes'},
+    {'name': 'Pinehurst Resort No. 2', 'location': 'Pinehurst, NC • 18 Holes'},
+    {'name': 'St Andrews Old Course', 'location': 'St Andrews, Fife • 18 Holes'},
+    {'name': 'Pebble Beach Golf Links', 'location': 'Pebble Beach, CA • 18 Holes'},
+    {'name': 'OpenClub Golf Club 2 Course', 'location': 'City 2 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 3 Course', 'location': 'City 3 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 4 Course', 'location': 'City 4 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 5 Course', 'location': 'City 5 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 6 Course', 'location': 'City 6 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 7 Course', 'location': 'City 7 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 8 Course', 'location': 'City 8 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 9 Course', 'location': 'City 9 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 10 Course', 'location': 'City 10 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 11 Course', 'location': 'City 11 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 12 Course', 'location': 'City 12 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 13 Course', 'location': 'City 13 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 14 Course', 'location': 'City 14 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 15 Course', 'location': 'City 15 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 16 Course', 'location': 'City 16 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 17 Course', 'location': 'City 17 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 18 Course', 'location': 'City 18 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 19 Course', 'location': 'City 19 • 18 Holes'},
+    {'name': 'OpenClub Golf Club 20 Course', 'location': 'City 20 • 18 Holes'},
+  ];
+
+  // Reactive step completion validation getters
+  bool get _isStep1Valid {
+    final first = _firstNameController.text.trim();
+    final last = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
+    return first.isNotEmpty &&
+        last.isNotEmpty &&
+        email.contains('@') &&
+        email.contains('.') &&
+        pass.length >= 8 &&
+        pass == confirm;
+  }
+
+  bool get _isStep2Valid {
+    final hcp = _handicapController.text.trim();
+    final dob = _dobController.text.trim();
+    return (_noHandicapIndex || (hcp.isNotEmpty && double.tryParse(hcp) != null)) &&
+        _selectedGender.isNotEmpty &&
+        dob.isNotEmpty;
+  }
+
+  bool get _isStep3Valid {
+    final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final city = _cityController.text.trim();
+    final state = _stateController.text.trim();
+    return phone.length >= 7 && city.isNotEmpty && state.isNotEmpty;
+  }
+
+  bool get _isStep4Valid {
+    return _agreedToRules && _agreedToMarkerDuty;
+  }
 
   @override
   void dispose() {
@@ -59,7 +127,20 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     _phoneController.dispose();
     _cityController.dispose();
     _stateController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   // Password strength calculation (0 to 4)
@@ -101,6 +182,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       setState(() {
         _currentStep++;
       });
+      _scrollToTop();
     }
   }
 
@@ -110,6 +192,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         _errorMessage = null;
         _currentStep--;
       });
+      _scrollToTop();
     } else {
       Navigator.of(context).pop();
     }
@@ -180,6 +263,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 // Step Body
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,18 +326,17 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
               // Pill Badge: "STEP X OF 4"
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: kGreenInputBg,
+                  color: kPillBg,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: kGreenInputBorder, width: 1),
                 ),
                 child: Text(
                   'STEP $_currentStep OF 4',
                   style: const TextStyle(
                     fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: kTournamentEmerald,
+                    fontWeight: FontWeight.w500,
+                    color: kTextMuted,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -339,7 +422,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             );
           },
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 46),
+            minimumSize: const Size(double.infinity, 48),
             backgroundColor: Colors.white,
             side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -351,12 +434,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               const SizedBox(width: 10),
               const Text(
                 'Sign up with Google',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
         // Divider
         Row(
@@ -368,7 +451,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 'OR REGISTER WITH EMAIL',
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   color: Color(0xFF94A3B8),
                   letterSpacing: 0.8,
                 ),
@@ -377,7 +460,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             Expanded(child: Divider(color: Color(0xFFE5E7EB))),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 24),
 
         // First Name & Last Name Row
         Row(
@@ -386,7 +469,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabel('FIRST NAME'),
+                  _buildLabel('First Name'),
                   _buildGreenTextField(
                     controller: _firstNameController,
                     hintText: 'Alex',
@@ -399,7 +482,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabel('LAST NAME'),
+                  _buildLabel('Last Name'),
                   _buildGreenTextField(
                     controller: _lastNameController,
                     hintText: 'Wright',
@@ -409,24 +492,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 22),
 
         // Email Address
-        _buildLabel('EMAIL ADDRESS'),
+        _buildLabel('Email Address'),
         _buildGreenTextField(
           controller: _emailController,
           hintText: 'player@domain.com',
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 22),
 
         // Password
-        _buildLabel('PASSWORD'),
+        _buildLabel('Password'),
         _buildGreenTextField(
           controller: _passwordController,
           hintText: '••••••••••••',
           obscureText: _obscurePassword,
-          onChanged: (_) => setState(() {}),
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -463,22 +545,21 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               'MIN. 8 CHARACTERS',
               style: TextStyle(
                 fontSize: 9,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 color: Color(0xFF64748B),
                 letterSpacing: 0.5,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 22),
 
         // Confirm Password
-        _buildLabel('CONFIRM PASSWORD'),
+        _buildLabel('Confirm Password'),
         _buildGreenTextField(
           controller: _confirmPasswordController,
           hintText: '••••••••••••',
           obscureText: _obscureConfirm,
-          onChanged: (_) => setState(() {}),
           suffixIcon: _confirmPasswordController.text.isNotEmpty &&
                   _confirmPasswordController.text == _passwordController.text
               ? const Padding(
@@ -499,7 +580,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         // CTA Button
         _buildPrimaryButton(
           label: 'Continue to Golf Profile →',
-          onPressed: _nextStep,
+          onPressed: _isStep1Valid ? _nextStep : null,
         ),
         const SizedBox(height: 16),
 
@@ -517,8 +598,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 child: const Text(
                   'Sign In',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                     color: kTournamentEmerald,
                     decoration: TextDecoration.underline,
                     decorationColor: kTournamentEmerald,
@@ -554,7 +635,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         const SizedBox(height: 20),
 
         // Official Handicap Index
-        _buildLabel('OFFICIAL HANDICAP INDEX'),
+        _buildLabel('Official Handicap Index'),
         _buildGreenTextField(
           controller: _handicapController,
           hintText: 'e.g. 2.4',
@@ -568,7 +649,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               'GHIN',
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w500,
                 color: kTournamentEmerald,
                 letterSpacing: 1.0,
               ),
@@ -600,22 +681,36 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 22),
 
         // Home Golf Club
-        _buildLabel('HOME GOLF CLUB'),
-        _buildGreenTextField(
-          controller: _homeClubController,
-          hintText: 'Oakwood Country Club',
-          prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFF64748B), size: 18),
-          suffixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 18),
+        _buildLabel('Home Golf Club'),
+        GestureDetector(
+          onTap: () => _showClubPickerModal(context),
+          child: AbsorbPointer(
+            child: _buildGreenTextField(
+              controller: _homeClubController,
+              hintText: 'Select your home golf club...',
+              prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFF64748B), size: 18),
+              suffixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 18),
+            ),
+          ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 4),
+        const Text(
+          'Tap to search or select from registered golf courses.',
+          style: TextStyle(
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+            color: Color(0xFF8CA0BA),
+          ),
+        ),
+        const SizedBox(height: 22),
 
-        // Gender / Competition Flight Segmented Control
-        _buildLabel('GENDER / COMPETITION FLIGHT'),
+        // Gender Segmented Control
+        _buildLabel('Gender'),
         Container(
-          height: 44,
+          height: 48,
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: kGreenInputBg,
@@ -631,6 +726,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: BoxDecoration(
                       color: _selectedGender == 'MALE' ? Colors.white : Colors.transparent,
                       borderRadius: BorderRadius.circular(9),
+                      border: _selectedGender == 'MALE'
+                          ? Border.all(color: kGreenActiveBorder, width: 1.2)
+                          : Border.all(color: Colors.transparent, width: 1.2),
                       boxShadow: _selectedGender == 'MALE'
                           ? [
                               BoxShadow(
@@ -643,12 +741,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      'MALE',
+                      'Male',
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                         color: _selectedGender == 'MALE' ? kTournamentEmerald : const Color(0xFF64748B),
-                        letterSpacing: 0.8,
                       ),
                     ),
                   ),
@@ -661,6 +758,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: BoxDecoration(
                       color: _selectedGender == 'FEMALE' ? Colors.white : Colors.transparent,
                       borderRadius: BorderRadius.circular(9),
+                      border: _selectedGender == 'FEMALE'
+                          ? Border.all(color: kGreenActiveBorder, width: 1.2)
+                          : Border.all(color: Colors.transparent, width: 1.2),
                       boxShadow: _selectedGender == 'FEMALE'
                           ? [
                               BoxShadow(
@@ -673,12 +773,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      'FEMALE',
+                      'Female',
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                         color: _selectedGender == 'FEMALE' ? kTournamentEmerald : const Color(0xFF64748B),
-                        letterSpacing: 0.8,
                       ),
                     ),
                   ),
@@ -687,22 +786,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 22),
 
         // Date of Birth
-        _buildLabel('DATE OF BIRTH'),
-        _buildGreenTextField(
-          controller: _dobController,
-          hintText: 'MM / DD / YYYY',
-          keyboardType: TextInputType.datetime,
-          suffixIcon: const Icon(Icons.calendar_today_rounded, color: Color(0xFF94A3B8), size: 18),
+        _buildLabel('Date of Birth'),
+        GestureDetector(
+          onTap: () => _openModernDobCalendar(context),
+          child: AbsorbPointer(
+            child: _buildGreenTextField(
+              controller: _dobController,
+              hintText: 'MM / DD / YYYY',
+              keyboardType: TextInputType.datetime,
+              suffixIcon: const Icon(Icons.calendar_today_rounded, color: Color(0xFF94A3B8), size: 18),
+            ),
+          ),
         ),
         const SizedBox(height: 4),
         const Text(
           'For Junior / Senior bracket eligibility verification.',
           style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF94A3B8)),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
 
         // Verification Notice Box
         Container(
@@ -731,7 +835,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         // Navigation Buttons Row
         _buildBottomNavButtons(
           nextLabel: 'Continue to Contact →',
-          onNext: _nextStep,
+          onNext: _isStep2Valid ? _nextStep : null,
         ),
       ],
     );
@@ -779,7 +883,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       'PHOTO',
                       style: TextStyle(
                         fontSize: 10,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                         color: kTournamentEmerald,
                         letterSpacing: 0.8,
                       ),
@@ -802,7 +906,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 child: const Text(
                   'Upload Player Photo',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
                 ),
               ),
               const SizedBox(height: 6),
@@ -817,12 +921,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         const SizedBox(height: 20),
 
         // Mobile Phone Number
-        _buildLabel('MOBILE PHONE NUMBER'),
+        _buildLabel('Mobile Phone Number'),
         Row(
           children: [
             // US Country Code Selector
             Container(
-              height: 46,
+              height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: kGreenInputBg,
@@ -833,7 +937,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 children: const [
                   Text(
                     'US  +1',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
                   ),
                   SizedBox(width: 4),
                   Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF64748B)),
@@ -856,7 +960,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Used for emergency shotgun and weather sirens.',
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 22),
 
         // City & State Row
         Row(
@@ -866,7 +970,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabel('CITY'),
+                  _buildLabel('City'),
                   _buildGreenTextField(
                     controller: _cityController,
                     hintText: 'Augusta',
@@ -880,7 +984,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabel('STATE'),
+                  _buildLabel('State'),
                   _buildGreenTextField(
                     controller: _stateController,
                     hintText: 'GA',
@@ -890,7 +994,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
 
         // Push Notifications Card
         Container(
@@ -908,7 +1012,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 children: const [
                   Text(
                     'Push Notifications',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
                   ),
                   SizedBox(height: 2),
                   Text(
@@ -933,7 +1037,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         // Navigation Buttons Row
         _buildBottomNavButtons(
           nextLabel: 'Review & Finish →',
-          onNext: _nextStep,
+          onNext: _isStep3Valid ? _nextStep : null,
         ),
       ],
     );
@@ -968,7 +1072,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         const SizedBox(height: 20),
 
         // Summary Profile Card
-        _buildLabel('SUMMARY PROFILE CARD'),
+        _buildLabel('Summary Profile Card'),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1003,7 +1107,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           fullName.isEmpty ? 'Alex Wright' : fullName,
                           style: const TextStyle(
                             fontSize: 17,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w500,
                             color: Color(0xFF111827),
                           ),
                         ),
@@ -1016,10 +1120,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             border: Border.all(color: kGreenInputBorder),
                           ),
                           child: Text(
-                            'HCP Index $hcp • $club • $flight',
+                            'HCP Index $hcp${club.isNotEmpty ? " • $club" : ""} • $flight',
                             style: const TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w500,
                               color: kTournamentEmerald,
                             ),
                             maxLines: 1,
@@ -1046,10 +1150,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
 
         // Rules & Attestation Pledge Box
-        _buildLabel('RULES & ATTESTATION PLEDGE BOX'),
+        _buildLabel('Rules & Attestation Pledge'),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1068,7 +1172,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     'Official Competitor Attestation Pledge',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                       color: Color(0xFF166534),
                     ),
                   ),
@@ -1120,7 +1224,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         // Bottom Nav Buttons
         _buildBottomNavButtons(
           nextLabel: 'Complete Registration →',
-          onNext: _handleCompleteRegistration,
+          onNext: _isStep4Valid ? _handleCompleteRegistration : null,
           isLoading: _isLoading,
         ),
       ],
@@ -1130,14 +1234,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   // --- Helper Widget Builders ---
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF1F2937),
-          letterSpacing: 0.5,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF0F172A),
+          letterSpacing: -0.2,
         ),
       ),
     );
@@ -1154,6 +1258,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     ValueChanged<String>? onChanged,
   }) {
     return Container(
+      height: 48,
       decoration: BoxDecoration(
         color: enabled ? kGreenInputBg : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(12),
@@ -1164,18 +1269,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         obscureText: obscureText,
         enabled: enabled,
         keyboardType: keyboardType,
-        onChanged: onChanged,
+        textAlignVertical: TextAlignVertical.center,
+        onChanged: (val) {
+          if (onChanged != null) onChanged(val);
+          setState(() {});
+        },
         style: const TextStyle(
           fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: Color(0xFF1E293B),
+          height: 1.2,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF0F172A),
         ),
         decoration: InputDecoration(
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: InputBorder.none,
           hintText: hintText,
-          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+          hintStyle: const TextStyle(color: kTextHint, fontSize: 13.5, height: 1.2, fontWeight: FontWeight.w500),
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
         ),
@@ -1206,15 +1316,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     required VoidCallback? onPressed,
     bool isLoading = false,
   }) {
+    final isEnabled = onPressed != null && !isLoading;
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: kTournamentEmerald,
+          disabledBackgroundColor: kTournamentEmerald.withOpacity(0.35),
           foregroundColor: Colors.white,
-          elevation: 0,
+          disabledForegroundColor: Colors.white.withOpacity(0.75),
+          elevation: isEnabled ? 2 : 0,
+          shadowColor: kTournamentEmerald.withOpacity(0.3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: isLoading
@@ -1225,7 +1339,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               )
             : Text(
                 label,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                ),
               ),
       ),
     );
@@ -1233,29 +1351,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   Widget _buildBottomNavButtons({
     required String nextLabel,
-    required VoidCallback onNext,
+    required VoidCallback? onNext,
     bool isLoading = false,
   }) {
     return Row(
       children: [
-        // Outlined Back Button
+        // Outlined Back Button (Arrow only)
         SizedBox(
-          width: 100,
+          width: 48,
           height: 48,
           child: OutlinedButton(
             onPressed: _prevStep,
             style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.zero,
               backgroundColor: Colors.white,
               side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Back',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF374151),
-              ),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              size: 20,
+              color: Color(0xFF0F172A),
             ),
           ),
         ),
@@ -1269,6 +1385,639 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showClubPickerModal(BuildContext context) {
+    final searchController = TextEditingController(text: _homeClubController.text);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final query = searchController.text.trim().toLowerCase();
+            final matches = _allGolfCourses.where((c) {
+              if (query.isEmpty) return true;
+              return c['name']!.toLowerCase().contains(query) ||
+                  c['location']!.toLowerCase().contains(query);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.78,
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Select Home Golf Club',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Choose your registered course or location',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Search bar inside modal
+                    Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, color: kTournamentEmerald, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: searchController,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF0F172A),
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'Search golf club or location...',
+                                hintStyle: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF8CA0BA),
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              onChanged: (_) => setModalState(() {}),
+                            ),
+                          ),
+                          if (searchController.text.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                searchController.clear();
+                                setModalState(() {});
+                              },
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE2E8F0),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 12, color: Color(0xFF475569)),
+                              ),
+                            )
+                          else
+                            const Icon(Icons.search_rounded, size: 18, color: Color(0xFF94A3B8)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: matches.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: kGreenInputBg,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: kGreenInputBorder),
+                                      ),
+                                      child: const Icon(Icons.location_off_rounded, size: 22, color: Color(0xFF8CA0BA)),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'No golf clubs found',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'No registered courses matching "${searchController.text.trim()}".',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w400,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    if (searchController.text.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 14),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _homeClubController.text = searchController.text.trim();
+                                          });
+                                          Navigator.pop(ctx);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: kTournamentEmerald,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        ),
+                                        child: Text(
+                                          'Use "${searchController.text.trim()}" as Home Club',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: matches.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              itemBuilder: (ctx, idx) {
+                                final item = matches[idx];
+                                final isSelected = _homeClubController.text == item['name'];
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () {
+                                    setState(() {
+                                      _homeClubController.text = item['name']!;
+                                    });
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? const Color(0xFFE8F5ED) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? kTournamentEmerald : kGreenInputBg,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: isSelected ? kTournamentEmerald : kGreenInputBorder),
+                                          ),
+                                          child: Icon(
+                                            Icons.location_on_rounded,
+                                            size: 16,
+                                            color: isSelected ? Colors.white : kTournamentEmerald,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item['name']!,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              Text(
+                                                item['location']!,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          const Icon(Icons.check_rounded, size: 18, color: kTournamentEmerald),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (_homeClubController.text.isNotEmpty) ...[
+                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _homeClubController.clear();
+                                });
+                                Navigator.pop(ctx);
+                              },
+                              child: const Text(
+                                'Clear Selection',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFFEF4444),
+                                ),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kTournamentEmerald,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                              child: const Text(
+                                'Confirm',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openModernDobCalendar(BuildContext context) {
+    DateTime initial = DateTime(1994, 5, 14);
+    final parts = _dobController.text.split('/');
+    if (parts.length == 3) {
+      final m = int.tryParse(parts[0].trim());
+      final d = int.tryParse(parts[1].trim());
+      final y = int.tryParse(parts[2].trim());
+      if (m != null && d != null && y != null) {
+        initial = DateTime(y, m, d);
+      }
+    }
+
+    int viewYear = initial.year;
+    int viewMonth = initial.month;
+    DateTime? selected = initial;
+    final now = DateTime.now();
+
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final daysInMonth = DateUtils.getDaysInMonth(viewYear, viewMonth);
+            final firstWeekday = DateTime(viewYear, viewMonth, 1).weekday % 7;
+            final cells = <int?>[];
+            for (int i = 0; i < firstWeekday; i++) {
+              cells.add(null);
+            }
+            for (int d = 1; d <= daysInMonth; d++) {
+              cells.add(d);
+            }
+
+            final isFutureMonth = viewYear > now.year || (viewYear == now.year && viewMonth >= now.month);
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Date of Birth',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: kGreenInputBorder),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                if (viewMonth == 1) {
+                                  viewMonth = 12;
+                                  viewYear--;
+                                } else {
+                                  viewMonth--;
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: kGreenInputBorder),
+                              ),
+                              child: const Icon(Icons.chevron_left_rounded, size: 22, color: Color(0xFF1E293B)),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                height: 38,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: kGreenInputBorder),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: viewMonth,
+                                    isDense: true,
+                                    icon: const Icon(Icons.arrow_drop_down_rounded, size: 18, color: Color(0xFF64748B)),
+                                    items: List.generate(12, (i) {
+                                      return DropdownMenuItem(
+                                        value: i + 1,
+                                        child: Text(
+                                          months[i],
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        setModalState(() => viewMonth = v);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                height: 38,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: kGreenInputBorder),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: viewYear,
+                                    isDense: true,
+                                    icon: const Icon(Icons.arrow_drop_down_rounded, size: 18, color: Color(0xFF64748B)),
+                                    items: List.generate(100, (i) {
+                                      final y = now.year - i;
+                                      return DropdownMenuItem(
+                                        value: y,
+                                        child: Text(
+                                          '$y',
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        setModalState(() => viewYear = v);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          InkWell(
+                            onTap: isFutureMonth
+                                ? null
+                                : () {
+                                    setModalState(() {
+                                      if (viewMonth == 12) {
+                                        viewMonth = 1;
+                                        viewYear++;
+                                      } else {
+                                        viewMonth++;
+                                      }
+                                    });
+                                  },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: kGreenInputBorder),
+                              ),
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 22,
+                                color: isFutureMonth ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: const ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((w) {
+                        return Expanded(
+                          child: Center(
+                            child: Text(
+                              w,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 4,
+                        childAspectRatio: 1.15,
+                      ),
+                      itemCount: cells.length,
+                      itemBuilder: (ctx, idx) {
+                        final day = cells[idx];
+                        if (day == null) return const SizedBox.shrink();
+
+                        final cellDate = DateTime(viewYear, viewMonth, day);
+                        final isFuture = cellDate.isAfter(now);
+                        final isSelected = selected != null &&
+                            selected!.year == viewYear &&
+                            selected!.month == viewMonth &&
+                            selected!.day == day;
+
+                        return GestureDetector(
+                          onTap: isFuture
+                              ? null
+                              : () {
+                                  setModalState(() {
+                                    selected = cellDate;
+                                  });
+                                },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isSelected ? kTournamentEmerald : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$day',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isFuture
+                                    ? const Color(0xFFCBD5E1)
+                                    : isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPrimaryButton(
+                      label: selected != null
+                          ? 'Confirm: ${months[selected!.month - 1]} ${selected!.day}, ${selected!.year}'
+                          : 'Select Date',
+                      onPressed: selected != null
+                          ? () {
+                              final formatted =
+                                  '${selected!.month.toString().padLeft(2, '0')} / ${selected!.day.toString().padLeft(2, '0')} / ${selected!.year}';
+                              setState(() {
+                                _dobController.text = formatted;
+                              });
+                              Navigator.pop(ctx);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

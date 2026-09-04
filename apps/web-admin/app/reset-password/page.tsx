@@ -90,7 +90,7 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <Link href="/login" className="w-full">
-                  <button className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98]">
+                  <button className="w-full h-12 bg-emerald-600 text-white rounded-xl px-6 flex items-center justify-center font-medium text-sm transition-all hover:bg-emerald-700 active:scale-[0.98]">
                     Continue to Sign In
                   </button>
                 </Link>
@@ -107,7 +107,7 @@ function ResetPasswordPageInner() {
                 </p>
 
                 <Link href="/forgot-password" className="w-full mb-4 block">
-                  <button className="w-full bg-white border border-zinc-200 text-zinc-700 rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-zinc-50 active:scale-[0.98]">
+                  <button className="w-full h-12 bg-white border border-zinc-200 text-zinc-700 rounded-xl px-6 flex items-center justify-center font-medium text-sm transition-all hover:bg-zinc-50 active:scale-[0.98]">
                     Request a New Link
                   </button>
                 </Link>
@@ -132,7 +132,7 @@ function ResetPasswordPageInner() {
                         id="newPassword"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 pr-12 text-zinc-900 text-sm leading-normal transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         disabled={pageState === "loading"}
                         {...form.register("newPassword")}
                       />
@@ -157,7 +157,7 @@ function ResetPasswordPageInner() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-4 py-3.5 pr-12 text-zinc-900 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-3.5 pr-12 text-zinc-900 text-sm leading-normal transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         disabled={pageState === "loading"}
                         {...form.register("confirmPassword")}
                       />
@@ -177,8 +177,14 @@ function ResetPasswordPageInner() {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={pageState === "loading"}
-                    className="w-full bg-emerald-600 text-white rounded-xl py-3.5 px-6 flex items-center justify-center font-semibold text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 mt-2"
+                    disabled={
+                      pageState === "loading" ||
+                      !form.watch("newPassword") ||
+                      !form.watch("confirmPassword") ||
+                      form.watch("newPassword").length < 8 ||
+                      form.watch("newPassword") !== form.watch("confirmPassword")
+                    }
+                    className="w-full h-12 bg-emerald-600 text-white rounded-xl px-6 flex items-center justify-center font-medium text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed mt-2"
                   >
                     {pageState === "loading" ? (
                       <Icons.spinner className="w-5 h-5 animate-spin text-white" />
