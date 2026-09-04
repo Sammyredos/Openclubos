@@ -147,6 +147,14 @@ export class JobsProcessor extends WorkerHost {
   ) {
     switch (template) {
       case 'emailVerification':
+        if (data.otpCode) {
+          return this.emailService.sendEmailVerificationOtp(
+            to,
+            data.firstName || 'User',
+            data.otpCode,
+            data.verifyUrl,
+          );
+        }
         return this.emailService.sendEmailVerification(
           to,
           data.firstName || 'User',

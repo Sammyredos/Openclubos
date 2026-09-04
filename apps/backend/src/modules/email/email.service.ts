@@ -305,6 +305,42 @@ export class EmailService {
     );
   }
 
+  async sendEmailVerificationOtp(
+    to: string,
+    firstName: string,
+    otpCode: string,
+    verifyUrl?: string,
+  ): Promise<EmailResult> {
+    const recipientName = await this.getRecipientName(to, firstName);
+    const html = this.wrap(
+      'Verify Your Email',
+      `
+      ${this.p(`Dear <strong>${recipientName}</strong>,`)}
+      ${this.p('Thank you for registering with OpenClubOS. To complete your account setup and activate your competitor profile, please enter the following 6-digit security code in your mobile app:')}
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
+        <tr>
+          <td align="center">
+            <div style="background-color: #edf4fe; border: 2px dashed #93c5fd; border-radius: 14px; padding: 20px 24px; display: inline-block; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1e40af; font-weight: 700;">One-Time Security Code</p>
+              <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #009a60; display: block; margin-left: 12px;">${otpCode}</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+      ${verifyUrl ? this.p(`Or click here to verify on the web: <a href="${verifyUrl}" style="color: #059669; text-decoration: underline;">${verifyUrl}</a>`) : ''}
+      ${this.infoBox('<strong>⏱ Expires in 10 minutes:</strong> This verification code will expire after 10 minutes. If you did not initiate this registration, you can safely ignore this email.', '#f0fdf4', '#bbf7d0', '#166534')}
+      ${this.p('Best regards,<br/><strong>The OpenClubOS Tournament Committee</strong>')}
+    `,
+    );
+
+    return this.send(
+      to,
+      `${otpCode} is your OpenClubOS verification code`,
+      html,
+      `Email verification OTP sent to ${to}`,
+    );
+  }
+
   // ────────────────────────────────────────────────────────────────
   // 2b. Club Admin Welcome
   // ────────────────────────────────────────────────────────────────

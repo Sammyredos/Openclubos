@@ -47,3 +47,15 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/fonts/
+  fonts:
+    - family: ZxGamut
+      fonts:
+        - asset: assets/fonts/ZxGamut-Light.ttf
+          weight: 300
+        - asset: assets/fonts/ZxGamut-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/ZxGamut-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/ZxGamut-Bold.ttf
+          weight: 700

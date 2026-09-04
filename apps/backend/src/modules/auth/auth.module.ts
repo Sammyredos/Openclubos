@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { CacheModule } from '../../common/cache/cache.module';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { JobsModule } from '../jobs/jobs.module';
+import { EmailModule } from '../email/email.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -46,6 +47,7 @@ import { AuthService } from './auth.service';
     }),
     JobsModule,
     CacheModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

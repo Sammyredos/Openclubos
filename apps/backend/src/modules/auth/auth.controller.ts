@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   UnauthorizedException,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   Request,
@@ -90,14 +91,33 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
+    @Headers('x-client-platform') clientPlatformHeader: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const platform = clientPlatformHeader || loginDto.clientPlatform;
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
     );
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // Strict Platform Enforcement Gates:
+    // 1. Mobile App: Strictly reserved for PLAYERS. Organizers and Super Admins are blocked.
+    if (platform === 'mobile' || platform === 'flutter') {
+      if (user.role !== UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access Denied: The Openclub Mobile App is reserved for players. Organizers and Administrators must sign in through the Web Admin Portal.',
+        );
+      }
+    } else {
+      // 2. Web App: Strictly reserved for Organizers and Super Admins. Players are blocked.
+      if (user.role === UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access Denied: The Web Admin Portal is reserved for Tournament Organizers and Club Administrators. Players must access Openclub through the Mobile App.',
+        );
+      }
     }
     
     const result = await this.authService.login(user);
@@ -194,8 +214,32 @@ export class AuthController {
   async resendVerification(
     @Body() resendVerificationDto: ResendVerificationDto,
   ) {
-    await this.authService.resendVerification(resendVerificationDto.email);
-    return { success: true, message: 'Verification email sent' };
+    const result = await this.authService.resendVerification(
+      resendVerificationDto.email,
+    );
+    return {
+      success: true,
+      otpCode: result.otpCode,
+      message: 'Verification code sent',
+    };
+  }
+
+  @Post('preview-otp-email')
+  @HttpCode(HttpStatus.OK)
+  async previewOtpEmail(
+    @Body() body: { email?: string; name?: string; otpCode?: string },
+  ) {
+    const email = body.email || 'alex.wright@example.com';
+    const name = body.name || 'Alex Wright';
+    const otpCode = body.otpCode || '849201';
+    await this.authService.sendPreviewOtpEmail(email, name, otpCode);
+    return {
+      success: true,
+      email,
+      otpCode,
+      message: `Preview verification email sent to ${email}`,
+      mailpitUrl: 'http://localhost:8025',
+    };
   }
 
   @Post('create-admin')

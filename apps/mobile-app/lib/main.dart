@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/login_screen.dart';
+import 'screens/registration_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'features/tournaments/screens/tournament_list_screen.dart';
 import 'features/tournaments/screens/leaderboard_screen.dart';
 import 'services/notification_service.dart';
@@ -39,8 +41,30 @@ class OpenclubApp extends StatelessWidget {
       title: 'OpenclubOS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF06090E),
+        fontFamily: 'ZxGamut',
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF10B981), // Masters Tournament Emerald
+          secondary: Color(0xFFF59E0B), // Championship Gold
+          surface: Color(0xFF0E1521), // Luxury obsidian surface
+          background: Color(0xFF06090E),
+          onPrimary: Colors.white,
+          onSurface: Color(0xFFF8FAFC),
+        ),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontFamily: 'ZxGamut',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.2,
+            color: Color(0xFFF8FAFC),
+          ),
+        ),
       ),
       initialRoute: '/login',
       onGenerateRoute: (settings) {
@@ -54,6 +78,8 @@ class OpenclubApp extends StatelessWidget {
       },
       routes: {
         '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegistrationScreen(),
+        '/verify': (context) => const VerifyEmailScreen(),
         '/super-admin/dashboard': (context) => const DashboardScreen(title: 'Super Admin Dashboard'),
         '/admin/dashboard': (context) => const DashboardScreen(title: 'Club Admin Dashboard'),
         '/staff/dashboard': (context) => const DashboardScreen(title: 'Staff Dashboard'),

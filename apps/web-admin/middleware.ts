@@ -26,6 +26,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/verify-email') ||
     pathname.startsWith('/accept-invite') ||
     (pathname.startsWith('/tournaments/') && !pathname.includes('/register')) ||
+    pathname.startsWith('/mobile-preview') ||
     pathname === '/signup-organisation' ||
     pathname === '/' ||
     pathname.startsWith('/_next') ||

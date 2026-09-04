@@ -150,6 +150,7 @@ async function main() {
       firstName: 'Samuel',
       lastName: 'Obadina',
       role: UserRole.SUPER_ADMIN,
+      emailVerified: true,
     },
   });
 
@@ -204,6 +205,7 @@ async function main() {
         lastName: pick(lastNames),
         role: UserRole.CLUB_ADMIN,
         clubId: club.id,
+        emailVerified: true,
       },
     });
     createdUsers += 1;
@@ -218,6 +220,7 @@ async function main() {
         lastName: pick(lastNames),
         role: UserRole.PLAYER,
         clubId: club.id,
+        emailVerified: true,
       };
     });
     if (staffRows.length > 0) {
@@ -238,6 +241,7 @@ async function main() {
         role: UserRole.PLAYER,
         clubId: club.id,
         gender: pick(['MALE', 'FEMALE']) as any,
+        emailVerified: true,
       };
     });
     if (playerRows.length > 0) {

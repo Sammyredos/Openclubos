@@ -25,7 +25,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { getClub } from "@/lib/api/clubs";
 import { Icons } from "@/components/ui/icons";
-import { Layers } from "lucide-react";
+import { Layers, Smartphone } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -132,6 +132,7 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
   {
     items: [
       { name: "System", href: "/super-admin/system", icon: SystemIcon },
+      { name: "Mobile App", href: "/mobile-preview", icon: Smartphone },
       { name: "Settings", href: "/super-admin/settings", icon: Settings },
     ],
   },
@@ -168,6 +169,7 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
     items: [
       { name: "Handicaps", href: "/organizer-admin/handicaps", icon: ShieldCheck },
       { name: "Notifications", href: "/organizer-admin/notifications", icon: Bell },
+      { name: "Mobile App", href: "/mobile-preview", icon: Smartphone },
     ],
   },
 ];

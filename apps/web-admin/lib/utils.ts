@@ -252,4 +252,5 @@ export function toTitleCase(str?: string | null): string {
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-}
+}
+

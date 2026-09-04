@@ -71,8 +71,11 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-platform': 'web',
+    },
+    body: JSON.stringify({ ...payload, clientPlatform: 'web' }),
   });
 
   if (!res.ok) {

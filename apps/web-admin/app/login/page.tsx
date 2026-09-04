@@ -70,6 +70,11 @@ function LoginPageInner() {
     setIsLoading(true)
     try {
       const response = await loginRequest(data);
+      if (response.user.role === "PLAYER") {
+        throw new Error(
+          "Access Denied: The Web Admin Portal is reserved for Tournament Organizers and Club Administrators. Players must access Openclub through the Mobile App."
+        );
+      }
       login(response.accessToken, response.user, rememberMe);
       toast.success("Successfully Logged into your Account");
     } catch (err: unknown) {
@@ -104,9 +109,8 @@ function LoginPageInner() {
         {/* LEFT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 relative z-10">
           <div className="w-full max-w-[400px] mx-auto">
-
             <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Welcome Back</h2>
-            <p className="text-zinc-500 mb-10">Log in to access your dashboard.</p>
+           
 
             {/* OAuth Button */}
             <button
