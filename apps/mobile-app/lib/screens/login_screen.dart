@@ -10,8 +10,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'superadmin@openclub.os');
-  final _passwordController = TextEditingController(text: 'Password123!');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = true;
@@ -157,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 14),
 
                   // Security Error Banner
                   if (_errorMessage != null) ...[
@@ -217,7 +217,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   Container(
                     height: 48,
                     decoration: BoxDecoration(
@@ -245,7 +245,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 14),
 
                   // 5. Password Input
                   const Text(
@@ -257,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   Container(
                     height: 48,
                     decoration: BoxDecoration(
@@ -301,7 +301,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
 
                   // 6. Remember me & Forgot password row
                   Row(

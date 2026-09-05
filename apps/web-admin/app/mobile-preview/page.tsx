@@ -43,8 +43,12 @@ import {
   Search,
   Camera,
   Upload,
+  Mars,
+  Venus,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
+import { Country, State, City } from "country-state-city";
 
 // Real Organizer Tournament Interface
 interface RealTournament {
@@ -404,8 +408,8 @@ export default function MobilePreviewPage() {
   const activeTournament = liveTournaments[selectedTournamentIndex] || REAL_ORGANIZER_TOURNAMENTS[0];
 
   // --- Real Player Authentication State ---
-  const [loginEmail, setLoginEmail] = useState("superadmin@openclub.os");
-  const [loginPassword, setLoginPassword] = useState("Password123!");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [authenticatedPlayer, setAuthenticatedPlayer] = useState(REAL_PLAYERS[0]);
   const [showPassword, setShowPassword] = useState(false);
@@ -413,7 +417,7 @@ export default function MobilePreviewPage() {
 
   // --- Verify Email (6-Digit OTP) State ---
   const [verifyEmailTarget, setVerifyEmailTarget] = useState("alex.wright@example.com");
-  const [otpDigits, setOtpDigits] = useState<string[]>(["8", "4", "9", "2", "0", "1"]);
+  const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [resendCooldown, setResendCooldown] = useState(59);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifySuccess, setVerifySuccess] = useState(false);
@@ -514,25 +518,27 @@ export default function MobilePreviewPage() {
     scrollToTopAll();
   }, [regStep]);
 
-  const [regFirstName, setRegFirstName] = useState("Alex");
-  const [regLastName, setRegLastName] = useState("Wright");
-  const [regEmail, setRegEmail] = useState("player@domain.com");
-  const [regPassword, setRegPassword] = useState("Password123!");
-  const [regConfirmPassword, setRegConfirmPassword] = useState("Password123!");
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regLastName, setRegLastName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
   const [regShowPassword, setRegShowPassword] = useState(false);
   const [regShowConfirm, setRegShowConfirm] = useState(false);
 
   // Step 2
-  const [regHandicap, setRegHandicap] = useState("2.4");
+  const [regClassification, setRegClassification] = useState<"BEGINNER" | "AMATEUR" | "PROFESSIONAL" | null>(null);
+  const [showClassificationModal, setShowClassificationModal] = useState(false);
+  const [regHandicap, setRegHandicap] = useState("");
   const [regNoHandicap, setRegNoHandicap] = useState(false);
   const [regHomeClub, setRegHomeClub] = useState("");
-  const [regGender, setRegGender] = useState<"MALE" | "FEMALE">("MALE");
-  const [regDob, setRegDob] = useState("05 / 14 / 1994");
+  const [regGender, setRegGender] = useState<"MALE" | "FEMALE" | null>(null);
+  const [regDob, setRegDob] = useState("");
   const [showClubSuggestions, setShowClubSuggestions] = useState(false);
   const clubDropdownRef = useRef<HTMLDivElement>(null);
   const [showDobCalendar, setShowDobCalendar] = useState(false);
   const dobCalendarRef = useRef<HTMLDivElement>(null);
-  const [dobCalendarMonth, setDobCalendarMonth] = useState<Date>(() => new Date(1994, 4, 14));
+  const [dobCalendarMonth, setDobCalendarMonth] = useState<Date>(() => new Date(2000, 0, 1));
   const [showClubModal, setShowClubModal] = useState(false);
   const [clubSearchQuery, setClubSearchQuery] = useState("");
   const [coursesList, setCoursesList] = useState<{
@@ -612,15 +618,59 @@ export default function MobilePreviewPage() {
     );
   });
 
+  const getFlagEmoji = (isoCode: string) => {
+    if (!isoCode || isoCode.length !== 2) return "🌐";
+    return String.fromCodePoint(...isoCode.toUpperCase().split("").map((c) => 127397 + c.charCodeAt(0)));
+  };
+
+  const countryList = React.useMemo(() => {
+    return Country.getAllCountries().map((c) => ({
+      isoCode: c.isoCode,
+      name: c.name,
+      phonecode: c.phonecode.replace(/^\+/, ""),
+      flag: getFlagEmoji(c.isoCode),
+    }));
+  }, []);
+
   // Step 3
-  const [regPhone, setRegPhone] = useState("(706) 555-0192");
-  const [regCity, setRegCity] = useState("Augusta");
-  const [regState, setRegState] = useState("GA");
+  const [regAvatar, setRegAvatar] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [regCountry, setRegCountry] = useState("NG");
+  const [regPhoneCode, setRegPhoneCode] = useState("234");
+  const [regCountryFlag, setRegCountryFlag] = useState("🇳🇬");
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regState, setRegState] = useState("");
+  const [regCity, setRegCity] = useState("");
   const [regPushNotifications, setRegPushNotifications] = useState(true);
+  const [showStateModal, setShowStateModal] = useState(false);
+  const [stateSearchQuery, setStateSearchQuery] = useState("");
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState("");
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const MAX_SIZE_BYTES = 500 * 1024; // strictly 500KB limit
+    if (file.size > MAX_SIZE_BYTES) {
+      showToast(`Photo exceeds strict 500KB limit (${(file.size / 1024).toFixed(0)}KB). Please choose a file under 500KB.`);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setRegAvatar(reader.result);
+        showToast("Player headshot uploaded successfully!");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Step 4
-  const [regAgreedRules, setRegAgreedRules] = useState(true);
-  const [regAgreedMarker, setRegAgreedMarker] = useState(true);
+  const [regAgreedRules, setRegAgreedRules] = useState(false);
+  const [regAgreedMarker, setRegAgreedMarker] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
 
@@ -635,7 +685,10 @@ export default function MobilePreviewPage() {
   );
 
   const isRegStep2Valid = Boolean(
-    (regNoHandicap || (regHandicap.trim() && !isNaN(Number(regHandicap)))) &&
+    regClassification &&
+    (regClassification === "PROFESSIONAL" ||
+      (regClassification === "BEGINNER" && regHandicap.trim() !== "") ||
+      (regClassification === "AMATEUR" && regHandicap.trim() !== "" && !isNaN(Number(regHandicap)))) &&
     regGender &&
     regDob.trim()
   );
@@ -1096,8 +1149,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'superadmin@openclub.os');
-  final _passwordController = TextEditingController(text: 'Password123!');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
   bool _obscurePassword = true;
   bool _rememberMe = true;
 
@@ -1258,17 +1311,17 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   static const Color kTournamentEmerald = Color(0xFF009A60);
 
   // Controllers
-  final _firstNameController = TextEditingController(text: 'Alex');
-  final _lastNameController = TextEditingController(text: 'Wright');
-  final _emailController = TextEditingController(text: 'player@domain.com');
-  final _passwordController = TextEditingController(text: 'Password123!');
-  final _confirmPasswordController = TextEditingController(text: 'Password123!');
-  final _handicapController = TextEditingController(text: '2.4');
+  final _firstNameController = TextEditingController(text: '');
+  final _lastNameController = TextEditingController(text: '');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
+  final _confirmPasswordController = TextEditingController(text: '');
+  final _handicapController = TextEditingController(text: '');
   final _homeClubController = TextEditingController(text: '');
-  final _dobController = TextEditingController(text: '05 / 14 / 1994');
-  final _phoneController = TextEditingController(text: '(706) 555-0192');
-  final _cityController = TextEditingController(text: 'Augusta');
-  final _stateController = TextEditingController(text: 'GA');
+  final _dobController = TextEditingController(text: '');
+  final _phoneController = TextEditingController(text: '');
+  final _cityController = TextEditingController(text: '');
+  final _stateController = TextEditingController(text: '');
 
   @override
   Widget build(BuildContext context) {
@@ -2101,7 +2154,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   {/* 5. PLAYER-ONLY LOGIN SCREEN (Exact Reference Design Match) */}
                   {activeScreen === "login" && (
                     <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto">
-                      <div className="space-y-4">
+                      <div className="space-y-3.5">
                         {/* 1. Header: "Welcome Back" */}
                         <div className="pt-2">
                           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -2141,7 +2194,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         </button>
 
                         {/* 3. Divider: "OR CONTINUE WITH EMAIL" */}
-                        <div className="flex items-center gap-3 my-5">
+                        <div className="flex items-center gap-3 my-2.5">
                           <div className="flex-1 h-px bg-slate-200" />
                           <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
                             OR CONTINUE WITH EMAIL
@@ -2165,10 +2218,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         )}
 
                         {/* 4. Form Inputs */}
-                        <div className="space-y-6">
+                        <div className="space-y-3.5">
                           {/* Email Address */}
                           <div>
-                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                               Email Address
                             </label>
                             <input
@@ -2185,7 +2238,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                           {/* Password */}
                           <div>
-                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                            <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                               Password
                             </label>
                             <div className="relative">
@@ -2349,7 +2402,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       {/* Step Content (Scrollable with regScrollRef) */}
                       <div
                         ref={regScrollRef}
-                        className="flex-1 overflow-y-auto p-6 pt-3 space-y-4 scrollbar-hide no-scrollbar"
+                        className="flex-1 overflow-y-auto p-6 pt-3 space-y-3.5 scrollbar-hide no-scrollbar"
                         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                       >
                         {/* Error Banner */}
@@ -2362,12 +2415,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 1: CREATE PLAYER ACCOUNT --- */}
                         {regStep === 1 && (
-                          <div className="space-y-6">
+                          <div className="space-y-3.5">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Create Player Account
                               </h1>
-                              <p className="text-[13px] text-[#5B6B7F] mt-1.5 leading-relaxed font-normal">
+                              <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
                                 Enter your personal credentials to compete in verified club tournaments.
                               </p>
                             </div>
@@ -2400,7 +2453,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             </button>
 
                             {/* Divider */}
-                            <div className="flex items-center gap-3 my-6">
+                            <div className="flex items-center gap-3 my-2.5">
                               <div className="flex-1 h-px bg-[#E2E8F0]" />
                               <span className="text-[10px] font-medium text-[#8C9BAB] tracking-wider uppercase">
                                 OR REGISTER WITH EMAIL
@@ -2411,7 +2464,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             {/* First & Last Name */}
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                   First Name
                                 </label>
                                 <input
@@ -2423,7 +2476,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 />
                               </div>
                               <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                   Last Name
                                 </label>
                                 <input
@@ -2438,7 +2491,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Email Address */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Email Address
                               </label>
                               <input
@@ -2452,7 +2505,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Password */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Password
                               </label>
                               <div className="relative">
@@ -2495,7 +2548,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Confirm Password */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Confirm Password
                               </label>
                               <div className="relative">
@@ -2552,63 +2605,88 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 2: YOUR GOLF PROFILE --- */}
                         {regStep === 2 && (
-                          <div className="space-y-6">
+                          <div className="space-y-3.5">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Your Golf Profile
                               </h1>
-                              <p className="text-[13px] text-[#5B6B7F] mt-1.5 leading-relaxed font-normal">
+                              <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
                                 Used by tournament committees to calculate course handicaps and flight brackets.
                               </p>
                             </div>
 
-                            {/* Official Handicap Index */}
+                            {/* Player Classification */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
-                                Official Handicap Index
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
+                                Player Classification
                               </label>
                               <div className="relative">
                                 <input
                                   type="text"
-                                  value={regHandicap}
-                                  disabled={regNoHandicap}
-                                  onChange={(e) => setRegHandicap(e.target.value)}
-                                  placeholder="e.g. 2.4"
-                                  className={`w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-14 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all ${
-                                    regNoHandicap ? "opacity-60 bg-slate-100" : ""
-                                  }`}
+                                  readOnly
+                                  value={
+                                    regClassification === "BEGINNER"
+                                      ? "Beginner"
+                                      : regClassification === "AMATEUR"
+                                      ? "Intermediate / Amateur"
+                                      : regClassification === "PROFESSIONAL"
+                                      ? "Professional"
+                                      : ""
+                                  }
+                                  onClick={() => setShowClassificationModal(true)}
+                                  placeholder="Select player classification..."
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all cursor-pointer select-none"
                                 />
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#009A60] tracking-wider uppercase">
-                                  GHIN
-                                </span>
-                              </div>
-
-                              {/* No Official Index Checkbox */}
-                              <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setRegNoHandicap(!regNoHandicap);
-                                    if (!regNoHandicap) setRegHandicap("36.0");
-                                    else setRegHandicap("2.4");
-                                  }}
-                                  className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${
-                                    regNoHandicap
-                                      ? "bg-[#009A60] text-white"
-                                      : "border border-[#e1efe5] bg-[#f5faf6]"
-                                  }`}
+                                  onClick={() => setShowClassificationModal(true)}
+                                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#009A60] transition-colors cursor-pointer"
                                 >
-                                  {regNoHandicap && <Check className="h-3 w-3 stroke-[3]" />}
+                                  <Sliders className="h-4 w-4" />
                                 </button>
-                                <span className="text-[12px] font-medium text-[#475569]">
-                                  I don't have an official index yet
-                                </span>
-                              </label>
+                              </div>
+                              <p className="text-[11px] text-[#8CA0BA] italic mt-1">
+                                Determines tournament flight bracket and scoring allowances.
+                              </p>
                             </div>
+
+                            {/* Conditional Official Handicap Index (Only for Beginner or Intermediate / Amateur; display: none for Professional) */}
+                            {(regClassification === "BEGINNER" || regClassification === "AMATEUR") && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight">
+                                    Official Handicap Index
+                                  </label>
+                                  {regClassification === "BEGINNER" && (
+                                    <span className="text-[11px] font-medium text-[#009A60] bg-[#e8f5ed] border border-[#009A60]/20 px-2 py-0.5 rounded-md">
+                                      Auto-assigned 36.0
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={regHandicap}
+                                    disabled={regClassification === "BEGINNER"}
+                                    readOnly={regClassification === "BEGINNER"}
+                                    onChange={(e) => setRegHandicap(e.target.value)}
+                                    placeholder={regClassification === "BEGINNER" ? "36" : "e.g. 2.4"}
+                                    className={`w-full h-12 border rounded-xl px-3.5 pr-14 text-[13.5px] leading-normal font-medium transition-all ${
+                                      regClassification === "BEGINNER"
+                                        ? "bg-slate-100 border-[#e2e8f0] text-[#64748B] cursor-not-allowed select-none"
+                                        : "bg-[#f5faf6] border-[#e1efe5] text-[#0F172A] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden"
+                                    }`}
+                                  />
+                                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#009A60] tracking-wider uppercase">
+                                    GHIN
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Home Golf Club */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Home Golf Club
                               </label>
                               <div className="relative">
@@ -2635,45 +2713,47 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   <Search className="h-4 w-4" />
                                 </button>
                               </div>
-                              <p className="text-[11px] text-[#8CA0BA] italic mt-1.5">
+                              <p className="text-[11px] text-[#8CA0BA] italic mt-1">
                                 Tap to search or select from registered golf courses.
                               </p>
                             </div>
 
                             {/* Gender Segmented Control */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Gender
                               </label>
                               <div className="h-12 bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1 grid grid-cols-2 gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("MALE")}
-                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer ${
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                     regGender === "MALE"
                                       ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
                                       : "text-[#62758D] hover:text-slate-800 border border-transparent"
                                   }`}
                                 >
-                                  Male
+                                  <span>Male</span>
+                                  <Mars className="h-4 w-4 shrink-0" />
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("FEMALE")}
-                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer ${
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                     regGender === "FEMALE"
                                       ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
                                       : "text-[#62758D] hover:text-slate-800 border border-transparent"
                                   }`}
                                 >
-                                  Female
+                                  <span>Female</span>
+                                  <Venus className="h-4 w-4 shrink-0" />
                                 </button>
                               </div>
                             </div>
 
                             {/* Date of Birth */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Date of Birth
                               </label>
                               <div className="relative">
@@ -2707,21 +2787,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   <Calendar className="h-4 w-4" />
                                 </button>
                               </div>
-                              <p className="text-[11px] text-[#8CA0BA] italic mt-1.5">
+                              <p className="text-[11px] text-[#8CA0BA] italic mt-1">
                                 For Junior / Senior bracket eligibility verification.
                               </p>
                             </div>
 
-                            {/* Verification Notice */}
-                            <div className="p-3.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-start gap-2.5">
-                              <ShieldCheck className="h-4 w-4 text-[#5B6B7F] shrink-0 mt-0.5" />
-                              <p className="text-[11px] text-[#475569] leading-relaxed font-normal">
-                                Handicap indexes are verified against the national golf registry (GHIN/USGA) before tournament play begins.
-                              </p>
-                            </div>
-
                             {/* Bottom Buttons */}
-                            <div className="flex gap-2.5 pt-2">
+                            <div className="flex gap-2.5 pt-1.5">
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
@@ -2748,110 +2820,170 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 3: PLAYER CONTACT & AVATAR --- */}
                         {regStep === 3 && (
-                          <div className="space-y-6">
+                          <div className="space-y-3.5">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Player Contact & Avatar
                               </h1>
-                              <p className="text-[13px] text-[#5B6B7F] mt-1.5 leading-relaxed font-normal">
+                              <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
                                 Used for live on-course tee time notifications and official pairing scorecards.
                               </p>
                             </div>
 
                             {/* Avatar Photo Section */}
-                            <div className="flex flex-col items-center py-2">
-                              <div className="w-20 h-20 rounded-full bg-[#f5faf6] border-2 border-dashed border-[#e1efe5] flex flex-col items-center justify-center text-[#009A60] shadow-2xs">
-                                <Camera className="h-5 w-5 mb-0.5 text-[#009A60]" />
-                                <span className="text-[9px] font-medium text-[#009A60] tracking-wider uppercase">PHOTO</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => showToast("Avatar picker opened")}
-                                className="mt-2.5 h-9 px-4 rounded-full border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#0F172A] text-sm font-medium transition-all shadow-2xs cursor-pointer"
+                            <div className="flex flex-col items-center pt-2 pb-1">
+                              <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAvatarChange}
+                              />
+                              <div
+                                onClick={() => avatarInputRef.current?.click()}
+                                className="w-[130px] h-[130px] rounded-full bg-[#eef7f4] border-2 border-dashed border-[#c6e8d6] flex flex-col items-center justify-center text-[#009A60] shadow-2xs transition-transform hover:scale-[1.02] cursor-pointer overflow-hidden relative group"
                               >
-                                Upload Player Photo
-                              </button>
-                              <p className="text-[11px] text-[#8CA0BA] mt-1 text-center font-normal">
-                                High-contrast headshot used on the live clubhouse leaderboard.
+                                {regAvatar ? (
+                                  <>
+                                    <img
+                                      src={regAvatar}
+                                      alt="Player Headshot"
+                                      className="w-full h-full object-cover rounded-full"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-semibold">
+                                      Change
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Camera className="h-9 w-9 text-[#009A60] stroke-[1.8]" />
+                                    <span className="text-xs font-bold text-[#009A60] tracking-wider mt-1.5 uppercase">
+                                      PHOTO
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => avatarInputRef.current?.click()}
+                                  className="h-10 px-5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0F172A] text-sm font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                                >
+                                  <Upload className="h-4 w-4 text-[#009A60]" />
+                                  {regAvatar ? "Change Photo" : "Upload Player Photo"}
+                                </button>
+                                {regAvatar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRegAvatar(null);
+                                      if (avatarInputRef.current) avatarInputRef.current.value = "";
+                                    }}
+                                    className="h-10 w-10 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all cursor-pointer text-xs font-bold"
+                                    title="Remove Photo"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs text-[#8CA0BA] mt-2 text-center max-w-[260px] leading-relaxed font-normal">
+                                High-contrast headshot used on the live clubhouse leaderboard (max 500KB strictly).
                               </p>
                             </div>
 
                             {/* Mobile Phone Number */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Mobile Phone Number
                               </label>
                               <div className="flex gap-2">
-                                <div className="h-12 w-20 bg-[#f5faf6] border border-[#e1efe5] rounded-xl px-2.5 flex items-center justify-between text-xs font-medium text-[#0F172A]">
-                                  <span>US +1</span>
-                                  <span className="text-[#8CA0BA] text-[10px]">▼</span>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCountrySearchQuery("");
+                                    setShowCountryModal(true);
+                                  }}
+                                  className="h-12 px-2.5 bg-[#f5faf6] border border-[#e1efe5] hover:border-[#009A60] rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-[#0F172A] shrink-0 transition-all cursor-pointer"
+                                  title="Change country"
+                                >
+                                  <span className="text-base leading-none">{regCountryFlag}</span>
+                                  <span>+{regPhoneCode}</span>
+                                  <span className="text-[#8CA0BA] text-[10px] ml-0.5">▼</span>
+                                </button>
                                 <input
                                   type="tel"
                                   value={regPhone}
                                   onChange={(e) => setRegPhone(e.target.value)}
-                                  placeholder="(555) 000-0000"
+                                  placeholder={regCountry === "NG" ? "0803 555 0192" : "Phone number"}
                                   className="flex-1 h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                                 />
                               </div>
-                              <p className="text-[11px] text-[#8CA0BA] mt-1.5 font-normal">
+                              <p className="text-[11px] text-[#8CA0BA] mt-1 font-normal">
                                 Used for emergency shotgun and weather sirens.
                               </p>
                             </div>
 
-                            {/* City & State */}
+                            {/* State & City / LGA */}
                             <div className="grid grid-cols-2 gap-2.5">
                               <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
-                                  City
-                                </label>
-                                <input
-                                  type="text"
-                                  value={regCity}
-                                  onChange={(e) => setRegCity(e.target.value)}
-                                  placeholder="Augusta"
-                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                   State
                                 </label>
-                                <input
-                                  type="text"
-                                  value={regState}
-                                  onChange={(e) => setRegState(e.target.value)}
-                                  placeholder="GA"
-                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
-                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setStateSearchQuery("");
+                                    setShowStateModal(true);
+                                  }}
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] hover:border-[#009A60] rounded-xl px-3.5 flex items-center justify-between text-[13.5px] leading-normal font-medium text-[#0F172A] transition-all cursor-pointer text-left"
+                                >
+                                  <span className="truncate">{regState || "Select State"}</span>
+                                  <span className="text-[#8CA0BA] text-[10px] ml-1 shrink-0">▼</span>
+                                </button>
+                              </div>
+                              <div>
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
+                                  City / LGA
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCitySearchQuery("");
+                                    setShowCityModal(true);
+                                  }}
+                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] hover:border-[#009A60] rounded-xl px-3.5 flex items-center justify-between text-[13.5px] leading-normal font-medium text-[#0F172A] transition-all cursor-pointer text-left"
+                                >
+                                  <span className="truncate">{regCity || "Select LGA"}</span>
+                                  <span className="text-[#8CA0BA] text-[10px] ml-1 shrink-0">▼</span>
+                                </button>
                               </div>
                             </div>
 
                             {/* Push Notifications Card */}
-                            <div className="p-3.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium text-[#0F172A]">Push Notifications</p>
-                                <p className="text-[11px] text-[#5B6B7F] mt-0.5 font-normal">
+                            <div className="mt-4.5 mb-2 p-4.5 sm:p-5 rounded-2xl bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-between gap-4">
+                              <div className="min-w-0 pr-1">
+                                <p className="text-[14px] font-semibold text-[#0F172A]">Push Notifications</p>
+                                <p className="text-[12.5px] text-[#5B6B7F] mt-1.5 leading-relaxed">
                                   Instant Tee Time & Marker Pairing Alerts
                                 </p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => setRegPushNotifications(!regPushNotifications)}
-                                className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer ${
+                                className={`w-11 h-6.5 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer shrink-0 ${
                                   regPushNotifications ? "bg-[#009A60]" : "bg-slate-300"
                                 }`}
                               >
                                 <div
-                                  className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
-                                    regPushNotifications ? "translate-x-4" : "translate-x-0"
+                                  className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
+                                    regPushNotifications ? "translate-x-4.5" : "translate-x-0"
                                   }`}
                                 />
                               </button>
                             </div>
 
                             {/* Bottom Buttons */}
-                            <div className="flex gap-2.5 pt-2">
+                            <div className="flex gap-2.5 pt-1.5">
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
@@ -2878,44 +3010,101 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                         {/* --- STEP 4: REVIEW & COMPETITOR PLEDGE --- */}
                         {regStep === 4 && (
-                          <div className="space-y-6">
+                          <div className="space-y-3.5">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
                                 Review & Competitor Pledge
                               </h1>
-                              <p className="text-[13px] text-[#5B6B7F] mt-1.5 leading-relaxed font-normal">
+                              <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
                                 Verify your tournament credentials and confirm rules compliance before activation.
                               </p>
                             </div>
 
                             {/* Summary Profile Card */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Summary Profile Card
                               </label>
                               <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-11 h-11 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-[#009A60] font-medium text-sm">
-                                    🏌️
+                                  <div className="relative shrink-0">
+                                    {regAvatar ? (
+                                      <img
+                                        src={regAvatar}
+                                        alt="Player Avatar"
+                                        className="w-11 h-11 rounded-full object-cover border border-[#e1efe5]"
+                                      />
+                                    ) : (
+                                      <div className="w-11 h-11 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-[#009A60] font-bold text-sm">
+                                        {`${regFirstName?.[0] || ""}${regLastName?.[0] || ""}`.toUpperCase() || "PL"}
+                                      </div>
+                                    )}
+                                    {regClassification === "PROFESSIONAL" && (
+                                      <span className="absolute -bottom-1 -right-1 bg-[#009A60] text-white text-[8px] font-black px-1 rounded-sm shadow-2xs border border-white leading-tight">
+                                        PRO
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-base font-medium text-[#0F172A] truncate">
-                                      {regFirstName} {regLastName}
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <p className="text-[17px] font-bold text-[#0F172A] truncate">
+                                      {regFirstName || "Alex"} {regLastName || "Wright"}
                                     </p>
-                                    <div className="mt-0.5 inline-block bg-[#f5faf6] border border-[#e1efe5] text-[#009A60] font-medium text-[10px] px-2 py-0.5 rounded-full truncate max-w-full">
-                                      HCP Index {regHandicap}{regHomeClub.trim() ? ` • ${regHomeClub.trim()}` : ""} • {regGender === "MALE" ? "Men's" : "Women's"} Championship Flight
-                                    </div>
+                                    {regClassification === "PROFESSIONAL" && (
+                                      <span className="bg-[#009A60] text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider shrink-0">
+                                        PRO
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="border-t border-slate-100 mt-2.5 pt-2 text-xs font-normal text-[#475569] truncate">
-                                  {regEmail} • +1 {regPhone} • {regCity}, {regState}
+                                <div className="border-t border-slate-100 my-2.5" />
+                                <div className="space-y-1">
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">HCP Index:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1">
+                                      {regClassification === "PROFESSIONAL"
+                                        ? "0.0 (Scratch)"
+                                        : regClassification === "BEGINNER"
+                                        ? "36.0"
+                                        : regHandicap || "18.0"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">Home Club:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1 break-words">
+                                      {regHomeClub.trim() ? regHomeClub.trim() : "None"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">Gender:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1 break-words">
+                                      {regGender === "MALE" ? "Male" : regGender === "FEMALE" ? "Female" : (regGender || "Not specified")}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">Email:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1 break-all">
+                                      {regEmail || "None"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">Phone:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1">
+                                      {regCountryFlag} +{regPhoneCode} {regPhone || "None"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline text-xs">
+                                    <span className="text-[#64748B] font-medium w-[80px] shrink-0">Location:</span>
+                                    <span className="text-[#0F172A] font-medium flex-1 break-words">
+                                      {[regCity, regState, countryList.find((c) => c.isoCode === regCountry)?.name || "Nigeria"].filter(Boolean).join(", ")}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
 
                             {/* Rules & Attestation Pledge Box */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-2">
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
                                 Rules & Attestation Pledge
                               </label>
                               <div className="bg-[#f5faf6] border border-[#bbf7d0] rounded-2xl p-3.5 space-y-2.5">
@@ -2959,7 +3148,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             </div>
 
                             {/* Bottom Buttons */}
-                            <div className="flex gap-2.5 pt-2">
+                            <div className="flex gap-2.5 pt-1.5">
                               <button
                                 type="button"
                                 onClick={handleRegPrev}
@@ -3134,6 +3323,121 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 </button>
                               </div>
                             )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Player Classification Bottom Sheet Modal (Contained 100% inside phone display grid) */}
+                      {showClassificationModal && (
+                        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                          {/* Dark Backdrop Overlay */}
+                          <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                            onClick={() => setShowClassificationModal(false)}
+                          />
+                          {/* Bottom Sheet Card */}
+                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col">
+                            {/* Drag Pill Handle */}
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
+                              <div>
+                                <h3 className="text-base font-bold text-[#0F172A]">Player Classification</h3>
+                                <p className="text-xs text-[#5B6B7F]">Select your tournament flight level</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowClassificationModal(false)}
+                                className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                              >
+                                <span className="text-sm font-semibold">✕</span>
+                              </button>
+                            </div>
+
+                            {/* Options List */}
+                            <div className="space-y-2.5">
+                              {[
+                                {
+                                  id: "BEGINNER" as const,
+                                  title: "Beginner",
+                                  description: "New to tournament golf • Standard 36.0 handicap allowance",
+                                  badge: null,
+                                },
+                                {
+                                  id: "AMATEUR" as const,
+                                  title: "Intermediate / Amateur",
+                                  description: "Official GHIN / USGA index • Net tournament flight play",
+                                  badge: null,
+                                },
+                                {
+                                  id: "PROFESSIONAL" as const,
+                                  title: "Professional",
+                                  description: "Tour Professional • Championship gross scratch competition",
+                                  badge: "PRO",
+                                },
+                              ].map((opt) => {
+                                const isSelected = regClassification === opt.id;
+                                return (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setRegClassification(opt.id);
+                                      if (opt.id === "BEGINNER") {
+                                        setRegHandicap("36");
+                                      } else if (opt.id === "AMATEUR") {
+                                        setRegHandicap("");
+                                      } else if (opt.id === "PROFESSIONAL") {
+                                        setRegHandicap("0.0");
+                                      }
+                                      setShowClassificationModal(false);
+                                    }}
+                                    className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                      isSelected
+                                        ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                        : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    <div className="min-w-0 pr-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className={`text-[13.5px] font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
+                                          {opt.title}
+                                        </span>
+                                        {opt.badge && (
+                                          <span className="bg-[#009A60] text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider">
+                                            {opt.badge}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-[#5B6B7F] mt-0.5 leading-normal">
+                                        {opt.description}
+                                      </p>
+                                    </div>
+                                    <div
+                                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                        isSelected
+                                          ? "border-[#009A60] bg-[#009A60] text-white"
+                                          : "border-slate-300 bg-white"
+                                      }`}
+                                    >
+                                      {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="pt-3 border-t border-[#f1f5f9] mt-3.5 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setShowClassificationModal(false)}
+                                className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008754] text-white text-xs font-medium shadow-xs transition-all cursor-pointer"
+                              >
+                                Confirm Selection
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -3334,6 +3638,287 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           </div>
                         );
                       })()}
+
+                      {/* Country Bottom Sheet Modal */}
+                      {showCountryModal && (
+                        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                          <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                            onClick={() => setShowCountryModal(false)}
+                          />
+                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col">
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
+                            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
+                              <div>
+                                <h3 className="text-base font-bold text-[#0F172A]">Select Country</h3>
+                                <p className="text-xs text-[#5B6B7F]">International & Regional Dial Codes</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowCountryModal(false)}
+                                className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                              >
+                                <span className="text-sm font-semibold">✕</span>
+                              </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative mb-3 shrink-0">
+                              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={countrySearchQuery}
+                                onChange={(e) => setCountrySearchQuery(e.target.value)}
+                                placeholder="Search country name or dial code..."
+                                className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
+                              />
+                            </div>
+
+                            {/* List */}
+                            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[260px] scrollbar-hide">
+                              {countryList
+                                .filter(
+                                  (c) =>
+                                    c.name.toLowerCase().includes(countrySearchQuery.toLowerCase()) ||
+                                    c.isoCode.toLowerCase().includes(countrySearchQuery.toLowerCase()) ||
+                                    c.phonecode.includes(countrySearchQuery.replace(/^\+/, ""))
+                                )
+                                .map((c) => {
+                                  const isSelected = regCountry === c.isoCode;
+                                  return (
+                                    <button
+                                      key={c.isoCode}
+                                      type="button"
+                                      onClick={() => {
+                                        setRegCountry(c.isoCode);
+                                        setRegPhoneCode(c.phonecode);
+                                        setRegCountryFlag(c.flag);
+                                        if (c.isoCode === "NG") {
+                                          setRegState("Lagos");
+                                          setRegCity("Ikeja");
+                                        } else {
+                                          const states = State.getStatesOfCountry(c.isoCode);
+                                          if (states.length > 0) {
+                                            setRegState(states[0].name);
+                                            const cities = City.getCitiesOfState(c.isoCode, states[0].isoCode);
+                                            setRegCity(cities.length > 0 ? cities[0].name : states[0].name);
+                                          } else {
+                                            setRegState(c.name);
+                                            setRegCity(c.name);
+                                          }
+                                        }
+                                        setShowCountryModal(false);
+                                      }}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                        isSelected
+                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-2xl leading-none">{c.flag}</span>
+                                        <div>
+                                          <p className={`text-sm font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
+                                            {c.name}
+                                          </p>
+                                          <p className="text-xs text-[#5B6B7F]">+{c.phonecode} • {c.isoCode}</p>
+                                        </div>
+                                      </div>
+                                      {isSelected && (
+                                        <div className="w-5 h-5 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0">
+                                          <Check className="h-3 w-3 stroke-[3]" />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nigerian State Bottom Sheet Modal */}
+                      {showStateModal && (
+                        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                          <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                            onClick={() => setShowStateModal(false)}
+                          />
+                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col">
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
+                            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
+                              <div>
+                                <h3 className="text-base font-bold text-[#0F172A]">Select State</h3>
+                                <p className="text-xs text-[#5B6B7F]">
+                                  {regCountry === "NG"
+                                    ? "Nigerian States & Federal Capital Territory"
+                                    : `States / Regions of ${countryList.find((c) => c.isoCode === regCountry)?.name || regCountry}`}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowStateModal(false)}
+                                className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                              >
+                                <span className="text-sm font-semibold">✕</span>
+                              </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative mb-3 shrink-0">
+                              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={stateSearchQuery}
+                                onChange={(e) => setStateSearchQuery(e.target.value)}
+                                placeholder="Search states..."
+                                className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
+                              />
+                            </div>
+
+                            {/* List */}
+                            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[260px] scrollbar-hide">
+                              {(regCountry === "NG"
+                                ? getNigerianStates()
+                                : State.getStatesOfCountry(regCountry).map((s) => ({ value: s.name, label: s.name }))
+                              )
+                                .filter((s) => s.label.toLowerCase().includes(stateSearchQuery.toLowerCase()))
+                                .map((s) => {
+                                  const isSelected = regState === s.value;
+                                  return (
+                                    <button
+                                      key={s.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setRegState(s.value);
+                                        if (regCountry === "NG") {
+                                          const lgas = NIGERIAN_STATES_LGAS[s.value] || [];
+                                          if (lgas.length > 0) {
+                                            setRegCity(lgas[0]);
+                                          }
+                                        } else {
+                                          const countryStates = State.getStatesOfCountry(regCountry);
+                                          const matchedState = countryStates.find((st) => st.name === s.value);
+                                          const cities = matchedState
+                                            ? City.getCitiesOfState(regCountry, matchedState.isoCode)
+                                            : [];
+                                          setRegCity(cities.length > 0 ? cities[0].name : s.value);
+                                        }
+                                        setShowStateModal(false);
+                                      }}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                        isSelected
+                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      <p className={`text-sm font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
+                                        {s.label}
+                                      </p>
+                                      {isSelected && (
+                                        <div className="w-5 h-5 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0">
+                                          <Check className="h-3 w-3 stroke-[3]" />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* City / LGA Bottom Sheet Modal */}
+                      {showCityModal && (
+                        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+                          <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+                            onClick={() => setShowCityModal(false)}
+                          />
+                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col">
+                            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
+                            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
+                              <div>
+                                <h3 className="text-base font-bold text-[#0F172A]">Select City / LGA</h3>
+                                <p className="text-xs text-[#5B6B7F]">
+                                  {regCountry === "NG"
+                                    ? `Local Government Areas in ${regState} State`
+                                    : `Cities in ${regState}, ${countryList.find((c) => c.isoCode === regCountry)?.name || regCountry}`}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowCityModal(false)}
+                                className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                              >
+                                <span className="text-sm font-semibold">✕</span>
+                              </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative mb-3 shrink-0">
+                              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={citySearchQuery}
+                                onChange={(e) => setCitySearchQuery(e.target.value)}
+                                placeholder={`Search in ${regState}...`}
+                                className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
+                              />
+                            </div>
+
+                            {/* List */}
+                            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[260px] scrollbar-hide">
+                              {(regCountry === "NG"
+                                ? getNigerianLGAs(regState)
+                                : (() => {
+                                    const countryStates = State.getStatesOfCountry(regCountry);
+                                    const matchedState = countryStates.find((st) => st.name === regState);
+                                    const cities = matchedState
+                                      ? City.getCitiesOfState(regCountry, matchedState.isoCode)
+                                      : [];
+                                    return cities.length > 0
+                                      ? cities.map((c) => ({ value: c.name, label: c.name }))
+                                      : [{ value: regState, label: regState }];
+                                  })()
+                              )
+                                .filter((c) => c.label.toLowerCase().includes(citySearchQuery.toLowerCase()))
+                                .map((c) => {
+                                  const isSelected = regCity === c.value;
+                                  return (
+                                    <button
+                                      key={c.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setRegCity(c.value);
+                                        setShowCityModal(false);
+                                      }}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                        isSelected
+                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      <div>
+                                        <p className={`text-sm font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
+                                          {c.label}
+                                        </p>
+                                        <p className="text-xs text-[#5B6B7F]">
+                                          {regState}, {countryList.find((cntry) => cntry.isoCode === regCountry)?.name || regCountry}
+                                        </p>
+                                      </div>
+                                      {isSelected && (
+                                        <div className="w-5 h-5 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0">
+                                          <Check className="h-3 w-3 stroke-[3]" />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

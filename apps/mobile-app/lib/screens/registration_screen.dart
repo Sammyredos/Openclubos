@@ -14,31 +14,65 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   int _currentStep = 1;
 
   // Form Controllers
-  final _firstNameController = TextEditingController(text: 'Alex');
-  final _lastNameController = TextEditingController(text: 'Wright');
-  final _emailController = TextEditingController(text: 'player@domain.com');
-  final _passwordController = TextEditingController(text: 'Password123!');
-  final _confirmPasswordController = TextEditingController(text: 'Password123!');
+  final _firstNameController = TextEditingController(text: '');
+  final _lastNameController = TextEditingController(text: '');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
+  final _confirmPasswordController = TextEditingController(text: '');
 
-  final _handicapController = TextEditingController(text: '2.4');
+  final _handicapController = TextEditingController(text: '');
   final _homeClubController = TextEditingController(text: '');
-  final _dobController = TextEditingController(text: '05 / 14 / 1994');
+  final _dobController = TextEditingController(text: '');
 
-  final _phoneController = TextEditingController(text: '(706) 555-0192');
-  final _cityController = TextEditingController(text: 'Augusta');
-  final _stateController = TextEditingController(text: 'GA');
+  final _phoneController = TextEditingController(text: '');
+  final _cityController = TextEditingController(text: '');
+  final _stateController = TextEditingController(text: '');
   final _scrollController = ScrollController();
 
   // Interactive UI States
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  String? _selectedClassification;
   bool _noHandicapIndex = false;
-  String _selectedGender = 'MALE';
+  String _selectedGender = '';
+  String? _avatarUrl;
   bool _pushNotifications = true;
-  bool _agreedToRules = true;
-  bool _agreedToMarkerDuty = true;
+  bool _agreedToRules = false;
+  bool _agreedToMarkerDuty = false;
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Selected Country & Dial Code
+  String _selectedCountryCode = 'NG';
+  String _selectedPhoneCode = '234';
+  String _selectedCountryFlag = '🇳🇬';
+  String _selectedCountryName = 'Nigeria';
+
+  final List<Map<String, String>> _allCountries = const [
+    {'code': 'NG', 'name': 'Nigeria', 'dial': '234', 'flag': '🇳🇬'},
+    {'code': 'US', 'name': 'United States', 'dial': '1', 'flag': '🇺🇸'},
+    {'code': 'GB', 'name': 'United Kingdom', 'dial': '44', 'flag': '🇬🇧'},
+    {'code': 'CA', 'name': 'Canada', 'dial': '1', 'flag': '🇨🇦'},
+    {'code': 'GH', 'name': 'Ghana', 'dial': '233', 'flag': '🇬🇭'},
+    {'code': 'KE', 'name': 'Kenya', 'dial': '254', 'flag': '🇰🇪'},
+    {'code': 'ZA', 'name': 'South Africa', 'dial': '27', 'flag': '🇿🇦'},
+    {'code': 'AE', 'name': 'United Arab Emirates', 'dial': '971', 'flag': '🇦🇪'},
+    {'code': 'AU', 'name': 'Australia', 'dial': '61', 'flag': '🇦🇺'},
+    {'code': 'IE', 'name': 'Ireland', 'dial': '353', 'flag': '🇮🇪'},
+    {'code': 'FR', 'name': 'France', 'dial': '33', 'flag': '🇫🇷'},
+    {'code': 'DE', 'name': 'Germany', 'dial': '49', 'flag': '🇩🇪'},
+    {'code': 'ES', 'name': 'Spain', 'dial': '34', 'flag': '🇪🇸'},
+    {'code': 'IT', 'name': 'Italy', 'dial': '39', 'flag': '🇮🇹'},
+    {'code': 'IN', 'name': 'India', 'dial': '91', 'flag': '🇮🇳'},
+    {'code': 'JP', 'name': 'Japan', 'dial': '81', 'flag': '🇯🇵'},
+    {'code': 'CN', 'name': 'China', 'dial': '86', 'flag': '🇨🇳'},
+    {'code': 'BR', 'name': 'Brazil', 'dial': '55', 'flag': '🇧🇷'},
+    {'code': 'MX', 'name': 'Mexico', 'dial': '52', 'flag': '🇲🇽'},
+    {'code': 'EG', 'name': 'Egypt', 'dial': '20', 'flag': '🇪🇬'},
+    {'code': 'RW', 'name': 'Rwanda', 'dial': '250', 'flag': '🇷🇼'},
+    {'code': 'UG', 'name': 'Uganda', 'dial': '256', 'flag': '🇺🇬'},
+    {'code': 'TZ', 'name': 'Tanzania', 'dial': '255', 'flag': '🇹🇿'},
+  ];
 
   // Custom Brand Colors
   static const Color kGreenInputBg = Color(0xFFF5FAF6);
@@ -80,6 +114,46 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     {'name': 'OpenClub Golf Club 20 Course', 'location': 'City 20 • 18 Holes'},
   ];
 
+  static const Map<String, List<String>> _nigerianStatesLgas = {
+    'Abia': ['Aba North', 'Aba South', 'Arochukwu', 'Bende', 'Ikwuano', 'Isiala Ngwa North', 'Isiala Ngwa South', 'Isuikwuato', 'Obi Ngwa', 'Ohafia', 'Osisioma', 'Ugwunagbo', 'Ukwa East', 'Ukwa West', 'Umuahia North', 'Umuahia South', 'Umunneochi'],
+    'Adamawa': ['Demsa', 'Fufure', 'Ganye', 'Gayuk', 'Gombi', 'Grie', 'Hong', 'Jada', 'Lamurde', 'Madagali', 'Maiha', 'Mayo Belwa', 'Michika', 'Mubi North', 'Mubi South', 'Numan', 'Shelleng', 'Song', 'Toungo', 'Yola North', 'Yola South'],
+    'Akwa Ibom': ['Abak', 'Eastern Obolo', 'Eket', 'Esit Eket', 'Essien Udim', 'Etim Ekpo', 'Etinan', 'Ibeno', 'Ibesikpo Asutan', 'Ibiono-Ibom', 'Ika', 'Ikono', 'Ikot Abasi', 'Ikot Ekpene', 'Ini', 'Itu', 'Mbo', 'Mkpat-Enin', 'Nsit-Atai', 'Nsit-Ibom', 'Nsit-Ubium', 'Obot Akara', 'Okobo', 'Onna', 'Oron', 'Oruk Anam', 'Udung-Uko', 'Ukanafun', 'Uruan', 'Urue-Offong/Oruko', 'Uyo'],
+    'Anambra': ['Aguata', 'Anambra East', 'Anambra West', 'Anaocha', 'Awka North', 'Awka South', 'Ayamelum', 'Dunukofia', 'Ekwusigo', 'Idemili North', 'Idemili South', 'Ihiala', 'Njikoka', 'Nnewi North', 'Nnewi South', 'Ogbaru', 'Onitsha North', 'Onitsha South', 'Orumba North', 'Orumba South', 'Oyi'],
+    'Bauchi': ['Alkaleri', 'Bauchi', 'Bogoro', 'Damban', 'Darazo', 'Dass', 'Gamawa', 'Ganjuwa', 'Giade', 'Itas/Gadau', "Jama'are", 'Katagum', 'Kirfi', 'Misau', 'Ningi', 'Shira', 'Tafawa Balewa', 'Toro', 'Warji', 'Zaki'],
+    'Bayelsa': ['Brass', 'Ekeremor', 'Kolokuma/Opokuma', 'Nembe', 'Ogbia', 'Sagbama', 'Southern Ijaw', 'Yenagoa'],
+    'Benue': ['Ado', 'Agatu', 'Apa', 'Buruku', 'Gboko', 'Guma', 'Gwer East', 'Gwer West', 'Katsina-Ala', 'Konshisha', 'Kwande', 'Logo', 'Makurdi', 'Obi', 'Ogbadibo', 'Ohimini', 'Oju', 'Okpokwu', 'Otukpo', 'Tarka', 'Ukum', 'Ushongo', 'Vandeikya'],
+    'Borno': ['Abadam', 'Askira/Uba', 'Bama', 'Bayo', 'Biu', 'Chibok', 'Damboa', 'Dikwa', 'Gubio', 'Guzamala', 'Gwoza', 'Hawul', 'Jere', 'Kaga', 'Kala/Balge', 'Konduga', 'Kukawa', 'Kwaya Kusar', 'Mafa', 'Magumeri', 'Maiduguri', 'Marte', 'Mobbar', 'Monguno', 'Ngala', 'Nganzai', 'Shani'],
+    'Cross River': ['Abi', 'Akamkpa', 'Akpabuyo', 'Bakassi', 'Bekwarra', 'Biase', 'Boki', 'Calabar Municipal', 'Calabar South', 'Etung', 'Ikom', 'Obanliku', 'Obubra', 'Obudu', 'Odukpani', 'Ogoja', 'Yakuur', 'Yala'],
+    'Delta': ['Aniocha North', 'Aniocha South', 'Bomadi', 'Burutu', 'Ethiope East', 'Ethiope West', 'Ika North East', 'Ika South', 'Isoko North', 'Isoko South', 'Ndokwa East', 'Ndokwa West', 'Okpe', 'Oshimili North', 'Oshimili South', 'Patani', 'Sapele', 'Udu', 'Ughelli North', 'Ughelli South', 'Ukwuani', 'Uvwie', 'Warri North', 'Warri South', 'Warri South West'],
+    'Ebonyi': ['Abakaliki', 'Afikpo North', 'Afikpo South', 'Ebonyi', 'Ezza North', 'Ezza South', 'Ikwo', 'Ishielu', 'Ivo', 'Izzi', 'Ohaozara', 'Ohaukwu', 'Onicha'],
+    'Edo': ['Akoko-Edo', 'Egor', 'Esan Central', 'Esan North-East', 'Esan South-East', 'Esan West', 'Etsako Central', 'Etsako East', 'Etsako West', 'Igueben', 'Ikpoba Okha', 'Orhionmwon', 'Oredo', 'Ovia North-East', 'Ovia South-West', 'Owan East', 'Owan West', 'Uhunmwonde'],
+    'Ekiti': ['Ado Ekiti', 'Efon', 'Ekiti East', 'Ekiti South-West', 'Ekiti West', 'Emure', 'Gbonyin', 'Ido Osi', 'Ijero', 'Ikere', 'Ikole', 'Ilejemeje', 'Irepodun/Ifelodun', 'Ise/Orun', 'Moba', 'Oye'],
+    'Enugu': ['Aninri', 'Awgu', 'Enugu East', 'Enugu North', 'Enugu South', 'Ezeagu', 'Igbo Etiti', 'Igbo Eze North', 'Igbo Eze South', 'Isi Uzo', 'Nkanu East', 'Nkanu West', 'Nsukka', 'Oji River', 'Udenu', 'Udi', 'Uzo Uwani'],
+    'FCT': ['Abaji', 'Bwari', 'Gwagwalada', 'Kuje', 'Kwali', 'Municipal Area Council'],
+    'Gombe': ['Akko', 'Balanga', 'Billiri', 'Dukku', 'Funakaye', 'Gombe', 'Kaltungo', 'Kwami', 'Nafada', 'Shongom', 'Yamaltu/Deba'],
+    'Imo': ['Aboh Mbaise', 'Ahiazu Mbaise', 'Ehime Mbano', 'Ezinihitte', 'Ideato North', 'Ideato South', 'Ihitte/Uboma', 'Ikeduru', 'Isiala Mbano', 'Isu', 'Mbaitoli', 'Ngor Okpala', 'Njaba', 'Nkwerre', 'Nwangele', 'Obowo', 'Oguta', 'Ohaji/Egbema', 'Okigwe', 'Orlu', 'Orsu', 'Oru East', 'Oru West', 'Owerri Municipal', 'Owerri North', 'Owerri West', 'Unuimo'],
+    'Jigawa': ['Auyo', 'Babura', 'Biriniwa', 'Birnin Kudu', 'Buji', 'Dutse', 'Gagarawa', 'Garki', 'Gumel', 'Guri', 'Gwaram', 'Gwiwa', 'Hadejia', 'Jahun', 'Kafin Hausa', 'Kaugama', 'Kazaure', 'Kiri Kasama', 'Kiyawa', 'Maigatari', 'Malam Madori', 'Miga', 'Ringim', 'Roni', 'Sule Tankarkar', 'Taura', 'Yankwashi'],
+    'Kaduna': ['Birnin Gwari', 'Chikun', 'Giwa', 'Igabi', 'Ikara', 'Jaba', "Jema'a", 'Kachia', 'Kaduna North', 'Kaduna South', 'Kagarko', 'Kajuru', 'Kaura', 'Kauru', 'Kubau', 'Kudan', 'Lere', 'Makarfi', 'Sabon Gari', 'Sanga', 'Soba', 'Zangon Kataf', 'Zaria'],
+    'Kano': ['Ajingi', 'Albasu', 'Bagwai', 'Bebeji', 'Bichi', 'Bunkure', 'Dala', 'Dambatta', 'Dawakin Kudu', 'Dawakin Tofa', 'Doguwa', 'Fagge', 'Gabasawa', 'Garko', 'Garun Mallam', 'Gaya', 'Gezawa', 'Gwale', 'Gwarzo', 'Kabo', 'Kano Municipal', 'Karaye', 'Kibiya', 'Kiru', 'Kumbotso', 'Kunchi', 'Kura', 'Madobi', 'Makoda', 'Minjibir', 'Nasarawa', 'Rano', 'Rimin Gado', 'Rogo', 'Shanono', 'Sumaila', 'Takai', 'Tarauni', 'Tofa', 'Tsanyawa', 'Tudun Wada', 'Ungogo', 'Warawa', 'Wudil'],
+    'Katsina': ['Bakori', 'Batagarawa', 'Batsari', 'Baure', 'Bindawa', 'Charanchi', 'Dandume', 'Danja', 'Dan Musa', 'Daura', 'Dutsi', 'Dutsin Ma', 'Faskari', 'Funtua', 'Ingawa', 'Jibia', 'Kafur', 'Kaita', 'Kankara', 'Kankia', 'Katsina', 'Kurfi', 'Kusada', "Mai'Adua", 'Malumfashi', 'Mani', 'Mashi', 'Matazu', 'Musawa', 'Rimi', 'Sabuwa', 'Safana', 'Sandamu', 'Zango'],
+    'Kebbi': ['Aleiro', 'Arewa Dandi', 'Argungu', 'Augie', 'Bagudo', 'Birnin Kebbi', 'Bunza', 'Dandi', 'Fakai', 'Gwandu', 'Jega', 'Kalgo', 'Koko/Besse', 'Maiyama', 'Ngaski', 'Sakaba', 'Shanga', 'Suru', 'Wasagu/Danko', 'Yauri', 'Zuru'],
+    'Kogi': ['Adavi', 'Ajaokuta', 'Ankpa', 'Bassa', 'Dekina', 'Ibaji', 'Idah', 'Igalamela Odolu', 'Ijumu', 'Kabba/Bunu', 'Kogi', 'Lokoja', 'Mopa Muro', 'Ofu', 'Ogori/Magongo', 'Okehi', 'Okene', 'Olamaboro', 'Omala', 'Yagba East', 'Yagba West'],
+    'Kwara': ['Asa', 'Baruten', 'Edu', 'Ekiti', 'Ifelodun', 'Ilorin East', 'Ilorin South', 'Ilorin West', 'Irepodun', 'Isin', 'Kaiama', 'Moro', 'Offa', 'Oke Ero', 'Oyun', 'Pategi'],
+    'Lagos': ['Agege', 'Ajeromi-Ifelodun', 'Alimosho', 'Amuwo-Odofin', 'Apapa', 'Badagry', 'Epe', 'Eti Osa', 'Ibeju-Lekki', 'Ifako-Ijaiye', 'Ikeja', 'Ikorodu', 'Kosofe', 'Lagos Island', 'Lagos Mainland', 'Mushin', 'Ojo', 'Oshodi-Isolo', 'Shomolu', 'Surulere'],
+    'Nasarawa': ['Akwanga', 'Awe', 'Doma', 'Karu', 'Keana', 'Keffi', 'Kokona', 'Lafia', 'Nasarawa', 'Nasarawa Egon', 'Obi', 'Toto', 'Wamba'],
+    'Niger': ['Agaie', 'Agwara', 'Bida', 'Borgu', 'Bosso', 'Chanchaga', 'Edati', 'Gbako', 'Katcha', 'Kontagora', 'Lapai', 'Lavun', 'Magama', 'Mariga', 'Mashegu', 'Mokwa', 'Moya', 'Paikoro', 'Rafi', 'Rijau', 'Shiroro', 'Suleja', 'Tafa', 'Wushishi'],
+    'Ogun': ['Abeokuta North', 'Abeokuta South', 'Ado-Odo/Ota', 'Egbado North', 'Egbado South', 'Ewekoro', 'Ifo', 'Ijebu East', 'Ijebu North', 'Ijebu North East', 'Ijebu Ode', 'Ikenne', 'Imeko Afon', 'Ipokia', 'Obafemi Owode', 'Odeda', 'Odogbolu', 'Ogun Waterside', 'Remo North', 'Shagamu'],
+    'Ondo': ['Akoko North-East', 'Akoko North-West', 'Akoko South-East', 'Akoko South-West', 'Akure North', 'Akure South', 'Ese Odo', 'Idanre', 'Ifedore', 'Ilaje', 'Ile Oluji/Okeigbo', 'Irele', 'Odigbo', 'Okitipupa', 'Ondo East', 'Ondo West', 'Ose', 'Owo'],
+    'Osun': ['Atakunmosa East', 'Atakunmosa West', 'Aiyedaade', 'Aiyedire', 'Boluwaduro', 'Boripe', 'Ede North', 'Ede South', 'Ife Central', 'Ife East', 'Ife North', 'Ife South', 'Egbedore', 'Ejigbo', 'Ifedayo', 'Ifelodun', 'Ila', 'Ilesa East', 'Ilesa West', 'Irepodun', 'Irewole', 'Isokan', 'Iwo', 'Obokun', 'Odo Otin', 'Ola Oluwa', 'Olorunda', 'Oriade', 'Orolu', 'Osogbo'],
+    'Oyo': ['Afijio', 'Akinyele', 'Atiba', 'Atisbo', 'Egbeda', 'Ibadan North', 'Ibadan North-East', 'Ibadan North-West', 'Ibadan South-East', 'Ibadan South-West', 'Ibarapa Central', 'Ibarapa East', 'Ibarapa North', 'Ido', 'Irepo', 'Iseyin', 'Itesiwaju', 'Iwajowa', 'Kajola', 'Lagelu', 'Ogbomosho North', 'Ogbomosho South', 'Ogo Oluwa', 'Olorunsogo', 'Oluyole', 'Ona Ara', 'Orelope', 'Ori Ire', 'Oyo', 'Oyo East', 'Saki East', 'Saki West', 'Surulere'],
+    'Plateau': ['Bokkos', 'Barkin Ladi', 'Bassa', 'Jos East', 'Jos North', 'Jos South', 'Kanam', 'Kanke', 'Langtang South', 'Langtang North', 'Mangu', 'Mikang', 'Pankshin', "Qua'an Pan", 'Riyom', 'Shendam', 'Wase'],
+    'Rivers': ['Abua/Odual', 'Ahoada East', 'Ahoada West', 'Akuku-Toru', 'Andoni', 'Asari-Toru', 'Bonny', 'Degema', 'Eleme', 'Emuoha', 'Etche', 'Gokana', 'Ikwerre', 'Khana', 'Obio/Akpor', 'Ogba/Egbema/Ndoni', 'Ogu/Bolo', 'Okrika', 'Omuma', 'Opobo/Nkoro', 'Oyigbo', 'Port Harcourt', 'Tai'],
+    'Sokoto': ['Binji', 'Bodinga', 'Dange Shuni', 'Gada', 'Goronyo', 'Gudu', 'Gwadabawa', 'Illela', 'Isa', 'Kebbe', 'Kware', 'Rabah', 'Sabon Birni', 'Shagari', 'Silame', 'Sokoto North', 'Sokoto South', 'Tambuwal', 'Tangaza', 'Tureta', 'Wamako', 'Wurno', 'Yabo'],
+    'Taraba': ['Ardo Kola', 'Bali', 'Donga', 'Gashaka', 'Gassol', 'Ibi', 'Jalingo', 'Karim Lamido', 'Kumi', 'Lau', 'Sardauna', 'Takum', 'Ussa', 'Wukari', 'Yorro', 'Zing'],
+    'Yobe': ['Bade', 'Bursari', 'Damaturu', 'Fika', 'Fune', 'Geidam', 'Gujba', 'Gulani', 'Jakusko', 'Karasuwa', 'Machina', 'Nangere', 'Nguru', 'Potiskum', 'Tarmuwa', 'Yunusari', 'Yusufari'],
+    'Zamfara': ['Anka', 'Bakura', 'Birnin Magaji/Kiyaw', 'Bukkuyum', 'Bungudu', 'Gummi', 'Gusau', 'Kaura Namoda', 'Maradun', 'Maru', 'Shinkafi', 'Talata Mafara', 'Chafe', 'Zurmi'],
+  };
+
   // Reactive step completion validation getters
   bool get _isStep1Valid {
     final first = _firstNameController.text.trim();
@@ -98,7 +172,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   bool get _isStep2Valid {
     final hcp = _handicapController.text.trim();
     final dob = _dobController.text.trim();
-    return (_noHandicapIndex || (hcp.isNotEmpty && double.tryParse(hcp) != null)) &&
+    return (_selectedClassification != null) &&
+        (_selectedClassification == 'PROFESSIONAL' ||
+            (_selectedClassification == 'BEGINNER' && hcp.isNotEmpty) ||
+            (_selectedClassification == 'AMATEUR' && hcp.isNotEmpty && double.tryParse(hcp) != null)) &&
         _selectedGender.isNotEmpty &&
         dob.isNotEmpty;
   }
@@ -217,7 +294,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         'email': _emailController.text.trim(),
         'password': _passwordController.text,
         'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
-        'handicap': _noHandicapIndex ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0),
+        'handicap': _selectedClassification == 'PROFESSIONAL'
+            ? 0.0
+            : (_selectedClassification == 'BEGINNER' ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0)),
+        'classification': _selectedClassification ?? 'AMATEUR',
+        'isPro': _selectedClassification == 'PROFESSIONAL',
         'gender': _selectedGender,
         'phone': _phoneController.text.trim(),
         'city': _cityController.text.trim(),
@@ -439,7 +520,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 14),
 
         // Divider
         Row(
@@ -460,7 +541,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             Expanded(child: Divider(color: Color(0xFFE5E7EB))),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 14),
 
         // First Name & Last Name Row
         Row(
@@ -492,7 +573,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Email Address
         _buildLabel('Email Address'),
@@ -501,7 +582,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           hintText: 'player@domain.com',
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Password
         _buildLabel('Password'),
@@ -552,7 +633,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Confirm Password
         _buildLabel('Confirm Password'),
@@ -575,7 +656,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
 
         // CTA Button
         _buildPrimaryButton(
@@ -613,6 +694,1005 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
   }
 
+  void _showClassificationModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final options = [
+              {
+                'id': 'BEGINNER',
+                'title': 'Beginner',
+                'desc': 'New to tournament golf • Standard 36.0 handicap allowance',
+                'badge': '',
+              },
+              {
+                'id': 'AMATEUR',
+                'title': 'Intermediate / Amateur',
+                'desc': 'Official GHIN / USGA index • Net tournament flight play',
+                'badge': '',
+              },
+              {
+                'id': 'PROFESSIONAL',
+                'title': 'Professional',
+                'desc': 'Tour Professional • Championship gross scratch competition',
+                'badge': 'PRO',
+              },
+            ];
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.between,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Player Classification',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Select your tournament flight level',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5B6B7F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: kGreenInputBg,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: kGreenInputBorder),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 12),
+
+                    // Options list
+                    ...options.map((opt) {
+                      final isSelected = _selectedClassification == opt['id'];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedClassification = opt['id'];
+                            if (opt['id'] == 'BEGINNER') {
+                              _handicapController.text = '36';
+                              _noHandicapIndex = false;
+                            } else if (opt['id'] == 'AMATEUR') {
+                              _handicapController.text = '';
+                              _noHandicapIndex = false;
+                            } else if (opt['id'] == 'PROFESSIONAL') {
+                              _handicapController.text = '0.0';
+                              _noHandicapIndex = false;
+                            }
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFE8F5ED) : kGreenInputBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected ? kTournamentEmerald : kGreenInputBorder,
+                              width: isSelected ? 1.4 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          opt['title']!,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected ? kTournamentEmerald : const Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        if (opt['badge']!.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: kTournamentEmerald,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              opt['badge']!,
+                                              style: const TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      opt['desc']!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF5B6B7F),
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected ? kTournamentEmerald : Colors.white,
+                                  border: Border.all(
+                                    color: isSelected ? kTournamentEmerald : const Color(0xFFCBD5E1),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: isSelected
+                                    ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 6),
+                    // Confirm button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kTournamentEmerald,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text(
+                          'Confirm Selection',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCountryPicker(BuildContext context) {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredCountries = _allCountries.where((c) {
+              final q = searchQuery.toLowerCase();
+              return c['name']!.toLowerCase().contains(q) ||
+                  c['code']!.toLowerCase().contains(q) ||
+                  c['dial']!.contains(q.replaceAll('+', ''));
+            }).toList();
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select Country',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'International & Regional Dial Codes',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5B6B7F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: kGreenInputBg,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: kGreenInputBorder),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Search bar
+                    Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8CA0BA)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (val) => setModalState(() => searchQuery = val),
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                              decoration: const InputDecoration(
+                                hintText: 'Search country name or dial code...',
+                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF8CA0BA)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredCountries.length,
+                        itemBuilder: (context, index) {
+                          final c = filteredCountries[index];
+                          final isSelected = _selectedCountryCode == c['code'];
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedCountryCode = c['code']!;
+                                _selectedPhoneCode = c['dial']!;
+                                _selectedCountryFlag = c['flag']!;
+                                _selectedCountryName = c['name']!;
+                                if (c['code'] == 'NG') {
+                                  _stateController.text = 'Lagos';
+                                  _cityController.text = 'Ikeja';
+                                } else {
+                                  _stateController.text = c['name']!;
+                                  _cityController.text = c['name']!;
+                                }
+                              });
+                              Navigator.pop(ctx);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFE8F5ED) : kGreenInputBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? kTournamentEmerald : kGreenInputBorder,
+                                  width: isSelected ? 1.4 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        c['flag']!,
+                                        style: const TextStyle(fontSize: 22),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c['name']!,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected ? kTournamentEmerald : const Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '+${c['dial']} • ${c['code']}',
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF5B6B7F)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  if (isSelected)
+                                    const Icon(Icons.check_circle_rounded, color: kTournamentEmerald, size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPhotoUploadOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Upload Player Photo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Strict 500KB maximum file size required',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF5B6B7F),
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: kGreenInputBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: kGreenInputBorder),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Option 1: Valid photo (< 500KB)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: kTournamentEmerald,
+                        content: Text('Player headshot uploaded successfully (320 KB <= 500 KB limit).'),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: kGreenInputBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: kGreenInputBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5ED),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.check_circle_outline_rounded, color: kTournamentEmerald, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Select Valid Headshot (320 KB)',
+                                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Complies with strict 500KB tournament leaderboard limit',
+                                style: TextStyle(fontSize: 11.5, color: Color(0xFF5B6B7F)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Option 2: Over limit photo (> 500KB)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: Colors.red.shade700,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        content: const Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Photo exceeds strict 500KB limit (1,433 KB). Please choose a file under 500KB.',
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFECDD3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE4E6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.block_rounded, color: Color(0xFFE11D48), size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Test File Over Limit (1.4 MB)',
+                                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF9F1239)),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Triggers strict > 500KB rejection guard',
+                                style: TextStyle(fontSize: 11.5, color: Color(0xFFBE123C)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (_avatarUrl != null) ...[
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() => _avatarUrl = null);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Player photo removed.')),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.delete_outline_rounded, color: Color(0xFF64748B), size: 22),
+                          SizedBox(width: 12),
+                          Text(
+                            'Remove Current Photo',
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showStatePicker(BuildContext context) {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredStates = _nigerianStatesLgas.keys
+                .where((s) => s.toLowerCase().contains(searchQuery.toLowerCase()))
+                .toList();
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select State',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nigerian States & Federal Capital Territory',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5B6B7F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: kGreenInputBg,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: kGreenInputBorder),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Search bar
+                    Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8CA0BA)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (val) => setModalState(() => searchQuery = val),
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                              decoration: const InputDecoration(
+                                hintText: 'Search Nigerian states...',
+                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF8CA0BA)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredStates.length,
+                        itemBuilder: (context, index) {
+                          final stateName = filteredStates[index];
+                          final isSelected = _stateController.text.trim() == stateName;
+                          final lgas = _nigerianStatesLgas[stateName] ?? [];
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _stateController.text = stateName;
+                                if (lgas.isNotEmpty) {
+                                  _cityController.text = lgas.first;
+                                }
+                              });
+                              Navigator.pop(ctx);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFE8F5ED) : kGreenInputBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? kTournamentEmerald : kGreenInputBorder,
+                                  width: isSelected ? 1.4 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    stateName,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected ? kTournamentEmerald : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Icon(Icons.check_circle_rounded, color: kTournamentEmerald, size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCityPicker(BuildContext context) {
+    String searchQuery = '';
+    final currentState = _stateController.text.trim();
+    final availableLgas = _nigerianStatesLgas[currentState] ?? _nigerianStatesLgas['Lagos'] ?? [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredLgas = availableLgas
+                .where((l) => l.toLowerCase().contains(searchQuery.toLowerCase()))
+                .toList();
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Select City / LGA',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'LGAs in $currentState State, Nigeria',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5B6B7F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: kGreenInputBg,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: kGreenInputBorder),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Search bar
+                    Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8CA0BA)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (val) => setModalState(() => searchQuery = val),
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                              decoration: InputDecoration(
+                                hintText: 'Search LGAs in $currentState...',
+                                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF8CA0BA)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredLgas.length,
+                        itemBuilder: (context, index) {
+                          final lgaName = filteredLgas[index];
+                          final isSelected = _cityController.text.trim() == lgaName;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _cityController.text = lgaName;
+                              });
+                              Navigator.pop(ctx);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFE8F5ED) : kGreenInputBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? kTournamentEmerald : kGreenInputBorder,
+                                  width: isSelected ? 1.4 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        lgaName,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: isSelected ? kTournamentEmerald : const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$currentState State, Nigeria',
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF5B6B7F)),
+                                      ),
+                                    ],
+                                  ),
+                                  if (isSelected)
+                                    const Icon(Icons.check_circle_rounded, color: kTournamentEmerald, size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // --- STEP 2: YOUR GOLF PROFILE ---
   Widget _buildStep2(BuildContext context) {
     return Column(
@@ -632,56 +1712,79 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Used by tournament committees to calculate course handicaps and flight brackets.',
           style: TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
-        // Official Handicap Index
-        _buildLabel('Official Handicap Index'),
-        _buildGreenTextField(
-          controller: _handicapController,
-          hintText: 'e.g. 2.4',
-          enabled: !_noHandicapIndex,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          suffixIcon: Container(
-            margin: const EdgeInsets.only(right: 12),
-            alignment: Alignment.centerRight,
-            width: 44,
-            child: const Text(
-              'GHIN',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: kTournamentEmerald,
-                letterSpacing: 1.0,
+        // Player Classification Trigger Field
+        _buildLabel('Player Classification'),
+        GestureDetector(
+          onTap: () => _showClassificationModal(context),
+          child: AbsorbPointer(
+            child: _buildGreenTextField(
+              controller: TextEditingController(
+                text: _selectedClassification == 'BEGINNER'
+                    ? 'Beginner'
+                    : _selectedClassification == 'AMATEUR'
+                        ? 'Intermediate / Amateur'
+                        : _selectedClassification == 'PROFESSIONAL'
+                            ? 'Professional'
+                            : '',
               ),
+              hintText: 'Select player classification...',
+              suffixIcon: const Icon(Icons.tune_rounded, color: Color(0xFF94A3B8), size: 18),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+        const Text(
+          'Determines tournament flight bracket and scoring allowances.',
+          style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF8CA0BA)),
+        ),
+        const SizedBox(height: 14),
 
-        // Checkbox: No Official Index
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _noHandicapIndex = !_noHandicapIndex;
-              if (_noHandicapIndex) {
-                _handicapController.text = '36.0';
-              } else {
-                _handicapController.text = '2.4';
-              }
-            });
-          },
-          child: Row(
+        // Conditional Official Handicap Index (Only for Beginner or Intermediate / Amateur; display: none for Professional)
+        if (_selectedClassification == 'BEGINNER' || _selectedClassification == 'AMATEUR') ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCustomCheckbox(_noHandicapIndex),
-              const SizedBox(width: 8),
-              const Text(
-                "I don't have an official index yet",
-                style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
-              ),
+              _buildLabel('Official Handicap Index'),
+              if (_selectedClassification == 'BEGINNER')
+                Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5ED),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: kTournamentEmerald.withOpacity(0.2)),
+                  ),
+                  child: const Text(
+                    'Auto-assigned 36.0',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kTournamentEmerald),
+                  ),
+                ),
             ],
           ),
-        ),
-        const SizedBox(height: 22),
+          _buildGreenTextField(
+            controller: _handicapController,
+            hintText: _selectedClassification == 'BEGINNER' ? '36' : 'e.g. 2.4',
+            enabled: _selectedClassification != 'BEGINNER',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            suffixIcon: Container(
+              margin: const EdgeInsets.only(right: 12),
+              alignment: Alignment.centerRight,
+              width: 44,
+              child: const Text(
+                'GHIN',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: kTournamentEmerald,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
 
         // Home Golf Club
         _buildLabel('Home Golf Club'),
@@ -705,7 +1808,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             color: Color(0xFF8CA0BA),
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Gender Segmented Control
         _buildLabel('Gender'),
@@ -740,13 +1843,24 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           : null,
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      'Male',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: _selectedGender == 'MALE' ? kTournamentEmerald : const Color(0xFF64748B),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Male',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _selectedGender == 'MALE' ? kTournamentEmerald : const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.male_rounded,
+                          size: 18,
+                          color: _selectedGender == 'MALE' ? kTournamentEmerald : const Color(0xFF64748B),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -772,13 +1886,24 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           : null,
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      'Female',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: _selectedGender == 'FEMALE' ? kTournamentEmerald : const Color(0xFF64748B),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Female',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _selectedGender == 'FEMALE' ? kTournamentEmerald : const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.female_rounded,
+                          size: 18,
+                          color: _selectedGender == 'FEMALE' ? kTournamentEmerald : const Color(0xFF64748B),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -786,7 +1911,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Date of Birth
         _buildLabel('Date of Birth'),
@@ -806,31 +1931,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'For Junior / Senior bracket eligibility verification.',
           style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF94A3B8)),
         ),
-        const SizedBox(height: 22),
-
-        // Verification Notice Box
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: kGreenInputBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGreenInputBorder, width: 1),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.verified_user_outlined, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Handicap indexes are verified against the national golf registry (GHIN/USGA) before tournament play begins.',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF475569), height: 1.35),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
 
         // Navigation Buttons Row
         _buildBottomNavButtons(
@@ -860,88 +1961,138 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Used for live on-course tee time notifications and official pairing scorecards.',
           style: TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
 
         // Circular Avatar Upload Container
         Center(
           child: Column(
             children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: kGreenInputBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: kGreenInputBorder, width: 2),
+              GestureDetector(
+                onTap: () => _showPhotoUploadOptions(context),
+                child: Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF7F4),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFC6E8D6),
+                      width: 2,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: _avatarUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(65),
+                          child: Image.network(
+                            _avatarUrl!,
+                            width: 130,
+                            height: 130,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, size: 54, color: kTournamentEmerald),
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.camera_alt_rounded, color: kTournamentEmerald, size: 36),
+                            SizedBox(height: 6),
+                            Text(
+                              'PHOTO',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: kTournamentEmerald,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.camera_alt_rounded, color: kTournamentEmerald, size: 26),
-                    SizedBox(height: 4),
-                    Text(
-                      'PHOTO',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: kTournamentEmerald,
-                        letterSpacing: 0.8,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => _showPhotoUploadOptions(context),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(160, 42),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      elevation: 1,
+                      shadowColor: Colors.black.withOpacity(0.04),
+                    ),
+                    child: Text(
+                      _avatarUrl != null ? 'Change Photo' : 'Upload Player Photo',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    ),
+                  ),
+                  if (_avatarUrl != null) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        setState(() => _avatarUrl = null);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Player photo removed.')),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFFFF1F2),
+                          border: Border.all(color: const Color(0xFFFECDD3)),
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFFE11D48)),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Avatar picker opened: Choose profile photo.')),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(140, 36),
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              const SizedBox(height: 8),
+              const SizedBox(
+                width: 260,
+                child: Text(
+                  'High-contrast headshot used on the live clubhouse leaderboard (max 500KB strictly).',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF8CA0BA), height: 1.4),
+                  textAlign: TextAlign.center,
                 ),
-                child: const Text(
-                  'Upload Player Photo',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'High-contrast headshot used on the live clubhouse leaderboard.',
-                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
         // Mobile Phone Number
         _buildLabel('Mobile Phone Number'),
         Row(
           children: [
-            // US Country Code Selector
-            Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: kGreenInputBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kGreenInputBorder, width: 1.2),
-              ),
-              child: Row(
-                children: const [
-                  Text(
-                    'US  +1',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF64748B)),
-                ],
+            // Country Code Selector
+            GestureDetector(
+              onTap: () => _showCountryPicker(context),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: kGreenInputBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGreenInputBorder, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '$_selectedCountryFlag  +$_selectedPhoneCode',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF8CA0BA), size: 18),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -949,7 +2100,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             Expanded(
               child: _buildGreenTextField(
                 controller: _phoneController,
-                hintText: '(555) 000-0000',
+                hintText: _selectedCountryCode == 'NG' ? '0803 555 0192' : 'Phone number',
                 keyboardType: TextInputType.phone,
               ),
             ),
@@ -960,67 +2111,126 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Used for emergency shotgun and weather sirens.',
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
-        // City & State Row
+        // State & City / LGA Row
         Row(
           children: [
             Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel('City'),
-                  _buildGreenTextField(
-                    controller: _cityController,
-                    hintText: 'Augusta',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildLabel('State'),
-                  _buildGreenTextField(
-                    controller: _stateController,
-                    hintText: 'GA',
+                  GestureDetector(
+                    onTap: () => _showStatePicker(context),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder, width: 1.2),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _stateController.text.isEmpty ? 'Select State' : _stateController.text,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF0F172A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF8CA0BA), size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('City / LGA'),
+                  GestureDetector(
+                    onTap: () => _showCityPicker(context),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: kGreenInputBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGreenInputBorder, width: 1.2),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _cityController.text.isEmpty ? 'Select LGA' : _cityController.text,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF0F172A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF8CA0BA), size: 20),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
 
         // Push Notifications Card
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
             color: kGreenInputBg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: kGreenInputBorder, width: 1.2),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Push Notifications',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Instant Tee Time & Marker Pairing Alerts',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Push Notifications',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Instant Tee Time & Marker Pairing Alerts',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF5B6B7F),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Switch(
                 value: _pushNotifications,
                 activeColor: kTournamentEmerald,
@@ -1032,7 +2242,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 22),
 
         // Navigation Buttons Row
         _buildBottomNavButtons(
@@ -1045,12 +2255,35 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   // --- STEP 4: REVIEW & COMPETITOR PLEDGE ---
   Widget _buildStep4(BuildContext context) {
-    final fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
-    final hcp = _noHandicapIndex ? '36.0 (Callaway)' : _handicapController.text;
+    final first = _firstNameController.text.trim();
+    final last = _lastNameController.text.trim();
+    final fullName = '$first $last'.trim();
+    final isPro = _selectedClassification == 'PROFESSIONAL';
+    final firstInitial = first.isNotEmpty ? first[0].toUpperCase() : '';
+    final lastInitial = last.isNotEmpty ? last[0].toUpperCase() : '';
+    final userInitials = (firstInitial.isNotEmpty || lastInitial.isNotEmpty)
+        ? '$firstInitial$lastInitial'
+        : 'PL';
+    final hcp = _selectedClassification == 'BEGINNER' ? '36.0' : _handicapController.text;
     final club = _homeClubController.text.trim();
-    final flight = _selectedGender == 'MALE' ? "Men's Championship Flight" : "Women's Championship Flight";
+    final hcpDisplay = isPro
+        ? '0.0 (Scratch)'
+        : (_selectedClassification == 'BEGINNER'
+            ? '36.0'
+            : (hcp.isNotEmpty ? hcp : '18.0'));
+    final clubDisplay = club.isNotEmpty ? club : 'None';
+    final genderDisplay = _selectedGender == 'MALE'
+        ? 'Male'
+        : (_selectedGender == 'FEMALE' ? 'Female' : (_selectedGender ?? 'Not specified'));
     final phone = _phoneController.text.trim();
-    final location = '${_cityController.text.trim()}, ${_stateController.text.trim()}';
+    final emailDisplay = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'None';
+    final phoneDisplay = '$_selectedCountryFlag +$_selectedPhoneCode $phone';
+    final locationParts = [
+      if (_cityController.text.trim().isNotEmpty) _cityController.text.trim(),
+      if (_stateController.text.trim().isNotEmpty) _stateController.text.trim(),
+      if (_selectedCountryName.isNotEmpty) _selectedCountryName,
+    ];
+    final locationDisplay = locationParts.isNotEmpty ? locationParts.join(', ') : 'Nigeria';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1069,7 +2302,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Verify your tournament credentials and confirm rules compliance before activation.',
           style: TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
         // Summary Profile Card
         _buildLabel('Summary Profile Card'),
@@ -1091,66 +2324,114 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Golfer Avatar
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: kGreenInputBg,
-                    child: const Icon(Icons.person_rounded, color: kTournamentEmerald, size: 28),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          fullName.isEmpty ? 'Alex Wright' : fullName,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF111827),
+                  // Golfer Avatar with Initials + PRO Badge
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: kGreenInputBg,
+                        backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
+                        child: _avatarUrl == null
+                            ? Text(
+                                userInitials,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: kTournamentEmerald,
+                                  letterSpacing: 0.5,
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (isPro)
+                        Positioned(
+                          right: -3,
+                          bottom: -3,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: kTournamentEmerald,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              'PRO',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                                height: 1.0,
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: kGreenInputBg,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: kGreenInputBorder),
-                          ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
                           child: Text(
-                            'HCP Index $hcp${club.isNotEmpty ? " • $club" : ""} • $flight',
+                            fullName.isEmpty ? 'Alex Wright' : fullName,
                             style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: kTournamentEmerald,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
                             ),
-                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (isPro) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: kTournamentEmerald,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'PRO',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ],
               ),
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 10),
                 child: Divider(color: Color(0xFFF1F5F9), thickness: 1),
               ),
-              Text(
-                '${_emailController.text} • +1 $phone • $location',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF475569),
-                ),
-              ),
+              _buildSummaryDetailRow('HCP Index:', hcpDisplay),
+              _buildSummaryDetailRow('Home Club:', clubDisplay),
+              _buildSummaryDetailRow('Gender:', genderDisplay),
+              _buildSummaryDetailRow('Email:', emailDisplay),
+              _buildSummaryDetailRow('Phone:', phoneDisplay),
+              _buildSummaryDetailRow('Location:', locationDisplay),
             ],
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
 
         // Rules & Attestation Pledge Box
         _buildLabel('Rules & Attestation Pledge'),
@@ -1219,7 +2500,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
 
         // Bottom Nav Buttons
         _buildBottomNavButtons(
@@ -1232,9 +2513,41 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   // --- Helper Widget Builders ---
+  Widget _buildSummaryDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3.5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 5),
       child: Text(
         text,
         style: const TextStyle(
@@ -1703,21 +3016,22 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   void _openModernDobCalendar(BuildContext context) {
-    DateTime initial = DateTime(1994, 5, 14);
+    final now = DateTime.now();
+    DateTime? selected;
+    int viewYear = now.year - 25;
+    int viewMonth = 1;
+
     final parts = _dobController.text.split('/');
     if (parts.length == 3) {
       final m = int.tryParse(parts[0].trim());
       final d = int.tryParse(parts[1].trim());
       final y = int.tryParse(parts[2].trim());
       if (m != null && d != null && y != null) {
-        initial = DateTime(y, m, d);
+        selected = DateTime(y, m, d);
+        viewYear = y;
+        viewMonth = m;
       }
     }
-
-    int viewYear = initial.year;
-    int viewMonth = initial.month;
-    DateTime? selected = initial;
-    final now = DateTime.now();
 
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
