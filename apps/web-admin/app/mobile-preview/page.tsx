@@ -45,6 +45,9 @@ import {
   Upload,
   Mars,
   Venus,
+  Loader2,
+  Bell,
+  X,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
@@ -342,7 +345,55 @@ export default function MobilePreviewPage() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("verify");
   const [showInspector, setShowInspector] = useState(false);
   const [deviceScale, setDeviceScale] = useState<number>(100);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  interface ToastNotification {
+    type: "success" | "error" | "alert";
+    title?: string;
+    message: string;
+  }
+  const [mobileToast, setMobileToast] = useState<ToastNotification | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sanitizeToastMessage = (raw: string): string => {
+    if (!raw) return "";
+    const lower = raw.toLowerCase();
+    if (lower.includes("email already exists") || (lower.includes("email") && lower.includes("exist"))) {
+      return "This email is already registered. Please sign in.";
+    }
+    if (lower.includes("phone number is already registered") || (lower.includes("phone") && lower.includes("exist"))) {
+      return "This phone number is already registered.";
+    }
+    if (lower.includes("unable to reach server") || lower.includes("failed to fetch")) {
+      return "Unable to reach server. Check backend connection.";
+    }
+    return raw;
+  };
+
+  const showToast = (
+    msg: string,
+    type: "success" | "error" | "alert" = "success",
+    customTitle?: string
+  ) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    const defaultTitle = type === "success" ? "SUCCESS" : type === "error" ? "ERROR" : "ALERT";
+    setMobileToast({
+      type,
+      title: customTitle || defaultTitle,
+      message: sanitizeToastMessage(msg),
+    });
+    // Strict 5-second display requirement
+    toastTimerRef.current = setTimeout(() => {
+      setMobileToast(null);
+    }, 5000);
+  };
+
+  const dismissToast = () => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setMobileToast(null);
+  };
   const [copied, setCopied] = useState(false);
 
   // Default Scroll Reset Refs
@@ -376,6 +427,13 @@ export default function MobilePreviewPage() {
 
   const switchScreen = (screen: ScreenId) => {
     setActiveScreen(screen);
+    if (screen === "verify") {
+      setVerifySuccess(false);
+      setVerifyError(null);
+    }
+    if (screen === "register") {
+      setRegError(null);
+    }
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.set("screen", screen);
@@ -467,24 +525,25 @@ export default function MobilePreviewPage() {
 
     setIsVerifying(true);
     setVerifyError(null);
+
     try {
-      const res = await fetch("http://localhost:3001/api/auth/verify-email", {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const res = await fetch(`${backendBase}/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: code }),
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && (data?.success || res.status === 200)) {
         setVerifySuccess(true);
         showToast("Email verified successfully! Competitor profile activated.");
         setTimeout(() => setActiveScreen("hub"), 1200);
       } else {
-        setVerifyError(data.message || "Invalid or expired verification code.");
+        setVerifyError(data?.message || "Invalid or expired verification code.");
       }
     } catch {
-      setVerifySuccess(true);
-      showToast("Email verified! Competitor profile activated.");
-      setTimeout(() => setActiveScreen("hub"), 1200);
+      setVerifyError("Unable to reach backend server. Please verify backend is running.");
     } finally {
       setIsVerifying(false);
     }
@@ -495,18 +554,22 @@ export default function MobilePreviewPage() {
     try {
       setResendCooldown(59);
       setVerifyError(null);
-      await fetch("http://localhost:3001/api/auth/preview-otp-email", {
+      const targetEmail = verifyEmailTarget || regEmail || "alex.wright@example.com";
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const res = await fetch(`${backendBase}/auth/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: verifyEmailTarget,
-          name: "Alex Wright",
-          otpCode: "849201",
-        }),
+        body: JSON.stringify({ email: targetEmail }),
       });
-      showToast("Fresh 6-digit code dispatched to Mailpit!");
+      const data = await res.json().catch(() => null);
+
+      if (res.ok) {
+        showToast(`Fresh 6-digit code sent to ${targetEmail}!`);
+      } else {
+        setVerifyError(data?.message || "Failed to resend verification code.");
+      }
     } catch {
-      showToast("New 6-digit security code sent.");
+      showToast("Verification code resent.");
     }
   };
 
@@ -590,7 +653,7 @@ export default function MobilePreviewPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Close suggestions / modals on outside click
@@ -673,6 +736,20 @@ export default function MobilePreviewPage() {
   const [regAgreedMarker, setRegAgreedMarker] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [regEmailError, setRegEmailError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [regPhoneError, setRegPhoneError] = useState<string | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
+  const calcPasswordStrength = (pass: string) => {
+    if (!pass) return 0;
+    let s = 0;
+    if (pass.length >= 8) s++;
+    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) s++;
+    if (/[0-9]/.test(pass)) s++;
+    if (/[^A-Za-z0-9]/.test(pass)) s++;
+    return s;
+  };
 
   // Reactive Step Completion Validation for Disabled Button States
   const isRegStep1Valid = Boolean(
@@ -681,7 +758,9 @@ export default function MobilePreviewPage() {
     regEmail.includes("@") &&
     regEmail.includes(".") &&
     regPassword.length >= 8 &&
-    regPassword === regConfirmPassword
+    calcPasswordStrength(regPassword) === 4 &&
+    regPassword === regConfirmPassword &&
+    !regEmailError
   );
 
   const isRegStep2Valid = Boolean(
@@ -696,41 +775,121 @@ export default function MobilePreviewPage() {
   const isRegStep3Valid = Boolean(
     regPhone.replace(/\D/g, "").length >= 7 &&
     regCity.trim() &&
-    regState.trim()
+    regState.trim() &&
+    !regPhoneError
   );
 
   const isRegStep4Valid = Boolean(regAgreedRules && regAgreedMarker);
 
-  const calcPasswordStrength = (pass: string) => {
-    if (!pass) return 0;
-    let s = 0;
-    if (pass.length >= 8) s++;
-    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) s++;
-    if (/[0-9]/.test(pass)) s++;
-    if (/[^A-Za-z0-9]/.test(pass)) s++;
-    return s;
+  const checkEmailUniqueness = async (emailToVerify: string): Promise<boolean> => {
+    const trimmed = emailToVerify.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@") || !trimmed.includes(".")) {
+      setRegEmailError(null);
+      return true;
+    }
+    try {
+      setIsCheckingEmail(true);
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const res = await fetch(`${backendBase}/auth/validate-player`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.available === false) {
+        setRegEmailError("This email is already registered.");
+        showToast("This email is already registered. Please sign in.", "error");
+        return false;
+      }
+      setRegEmailError(null);
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setIsCheckingEmail(false);
+    }
   };
 
-  const handleRegNext = () => {
-    setRegError(null);
+  const checkPhoneUniqueness = async (phoneToVerify: string): Promise<boolean> => {
+    const cleanDigits = phoneToVerify.replace(/\D/g, "");
+    if (!cleanDigits || cleanDigits.length < 7) {
+      setRegPhoneError(null);
+      return true;
+    }
+    try {
+      setIsCheckingPhone(true);
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const formatted = phoneToVerify.trim().startsWith("+")
+        ? phoneToVerify.trim()
+        : `+${regPhoneCode}${cleanDigits.replace(/^0+/, "")}`;
+      const res = await fetch(`${backendBase}/auth/validate-player`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formatted }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.available === false) {
+        setRegPhoneError("This phone number is already registered.");
+        showToast("This phone number is already registered.", "error");
+        return false;
+      }
+      setRegPhoneError(null);
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const handleRegNext = async () => {
     if (regStep === 1) {
       if (!regFirstName.trim() || !regLastName.trim()) {
-        setRegError("Please enter your full first and last name.");
+        showToast("Please enter your full first and last name.", "error");
         return;
       }
-      if (!regEmail.includes("@")) {
-        setRegError("Please enter a valid email address.");
+      if (!regEmail.includes("@") || !regEmail.includes(".")) {
+        showToast("Please enter a valid email address.", "error");
         return;
       }
       if (regPassword.length < 8) {
-        setRegError("Password must be at least 8 characters.");
+        showToast("Password must be at least 8 characters.", "error");
+        return;
+      }
+      if (calcPasswordStrength(regPassword) < 4) {
+        showToast("Password is too weak. Please make it stronger before moving to the next step.", "error");
         return;
       }
       if (regPassword !== regConfirmPassword) {
-        setRegError("Passwords do not match.");
+        showToast("Passwords do not match.", "error");
+        return;
+      }
+
+      // Verify email existence right from Step 1!
+      const isEmailAvailable = await checkEmailUniqueness(regEmail);
+      if (!isEmailAvailable) {
         return;
       }
     }
+
+    if (regStep === 3) {
+      const cleanDigits = regPhone.replace(/\D/g, "");
+      if (cleanDigits.length < 7) {
+        showToast("Please enter a valid mobile phone number.", "error");
+        return;
+      }
+      if (!regCity.trim() || !regState.trim()) {
+        showToast("Please select your state and city / LGA.", "error");
+        return;
+      }
+
+      // Verify phone uniqueness right from Step 3!
+      const isPhoneAvailable = await checkPhoneUniqueness(regPhone);
+      if (!isPhoneAvailable) {
+        return;
+      }
+    }
+
     if (regStep < 4) {
       setRegStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
       scrollToTopAll();
@@ -738,7 +897,8 @@ export default function MobilePreviewPage() {
   };
 
   const handleRegPrev = () => {
-    setRegError(null);
+    setRegEmailError(null);
+    setRegPhoneError(null);
     if (regStep > 1) {
       setRegStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
       scrollToTopAll();
@@ -747,18 +907,83 @@ export default function MobilePreviewPage() {
     }
   };
 
-  const handleRegComplete = () => {
+  const handleRegComplete = async () => {
     if (!regAgreedRules || !regAgreedMarker) {
-      setRegError("Please accept both tournament rules and marker pledges.");
+      showToast("Please accept both tournament rules and marker pledges.", "error");
       return;
     }
     setIsRegistering(true);
-    setTimeout(() => {
-      setIsRegistering(false);
-      setVerifyEmailTarget(regEmail);
-      showToast("Player account created! Verification code sent.");
+
+    const targetEmail = regEmail.trim().toLowerCase();
+    const playerName = `${regFirstName.trim()} ${regLastName.trim()}`;
+    const handicapNum = regClassification === "PROFESSIONAL"
+      ? 0.0
+      : regClassification === "BEGINNER"
+        ? 36.0
+        : (parseFloat(regHandicap) || 18.0);
+
+    const cleanPhoneDigits = regPhone.replace(/\D/g, "");
+    const formattedPhone = regPhone.trim().startsWith("+")
+      ? regPhone.trim()
+      : `+${regPhoneCode}${cleanPhoneDigits.replace(/^0+/, "")}`;
+
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const res = await fetch(`${backendBase}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: targetEmail,
+          password: regPassword,
+          name: playerName,
+          handicap: handicapNum,
+          gender: regGender || undefined,
+          phone: formattedPhone,
+          city: regCity.trim(),
+          state: regState.trim(),
+          dob: regDob.trim(),
+          classification: regClassification || "AMATEUR",
+          isPro: regClassification === "PROFESSIONAL",
+          clientPlatform: "mobile",
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const errorMsg = data?.message || "Registration failed. Please check your details.";
+        const displayErr = Array.isArray(errorMsg) ? errorMsg.join(", ") : errorMsg;
+        showToast(displayErr, "error");
+        setIsRegistering(false);
+
+        // If email issue, route user to step 1
+        if (displayErr.toLowerCase().includes("email")) {
+          setRegEmailError(displayErr);
+          setRegStep(1);
+          scrollToTopAll();
+        } else if (displayErr.toLowerCase().includes("phone")) {
+          setRegPhoneError(displayErr);
+          setRegStep(3);
+          scrollToTopAll();
+        }
+        return;
+      }
+
+      // Successful Registration in DB!
+      // Reset all verification state to clean empty inputs
+      setVerifyEmailTarget(targetEmail);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setVerifySuccess(false);
+      setVerifyError(null);
+      setResendCooldown(59);
+
+      showToast("Verification code sent to your email.", "success");
       switchScreen("verify");
-    }, 500);
+    } catch (err: any) {
+      showToast(err?.message || "Unable to reach server. Please check your backend connection.", "error");
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   // Load live tournaments from organizers via API (safe without auth redirect)
@@ -891,11 +1116,6 @@ export default function MobilePreviewPage() {
     putts: 2,
     fairway: "CENTER",
     gir: true,
-  };
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
   };
 
   const handleUpdateScore = (
@@ -1387,77 +1607,70 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         <div className="flex items-center gap-1.5 bg-[#0D1522] p-1 rounded-xl border border-slate-800/80">
           <button
             onClick={() => switchScreen("register")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "register"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "register"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <UserPlus className="h-3.5 w-3.5" />
             Register
           </button>
           <button
             onClick={() => switchScreen("verify")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "verify"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "verify"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <Mail className="h-3.5 w-3.5" />
             Verify Email (OTP)
           </button>
           <button
             onClick={() => switchScreen("login")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "login"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "login"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <LogOut className="h-3.5 w-3.5 rotate-180" />
             Login
           </button>
           <button
             onClick={() => switchScreen("scoring")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "scoring"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "scoring"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <Flag className="h-3.5 w-3.5" />
             Scoring
           </button>
           <button
             onClick={() => switchScreen("attestation")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "attestation"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "attestation"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <UserCheck className="h-3.5 w-3.5" />
             Attestation
           </button>
           <button
             onClick={() => switchScreen("hub")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "hub"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "hub"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <Trophy className="h-3.5 w-3.5" />
             Tournament Hub
           </button>
           <button
             onClick={() => switchScreen("leaderboard")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              activeScreen === "leaderboard"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${activeScreen === "leaderboard"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
           >
             <Award className="h-3.5 w-3.5" />
             Leaderboard
@@ -1485,22 +1698,49 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           </select>
         </div>
 
+        {/* Quick Toaster Previews (Image 1 Specs) */}
+        <div className="hidden lg:flex items-center gap-1.5 bg-[#0D1522] px-2.5 py-1 rounded-xl border border-slate-800 text-xs">
+          <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Toasts:</span>
+          <button
+            type="button"
+            onClick={() => showToast("Your score has been verified successfully.", "success", "SUCCESS")}
+            className="px-2 py-1 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[11px] font-semibold transition-colors cursor-pointer"
+            title="Preview Success Toast (5s)"
+          >
+            Success
+          </button>
+          <button
+            type="button"
+            onClick={() => showToast("Unable to sync scorecard. Please try again.", "error", "ERROR")}
+            className="px-2 py-1 rounded-md bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-[11px] font-semibold transition-colors cursor-pointer"
+            title="Preview Error Toast (5s)"
+          >
+            Error
+          </button>
+          <button
+            type="button"
+            onClick={() => showToast("Slow play reported on Hole 14. Keep pace.", "alert", "ALERT")}
+            className="px-2 py-1 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-[11px] font-semibold transition-colors cursor-pointer"
+            title="Preview Alert Toast (5s)"
+          >
+            Alert
+          </button>
+        </div>
+
         {/* View Controls & Inspector Toggle */}
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-[#0D1522] rounded-lg border border-slate-800/80 p-0.5 text-xs text-slate-400">
             <button
               onClick={() => setDeviceScale(85)}
-              className={`px-2 py-1 rounded ${
-                deviceScale === 85 ? "bg-slate-800 text-white" : ""
-              }`}
+              className={`px-2 py-1 rounded ${deviceScale === 85 ? "bg-slate-800 text-white" : ""
+                }`}
             >
               85%
             </button>
             <button
               onClick={() => setDeviceScale(100)}
-              className={`px-2 py-1 rounded ${
-                deviceScale === 100 ? "bg-slate-800 text-white" : ""
-              }`}
+              className={`px-2 py-1 rounded ${deviceScale === 100 ? "bg-slate-800 text-white" : ""
+                }`}
             >
               100%
             </button>
@@ -1508,11 +1748,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
           <button
             onClick={() => setShowInspector(!showInspector)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all ${
-              showInspector
-                ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                : "bg-[#0D1522] border-slate-800 text-slate-300 hover:border-slate-700"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all ${showInspector
+              ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+              : "bg-[#0D1522] border-slate-800 text-slate-300 hover:border-slate-700"
+              }`}
           >
             <FileCode2 className="h-3.5 w-3.5 text-amber-400" />
             Dart Code
@@ -1567,22 +1806,106 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   </div>
                 </div>
 
-                {/* Floating In-App Toast */}
-                {toastMessage && (
-                  <div className="absolute top-12 left-4 right-4 z-40 bg-emerald-900/90 border border-emerald-500/50 backdrop-blur-md text-emerald-100 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-medium animate-in fade-in slide-in-from-top-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                    <span>{toastMessage}</span>
+                {/* Floating In-App Toaster Display (Enhanced Pill with Visible Shadow, 5s Auto-Dismiss) */}
+                {mobileToast && (
+                  <div className="absolute top-12 left-3.5 right-3.5 z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                    {/* SUCCESS VARIANT */}
+                    {mobileToast.type === "success" && (
+                      <div className="w-full bg-white rounded-[26px] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.06)] border border-slate-100/90 flex items-center gap-3.5 relative">
+                        {/* Pale mint badge + solid emerald circle + white check */}
+                        <div className="w-11 h-11 rounded-full bg-[#EBF7EE] flex items-center justify-center shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#009A60] flex items-center justify-center shadow-xs">
+                            <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                          </div>
+                        </div>
+                        {/* Text details */}
+                        <div className="flex-1 min-w-0 pr-2">
+                          <h4 className="text-[13.5px] font-black uppercase tracking-wider text-[#111827] leading-none mb-1">
+                            {mobileToast.title || "SUCCESS"}
+                          </h4>
+                          <p className="text-[12.5px] text-[#5B6B7F] leading-snug font-normal line-clamp-2">
+                            {mobileToast.message}
+                          </p>
+                        </div>
+                        {/* Close button */}
+                        <button
+                          type="button"
+                          onClick={dismissToast}
+                          className="text-slate-300 hover:text-slate-500 p-1.5 rounded-full transition-colors cursor-pointer shrink-0 self-center -mr-1"
+                          aria-label="Dismiss toast"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ERROR VARIANT */}
+                    {mobileToast.type === "error" && (
+                      <div className="w-full bg-white rounded-[26px] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.06)] border border-[#FEE2E2]/80 flex items-center gap-3.5 relative">
+                        {/* Pale rose badge + solid crimson circle + white exclamation */}
+                        <div className="w-11 h-11 rounded-full bg-[#FEECEC] flex items-center justify-center shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#DC2626] flex items-center justify-center shadow-xs text-white font-black text-xs leading-none">
+                            !
+                          </div>
+                        </div>
+                        {/* Text details */}
+                        <div className="flex-1 min-w-0 pr-2">
+                          <h4 className="text-[13.5px] font-black uppercase tracking-wider text-[#DC2626] leading-none mb-1">
+                            {mobileToast.title || "ERROR"}
+                          </h4>
+                          <p className="text-[12.5px] text-[#5B6B7F] leading-snug font-normal line-clamp-2">
+                            {mobileToast.message}
+                          </p>
+                        </div>
+                        {/* Close button */}
+                        <button
+                          type="button"
+                          onClick={dismissToast}
+                          className="text-slate-300 hover:text-slate-500 p-1.5 rounded-full transition-colors cursor-pointer shrink-0 self-center -mr-1"
+                          aria-label="Dismiss toast"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ALERT VARIANT */}
+                    {mobileToast.type === "alert" && (
+                      <div className="w-full bg-[#111827] rounded-[26px] p-4 shadow-[0_24px_50px_rgba(0,0,0,0.65),0_10px_25px_rgba(0,0,0,0.4)] border border-slate-800 flex items-center gap-3.5 relative text-white">
+                        {/* Amber circular badge + dark alert triangle */}
+                        <div className="w-11 h-11 rounded-full bg-[#F59E0B] flex items-center justify-center shrink-0 shadow-xs">
+                          <AlertTriangle className="w-5 h-5 text-[#111827] fill-[#111827] stroke-none" />
+                        </div>
+                        {/* Text details */}
+                        <div className="flex-1 min-w-0 pr-2">
+                          <h4 className="text-[13.5px] font-black uppercase tracking-wider text-white leading-none mb-1">
+                            {mobileToast.title || "ALERT"}
+                          </h4>
+                          <p className="text-[12.5px] text-[#94A3B8] leading-snug font-normal line-clamp-2">
+                            {mobileToast.message}
+                          </p>
+                        </div>
+                        {/* Close button */}
+                        <button
+                          type="button"
+                          onClick={dismissToast}
+                          className="text-slate-400 hover:text-white p-1.5 rounded-full transition-colors cursor-pointer shrink-0 self-center -mr-1"
+                          aria-label="Dismiss toast"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* SCREEN CONTENT VIEW */}
                 <div
                   ref={phoneContentScrollRef}
-                  className={`flex-1 relative flex flex-col ${
-                    activeScreen === "scoring" || activeScreen === "register"
-                      ? "overflow-hidden"
-                      : "overflow-y-auto scrollbar-hide no-scrollbar"
-                  }`}
+                  className={`flex-1 relative flex flex-col ${activeScreen === "scoring" || activeScreen === "register"
+                    ? "overflow-hidden"
+                    : "overflow-y-auto scrollbar-hide no-scrollbar"
+                    }`}
                   style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                   {/* 1. SCORING SCREEN */}
@@ -1642,13 +1965,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 key={h.number}
                                 type="button"
                                 onClick={() => setCurrentHoleIndex(i)}
-                                className={`shrink-0 w-8 h-8 rounded-xl text-[11px] font-medium flex flex-col items-center justify-center transition-all ${
-                                  isActive
-                                    ? "bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-900/50 scale-105"
-                                    : isSaved
+                                className={`shrink-0 w-8 h-8 rounded-xl text-[11px] font-medium flex flex-col items-center justify-center transition-all ${isActive
+                                  ? "bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-900/50 scale-105"
+                                  : isSaved
                                     ? "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
                                     : "bg-slate-900/70 text-slate-400 border border-slate-800/50"
-                                }`}
+                                  }`}
                               >
                                 <span>{h.number}</span>
                               </button>
@@ -1791,16 +2113,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 onClick={() =>
                                   handleUpdateScore("gir", !activeHoleScore.gir)
                                 }
-                                className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                                  activeHoleScore.gir
-                                    ? "bg-emerald-500"
-                                    : "bg-slate-800"
-                                }`}
+                                className={`w-10 h-5 rounded-full p-0.5 transition-colors ${activeHoleScore.gir
+                                  ? "bg-emerald-500"
+                                  : "bg-slate-800"
+                                  }`}
                               >
                                 <div
-                                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                                    activeHoleScore.gir ? "translate-x-5" : ""
-                                  }`}
+                                  className={`w-4 h-4 rounded-full bg-white transition-transform ${activeHoleScore.gir ? "translate-x-5" : ""
+                                    }`}
                                 />
                               </button>
                             </div>
@@ -1818,11 +2138,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 key={fw}
                                 type="button"
                                 onClick={() => handleUpdateScore("fairway", fw)}
-                                className={`py-1.5 rounded-lg text-[9px] font-semibold tracking-wider transition-all ${
-                                  activeHoleScore.fairway === fw
-                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-950 border border-emerald-400/40"
-                                    : "bg-slate-900/90 text-slate-400 border border-slate-800 hover:text-slate-200"
-                                }`}
+                                className={`py-1.5 rounded-lg text-[9px] font-semibold tracking-wider transition-all ${activeHoleScore.fairway === fw
+                                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-950 border border-emerald-400/40"
+                                  : "bg-slate-900/90 text-slate-400 border border-slate-800 hover:text-slate-200"
+                                  }`}
                               >
                                 {fw}
                               </button>
@@ -1882,18 +2201,16 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             return (
                               <div
                                 key={player.id}
-                                className={`rounded-2xl bg-[#0E1521]/90 border ${
-                                  isAttested ? "border-emerald-500/40" : "border-slate-800/90"
-                                } p-3.5 mb-2.5 shadow-lg`}
+                                className={`rounded-2xl bg-[#0E1521]/90 border ${isAttested ? "border-emerald-500/40" : "border-slate-800/90"
+                                  } p-3.5 mb-2.5 shadow-lg`}
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2.5">
                                     <div
-                                      className={`w-8 h-8 rounded-xl ${
-                                        isAttested
-                                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                          : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                                      } font-bold flex items-center justify-center text-xs border`}
+                                      className={`w-8 h-8 rounded-xl ${isAttested
+                                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                        : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                        } font-bold flex items-center justify-center text-xs border`}
                                     >
                                       {player.initials}
                                     </div>
@@ -1908,20 +2225,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   </div>
                                   <div className="text-right">
                                     <span
-                                      className={`text-base font-extrabold ${
-                                        player.gross.includes("-")
-                                          ? "text-emerald-400"
-                                          : "text-amber-400"
-                                      } font-mono block`}
+                                      className={`text-base font-extrabold ${player.gross.includes("-")
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                        } font-mono block`}
                                     >
                                       {player.gross}
                                     </span>
                                     <span
-                                      className={`text-[9px] px-2 py-0.5 rounded-full font-semibold ${
-                                        isAttested
-                                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                          : "bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse"
-                                      }`}
+                                      className={`text-[9px] px-2 py-0.5 rounded-full font-semibold ${isAttested
+                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse"
+                                        }`}
                                     >
                                       {isAttested ? "ATTESTED" : "PENDING"}
                                     </span>
@@ -1940,11 +2255,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         {/* Attest Action Button */}
                         <button
                           onClick={() => setShowAttestModal(true)}
-                          className={`w-full h-12 rounded-2xl font-medium text-xs tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all ${
-                            attestationConfirmed
-                              ? "bg-slate-800 text-slate-400 border border-slate-700 cursor-default"
-                              : "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-emerald-950 border border-emerald-400/30 active:scale-[0.98]"
-                          }`}
+                          className={`w-full h-12 rounded-2xl font-medium text-xs tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all ${attestationConfirmed
+                            ? "bg-slate-800 text-slate-400 border border-slate-700 cursor-default"
+                            : "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-emerald-950 border border-emerald-400/30 active:scale-[0.98]"
+                            }`}
                         >
                           <ShieldCheck className="h-4 w-4" />
                           <span>
@@ -2048,11 +2362,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     setSelectedTournamentIndex(idx);
                                     showToast(`Loaded ${t.name}`);
                                   }}
-                                  className={`shrink-0 text-left p-2.5 rounded-xl border transition-all w-[165px] ${
-                                    isSelected
-                                      ? "bg-emerald-950/40 border-emerald-500/50 text-white"
-                                      : "bg-[#0E1521]/70 border-slate-800 text-slate-400 hover:text-slate-200"
-                                  }`}
+                                  className={`shrink-0 text-left p-2.5 rounded-xl border transition-all w-[165px] ${isSelected
+                                    ? "bg-emerald-950/40 border-emerald-500/50 text-white"
+                                    : "bg-[#0E1521]/70 border-slate-800 text-slate-400 hover:text-slate-200"
+                                    }`}
                                 >
                                   <span className="text-[9px] text-emerald-400 block font-bold truncate">
                                     {t.organizerClub}
@@ -2269,11 +2582,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             <button
                               type="button"
                               onClick={() => setRememberMe(!rememberMe)}
-                              className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${
-                                rememberMe
-                                  ? "bg-[#009A60] text-white"
-                                  : "border border-slate-300 bg-white"
-                              }`}
+                              className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${rememberMe
+                                ? "bg-[#009A60] text-white"
+                                : "border border-slate-300 bg-white"
+                                }`}
                             >
                               {rememberMe && <Check className="h-3 w-3 stroke-[3]" />}
                             </button>
@@ -2294,11 +2606,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           type="button"
                           disabled={!loginEmail.trim() || !loginPassword.trim()}
                           onClick={() => handleLoginSubmit(loginEmail)}
-                          className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                            loginEmail.trim() && loginPassword.trim()
-                              ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                              : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
-                          }`}
+                          className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${loginEmail.trim() && loginPassword.trim()
+                            ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                            : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                            }`}
                         >
                           <span>Sign In</span>
                         </button>
@@ -2391,9 +2702,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           {[1, 2, 3, 4].map((step) => (
                             <div
                               key={step}
-                              className={`h-[3.5px] rounded-full transition-all duration-300 ${
-                                step <= regStep ? "bg-[#009A60]" : "bg-[#E5E7EB]"
-                              }`}
+                              className={`h-[3.5px] rounded-full transition-all duration-300 ${step <= regStep ? "bg-[#009A60]" : "bg-[#E5E7EB]"
+                                }`}
                             />
                           ))}
                         </div>
@@ -2405,14 +2715,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         className="flex-1 overflow-y-auto p-6 pt-3 space-y-3.5 scrollbar-hide no-scrollbar"
                         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                       >
-                        {/* Error Banner */}
-                        {regError && (
-                          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2 animate-in fade-in">
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                            <span>{regError}</span>
-                          </div>
-                        )}
-
                         {/* --- STEP 1: CREATE PLAYER ACCOUNT --- */}
                         {regStep === 1 && (
                           <div className="space-y-3.5">
@@ -2461,46 +2763,79 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               <div className="flex-1 h-px bg-[#E2E8F0]" />
                             </div>
 
-                            {/* First & Last Name */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
-                                  First Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={regFirstName}
-                                  onChange={(e) => setRegFirstName(e.target.value)}
-                                  placeholder="Alex"
-                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
-                                  Last Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={regLastName}
-                                  onChange={(e) => setRegLastName(e.target.value)}
-                                  placeholder="Wright"
-                                  className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
-                                />
-                              </div>
+                            {/* First Name */}
+                            <div>
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
+                                First Name
+                              </label>
+                              <input
+                                type="text"
+                                value={regFirstName}
+                                onChange={(e) => setRegFirstName(e.target.value)}
+                                placeholder="Alex"
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
+                              />
+                            </div>
+
+                            {/* Last Name */}
+                            <div>
+                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
+                                Last Name
+                              </label>
+                              <input
+                                type="text"
+                                value={regLastName}
+                                onChange={(e) => setRegLastName(e.target.value)}
+                                placeholder="Wright"
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
+                              />
                             </div>
 
                             {/* Email Address */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
-                                Email Address
-                              </label>
-                              <input
-                                type="email"
-                                value={regEmail}
-                                onChange={(e) => setRegEmail(e.target.value)}
-                                placeholder="player@domain.com"
-                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
-                              />
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block">
+                                  Email Address
+                                </label>
+                                {isCheckingEmail && (
+                                  <span className="text-xs text-[#009A60] flex items-center gap-1 font-medium">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Verifying...
+                                  </span>
+                                )}
+                              </div>
+                              <div className="relative">
+                                <input
+                                  type="email"
+                                  value={regEmail}
+                                  onChange={(e) => {
+                                    setRegEmail(e.target.value);
+                                    if (regEmailError) setRegEmailError(null);
+                                    if (regError) setRegError(null);
+                                  }}
+                                  onBlur={() => {
+                                    if (regEmail.includes("@") && regEmail.includes(".")) {
+                                      checkEmailUniqueness(regEmail);
+                                    }
+                                  }}
+                                  placeholder="player@domain.com"
+                                  className={`w-full h-12 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all ${
+                                    regEmailError
+                                      ? "bg-rose-50/60 border-2 border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                                      : "bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20"
+                                  }`}
+                                />
+                              </div>
+                              {regEmailError && (
+                                <div className="mt-1.5 text-left animate-in fade-in duration-150">
+                                  <button
+                                    type="button"
+                                    onClick={() => switchScreen("login")}
+                                    className="no-underline text-[13.5px] text-[#009A60] hover:text-[#008754] font-medium text-left cursor-pointer inline-block transition-colors"
+                                  >
+                                    Sign In to your existing account →
+                                  </button>
+                                </div>
+                              )}
                             </div>
 
                             {/* Password */}
@@ -2526,23 +2861,34 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               </div>
 
                               {/* Password Strength Indicator */}
-                              <div className="flex items-center gap-2 mt-2">
-                                <div className="flex-1 grid grid-cols-4 gap-1">
-                                  {[1, 2, 3, 4].map((bar) => {
-                                    const strength = calcPasswordStrength(regPassword);
-                                    return (
-                                      <div
-                                        key={bar}
-                                        className={`h-[3.5px] rounded-full ${
-                                          bar <= strength ? "bg-[#009A60]" : "bg-[#E2E8F0]"
-                                        }`}
-                                      />
-                                    );
-                                  })}
+                              <div className="space-y-1.5 mt-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 grid grid-cols-4 gap-1">
+                                    {[1, 2, 3, 4].map((bar) => {
+                                      const strength = calcPasswordStrength(regPassword);
+                                      return (
+                                        <div
+                                          key={bar}
+                                          className={`h-[3.5px] rounded-full transition-all duration-300 ${
+                                            bar <= strength ? "bg-[#009A60]" : "bg-[#E2E8F0]"
+                                          }`}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                  <span className="text-[9px] font-medium text-[#5B6B7F] tracking-wider uppercase">
+                                    {calcPasswordStrength(regPassword) === 4 ? "STRONG PASSWORD" : "MIN. 8 CHARACTERS"}
+                                  </span>
                                 </div>
-                                <span className="text-[9px] font-medium text-[#5B6B7F] tracking-wider uppercase">
-                                  MIN. 8 CHARACTERS
-                                </span>
+                                {regPassword.length > 0 && calcPasswordStrength(regPassword) < 4 && (
+                                  <div className="mt-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-amber-800 flex items-start gap-2 animate-in fade-in duration-150 text-left">
+                                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                                    <p className="text-[12px] font-medium leading-snug text-amber-800">
+                                      Password meter is not full.<br />
+                                      Add uppercase, number & symbol to proceed.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -2578,15 +2924,44 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             {/* CTA Button */}
                             <button
                               type="button"
-                              disabled={!isRegStep1Valid}
-                              onClick={handleRegNext}
+                              onClick={() => {
+                                if (isCheckingEmail) return;
+                                if (!regFirstName.trim() || !regLastName.trim()) {
+                                  showToast("Please enter your full first and last name.", "error");
+                                  return;
+                                }
+                                if (!regEmail.includes("@") || !regEmail.includes(".")) {
+                                  showToast("Please enter a valid email address.", "error");
+                                  return;
+                                }
+                                if (regPassword.length < 8) {
+                                  showToast("Password must be at least 8 characters.", "error");
+                                  return;
+                                }
+                                if (calcPasswordStrength(regPassword) < 4) {
+                                  showToast("Password is too weak. Please make it stronger before moving to the next step.", "error");
+                                  return;
+                                }
+                                if (regPassword !== regConfirmPassword) {
+                                  showToast("Passwords do not match.", "error");
+                                  return;
+                                }
+                                handleRegNext();
+                              }}
                               className={`w-full mt-2 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                                isRegStep1Valid
+                                isRegStep1Valid && !isCheckingEmail
                                   ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                                  : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                  : "bg-[#009A60]/40 hover:bg-[#009A60]/55 text-white/90 cursor-pointer shadow-none"
                               }`}
                             >
-                              <span>Continue to Golf Profile →</span>
+                              {isCheckingEmail ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                  <span>Verifying Email...</span>
+                                </>
+                              ) : (
+                                <span>Continue to Golf Profile →</span>
+                              )}
                             </button>
 
                             {/* Sign In Link */}
@@ -2628,10 +3003,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     regClassification === "BEGINNER"
                                       ? "Beginner"
                                       : regClassification === "AMATEUR"
-                                      ? "Intermediate / Amateur"
-                                      : regClassification === "PROFESSIONAL"
-                                      ? "Professional"
-                                      : ""
+                                        ? "Intermediate / Amateur"
+                                        : regClassification === "PROFESSIONAL"
+                                          ? "Professional"
+                                          : ""
                                   }
                                   onClick={() => setShowClassificationModal(true)}
                                   placeholder="Select player classification..."
@@ -2671,11 +3046,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     readOnly={regClassification === "BEGINNER"}
                                     onChange={(e) => setRegHandicap(e.target.value)}
                                     placeholder={regClassification === "BEGINNER" ? "36" : "e.g. 2.4"}
-                                    className={`w-full h-12 border rounded-xl px-3.5 pr-14 text-[13.5px] leading-normal font-medium transition-all ${
-                                      regClassification === "BEGINNER"
-                                        ? "bg-slate-100 border-[#e2e8f0] text-[#64748B] cursor-not-allowed select-none"
-                                        : "bg-[#f5faf6] border-[#e1efe5] text-[#0F172A] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden"
-                                    }`}
+                                    className={`w-full h-12 border rounded-xl px-3.5 pr-14 text-[13.5px] leading-normal font-medium transition-all ${regClassification === "BEGINNER"
+                                      ? "bg-slate-100 border-[#e2e8f0] text-[#64748B] cursor-not-allowed select-none"
+                                      : "bg-[#f5faf6] border-[#e1efe5] text-[#0F172A] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden"
+                                      }`}
                                   />
                                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#009A60] tracking-wider uppercase">
                                     GHIN
@@ -2727,11 +3101,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("MALE")}
-                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                                    regGender === "MALE"
-                                      ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
-                                      : "text-[#62758D] hover:text-slate-800 border border-transparent"
-                                  }`}
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${regGender === "MALE"
+                                    ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
+                                    : "text-[#62758D] hover:text-slate-800 border border-transparent"
+                                    }`}
                                 >
                                   <span>Male</span>
                                   <Mars className="h-4 w-4 shrink-0" />
@@ -2739,11 +3112,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 <button
                                   type="button"
                                   onClick={() => setRegGender("FEMALE")}
-                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                                    regGender === "FEMALE"
-                                      ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
-                                      : "text-[#62758D] hover:text-slate-800 border border-transparent"
-                                  }`}
+                                  className={`h-full rounded-lg text-[13.5px] font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${regGender === "FEMALE"
+                                    ? "bg-white text-[#009A60] border border-[#d1e7d8] shadow-xs"
+                                    : "text-[#62758D] hover:text-slate-800 border border-transparent"
+                                    }`}
                                 >
                                   <span>Female</span>
                                   <Venus className="h-4 w-4 shrink-0" />
@@ -2806,11 +3178,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 type="button"
                                 disabled={!isRegStep2Valid}
                                 onClick={handleRegNext}
-                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                                  isRegStep2Valid
-                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
-                                }`}
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${isRegStep2Valid
+                                  ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                  : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                  }`}
                               >
                                 Continue to Contact →
                               </button>
@@ -2893,9 +3264,16 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Mobile Phone Number */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
-                                Mobile Phone Number
-                              </label>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block">
+                                  Mobile Phone Number
+                                </label>
+                                {isCheckingPhone && (
+                                  <span className="text-xs text-[#009A60] flex items-center gap-1 font-medium">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Verifying...
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex gap-2">
                                 <button
                                   type="button"
@@ -2913,14 +3291,34 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 <input
                                   type="tel"
                                   value={regPhone}
-                                  onChange={(e) => setRegPhone(e.target.value)}
-                                  placeholder={regCountry === "NG" ? "0803 555 0192" : "Phone number"}
-                                  className="flex-1 h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
+                                  onChange={(e) => {
+                                    setRegPhone(e.target.value);
+                                    if (regPhoneError) setRegPhoneError(null);
+                                    if (regError) setRegError(null);
+                                  }}
+                                  onBlur={() => {
+                                    const cleanDigits = regPhone.replace(/\D/g, "");
+                                    if (cleanDigits.length >= 7) {
+                                      checkPhoneUniqueness(regPhone);
+                                    }
+                                  }}
+                                  placeholder={regCountry === "NG" ? "803 555 0192" : "Phone number"}
+                                  className={`flex-1 h-12 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all ${
+                                    regPhoneError
+                                      ? "bg-rose-50/60 border-2 border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                                      : "bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20"
+                                  }`}
                                 />
                               </div>
-                              <p className="text-[11px] text-[#8CA0BA] mt-1 font-normal">
-                                Used for emergency shotgun and weather sirens.
-                              </p>
+                              {regPhoneError ? (
+                                <p className="text-[13px] text-rose-600 font-medium text-left mt-1.5 animate-in fade-in duration-150">
+                                  This phone number is already registered.
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-[#8CA0BA] mt-1 font-normal text-left">
+                                  Used for emergency shotgun and weather sirens. Must be unique.
+                                </p>
+                              )}
                             </div>
 
                             {/* State & City / LGA */}
@@ -2960,26 +3358,76 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             </div>
 
                             {/* Push Notifications Card */}
-                            <div className="mt-4.5 mb-2 p-4.5 sm:p-5 rounded-2xl bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-between gap-4">
-                              <div className="min-w-0 pr-1">
-                                <p className="text-[14px] font-semibold text-[#0F172A]">Push Notifications</p>
-                                <p className="text-[12.5px] text-[#5B6B7F] mt-1.5 leading-relaxed">
-                                  Instant Tee Time & Marker Pairing Alerts
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setRegPushNotifications(!regPushNotifications)}
-                                className={`w-11 h-6.5 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer shrink-0 ${
-                                  regPushNotifications ? "bg-[#009A60]" : "bg-slate-300"
-                                }`}
-                              >
-                                <div
-                                  className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
-                                    regPushNotifications ? "translate-x-4.5" : "translate-x-0"
+                            <div className="mt-4 mb-2 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-2.5 min-w-0">
+                                  <div
+                                    className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                      regPushNotifications
+                                        ? "bg-[#009A60] text-white shadow-xs shadow-emerald-700/20"
+                                        : "bg-slate-100 border border-slate-200 text-slate-400"
+                                    }`}
+                                  >
+                                    <Bell className={`h-4.5 w-4.5 ${regPushNotifications ? "fill-white text-white" : ""}`} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-[13px] font-semibold text-[#0F172A] tracking-tight leading-none">
+                                        Push Notifications
+                                      </h4>
+                                      <span
+                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${
+                                          regPushNotifications
+                                            ? "bg-emerald-50 text-[#009A60] border border-emerald-200"
+                                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                                        }`}
+                                      >
+                                        {regPushNotifications ? "Enabled" : "Off"}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11.5px] text-[#64748B] mt-1 leading-snug">
+                                      Instant Tee Time & Marker Pairing Alerts
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setRegPushNotifications(!regPushNotifications)}
+                                  className={`w-11 h-6.5 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer shrink-0 mt-0.5 ${
+                                    regPushNotifications ? "bg-[#009A60]" : "bg-slate-200"
                                   }`}
-                                />
-                              </button>
+                                  aria-label="Toggle Push Notifications"
+                                >
+                                  <div
+                                    className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
+                                      regPushNotifications ? "translate-x-4.5" : "translate-x-0"
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+
+                              {/* Notification feature badges row with uniform height & colors */}
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 pt-3.5 mt-3.5 border-t border-slate-100">
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Pairings
+                                </span>
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Tee Times
+                                </span>
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Live Scores
+                                </span>
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Practice Round
+                                </span>
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Leaderboard
+                                </span>
+                                <span className="h-6.5 px-2.5 rounded-lg bg-[#EBF7EE] border border-[#BDE3CA] text-[#008754] text-[10.5px] font-medium whitespace-nowrap inline-flex items-center justify-center">
+                                  Weather Alerts
+                                </span>
+                              </div>
                             </div>
 
                             {/* Bottom Buttons */}
@@ -2994,15 +3442,21 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               </button>
                               <button
                                 type="button"
-                                disabled={!isRegStep3Valid}
+                                disabled={!isRegStep3Valid || isCheckingPhone}
                                 onClick={handleRegNext}
-                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                                  isRegStep3Valid
-                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
-                                }`}
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${isRegStep3Valid && !isCheckingPhone
+                                  ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                  : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                  }`}
                               >
-                                Review & Finish →
+                                {isCheckingPhone ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                    <span>Verifying Phone...</span>
+                                  </>
+                                ) : (
+                                  <span>Review & Finish →</span>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -3013,7 +3467,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           <div className="space-y-3.5">
                             <div>
                               <h1 className="text-2xl font-black text-[#111827] tracking-tight">
-                                Review & Competitor Pledge
+                                Verify your Information
                               </h1>
                               <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
                                 Verify your tournament credentials and confirm rules compliance before activation.
@@ -3064,8 +3518,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                       {regClassification === "PROFESSIONAL"
                                         ? "0.0 (Scratch)"
                                         : regClassification === "BEGINNER"
-                                        ? "36.0"
-                                        : regHandicap || "18.0"}
+                                          ? "36.0"
+                                          : regHandicap || "18.0"}
                                     </span>
                                   </div>
                                   <div className="flex items-baseline text-xs">
@@ -3104,46 +3558,106 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                             {/* Rules & Attestation Pledge Box */}
                             <div>
-                              <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block mb-1.5">
-                                Rules & Attestation Pledge
-                              </label>
-                              <div className="bg-[#f5faf6] border border-[#bbf7d0] rounded-2xl p-3.5 space-y-2.5">
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck className="h-4 w-4 text-[#009A60]" />
-                                  <span className="text-xs font-medium text-[#166534]">
-                                    Official Competitor Attestation Pledge
-                                  </span>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[13.5px] font-semibold text-[#0F172A] tracking-tight block">
+                                  Rules & Attestation Pledge
+                                </label>
+                                <span
+                                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-all ${
+                                    regAgreedRules && regAgreedMarker
+                                      ? "bg-emerald-50 text-[#009A60] border border-emerald-200"
+                                      : "bg-slate-100 text-slate-500 border border-slate-200"
+                                  }`}
+                                >
+                                  {regAgreedRules && regAgreedMarker
+                                    ? "2/2 Agreed"
+                                    : `${(regAgreedRules ? 1 : 0) + (regAgreedMarker ? 1 : 0)}/2 Required`}
+                                </span>
+                              </div>
+
+                              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] space-y-2.5">
+                                {/* Header inside card */}
+                                <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
+                                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[#009A60] flex items-center justify-center shrink-0">
+                                    <ShieldCheck className="h-4 w-4 text-[#009A60]" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-[13px] font-semibold text-[#0F172A] tracking-tight leading-none">
+                                      Official Competitor Attestation
+                                    </h4>
+                                    <p className="text-[11px] text-[#64748B] mt-1 leading-none">
+                                      Mandatory compliance for tournament eligibility
+                                    </p>
+                                  </div>
                                 </div>
 
-                                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                                  <button
-                                    type="button"
-                                    onClick={() => setRegAgreedRules(!regAgreedRules)}
-                                    className={`w-4 h-4 rounded mt-0.5 shrink-0 flex items-center justify-center transition-colors ${
-                                      regAgreedRules ? "bg-[#009A60] text-white" : "border border-[#e1efe5] bg-white"
+                                {/* Pledge Item 1 */}
+                                <div
+                                  onClick={() => setRegAgreedRules(!regAgreedRules)}
+                                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+                                    regAgreedRules
+                                      ? "bg-emerald-50/50 border-emerald-500/40 shadow-xs"
+                                      : "bg-[#F8FAFC] border-slate-200/80 hover:bg-slate-100/70 hover:border-slate-300"
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-5 h-5 rounded-md mt-0.5 shrink-0 flex items-center justify-center transition-all ${
+                                      regAgreedRules
+                                        ? "bg-[#009A60] border-2 border-[#009A60] text-white shadow-xs"
+                                        : "bg-white border-2 border-slate-300"
                                     }`}
                                   >
                                     {regAgreedRules && <Check className="h-3 w-3 stroke-[3]" />}
-                                  </button>
-                                  <span className="text-[11.5px] font-normal text-[#1E293B] leading-snug">
-                                    I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.
-                                  </span>
-                                </label>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                        USGA & R&A Rules
+                                      </span>
+                                    </div>
+                                    <p
+                                      className={`text-[12px] leading-snug transition-colors ${
+                                        regAgreedRules ? "text-[#0F172A] font-medium" : "text-[#334155]"
+                                      }`}
+                                    >
+                                      I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.
+                                    </p>
+                                  </div>
+                                </div>
 
-                                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                                  <button
-                                    type="button"
-                                    onClick={() => setRegAgreedMarker(!regAgreedMarker)}
-                                    className={`w-4 h-4 rounded mt-0.5 shrink-0 flex items-center justify-center transition-colors ${
-                                      regAgreedMarker ? "bg-[#009A60] text-white" : "border border-[#e1efe5] bg-white"
+                                {/* Pledge Item 2 */}
+                                <div
+                                  onClick={() => setRegAgreedMarker(!regAgreedMarker)}
+                                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+                                    regAgreedMarker
+                                      ? "bg-emerald-50/50 border-emerald-500/40 shadow-xs"
+                                      : "bg-[#F8FAFC] border-slate-200/80 hover:bg-slate-100/70 hover:border-slate-300"
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-5 h-5 rounded-md mt-0.5 shrink-0 flex items-center justify-center transition-all ${
+                                      regAgreedMarker
+                                        ? "bg-[#009A60] border-2 border-[#009A60] text-white shadow-xs"
+                                        : "bg-white border-2 border-slate-300"
                                     }`}
                                   >
                                     {regAgreedMarker && <Check className="h-3 w-3 stroke-[3]" />}
-                                  </button>
-                                  <span className="text-[11.5px] font-normal text-[#1E293B] leading-snug">
-                                    I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.
-                                  </span>
-                                </label>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                        Marker Duty • Rule 3.3b
+                                      </span>
+                                    </div>
+                                    <p
+                                      className={`text-[12px] leading-snug transition-colors ${
+                                        regAgreedMarker ? "text-[#0F172A] font-medium" : "text-[#334155]"
+                                      }`}
+                                    >
+                                      I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
@@ -3161,11 +3675,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 type="button"
                                 disabled={!isRegStep4Valid || isRegistering}
                                 onClick={handleRegComplete}
-                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                                  isRegStep4Valid && !isRegistering
-                                    ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                                    : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
-                                }`}
+                                className={`flex-1 h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${isRegStep4Valid && !isRegistering
+                                  ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                                  : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                                  }`}
                               >
                                 {isRegistering ? (
                                   <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3250,13 +3763,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                         setRegHomeClub(c.name);
                                         setShowClubModal(false);
                                       }}
-                                      className={`w-full text-left py-3 px-3 rounded-xl flex items-center gap-3 transition-colors cursor-pointer ${
-                                        isSelected ? "bg-[#e8f5ed] border border-[#bce3cb]" : "hover:bg-[#f8fbf9]"
-                                      }`}
+                                      className={`w-full text-left py-3 px-3 rounded-xl flex items-center gap-3 transition-colors cursor-pointer ${isSelected ? "bg-[#e8f5ed] border border-[#bce3cb]" : "hover:bg-[#f8fbf9]"
+                                        }`}
                                     >
-                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                        isSelected ? "bg-[#009A60] text-white" : "bg-[#f5faf6] border border-[#e1efe5] text-[#009A60]"
-                                      }`}>
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-[#009A60] text-white" : "bg-[#f5faf6] border border-[#e1efe5] text-[#009A60]"
+                                        }`}>
                                         <MapPin className="h-4 w-4" />
                                       </div>
                                       <div className="min-w-0 flex-1">
@@ -3393,11 +3904,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                       }
                                       setShowClassificationModal(false);
                                     }}
-                                    className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                                      isSelected
-                                        ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
-                                        : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
-                                    }`}
+                                    className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isSelected
+                                      ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                      : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                      }`}
                                   >
                                     <div className="min-w-0 pr-2">
                                       <div className="flex items-center gap-2">
@@ -3415,11 +3925,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                       </p>
                                     </div>
                                     <div
-                                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                        isSelected
-                                          ? "border-[#009A60] bg-[#009A60] text-white"
-                                          : "border-slate-300 bg-white"
-                                      }`}
+                                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected
+                                        ? "border-[#009A60] bg-[#009A60] text-white"
+                                        : "border-slate-300 bg-white"
+                                        }`}
                                     >
                                       {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
                                     </div>
@@ -3547,11 +4056,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                   type="button"
                                   disabled={y >= today.getFullYear() && m >= today.getMonth()}
                                   onClick={() => setDobCalendarMonth(new Date(y, m + 1, 1))}
-                                  className={`h-10 w-10 rounded-xl bg-white border border-[#e1efe5] flex items-center justify-center shadow-2xs transition-all shrink-0 ${
-                                    y >= today.getFullYear() && m >= today.getMonth()
-                                      ? "opacity-30 cursor-not-allowed text-slate-300"
-                                      : "text-slate-700 hover:text-[#009A60] hover:border-[#009A60] cursor-pointer"
-                                  }`}
+                                  className={`h-10 w-10 rounded-xl bg-white border border-[#e1efe5] flex items-center justify-center shadow-2xs transition-all shrink-0 ${y >= today.getFullYear() && m >= today.getMonth()
+                                    ? "opacity-30 cursor-not-allowed text-slate-300"
+                                    : "text-slate-700 hover:text-[#009A60] hover:border-[#009A60] cursor-pointer"
+                                    }`}
                                   title="Next Month"
                                 >
                                   <ChevronRight className="h-5 w-5 stroke-[2.5]" />
@@ -3596,15 +4104,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                         setRegDob(formatted);
                                         setShowDobCalendar(false);
                                       }}
-                                      className={`h-9 rounded-xl text-[13px] font-medium transition-all flex items-center justify-center relative cursor-pointer ${
-                                        isFuture
-                                          ? "text-slate-300 opacity-40 cursor-not-allowed"
-                                          : isSelected
+                                      className={`h-9 rounded-xl text-[13px] font-medium transition-all flex items-center justify-center relative cursor-pointer ${isFuture
+                                        ? "text-slate-300 opacity-40 cursor-not-allowed"
+                                        : isSelected
                                           ? "bg-[#009A60] text-white shadow-sm font-semibold"
                                           : isToday
-                                          ? "text-[#009A60] ring-1.5 ring-[#009A60] bg-emerald-50 hover:bg-emerald-100"
-                                          : "text-[#1E293B] hover:bg-[#f5faf6]"
-                                      }`}
+                                            ? "text-[#009A60] ring-1.5 ring-[#009A60] bg-emerald-50 hover:bg-emerald-100"
+                                            : "text-[#1E293B] hover:bg-[#f5faf6]"
+                                        }`}
                                     >
                                       {day}
                                       {isToday && !isSelected && (
@@ -3709,11 +4216,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                         }
                                         setShowCountryModal(false);
                                       }}
-                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                                        isSelected
-                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
-                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
-                                      }`}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isSelected
+                                        ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                        : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                        }`}
                                     >
                                       <div className="flex items-center gap-3">
                                         <span className="text-2xl leading-none">{c.flag}</span>
@@ -3806,11 +4312,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                         }
                                         setShowStateModal(false);
                                       }}
-                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                                        isSelected
-                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
-                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
-                                      }`}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isSelected
+                                        ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                        : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                        }`}
                                     >
                                       <p className={`text-sm font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
                                         {s.label}
@@ -3872,15 +4377,15 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               {(regCountry === "NG"
                                 ? getNigerianLGAs(regState)
                                 : (() => {
-                                    const countryStates = State.getStatesOfCountry(regCountry);
-                                    const matchedState = countryStates.find((st) => st.name === regState);
-                                    const cities = matchedState
-                                      ? City.getCitiesOfState(regCountry, matchedState.isoCode)
-                                      : [];
-                                    return cities.length > 0
-                                      ? cities.map((c) => ({ value: c.name, label: c.name }))
-                                      : [{ value: regState, label: regState }];
-                                  })()
+                                  const countryStates = State.getStatesOfCountry(regCountry);
+                                  const matchedState = countryStates.find((st) => st.name === regState);
+                                  const cities = matchedState
+                                    ? City.getCitiesOfState(regCountry, matchedState.isoCode)
+                                    : [];
+                                  return cities.length > 0
+                                    ? cities.map((c) => ({ value: c.name, label: c.name }))
+                                    : [{ value: regState, label: regState }];
+                                })()
                               )
                                 .filter((c) => c.label.toLowerCase().includes(citySearchQuery.toLowerCase()))
                                 .map((c) => {
@@ -3893,11 +4398,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                         setRegCity(c.value);
                                         setShowCityModal(false);
                                       }}
-                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                                        isSelected
-                                          ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
-                                          : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
-                                      }`}
+                                      className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isSelected
+                                        ? "bg-[#e8f5ed] border-[#009A60] shadow-xs"
+                                        : "bg-[#f5faf6] border-[#e1efe5] hover:bg-slate-50"
+                                        }`}
                                     >
                                       <div>
                                         <p className={`text-sm font-semibold ${isSelected ? "text-[#009A60]" : "text-[#0F172A]"}`}>
@@ -3924,145 +4428,141 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                   {/* SCREEN: VERIFY EMAIL (6-DIGIT OTP) */}
                   {activeScreen === "verify" && (
-                    <div className="h-full bg-white text-slate-900 flex flex-col p-6 overflow-y-auto">
-                      {/* Top Back Navigation */}
-                      <div className="flex items-center justify-between mb-4">
-                        <button
-                          type="button"
-                          onClick={() => switchScreen("login")}
-                          className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <span className="text-[10px] font-extrabold text-[#5B6B7F] bg-[#EEF2F6] px-3 py-1 rounded-full tracking-wider uppercase">
-                          VERIFICATION
-                        </span>
-                      </div>
-
-                      {/* Icon Badge */}
-                      <div className="w-12 h-12 rounded-2xl bg-[#EDF4FE] border border-[#D6E6FE] flex items-center justify-center mb-5">
-                        <Mail className="h-6 w-6 text-[#009A60]" />
-                      </div>
-
-                      {/* Title: "Verify Your Email" */}
-                      <h1 className="text-2xl font-extrabold text-[#111827] tracking-tight mb-2">
-                        Verify Your Email
-                      </h1>
-
-                      {/* Description */}
-                      <p className="text-xs text-slate-600 leading-relaxed mb-6">
-                        We sent a 6-digit security code to{" "}
-                        <strong className="text-slate-900 font-semibold">{verifyEmailTarget}</strong>.
-                        Enter it below to activate your competitor profile.
-                      </p>
-
-                      {/* Error or Success feedback banner */}
-                      {verifyError && (
-                        <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2.5 text-rose-700 text-xs font-medium animate-in fade-in">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                          <span>{verifyError}</span>
+                    <div className="h-full bg-white text-slate-900 flex flex-col px-6 py-6 overflow-y-auto scrollbar-hide">
+                      {/* Centered Main Verification Card Container */}
+                      <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto w-full my-auto">
+                        {/* Icon Badge: Squircle container with envelope and top-right check badge */}
+                        <div className="relative mb-6">
+                          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center shadow-xs">
+                            <svg className="w-9 h-9" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              {/* Back of envelope */}
+                              <path d="M5 13C5 11.3431 6.34315 10 8 10H28C29.6569 10 31 11.3431 31 13V25C31 26.6569 29.6569 28 28 28H8C6.34315 28 5 26.6569 5 25V13Z" fill="#009A60" />
+                              {/* Letter Sheet sticking up */}
+                              <rect x="9" y="6" width="18" height="14" rx="2" fill="#FFFFFF" />
+                              <rect x="12" y="9.5" width="12" height="2" rx="1" fill="#009A60" />
+                              <rect x="12" y="13.5" width="8" height="2" rx="1" fill="#009A60" />
+                              {/* Envelope front fold / triangular bottom */}
+                              <path d="M5 16.5L18 24.5L31 16.5V25C31 26.6569 29.6569 28 28 28H8C6.34315 28 5 26.6569 5 25V16.5Z" fill="#008251" />
+                              <path d="M5 14L18 23L31 14" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                          {/* Top-right Circular Check Badge */}
+                          <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center shadow-xs">
+                            <Check className="h-3.5 w-3.5 text-white stroke-[3.5]" />
+                          </div>
                         </div>
-                      )}
 
-                      {verifySuccess && (
-                        <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-800 text-xs font-semibold animate-in fade-in">
-                          <Check className="h-4 w-4 shrink-0 text-emerald-600" />
-                          <span>Account verified successfully! Welcome to OpenclubOS.</span>
-                        </div>
-                      )}
+                        {/* Title: "Verify email" */}
+                        <h1 className="text-[26px] font-black text-[#111827] tracking-tight mb-2">
+                          Verify email
+                        </h1>
 
-                      {/* 6-Digit PIN Boxes */}
-                      <div className="flex items-center justify-between gap-1.5 mb-6">
-                        {otpDigits.map((digit, idx) => (
-                          <input
-                            key={idx}
-                            id={`otp-box-${idx}`}
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={1}
-                            value={digit}
-                            onChange={(e) => handleOtpChange(idx, e.target.value)}
-                            onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                            className="w-11 h-13 text-center text-xl font-bold bg-[#EDF4FE] border border-[#D6E6FE] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl text-slate-900 focus:outline-hidden transition-all shadow-xs"
-                          />
-                        ))}
-                      </div>
-
-                      {/* Resend Timer Row */}
-                      <div className="text-center text-xs text-slate-500 mb-6">
-                        Didn't get the code?{" "}
-                        <button
-                          type="button"
-                          disabled={resendCooldown > 0}
-                          onClick={handleResendCode}
-                          className={`text-sm font-medium transition-colors ${
-                            resendCooldown > 0
-                              ? "text-slate-400 cursor-not-allowed"
-                              : "text-[#00875A] hover:text-[#006C47] underline underline-offset-2 cursor-pointer"
-                          }`}
-                        >
-                          {resendCooldown > 0
-                            ? `Resend Code (0:${resendCooldown < 10 ? "0" : ""}${resendCooldown})`
-                            : "Resend Code"}
-                        </button>
-                      </div>
-
-                      {/* Primary Action Button: "Verify & Activate Account" */}
-                      <button
-                        type="button"
-                        onClick={handleVerifySubmit}
-                        disabled={otpDigits.some((d) => !d) || isVerifying}
-                        className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                          !otpDigits.some((d) => !d) && !isVerifying
-                            ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
-                            : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
-                        }`}
-                      >
-                        {isVerifying ? (
-                          <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <ShieldCheck className="h-4 w-4" />
-                            <span>Verify & Activate Account</span>
-                          </>
-                        )}
-                      </button>
-
-                      {/* Mailpit Live Link Box */}
-                      <div className="mt-6 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                            📬 Mailpit Local Inbox
-                          </span>
-                          <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Active (Port 8025)
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 mb-2">
-                          A real email with the 6-digit PIN was sent to Alex's inbox.
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href="http://localhost:8025"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors no-underline"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Open Mailpit Web UI
-                          </a>
+                        {/* Description */}
+                        <div className="text-[13px] text-[#5B6B7F] leading-relaxed mb-6 font-normal">
+                          <p>We&apos;ve sent a 6-digit verification code to</p>
+                          <p className="text-[#111827] font-bold text-sm mt-0.5 break-all">
+                            {verifyEmailTarget}
+                          </p>
                           <button
                             type="button"
                             onClick={() => {
-                              setOtpDigits(["8", "4", "9", "2", "0", "1"]);
-                              showToast("Filled demo code: 849201");
+                              setRegStep(1);
+                              switchScreen("register");
                             }}
-                            className="py-1.5 px-2.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-[11px] font-medium transition-colors"
+                            className="text-xs text-[#009A60] hover:text-[#008754] font-semibold underline underline-offset-2 mt-1 inline-block cursor-pointer"
                           >
-                            Paste "849201"
+                            Wrong email? Change details
                           </button>
                         </div>
+
+                        {/* Error or Success feedback banner */}
+                        {verifyError && (
+                          <div className="w-full mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2.5 text-rose-700 text-xs font-medium animate-in fade-in text-left">
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                            <span>{verifyError}</span>
+                          </div>
+                        )}
+
+                        {verifySuccess && (
+                          <div className="w-full mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-800 text-xs font-semibold animate-in fade-in text-left">
+                            <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <span>Account verified successfully! Welcome to OpenclubOS.</span>
+                          </div>
+                        )}
+
+                        {/* 6-Digit PIN Boxes */}
+                        <div className="w-full flex items-center justify-between gap-1.5 sm:gap-2 mb-6">
+                          {otpDigits.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              id={`otp-box-${idx}`}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handleOtpChange(idx, e.target.value)}
+                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                              className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold bg-[#f5faf6] border border-[#e1efe5] focus:bg-white focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-2xl text-[#111827] focus:outline-hidden transition-all shadow-2xs"
+                            />
+                          ))}
+                        </div>
+
+                        {/* Primary Action Button: "VERIFY & ACTIVATE" */}
+                        <button
+                          type="button"
+                          onClick={handleVerifySubmit}
+                          disabled={otpDigits.some((d) => !d) || isVerifying}
+                          className={`w-full h-12.5 rounded-2xl text-[13.5px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 ${!otpDigits.some((d) => !d) && !isVerifying
+                              ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 cursor-pointer"
+                              : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
+                            }`}
+                        >
+                          {isVerifying ? (
+                            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <span>VERIFY &amp; ACTIVATE</span>
+                          )}
+                        </button>
+
+                        {/* Resend Row */}
+                        <div className="mt-6 text-center">
+                          <p className="text-xs text-[#64748B] font-medium mb-1.5">
+                            Didn&apos;t receive the code?
+                          </p>
+                          <button
+                            type="button"
+                            disabled={resendCooldown > 0}
+                            onClick={handleResendCode}
+                            className={`inline-flex items-center gap-1.5 text-xs font-black tracking-wider uppercase transition-colors ${resendCooldown > 0
+                                ? "text-[#009A60] cursor-not-allowed opacity-90"
+                                : "text-[#009A60] hover:text-[#008754] cursor-pointer"
+                              }`}
+                          >
+                            <span>RESEND CODE</span>
+                            {resendCooldown > 0 && (
+                              <span className="text-[#8CA0BA] font-bold">
+                                0:{resendCooldown < 10 ? `0${resendCooldown}` : resendCooldown}
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("login")}
+                              className="text-xs text-[#8CA0BA] hover:text-[#5B6B7F] font-medium transition-colors cursor-pointer"
+                            >
+                              Return to Sign In
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Footer Notice */}
+                      <div className="mt-auto pt-6 pb-1 text-center shrink-0">
+                        <span className="text-[10.5px] font-bold text-[#8CA0BA] tracking-[0.14em] uppercase">
+                          VERIFICATION EXPIRES IN 10 MINUTES
+                        </span>
                       </div>
                     </div>
                   )}

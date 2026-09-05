@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsUUID,
   IsEnum,
+  IsBoolean,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -33,4 +34,32 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(Gender)
   gender?: Gender;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  dob?: string;
+
+  @IsOptional()
+  @IsString()
+  classification?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPro?: boolean;
+
+  @IsOptional()
+  @IsString()
+  clientPlatform?: string;
 }

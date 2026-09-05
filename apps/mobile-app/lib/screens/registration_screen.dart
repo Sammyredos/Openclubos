@@ -231,7 +231,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     return strength;
   }
 
-  void _nextStep() {
+  Future<void> _nextStep() async {
     setState(() {
       _errorMessage = null;
     });
@@ -241,7 +241,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         setState(() => _errorMessage = 'Please enter your full first and last name.');
         return;
       }
-      if (!_emailController.text.contains('@')) {
+      if (!_emailController.text.contains('@') || !_emailController.text.contains('.')) {
         setState(() => _errorMessage = 'Please provide a valid email address.');
         return;
       }
@@ -249,9 +249,64 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         setState(() => _errorMessage = 'Password must be at least 8 characters.');
         return;
       }
+      if (_calculatePasswordStrength(_passwordController.text) < 4) {
+        setState(() => _errorMessage = 'Password is too weak. Please make it stronger before moving to the next step.');
+        return;
+      }
       if (_passwordController.text != _confirmPasswordController.text) {
         setState(() => _errorMessage = 'Passwords do not match.');
         return;
+      }
+
+      setState(() => _isLoading = true);
+      try {
+        final authService = ref.read(authServiceProvider);
+        final valRes = await authService.validatePlayer(email: _emailController.text.trim());
+        if (valRes['available'] == false) {
+          if (mounted) {
+            setState(() {
+              _errorMessage = valRes['message'] ?? 'An account with this email already exists. Please sign in or use a different email.';
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      } catch (_) {
+        // Continue if network error
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+
+    if (_currentStep == 3) {
+      final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+      if (phone.length < 7) {
+        setState(() => _errorMessage = 'Please enter a valid mobile phone number.');
+        return;
+      }
+      if (_cityController.text.trim().isEmpty || _stateController.text.trim().isEmpty) {
+        setState(() => _errorMessage = 'Please select your state and city / LGA.');
+        return;
+      }
+
+      final fullPhone = '+${_selectedPhoneCode}${phone.replaceFirst(RegExp(r'^0+'), '')}';
+      setState(() => _isLoading = true);
+      try {
+        final authService = ref.read(authServiceProvider);
+        final valRes = await authService.validatePlayer(phone: fullPhone);
+        if (valRes['available'] == false) {
+          if (mounted) {
+            setState(() {
+              _errorMessage = valRes['message'] ?? 'This phone number is already registered to another account. Please use a different phone number.';
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      } catch (_) {
+        // Continue if network error
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
 
@@ -289,21 +344,25 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      await authService.registerPlayer({
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-        'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
-        'handicap': _selectedClassification == 'PROFESSIONAL'
-            ? 0.0
-            : (_selectedClassification == 'BEGINNER' ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0)),
-        'classification': _selectedClassification ?? 'AMATEUR',
-        'isPro': _selectedClassification == 'PROFESSIONAL',
-        'gender': _selectedGender,
-        'phone': _phoneController.text.trim(),
-        'city': _cityController.text.trim(),
-        'state': _stateController.text.trim(),
-      });
+        final cleanPhone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+        final fullPhone = _phoneController.text.trim().startsWith('+')
+            ? _phoneController.text.trim()
+            : '+${_selectedPhoneCode}${cleanPhone.replaceFirst(RegExp(r'^0+'), '')}';
+
+        await authService.registerPlayer({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+          'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+          'handicap': _selectedClassification == 'PROFESSIONAL'
+              ? 0.0
+              : (_selectedClassification == 'BEGINNER' ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0)),
+          'classification': _selectedClassification ?? 'AMATEUR',
+          'isPro': _selectedClassification == 'PROFESSIONAL',
+          'gender': _selectedGender,
+          'phone': fullPhone,
+          'city': _cityController.text.trim(),
+          'state': _stateController.text.trim(),
+        });
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -543,35 +602,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         ),
         const SizedBox(height: 14),
 
-        // First Name & Last Name Row
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel('First Name'),
-                  _buildGreenTextField(
-                    controller: _firstNameController,
-                    hintText: 'Alex',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel('Last Name'),
-                  _buildGreenTextField(
-                    controller: _lastNameController,
-                    hintText: 'Wright',
-                  ),
-                ],
-              ),
-            ),
-          ],
+        // First Name
+        _buildLabel('First Name'),
+        _buildGreenTextField(
+          controller: _firstNameController,
+          hintText: 'Alex',
+        ),
+        const SizedBox(height: 14),
+
+        // Last Name
+        _buildLabel('Last Name'),
+        _buildGreenTextField(
+          controller: _lastNameController,
+          hintText: 'Wright',
         ),
         const SizedBox(height: 14),
 
@@ -633,6 +676,39 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ],
         ),
+        if (_passwordController.text.isNotEmpty && strength < 4) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Color(0xFFD97706),
+                  size: 16,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Password meter is not full.\nAdd uppercase, number & symbol to proceed.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF92400E),
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
 
         // Confirm Password
@@ -2100,7 +2176,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             Expanded(
               child: _buildGreenTextField(
                 controller: _phoneController,
-                hintText: _selectedCountryCode == 'NG' ? '0803 555 0192' : 'Phone number',
+                hintText: _selectedCountryCode == 'NG' ? '803 555 0192' : 'Phone number',
                 keyboardType: TextInputType.phone,
               ),
             ),
@@ -2197,47 +2273,133 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
         // Push Notifications Card
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: kGreenInputBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: kGreenInputBorder, width: 1.2),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Push Notifications',
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Instant Tee Time & Marker Pairing Alerts',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: Color(0xFF5B6B7F),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
               ),
-              const SizedBox(width: 12),
-              Switch(
-                value: _pushNotifications,
-                activeColor: kTournamentEmerald,
-                activeTrackColor: kTournamentEmerald.withOpacity(0.3),
-                inactiveThumbColor: Colors.white,
-                inactiveTrackColor: const Color(0xFFCBD5E1),
-                onChanged: (val) => setState(() => _pushNotifications = val),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: _pushNotifications
+                          ? kTournamentEmerald
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: _pushNotifications
+                          ? [
+                              BoxShadow(
+                                color: kTournamentEmerald.withOpacity(0.25),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Icon(
+                      _pushNotifications
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_off_rounded,
+                      color: _pushNotifications
+                          ? Colors.white
+                          : const Color(0xFF94A3B8),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Push Notifications',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _pushNotifications
+                                    ? const Color(0xFFECFDF5)
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: _pushNotifications
+                                      ? const Color(0xFFA7F3D0)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Text(
+                                _pushNotifications ? 'Enabled' : 'Off',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: _pushNotifications
+                                      ? const Color(0xFF065F46)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Instant Tee Time & Pairing Alerts',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF64748B),
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: _pushNotifications,
+                    activeColor: kTournamentEmerald,
+                    activeTrackColor: kTournamentEmerald.withOpacity(0.3),
+                    inactiveThumbColor: Colors.white,
+                    inactiveTrackColor: const Color(0xFFCBD5E1),
+                    onChanged: (val) => setState(() => _pushNotifications = val),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 14, bottom: 12),
+                child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildPushBadge('Pairings'),
+                  _buildPushBadge('Tee Times'),
+                  _buildPushBadge('Live Scores'),
+                  _buildPushBadge('Practice Round'),
+                  _buildPushBadge('Leaderboard'),
+                  _buildPushBadge('Weather Alerts'),
+                ],
               ),
             ],
           ),
@@ -2253,7 +2415,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
   }
 
-  // --- STEP 4: REVIEW & COMPETITOR PLEDGE ---
+  // --- STEP 4: VERIFY YOUR INFORMATION ---
   Widget _buildStep4(BuildContext context) {
     final first = _firstNameController.text.trim();
     final last = _lastNameController.text.trim();
@@ -2289,7 +2451,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Review & Competitor Pledge',
+          'Verify your Information',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
@@ -2434,67 +2596,233 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         const SizedBox(height: 14),
 
         // Rules & Attestation Pledge Box
-        _buildLabel('Rules & Attestation Pledge'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildLabel('Rules & Attestation Pledge'),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: (_agreedToRules && _agreedToMarkerDuty)
+                    ? const Color(0xFFECFDF5)
+                    : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (_agreedToRules && _agreedToMarkerDuty)
+                      ? const Color(0xFFA7F3D0)
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Text(
+                (_agreedToRules && _agreedToMarkerDuty)
+                    ? '2/2 Agreed'
+                    : '${(_agreedToRules ? 1 : 0) + (_agreedToMarkerDuty ? 1 : 0)}/2 Required',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: (_agreedToRules && _agreedToMarkerDuty)
+                      ? const Color(0xFF065F46)
+                      : const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ],
+        ),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: kGreenInputBg,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBBF7D0), width: 1.2),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header inside card
               Row(
-                children: const [
-                  Icon(Icons.verified_rounded, color: kTournamentEmerald, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Official Competitor Attestation Pledge',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF166534),
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5ED),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: kTournamentEmerald,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Official Competitor Attestation',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Mandatory compliance for tournament eligibility',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+              ),
 
               // Pledge 1
               GestureDetector(
                 onTap: () => setState(() => _agreedToRules = !_agreedToRules),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCustomCheckbox(_agreedToRules),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF1E293B), height: 1.35),
-                      ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _agreedToRules ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _agreedToRules ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+                      width: _agreedToRules ? 1.2 : 1.0,
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        margin: const EdgeInsets.only(top: 2),
+                        decoration: BoxDecoration(
+                          color: _agreedToRules ? kTournamentEmerald : Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: _agreedToRules ? kTournamentEmerald : const Color(0xFFCBD5E1),
+                            width: 1.8,
+                          ),
+                        ),
+                        child: _agreedToRules
+                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'USGA & R&A RULES',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: _agreedToRules ? FontWeight.w600 : FontWeight.w400,
+                                color: _agreedToRules ? const Color(0xFF0F172A) : const Color(0xFF334155),
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // Pledge 2
               GestureDetector(
                 onTap: () => setState(() => _agreedToMarkerDuty = !_agreedToMarkerDuty),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCustomCheckbox(_agreedToMarkerDuty),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF1E293B), height: 1.35),
-                      ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _agreedToMarkerDuty ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _agreedToMarkerDuty ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+                      width: _agreedToMarkerDuty ? 1.2 : 1.0,
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        margin: const EdgeInsets.only(top: 2),
+                        decoration: BoxDecoration(
+                          color: _agreedToMarkerDuty ? kTournamentEmerald : Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: _agreedToMarkerDuty ? kTournamentEmerald : const Color(0xFFCBD5E1),
+                            width: 1.8,
+                          ),
+                        ),
+                        child: _agreedToMarkerDuty
+                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'MARKER DUTY • RULE 3.3b',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: _agreedToMarkerDuty ? FontWeight.w600 : FontWeight.w400,
+                                color: _agreedToMarkerDuty ? const Color(0xFF0F172A) : const Color(0xFF334155),
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2541,6 +2869,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPushBadge(String label) {
+    return Container(
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEBF7EE),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFBDE3CA)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF008754),
+        ),
       ),
     );
   }

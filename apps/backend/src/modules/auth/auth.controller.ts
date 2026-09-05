@@ -86,6 +86,21 @@ export class AuthController {
     );
   }
 
+  @Post('validate-player')
+  @HttpCode(HttpStatus.OK)
+  async validatePlayer(
+    @Body()
+    body: {
+      email?: string;
+      phone?: string;
+    },
+  ) {
+    return this.authService.validatePlayerUniqueness(
+      body.email,
+      body.phone,
+    );
+  }
+
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)

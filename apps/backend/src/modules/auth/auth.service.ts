@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MemberStatus, UserRole, RegistrationStatus, PaymentStatus } from '@prisma/client';
+import { MemberStatus, UserRole, RegistrationStatus, PaymentStatus, Gender } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
@@ -18,8 +18,28 @@ import { JobsService } from '../jobs/jobs.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { RegisterDto } from './dto/register.dto';
 
+interface PendingRegistrationData {
+  email: string;
+  firstName: string;
+  lastName: string | null;
+  password: string;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  dob: string | null;
+  handicap: number;
+  gender?: Gender;
+  clubId: string | null;
+  role: UserRole;
+  otpCode: string;
+  expiresAt: string;
+}
+
 @Injectable()
 export class AuthService {
+  private pendingRegistrations = new Map<string, PendingRegistrationData>();
+  private pendingRegistrationsByEmail = new Map<string, PendingRegistrationData>();
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
@@ -38,48 +58,158 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('An account with this email already exists. Please sign in or use a different email.');
+    }
+
+    // Disallow duplication of phone numbers
+    if (registerDto.phone && registerDto.phone.trim()) {
+      const { phoneQueries, cleanDigits } = this.buildPhoneQueries(registerDto.phone);
+
+      const existingPhone = await this.prisma.user.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            { phone: { in: phoneQueries } },
+            ...(cleanDigits.length >= 10 ? [{ phone: { endsWith: cleanDigits.slice(-10) } }] : []),
+          ],
+        },
+      });
+
+      if (existingPhone) {
+        throw new ConflictException(
+          'This phone number is already registered to another account. Please use a different phone number.',
+        );
+      }
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
 
-    const { name, ...rest } = registerDto;
+    const {
+      name,
+      classification,
+      isPro,
+      clientPlatform,
+      phone,
+      city,
+      state,
+      dob,
+      handicap,
+      gender,
+      clubId,
+    } = registerDto;
     const nameParts = (name || '').trim().split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const user = await this.prisma.user.create({
-      data: {
-        ...rest,
+    const pendingData: PendingRegistrationData = {
+      email: registerDto.email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+      phone: phone || null,
+      city: city || null,
+      state: state || null,
+      dob: dob || null,
+      handicap: handicap ?? 0,
+      gender: gender ?? undefined,
+      clubId: clubId || null,
+      role: UserRole.PLAYER,
+      otpCode,
+      expiresAt,
+    };
+
+    // Store in-memory and CacheService (Redis) with 24-hour TTL - NOT in PostgreSQL User table yet!
+    this.pendingRegistrations.set(otpCode, pendingData);
+    this.pendingRegistrationsByEmail.set(registerDto.email, pendingData);
+    await this.cacheService.set(`pending_reg:${otpCode}`, pendingData, 24 * 60 * 60);
+    await this.cacheService.set(`pending_reg_email:${registerDto.email}`, pendingData, 24 * 60 * 60);
+
+    // Send verification code to email
+    try {
+      await this.jobsService.queueEmail('emailVerification', registerDto.email, {
         firstName,
-        lastName,
-        password: hashedPassword,
-        handicap: registerDto.handicap ?? 0,
-        gender: registerDto.gender ?? undefined,
-        role: UserRole.PLAYER,
-        emailVerificationToken: otpCode,
-        emailVerificationExpires,
-        emailVerified: false,
-      },
-    });
-
-    if (user.email) {
-      await this.jobsService.queueEmail('emailVerification', user.email, {
-        firstName: user.firstName,
         otpCode,
         verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
       });
+    } catch {
+      await this.emailService
+        .sendEmailVerificationOtp(
+          registerDto.email,
+          firstName || 'Player',
+          otpCode,
+          `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
+        )
+        .catch(() => null);
     }
 
-    const { password, ...result } = user;
-    return result;
+    return {
+      email: registerDto.email,
+      firstName,
+      lastName,
+      role: UserRole.PLAYER,
+      emailVerified: false,
+      message: 'Verification code sent to email',
+    };
   }
 
   async verifyEmail(token: string): Promise<void> {
     const trimmed = token?.trim();
+
+    // 1. Check pending registrations (in-memory first, then CacheService)
+    let pending: PendingRegistrationData | null | undefined = this.pendingRegistrations.get(trimmed);
+    if (!pending) {
+      pending = await this.cacheService.get<PendingRegistrationData>(`pending_reg:${trimmed}`);
+    }
+
+    if (pending) {
+      if (new Date(pending.expiresAt) < new Date()) {
+        throw new BadRequestException('Verification code has expired');
+      }
+
+      // Check if user already exists
+      const existing = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: pending.email, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+      if (existing && existing.emailVerified) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      // ONLY NOW write user to the database upon verified token!
+      await this.prisma.user.create({
+        data: {
+          email: pending.email,
+          firstName: pending.firstName,
+          lastName: pending.lastName,
+          password: pending.password,
+          phone: pending.phone,
+          city: pending.city,
+          state: pending.state,
+          dob: pending.dob,
+          handicap: pending.handicap,
+          gender: pending.gender,
+          clubId: pending.clubId,
+          role: pending.role,
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+        },
+      });
+
+      // Cleanup pending registration
+      this.pendingRegistrations.delete(trimmed);
+      this.pendingRegistrationsByEmail.delete(pending.email);
+      await this.cacheService.del(`pending_reg:${trimmed}`);
+      await this.cacheService.del(`pending_reg_email:${pending.email}`);
+      return;
+    }
+
+    // 2. Fallback for any legacy records in DB
     const user = await this.prisma.user.findFirst({
       where: { emailVerificationToken: trimmed },
     });
@@ -105,22 +235,66 @@ export class AuthService {
   }
 
   async resendVerification(email: string): Promise<{ otpCode: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 1. Check pending registrations
+    let pending: PendingRegistrationData | null | undefined = this.pendingRegistrationsByEmail.get(normalizedEmail);
+    if (!pending) {
+      pending = await this.cacheService.get<PendingRegistrationData>(`pending_reg_email:${normalizedEmail}`);
+    }
+
+    if (pending) {
+      const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+      // Delete old OTP key
+      this.pendingRegistrations.delete(pending.otpCode);
+      await this.cacheService.del(`pending_reg:${pending.otpCode}`);
+
+      pending.otpCode = newOtpCode;
+      pending.expiresAt = expiresAt;
+
+      // Save under new OTP key
+      this.pendingRegistrations.set(newOtpCode, pending);
+      this.pendingRegistrationsByEmail.set(normalizedEmail, pending);
+      await this.cacheService.set(`pending_reg:${newOtpCode}`, pending, 24 * 60 * 60);
+      await this.cacheService.set(`pending_reg_email:${normalizedEmail}`, pending, 24 * 60 * 60);
+
+      try {
+        await this.jobsService.queueEmail('emailVerification', normalizedEmail, {
+          firstName: pending.firstName,
+          otpCode: newOtpCode,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${newOtpCode}`,
+        });
+      } catch {
+        await this.emailService
+          .sendEmailVerificationOtp(
+            normalizedEmail,
+            pending.firstName || 'Player',
+            newOtpCode,
+            `${process.env.FRONTEND_URL}/verify-email?token=${newOtpCode}`,
+          )
+          .catch(() => null);
+      }
+
+      return { otpCode: newOtpCode };
+    }
+
+    // 2. Fallback for DB records
     const user = await this.prisma.user.findFirst({
       where: {
-        email: { equals: email.trim(), mode: 'insensitive' },
+        email: { equals: normalizedEmail, mode: 'insensitive' },
         emailVerified: false,
         deletedAt: null,
       },
     });
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
     if (!user) {
       return { otpCode };
     }
 
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -130,11 +304,22 @@ export class AuthService {
     });
 
     if (user.email) {
-      await this.jobsService.queueEmail('emailVerification', user.email, {
-        firstName: user.firstName,
-        otpCode,
-        verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
-      });
+      try {
+        await this.jobsService.queueEmail('emailVerification', user.email, {
+          firstName: user.firstName,
+          otpCode,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
+        });
+      } catch {
+        await this.emailService
+          .sendEmailVerificationOtp(
+            user.email,
+            user.firstName || 'Player',
+            otpCode,
+            `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
+          )
+          .catch(() => null);
+      }
     }
 
     return { otpCode };
@@ -354,6 +539,89 @@ export class AuthService {
           available: false,
           message: 'User with Same Name Exist',
           field: 'adminFirstName',
+        };
+      }
+    }
+
+    return { available: true };
+  }
+
+  private buildPhoneQueries(phone: string): { phoneQueries: string[]; cleanDigits: string } {
+    const cleanDigits = phone.replace(/\D/g, '');
+    const cleanPhone = phone.trim().replace(/[\s-]/g, '');
+    const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
+
+    const rawList: (string | null | undefined)[] = [
+      phone.trim(),
+      cleanPhone,
+      cleanDigits,
+      `+${cleanDigits}`,
+      last10,
+      `0${last10}`,
+      `+234${last10}`,
+      `234${last10}`,
+      cleanDigits.startsWith('234') ? `0${cleanDigits.slice(3)}` : null,
+      cleanDigits.startsWith('234') ? cleanDigits.slice(3) : null,
+      cleanDigits.startsWith('0') ? `+234${cleanDigits.slice(1)}` : null,
+      cleanDigits.startsWith('0') ? `234${cleanDigits.slice(1)}` : null,
+      cleanDigits.startsWith('0') ? cleanDigits.slice(1) : null,
+      cleanDigits.length === 10 ? `0${cleanDigits}` : null,
+      cleanDigits.length === 10 ? `+234${cleanDigits}` : null,
+      cleanDigits.length === 10 ? `234${cleanDigits}` : null,
+      cleanDigits.length === 10 ? `+1${cleanDigits}` : null,
+      cleanDigits.startsWith('1') && cleanDigits.length === 11 ? cleanDigits.slice(1) : null,
+      cleanDigits.startsWith('1') && cleanDigits.length === 11 ? `+${cleanDigits}` : null,
+    ];
+
+    const queries = new Set<string>();
+    for (const item of rawList) {
+      if (item && item.length >= 7) {
+        queries.add(item);
+      }
+    }
+    const phoneQueries = Array.from(queries);
+    return { phoneQueries, cleanDigits };
+  }
+
+  async validatePlayerUniqueness(
+    email?: string,
+    phone?: string,
+  ): Promise<{ available: boolean; message?: string; field?: string }> {
+    if (email && email.trim()) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingEmail = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+      if (existingEmail) {
+        return {
+          available: false,
+          message: 'An account with this email already exists. Please sign in or use a different email.',
+          field: 'email',
+        };
+      }
+    }
+
+    if (phone && phone.trim()) {
+      const { phoneQueries, cleanDigits } = this.buildPhoneQueries(phone);
+
+      const existingPhone = await this.prisma.user.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            { phone: { in: phoneQueries } },
+            ...(cleanDigits.length >= 10 ? [{ phone: { endsWith: cleanDigits.slice(-10) } }] : []),
+          ],
+        },
+      });
+
+      if (existingPhone) {
+        return {
+          available: false,
+          message: 'This phone number is already registered to another account. Please use a different phone number.',
+          field: 'phone',
         };
       }
     }

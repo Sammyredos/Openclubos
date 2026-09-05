@@ -91,6 +91,20 @@ class AuthService {
       final message = e.response?.data['message'] ?? 'Failed to resend code';
       throw Exception(message);
     }
+  }
+
+  Future<Map<String, dynamic>> validatePlayer({String? email, String? phone}) async {
+    try {
+      final response = await _dio.post('/auth/validate-player', data: {
+        if (email != null) 'email': email.trim(),
+        if (phone != null) 'phone': phone.trim(),
+      });
+      return Map<String, dynamic>.from(response.data);
+    } catch (_) {
+      return {'available': true};
+    }
+  }
+
   Future<Map<String, dynamic>> registerPlayer(Map<String, dynamic> playerData) async {
     try {
       final response = await _dio.post('/auth/register', data: {

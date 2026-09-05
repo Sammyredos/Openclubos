@@ -139,10 +139,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF111827)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Center(
@@ -151,61 +148,109 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Verification Icon Badge
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEDF4FE),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFD6E6FE)),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.mark_email_read_outlined,
-                        size: 28,
-                        color: Color(0xFF009A60),
+                  const SizedBox(height: 10),
+                  // Centered Verification Icon Badge with Top-Right Check Badge
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF7EE),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0xFFC6F0DB)),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.mark_email_read_outlined,
+                            size: 34,
+                            color: Color(0xFF009A60),
+                          ),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF009A60),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
 
-                  // Title: "Verify Your Email"
+                  // Title: "Verify email"
                   const Text(
-                    'Verify Your Email',
+                    'Verify email',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
                       color: Color(0xFF111827),
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // Description
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF4B5563),
-                        height: 1.5,
+                  Column(
+                    children: [
+                      const Text(
+                        "We've sent a 6-digit verification code to",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF5B6B7F),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      children: [
-                        const TextSpan(text: 'We sent a 6-digit security code to '),
-                        TextSpan(
-                          text: widget.email,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF111827),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.email,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          "Wrong email? Change details",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF009A60),
+                            decoration: TextDecoration.underline,
                           ),
                         ),
-                        const TextSpan(
-                          text: '. Enter it below to activate your competitor profile.',
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 28),
 
@@ -248,12 +293,12 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         height: 56,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEDF4FE),
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFF5FAF6),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: _focusNodes[index].hasFocus
                                   ? const Color(0xFF009A60)
-                                  : const Color(0xFFD6E6FE),
+                                  : const Color(0xFFE1EFE5),
                               width: _focusNodes[index].hasFocus ? 2.0 : 1.2,
                             ),
                           ),
@@ -296,47 +341,14 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Resend Timer Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Didn't get the code? ",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _resendSeconds == 0 ? _handleResend : null,
-                        child: Text(
-                          _resendSeconds > 0
-                              ? "Resend Code (0:${_resendSeconds.toString().padLeft(2, '0')})"
-                              : "Resend Code",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: _resendSeconds == 0
-                                ? const Color(0xFF00875A)
-                                : const Color(0xFF9CA3AF),
-                            decoration: _resendSeconds == 0
-                                ? TextDecoration.underline
-                                : TextDecoration.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Primary Action: "Verify & Activate Account"
+                  // Primary Action: "VERIFY & ACTIVATE"
                   Builder(
                     builder: (context) {
                       final isCodeComplete = _currentCode.length == _pinLength;
                       final isButtonEnabled = isCodeComplete && !_isLoading;
                       return SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 50,
                         child: ElevatedButton(
                           onPressed: isButtonEnabled ? _handleVerify : null,
                           style: ElevatedButton.styleFrom(
@@ -347,7 +359,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             elevation: isButtonEnabled ? 2 : 0,
                             shadowColor: const Color(0xFF009A60).withOpacity(0.3),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: _isLoading
@@ -359,18 +371,81 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : Text(
-                                  'Verify & Activate Account',
+                              : const Text(
+                                  'VERIFY & ACTIVATE',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: isButtonEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                    color: Colors.white,
                                   ),
                                 ),
                         ),
                       );
                     },
                   ),
+                  const SizedBox(height: 24),
+
+                  // Resend Timer Block
+                  Column(
+                    children: [
+                      const Text(
+                        "Didn't receive the code?",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _resendSeconds == 0 ? _handleResend : null,
+                            child: Text(
+                              "RESEND CODE",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: _resendSeconds == 0
+                                    ? const Color(0xFF009A60)
+                                    : const Color(0xFF009A60).withOpacity(0.9),
+                              ),
+                            ),
+                          ),
+                          if (_resendSeconds > 0) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              "0:${_resendSeconds.toString().padLeft(2, '0')}",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF8CA0BA),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Bottom Footer Notice
+                  const Center(
+                    child: Text(
+                      'VERIFICATION EXPIRES IN 10 MINUTES',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.3,
+                        color: Color(0xFF8CA0BA),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
