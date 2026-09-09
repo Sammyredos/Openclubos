@@ -79,7 +79,7 @@ class AuthService {
     }
   }
 
-  Future<void> resendVerification(String email) async {
+  Future<String?> resendVerification(String email) async {
     try {
       final response = await _dio.post('/auth/resend-verification', data: {
         'email': email.trim(),
@@ -87,6 +87,7 @@ class AuthService {
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(response.data?['message'] ?? 'Failed to resend code');
       }
+      return response.data?['otpCode']?.toString();
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Failed to resend code';
       throw Exception(message);

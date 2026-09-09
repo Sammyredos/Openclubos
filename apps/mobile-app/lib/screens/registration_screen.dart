@@ -175,7 +175,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     return (_selectedClassification != null) &&
         (_selectedClassification == 'PROFESSIONAL' ||
             (_selectedClassification == 'BEGINNER' && hcp.isNotEmpty) ||
-            (_selectedClassification == 'AMATEUR' && hcp.isNotEmpty && double.tryParse(hcp) != null)) &&
+            (_selectedClassification == 'AMATEUR' &&
+                hcp.isNotEmpty &&
+                double.tryParse(hcp) != null &&
+                double.tryParse(hcp)! < 36.0 &&
+                double.tryParse(hcp)! >= 0.0)) &&
         _selectedGender.isNotEmpty &&
         dob.isNotEmpty;
   }
@@ -188,7 +192,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   bool get _isStep4Valid {
-    return _agreedToRules && _agreedToMarkerDuty;
+    return _isStep1Valid && _isStep2Valid && _isStep3Valid;
   }
 
   @override
@@ -331,9 +335,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   Future<void> _handleCompleteRegistration() async {
-    if (!_agreedToRules || !_agreedToMarkerDuty) {
+    if (!_isStep1Valid || !_isStep2Valid || !_isStep3Valid) {
       setState(() {
-        _errorMessage = 'Please accept both rules and marker duty pledges to complete registration.';
+        _errorMessage = 'Please complete all required fields before confirming.';
       });
       return;
     }
@@ -874,20 +878,25 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       final isSelected = _selectedClassification == opt['id'];
                       return GestureDetector(
                         onTap: () {
+                          setModalState(() {
+                            _selectedClassification = opt['id'];
+                          });
                           setState(() {
                             _selectedClassification = opt['id'];
                             if (opt['id'] == 'BEGINNER') {
                               _handicapController.text = '36';
                               _noHandicapIndex = false;
                             } else if (opt['id'] == 'AMATEUR') {
-                              _handicapController.text = '';
+                              final curHcp = double.tryParse(_handicapController.text);
+                              if (curHcp == null || curHcp >= 36.0) {
+                                _handicapController.text = '';
+                              }
                               _noHandicapIndex = false;
                             } else if (opt['id'] == 'PROFESSIONAL') {
                               _handicapController.text = '0.0';
                               _noHandicapIndex = false;
                             }
                           });
-                          Navigator.pop(ctx);
                         },
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 10),
@@ -972,16 +981,33 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       );
                     }),
                     const SizedBox(height: 6),
-                    // Confirm button
-                    SizedBox(
-                      width: double.infinity,
+                    // Confirm Selection button matching screenshot
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx),
+                        onPressed: () {
+                          setState(() {
+                            if (_selectedClassification == 'BEGINNER') {
+                              _handicapController.text = '36';
+                              _noHandicapIndex = false;
+                            } else if (_selectedClassification == 'AMATEUR') {
+                              final curHcp = double.tryParse(_handicapController.text);
+                              if (curHcp == null || curHcp >= 36.0) {
+                                _handicapController.text = '';
+                              }
+                              _noHandicapIndex = false;
+                            } else if (_selectedClassification == 'PROFESSIONAL') {
+                              _handicapController.text = '0.0';
+                              _noHandicapIndex = false;
+                            }
+                          });
+                          Navigator.pop(ctx);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kTournamentEmerald,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text(
@@ -1841,9 +1867,19 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           ),
           _buildGreenTextField(
             controller: _handicapController,
-            hintText: _selectedClassification == 'BEGINNER' ? '36' : 'e.g. 2.4',
+            hintText: _selectedClassification == 'BEGINNER' ? '36' : 'e.g. 2.4 (< 36)',
             enabled: _selectedClassification != 'BEGINNER',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (val) {
+              if (val.isEmpty || val == '.') return;
+              final num = double.tryParse(val);
+              if (num != null && num >= 36.0) {
+                _handicapController.text = '35.9';
+                _handicapController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _handicapController.text.length),
+                );
+              }
+            },
             suffixIcon: Container(
               margin: const EdgeInsets.only(right: 12),
               alignment: Alignment.centerRight,
@@ -1859,6 +1895,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               ),
             ),
           ),
+          if (_selectedClassification == 'AMATEUR') ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Official GHIN / USGA index (must be less than 36.0 for Intermediate).',
+              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF8CA0BA)),
+            ),
+          ],
           const SizedBox(height: 14),
         ],
 
@@ -2275,13 +2318,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFEBF7EE),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: const Color(0xFFBDE3CA)),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 8,
+                color: Color(0x06000000),
+                blurRadius: 6,
                 offset: Offset(0, 2),
               ),
             ],
@@ -2341,12 +2384,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(
                                 color: _pushNotifications
-                                    ? const Color(0xFFECFDF5)
+                                    ? Colors.white
                                     : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: _pushNotifications
-                                      ? const Color(0xFFA7F3D0)
+                                      ? const Color(0xFFBDE3CA)
                                       : const Color(0xFFE2E8F0),
                                 ),
                               ),
@@ -2354,9 +2397,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 _pushNotifications ? 'Enabled' : 'Off',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                   color: _pushNotifications
-                                      ? const Color(0xFF065F46)
+                                      ? kTournamentEmerald
                                       : const Color(0xFF64748B),
                                 ),
                               ),
@@ -2368,7 +2411,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           'Instant Tee Time & Pairing Alerts',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: Color(0xFF64748B),
+                            color: Color(0xFF335C49),
                             height: 1.3,
                           ),
                         ),
@@ -2387,18 +2430,17 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               ),
               const Padding(
                 padding: EdgeInsets.only(top: 14, bottom: 12),
-                child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                child: Divider(height: 1, color: Color(0xFFD3ECD9)),
               ),
               Wrap(
+                alignment: WrapAlignment.start,
+                crossAxisAlignment: WrapCrossAlignment.start,
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildPushBadge('Pairings'),
-                  _buildPushBadge('Tee Times'),
-                  _buildPushBadge('Live Scores'),
-                  _buildPushBadge('Practice Round'),
-                  _buildPushBadge('Leaderboard'),
-                  _buildPushBadge('Weather Alerts'),
+                  _buildPushBadge('Pairings', Icons.people_outline_rounded),
+                  _buildPushBadge('Tee Times', Icons.access_time_rounded),
+                  _buildPushBadge('Live Scores', Icons.show_chart_rounded),
                 ],
               ),
             ],
@@ -2415,413 +2457,147 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
   }
 
-  // --- STEP 4: VERIFY YOUR INFORMATION ---
+  // --- STEP 4: REVIEW YOUR DETAILS ---
   Widget _buildStep4(BuildContext context) {
     final first = _firstNameController.text.trim();
     final last = _lastNameController.text.trim();
     final fullName = '$first $last'.trim();
     final isPro = _selectedClassification == 'PROFESSIONAL';
-    final firstInitial = first.isNotEmpty ? first[0].toUpperCase() : '';
-    final lastInitial = last.isNotEmpty ? last[0].toUpperCase() : '';
-    final userInitials = (firstInitial.isNotEmpty || lastInitial.isNotEmpty)
-        ? '$firstInitial$lastInitial'
-        : 'PL';
-    final hcp = _selectedClassification == 'BEGINNER' ? '36.0' : _handicapController.text;
+    final isBeginner = _selectedClassification == 'BEGINNER';
+    final hcp = _handicapController.text.trim();
     final club = _homeClubController.text.trim();
     final hcpDisplay = isPro
         ? '0.0 (Scratch)'
-        : (_selectedClassification == 'BEGINNER'
+        : (isBeginner
             ? '36.0'
-            : (hcp.isNotEmpty ? hcp : '18.0'));
-    final clubDisplay = club.isNotEmpty ? club : 'None';
+            : (hcp.isNotEmpty ? hcp : '4.2'));
+    final clubDisplay = club.isNotEmpty ? club : 'Oakwood National GC';
     final genderDisplay = _selectedGender == 'MALE'
         ? 'Male'
-        : (_selectedGender == 'FEMALE' ? 'Female' : (_selectedGender ?? 'Not specified'));
+        : (_selectedGender == 'FEMALE' ? 'Female' : (_selectedGender != null && _selectedGender!.isNotEmpty ? _selectedGender! : 'Male'));
+    final dobDisplay = _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : 'May 14, 1992';
+    final emailDisplay = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'alex.t@example.com';
     final phone = _phoneController.text.trim();
-    final emailDisplay = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'None';
-    final phoneDisplay = '$_selectedCountryFlag +$_selectedPhoneCode $phone';
-    final locationParts = [
-      if (_cityController.text.trim().isNotEmpty) _cityController.text.trim(),
-      if (_stateController.text.trim().isNotEmpty) _stateController.text.trim(),
-      if (_selectedCountryName.isNotEmpty) _selectedCountryName,
-    ];
-    final locationDisplay = locationParts.isNotEmpty ? locationParts.join(', ') : 'Nigeria';
+    final phoneDisplay = phone.isNotEmpty
+        ? '+$_selectedPhoneCode $phone'
+        : '+1 (555) 012-3456';
+    final classificationDisplay = isPro
+        ? 'Professional'
+        : (isBeginner ? 'Beginner' : 'Amateur');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Verify your Information',
+          'Review your details',
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: kTextDark,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 6),
         const Text(
-          'Verify your tournament credentials and confirm rules compliance before activation.',
-          style: TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
-        ),
-        const SizedBox(height: 14),
-
-        // Summary Profile Card
-        _buildLabel('Summary Profile Card'),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Golfer Avatar with Initials + PRO Badge
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundColor: kGreenInputBg,
-                        backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
-                        child: _avatarUrl == null
-                            ? Text(
-                                userInitials,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: kTournamentEmerald,
-                                  letterSpacing: 0.5,
-                                ),
-                              )
-                            : null,
-                      ),
-                      if (isPro)
-                        Positioned(
-                          right: -3,
-                          bottom: -3,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: kTournamentEmerald,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            child: const Text(
-                              'PRO',
-                              style: TextStyle(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            fullName.isEmpty ? 'Alex Wright' : fullName,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isPro) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: kTournamentEmerald,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'PRO',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(color: Color(0xFFF1F5F9), thickness: 1),
-              ),
-              _buildSummaryDetailRow('HCP Index:', hcpDisplay),
-              _buildSummaryDetailRow('Home Club:', clubDisplay),
-              _buildSummaryDetailRow('Gender:', genderDisplay),
-              _buildSummaryDetailRow('Email:', emailDisplay),
-              _buildSummaryDetailRow('Phone:', phoneDisplay),
-              _buildSummaryDetailRow('Location:', locationDisplay),
-            ],
+          'Please ensure your golf credentials and contact info are accurate for handicap scoring and tournament prize eligibility.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF5B6B7F),
+            height: 1.4,
+            fontWeight: FontWeight.w400,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
 
-        // Rules & Attestation Pledge Box
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Section 1: Personal Details
+        _buildReviewSectionHeader('PERSONAL DETAILS', () => setState(() => _currentStep = 1)),
+        _buildReviewCard(
           children: [
-            _buildLabel('Rules & Attestation Pledge'),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-              decoration: BoxDecoration(
-                color: (_agreedToRules && _agreedToMarkerDuty)
-                    ? const Color(0xFFECFDF5)
-                    : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: (_agreedToRules && _agreedToMarkerDuty)
-                      ? const Color(0xFFA7F3D0)
-                      : const Color(0xFFE2E8F0),
+            _buildReviewRow('Full Name', fullName.isNotEmpty ? fullName : 'Alex Thompson'),
+            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            _buildReviewRow('Gender', genderDisplay),
+            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            _buildReviewRow('Date of Birth', dobDisplay),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Section 2: Golf Credentials (GHIN Removed)
+        _buildReviewSectionHeader('GOLF CREDENTIALS', () => setState(() => _currentStep = 2)),
+        _buildReviewCard(
+          children: [
+            _buildReviewRow(
+              'Classification',
+              classificationDisplay,
+              trailingBadge: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEBF7EE),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBDE3CA)),
                 ),
-              ),
-              child: Text(
-                (_agreedToRules && _agreedToMarkerDuty)
-                    ? '2/2 Agreed'
-                    : '${(_agreedToRules ? 1 : 0) + (_agreedToMarkerDuty ? 1 : 0)}/2 Required',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: (_agreedToRules && _agreedToMarkerDuty)
-                      ? const Color(0xFF065F46)
-                      : const Color(0xFF64748B),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_rounded, size: 10, color: Color(0xFF008754)),
+                    SizedBox(width: 3),
+                    Text(
+                      'VERIFIED',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF008754),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            _buildReviewRow('Handicap Index', hcpDisplay, isItalicGreen: true),
+            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            _buildReviewRow('Home Club', clubDisplay),
           ],
         ),
+        const SizedBox(height: 16),
+
+        // Section 3: Contact Information
+        _buildReviewSectionHeader('CONTACT INFORMATION', () => setState(() => _currentStep = 3)),
+        _buildReviewCard(
+          children: [
+            _buildReviewRow('Email', emailDisplay),
+            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            _buildReviewRow('Phone Number', phoneDisplay),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Section 4: Notice / Certification Card
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFEBF7EE),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: const Color(0xFFBDE3CA)),
           ),
-          child: Column(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header inside card
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5ED),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFBBF7D0)),
-                    ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      color: kTournamentEmerald,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Official Competitor Attestation',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Mandatory compliance for tournament eligibility',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: Color(0xFF008754),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1, color: Color(0xFFF1F5F9)),
-              ),
-
-              // Pledge 1
-              GestureDetector(
-                onTap: () => setState(() => _agreedToRules = !_agreedToRules),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _agreedToRules ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _agreedToRules ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
-                      width: _agreedToRules ? 1.2 : 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          color: _agreedToRules ? kTournamentEmerald : Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: _agreedToRules ? kTournamentEmerald : const Color(0xFFCBD5E1),
-                            width: 1.8,
-                          ),
-                        ),
-                        child: _agreedToRules
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'USGA & R&A RULES',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'I agree to abide by the USGA & R&A Rules of Golf and Tournament Committee local rules.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: _agreedToRules ? FontWeight.w600 : FontWeight.w400,
-                                color: _agreedToRules ? const Color(0xFF0F172A) : const Color(0xFF334155),
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Pledge 2
-              GestureDetector(
-                onTap: () => setState(() => _agreedToMarkerDuty = !_agreedToMarkerDuty),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _agreedToMarkerDuty ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _agreedToMarkerDuty ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
-                      width: _agreedToMarkerDuty ? 1.2 : 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          color: _agreedToMarkerDuty ? kTournamentEmerald : Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: _agreedToMarkerDuty ? kTournamentEmerald : const Color(0xFFCBD5E1),
-                            width: 1.8,
-                          ),
-                        ),
-                        child: _agreedToMarkerDuty
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'MARKER DUTY • RULE 3.3b',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'I agree to act as an official score marker for fellow competitors under USGA Rule 3.3b.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: _agreedToMarkerDuty ? FontWeight.w600 : FontWeight.w400,
-                                color: _agreedToMarkerDuty ? const Color(0xFF0F172A) : const Color(0xFF334155),
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'By confirming, you certify that these details match your golf credentials profile. Misreporting handicaps may result in tournament disqualification.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF23533E),
+                    height: 1.4,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -2830,13 +2606,126 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Bottom Nav Buttons
+        // Bottom Nav Buttons: Dual Button Layout with Back Arrow Button + Primary Complete Information Button
         _buildBottomNavButtons(
-          nextLabel: 'Complete Registration →',
+          nextLabel: 'Complete Information →',
           onNext: _isStep4Valid ? _handleCompleteRegistration : null,
           isLoading: _isLoading,
         ),
       ],
+    );
+  }
+
+  // --- Review Screen Helpers ---
+  Widget _buildReviewSectionHeader(String title, VoidCallback onEdit) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, right: 2, bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF8A99AD),
+              letterSpacing: 0.8,
+            ),
+          ),
+          GestureDetector(
+            onTap: onEdit,
+            child: const Text(
+              'EDIT',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: kTournamentEmerald,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard({required List<Widget> children}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildReviewRow(
+    String label,
+    String value, {
+    bool isItalicGreen = false,
+    Widget? trailingBadge,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF8CA0BA),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: trailingBadge != null
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF0F172A),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      trailingBadge,
+                    ],
+                  )
+                : Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: isItalicGreen ? FontStyle.italic : FontStyle.normal,
+                      color: isItalicGreen ? kTournamentEmerald : const Color(0xFF0F172A),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2854,7 +2743,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
+                color: Color(0xFF556960),
               ),
             ),
           ),
@@ -2873,23 +2762,84 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
   }
 
-  Widget _buildPushBadge(String label) {
+  Widget _buildPrimaryButton({
+    required String label,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
+    final isEnabled = onPressed != null && !isLoading;
+    final cleanLabel = label.replaceAll('→', '').trim();
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kTournamentEmerald,
+          disabledBackgroundColor: kTournamentEmerald.withOpacity(0.35),
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white.withOpacity(0.75),
+          elevation: isEnabled ? 2 : 0,
+          shadowColor: kTournamentEmerald.withOpacity(0.3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    cleanLabel,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0,
+                      color: isEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: isEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildPushBadge(String label, IconData icon) {
     return Container(
       height: 26,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 9),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFEBF7EE),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFBDE3CA)),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF008754),
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF008754)),
+          const SizedBox(width: 4.5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF008754),
+            ),
+          ),
+        ],
       ),
     );
   }

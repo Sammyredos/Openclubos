@@ -114,14 +114,17 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      await authService.resendVerification(widget.email);
+      final otpCode = await authService.resendVerification(widget.email);
       _startResendTimer();
 
       if (mounted) {
+        final snackMessage = (otpCode != null && otpCode.isNotEmpty)
+            ? 'New 6-digit code: $otpCode (sent to ${widget.email})'
+            : 'New 6-digit code sent to ${widget.email}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF009A60),
-            content: Text('New 6-digit code sent to ${widget.email}'),
+            content: Text(snackMessage),
           ),
         );
       }
@@ -244,7 +247,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                           "Wrong email? Change details",
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             color: Color(0xFF009A60),
                             decoration: TextDecoration.underline,
                           ),
@@ -372,11 +375,11 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                                   ),
                                 )
                               : const Text(
-                                  'VERIFY & ACTIVATE',
+                                  'Verify & Activate',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.8,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.2,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -398,36 +401,52 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: _resendSeconds == 0 ? _handleResend : null,
-                            child: Text(
-                              "RESEND CODE",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                                color: _resendSeconds == 0
-                                    ? const Color(0xFF009A60)
-                                    : const Color(0xFF009A60).withOpacity(0.9),
+                      if (_resendSeconds > 0)
+                        Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          child: Text(
+                            "0:${_resendSeconds.toString().padLeft(2, '0')}",
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Material(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              onTap: _handleResend,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                constraints: const BoxConstraints(minHeight: 44),
+                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFA7F3D0).withOpacity(0.7),
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    "Resend Code",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF009A60),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                          if (_resendSeconds > 0) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              "0:${_resendSeconds.toString().padLeft(2, '0')}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF8CA0BA),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 48),

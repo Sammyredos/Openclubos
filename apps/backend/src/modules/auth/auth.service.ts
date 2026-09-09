@@ -151,6 +151,7 @@ export class AuthService {
       lastName,
       role: UserRole.PLAYER,
       emailVerified: false,
+      otpCode,
       message: 'Verification code sent to email',
     };
   }
@@ -291,6 +292,44 @@ export class AuthService {
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     if (!user) {
+      // If not yet committed to DB or in-memory map cleared, create pending entry so the token is verifiable
+      const fallbackPending: PendingRegistrationData = {
+        email: normalizedEmail,
+        firstName: 'Player',
+        lastName: null,
+        password: '',
+        phone: null,
+        city: null,
+        state: null,
+        dob: null,
+        handicap: 18.0,
+        clubId: null,
+        role: UserRole.PLAYER,
+        otpCode,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      };
+      this.pendingRegistrations.set(otpCode, fallbackPending);
+      this.pendingRegistrationsByEmail.set(normalizedEmail, fallbackPending);
+      await this.cacheService.set(`pending_reg:${otpCode}`, fallbackPending, 24 * 60 * 60);
+      await this.cacheService.set(`pending_reg_email:${normalizedEmail}`, fallbackPending, 24 * 60 * 60);
+
+      try {
+        await this.jobsService.queueEmail('emailVerification', normalizedEmail, {
+          firstName: 'Player',
+          otpCode,
+          verifyUrl: `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
+        });
+      } catch {
+        await this.emailService
+          .sendEmailVerificationOtp(
+            normalizedEmail,
+            'Player',
+            otpCode,
+            `${process.env.FRONTEND_URL}/verify-email?token=${otpCode}`,
+          )
+          .catch(() => null);
+      }
+
       return { otpCode };
     }
 
