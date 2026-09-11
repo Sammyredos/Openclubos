@@ -130,10 +130,11 @@ export default function ForgotPasswordPage() {
                   <button
                     onClick={handleResend}
                     disabled={countdown > 0}
-                    className="w-full h-12 bg-white border border-zinc-200 px-6 rounded-xl flex items-center justify-center font-medium text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-6 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full h-12 bg-white border border-zinc-200 px-6 rounded-xl flex items-center justify-center font-medium text-sm text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 mb-4 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {countdown > 0 ? `Resend Email in ${countdown}s` : "Resend Email"}
                   </button>
+
 
                   <div className="text-center font-medium text-sm">
                     <a href="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">Back to Sign In</a>

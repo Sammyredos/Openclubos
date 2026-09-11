@@ -44,6 +44,14 @@ export class TournamentsController {
     return { isUnique };
   }
 
+  @Get('public')
+  findAllPublic(
+    @Query('status') status?: string,
+    @Query('clubId') clubId?: string,
+  ) {
+    return this.tournamentsService.findAll({ clubId, status });
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   findAll(

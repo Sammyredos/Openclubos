@@ -83,35 +83,37 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   static const Color kTextLabel = Color(0xFF0F172A);
   static const Color kTextMuted = Color(0xFF5B6B7F);
   static const Color kTextHint = Color(0xFF8CA0BA);
-  static const Color kPillBg = Color(0xFFEEF2F6);
+  static const Color kPillBg = Color(0xFFF5FAF6);
 
   bool _showClubSuggestions = false;
 
   final List<Map<String, String>> _allGolfCourses = [
-    {'name': 'Oakwood Country Club Course', 'location': 'Augusta, GA • 18 Holes'},
-    {'name': 'Augusta National Golf Club', 'location': 'Augusta, GA • 18 Holes'},
-    {'name': 'Pinehurst Resort No. 2', 'location': 'Pinehurst, NC • 18 Holes'},
-    {'name': 'St Andrews Old Course', 'location': 'St Andrews, Fife • 18 Holes'},
-    {'name': 'Pebble Beach Golf Links', 'location': 'Pebble Beach, CA • 18 Holes'},
-    {'name': 'OpenClub Golf Club 2 Course', 'location': 'City 2 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 3 Course', 'location': 'City 3 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 4 Course', 'location': 'City 4 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 5 Course', 'location': 'City 5 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 6 Course', 'location': 'City 6 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 7 Course', 'location': 'City 7 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 8 Course', 'location': 'City 8 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 9 Course', 'location': 'City 9 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 10 Course', 'location': 'City 10 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 11 Course', 'location': 'City 11 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 12 Course', 'location': 'City 12 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 13 Course', 'location': 'City 13 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 14 Course', 'location': 'City 14 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 15 Course', 'location': 'City 15 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 16 Course', 'location': 'City 16 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 17 Course', 'location': 'City 17 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 18 Course', 'location': 'City 18 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 19 Course', 'location': 'City 19 • 18 Holes'},
-    {'name': 'OpenClub Golf Club 20 Course', 'location': 'City 20 • 18 Holes'},
+    {'name': 'Ikoyi Golf Club', 'location': 'Lagos, Nigeria • 18 Holes'},
+    {'name': 'Oakwood Country Club Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'Achimota Golf Club', 'location': 'Accra, Ghana • 18 Holes'},
+    {'name': 'Augusta National Golf Club', 'location': 'Augusta, United States • 18 Holes'},
+    {'name': 'Pinehurst Resort No. 2', 'location': 'Pinehurst, United States • 18 Holes'},
+    {'name': 'St Andrews Old Course', 'location': 'St Andrews, United Kingdom • 18 Holes'},
+    {'name': 'Pebble Beach Golf Links', 'location': 'Pebble Beach, United States • 18 Holes'},
+    {'name': 'OpenClub Golf Club 2 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 3 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 4 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 5 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 6 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 7 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 8 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 9 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 10 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 11 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 12 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 13 Course', 'location': 'Ghana • 18 Holes'},
+    {'name': 'OpenClub Golf Club 14 Course', 'location': 'Ghana • 18 Holes'},
+    {'name': 'OpenClub Golf Club 15 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 16 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 17 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 18 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 19 Course', 'location': 'Nigeria • 18 Holes'},
+    {'name': 'OpenClub Golf Club 20 Course', 'location': 'Nigeria • 18 Holes'},
   ];
 
   static const Map<String, List<String>> _nigerianStatesLgas = {
@@ -357,6 +359,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
           'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'homeClub': _homeClubController.text.trim(),
+          'clubName': _homeClubController.text.trim(),
           'handicap': _selectedClassification == 'PROFESSIONAL'
               ? 0.0
               : (_selectedClassification == 'BEGINNER' ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0)),
@@ -369,11 +375,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         });
 
       if (mounted) {
+        final regData = <String, dynamic>{
+          'email': _emailController.text.trim(),
+          'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'handicap': _selectedClassification == 'PROFESSIONAL'
+              ? 0.0
+              : (_selectedClassification == 'BEGINNER' ? 36.0 : (double.tryParse(_handicapController.text) ?? 18.0)),
+          'classification': _selectedClassification ?? 'AMATEUR',
+          'isPro': _selectedClassification == 'PROFESSIONAL',
+          'city': _cityController.text.trim(),
+          'state': _stateController.text.trim(),
+          'club': _homeClubController.text.trim().isNotEmpty ? {'name': _homeClubController.text.trim()} : null,
+        };
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => VerifyEmailScreen(
               email: _emailController.text.trim(),
               playerName: '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+              registrationData: regData,
             ),
           ),
         );
@@ -433,7 +455,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   // --- Top Navigation & Segmented Progress Bar ---
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       decoration: const BoxDecoration(
         color: Colors.white,
       ),
@@ -474,6 +496,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 decoration: BoxDecoration(
                   color: kPillBg,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: kGreenInputBorder),
                 ),
                 child: Text(
                   'STEP $_currentStep OF 4',
@@ -2514,9 +2537,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         _buildReviewCard(
           children: [
             _buildReviewRow('Full Name', fullName.isNotEmpty ? fullName : 'Alex Thompson'),
-            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            const Divider(height: 16, color: Color(0xFFE1EFE5)),
             _buildReviewRow('Gender', genderDisplay),
-            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            const Divider(height: 16, color: Color(0xFFE1EFE5)),
             _buildReviewRow('Date of Birth', dobDisplay),
           ],
         ),
@@ -2554,9 +2577,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
               ),
             ),
-            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            const Divider(height: 16, color: Color(0xFFE1EFE5)),
             _buildReviewRow('Handicap Index', hcpDisplay, isItalicGreen: true),
-            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            const Divider(height: 16, color: Color(0xFFE1EFE5)),
             _buildReviewRow('Home Club', clubDisplay),
           ],
         ),
@@ -2567,7 +2590,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         _buildReviewCard(
           children: [
             _buildReviewRow('Email', emailDisplay),
-            const Divider(height: 16, color: Color(0xFFF1F5F9)),
+            const Divider(height: 16, color: Color(0xFFE1EFE5)),
             _buildReviewRow('Phone Number', phoneDisplay),
           ],
         ),
@@ -2654,9 +2677,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF4F6F3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE1EFE5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -3219,18 +3242,31 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     child: Row(
                                       children: [
                                         Container(
-                                          width: 32,
-                                          height: 32,
+                                          width: 36,
+                                          height: 36,
                                           decoration: BoxDecoration(
                                             color: isSelected ? kTournamentEmerald : kGreenInputBg,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(10),
                                             border: Border.all(color: isSelected ? kTournamentEmerald : kGreenInputBorder),
                                           ),
-                                          child: Icon(
-                                            Icons.location_on_rounded,
-                                            size: 16,
-                                            color: isSelected ? Colors.white : kTournamentEmerald,
-                                          ),
+                                          child: item['logo'] != null && item['logo']!.isNotEmpty
+                                              ? ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    item['logo']!,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => Icon(
+                                                      Icons.location_on_rounded,
+                                                      size: 16,
+                                                      color: isSelected ? Colors.white : kTournamentEmerald,
+                                                    ),
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.location_on_rounded,
+                                                  size: 16,
+                                                  color: isSelected ? Colors.white : kTournamentEmerald,
+                                                ),
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
@@ -3425,7 +3461,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: kGreenInputBg,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: kGreenInputBorder),
                               ),
@@ -3438,7 +3474,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 height: 38,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: kGreenInputBg,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: kGreenInputBorder),
                                 ),
@@ -3473,7 +3509,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 height: 38,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: kGreenInputBg,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: kGreenInputBorder),
                                 ),
@@ -3524,7 +3560,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: kGreenInputBg,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: kGreenInputBorder),
                               ),

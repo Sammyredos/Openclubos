@@ -102,11 +102,11 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
   return res.json();
 }
 
-export async function forgotPasswordRequest(email: string): Promise<{ message: string }> {
+export async function forgotPasswordRequest(email: string, platform?: string): Promise<{ message: string }> {
   const res = await fetch(`${API_BASE}/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, platform }),
   });
 
   if (!res.ok) {

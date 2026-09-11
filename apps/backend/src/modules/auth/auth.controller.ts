@@ -123,14 +123,14 @@ export class AuthController {
     if (platform === 'mobile' || platform === 'flutter') {
       if (user.role !== UserRole.PLAYER) {
         throw new ForbiddenException(
-          'Access Denied: The Openclub Mobile App is reserved for players. Organizers and Administrators must sign in through the Web Admin Portal.',
+          'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
         );
       }
     } else {
       // 2. Web App: Strictly reserved for Organizers and Super Admins. Players are blocked.
       if (user.role === UserRole.PLAYER) {
         throw new ForbiddenException(
-          'Access Denied: The Web Admin Portal is reserved for Tournament Organizers and Club Administrators. Players must access Openclub through the Mobile App.',
+          'Access restricted: This portal is designated for administrative accounts only.',
         );
       }
     }
@@ -220,8 +220,8 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    await this.authService.verifyEmail(verifyEmailDto.token);
-    return { success: true, message: 'Email verified successfully' };
+    const result = await this.authService.verifyEmail(verifyEmailDto.token);
+    return { success: true, message: 'Email verified successfully', ...(result || {}) };
   }
 
   @Post('resend-verification')
@@ -229,12 +229,11 @@ export class AuthController {
   async resendVerification(
     @Body() resendVerificationDto: ResendVerificationDto,
   ) {
-    const result = await this.authService.resendVerification(
+    await this.authService.resendVerification(
       resendVerificationDto.email,
     );
     return {
       success: true,
-      otpCode: result.otpCode,
       message: 'Verification code sent',
     };
   }
@@ -274,8 +273,20 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() body: { email: string }) {
-    await this.authService.initiatePasswordReset(body.email).catch(() => null);
+  async forgotPassword(
+    @Body() body: { email: string; platform?: string },
+    @Headers('x-platform') headerPlatform?: string,
+    @Headers('x-client-platform') clientPlatform?: string,
+  ) {
+    const platform = body.platform || headerPlatform || clientPlatform;
+    try {
+      await this.authService.initiatePasswordReset(body.email, platform);
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        throw err;
+      }
+      // Suppress other errors to avoid email enumeration
+    }
     return {
       message: 'If this email is registered, a reset link has been sent.',
     };
@@ -283,14 +294,18 @@ export class AuthController {
 
   /**
    * POST /api/auth/reset-password
-   * Body: { token: string, newPassword: string }
-   * Verifies the JWT reset token and updates the user's password.
+   * Body: { token: string, newPassword: string, platform?: string }
+   * Verifies the cryptographic reset token and updates the user's password.
    */
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(@Body() body: { token: string; newPassword: string }) {
-    await this.authService.resetPassword(body.token, body.newPassword);
-    return { success: true, message: 'Password has been reset successfully.' };
+  async resetPassword(
+    @Body() body: { token: string; newPassword: string; platform?: string },
+    @Headers('x-platform') headerPlatform?: string,
+    @Headers('x-client-platform') clientPlatform?: string,
+  ) {
+    const platform = body.platform || headerPlatform || clientPlatform;
+    return this.authService.resetPassword(body.token, body.newPassword, platform);
   }
 
   /**

@@ -20,7 +20,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
         title: const Text(
           'OFFICIAL ATTESTATION',
           style: TextStyle(
-            fontFamily: 'ZxGamut',
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
             fontSize: 16,
@@ -50,7 +49,7 @@ class MarkerConfirmationScreen extends ConsumerWidget {
               return const Center(
                 child: Text(
                   'No scores submitted for group attestation.',
-                  style: TextStyle(fontFamily: 'ZxGamut', color: Colors.white60),
+                  style: TextStyle(color: Colors.white60),
                 ),
               );
             }
@@ -71,7 +70,7 @@ class MarkerConfirmationScreen extends ConsumerWidget {
           error: (err, stack) => Center(
             child: Text(
               'Attestation Error: $err',
-              style: const TextStyle(fontFamily: 'ZxGamut', color: Color(0xFFEF4444)),
+              style: const TextStyle(color: Color(0xFFEF4444)),
             ),
           ),
         ),
@@ -104,7 +103,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
           title: Text(
             'Competitor $userId',
             style: const TextStyle(
-              fontFamily: 'ZxGamut',
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 17,
@@ -114,7 +112,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
           subtitle: Text(
             allConfirmed ? 'Official Scorecard Attested' : '${scores.length} / 18 Holes Submitted',
             style: TextStyle(
-              fontFamily: 'ZxGamut',
               fontSize: 13,
               color: allConfirmed ? const Color(0xFF34D399) : Colors.white60,
             ),
@@ -135,7 +132,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
                       Text(
                         'ATTESTED',
                         style: TextStyle(
-                          fontFamily: 'ZxGamut',
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF34D399),
@@ -154,7 +150,7 @@ class MarkerConfirmationScreen extends ConsumerWidget {
                   ),
                   child: const Text(
                     'Attest All',
-                    style: TextStyle(fontFamily: 'ZxGamut', fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
           children: [
@@ -187,7 +183,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
           Text(
             score.holeId.replaceAll('hole_', 'H'),
             style: const TextStyle(
-              fontFamily: 'ZxGamut',
               fontSize: 11,
               fontWeight: FontWeight.bold,
               color: Colors.white38,
@@ -197,7 +192,6 @@ class MarkerConfirmationScreen extends ConsumerWidget {
           Text(
             '$strokes',
             style: const TextStyle(
-              fontFamily: 'ZxGamut',
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: Colors.white,

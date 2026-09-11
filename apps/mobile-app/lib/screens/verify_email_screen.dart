@@ -2,16 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../services/auth_service.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String email;
   final String playerName;
+  final Map<String, dynamic>? registrationData;
 
   const VerifyEmailScreen({
     super.key,
     this.email = 'alex.wright@example.com',
     this.playerName = 'Alex Wright',
+    this.registrationData,
   });
 
   @override
@@ -83,6 +86,18 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       final authService = ref.read(authServiceProvider);
       await authService.verifyEmail(code);
 
+      // Merge and guarantee complete player registration profile in Hive storage
+      if (widget.registrationData != null) {
+        final box = await Hive.openBox('auth');
+        final existingUser = box.get('user');
+        final mergedUser = <String, dynamic>{
+          if (existingUser is Map) ...Map<String, dynamic>.from(existingUser),
+          ...widget.registrationData!,
+          if (existingUser is Map && existingUser['id'] != null) 'id': existingUser['id'],
+        };
+        await box.put('user', mergedUser);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -118,9 +133,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       _startResendTimer();
 
       if (mounted) {
-        final snackMessage = (otpCode != null && otpCode.isNotEmpty)
-            ? 'New 6-digit code: $otpCode (sent to ${widget.email})'
-            : 'New 6-digit code sent to ${widget.email}';
+        final snackMessage = 'A new verification code has been sent to ${widget.email}. Please check your inbox.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF009A60),
@@ -139,37 +152,72 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 10),
-                  // Centered Verification Icon Badge with Top-Right Check Badge
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              children: [
+                // Pinned Top Navigation Bar (Exact match with registration_screen)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+                  color: Colors.white,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            size: 18,
+                            color: Color(0xFF374151),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 36),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                  const SizedBox(height: 12),
+                  // Centered Verification Icon Badge with Top-Right Check Badge (Standardized 76x76)
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
                       Container(
-                        width: 72,
-                        height: 72,
+                        width: 76,
+                        height: 76,
                         decoration: BoxDecoration(
                           color: const Color(0xFFEAF7EE),
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: const Color(0xFFC6F0DB)),
                         ),
                         child: const Center(
                           child: Icon(
                             Icons.mark_email_read_outlined,
-                            size: 34,
+                            size: 36,
                             color: Color(0xFF009A60),
                           ),
                         ),
@@ -203,7 +251,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 24),
 
                   // Title: "Verify email"
                   const Text(
@@ -216,7 +264,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
 
                   // Description
                   Column(
@@ -458,7 +506,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.normal,
                         letterSpacing: 1.3,
                         color: Color(0xFF8CA0BA),
                       ),
@@ -469,8 +517,11 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
             ),
           ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  ),
+),
+);
+}
 }

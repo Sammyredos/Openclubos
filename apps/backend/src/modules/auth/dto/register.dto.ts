@@ -27,6 +27,14 @@ export class RegisterDto {
   clubId?: string;
 
   @IsOptional()
+  @IsString()
+  homeClub?: string;
+
+  @IsOptional()
+  @IsString()
+  clubName?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   handicap?: number;

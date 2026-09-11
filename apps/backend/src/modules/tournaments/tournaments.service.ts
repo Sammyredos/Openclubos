@@ -350,7 +350,11 @@ export class TournamentsService {
         where: { id },
         include: {
           club: true,
-          course: true,
+          course: {
+            include: {
+              holes: { orderBy: { number: 'asc' } },
+            },
+          },
           _count: {
             select: {
               registrations: {

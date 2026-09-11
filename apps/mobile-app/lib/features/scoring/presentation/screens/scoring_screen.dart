@@ -66,7 +66,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
             'Hole ${currentHole['number']} score saved successfully',
-            style: const TextStyle(fontFamily: 'ZxGamut', fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -111,7 +111,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
               child: const Text(
                 'TOURNAMENT ROUND 1',
                 style: TextStyle(
-                  fontFamily: 'ZxGamut',
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -123,7 +122,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             const Text(
               'Championship Course',
               style: TextStyle(
-                fontFamily: 'ZxGamut',
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -228,7 +226,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                 child: Text(
                   '$holeNum',
                   style: TextStyle(
-                    fontFamily: 'ZxGamut',
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     color: isSelected ? const Color(0xFF34D399) : Colors.white60,
@@ -284,7 +281,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   child: Text(
                     '$holeNumber',
                     style: const TextStyle(
-                      fontFamily: 'ZxGamut',
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -299,7 +295,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   Text(
                     'HOLE $holeNumber',
                     style: const TextStyle(
-                      fontFamily: 'ZxGamut',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.3,
@@ -310,7 +305,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   Text(
                     'Handicap Index: $hcp',
                     style: TextStyle(
-                      fontFamily: 'ZxGamut',
                       fontSize: 12,
                       color: Colors.white.withOpacity(0.5),
                     ),
@@ -337,7 +331,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontFamily: 'ZxGamut',
             fontSize: 10,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.8,
@@ -348,7 +341,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         Text(
           value,
           style: TextStyle(
-            fontFamily: 'ZxGamut',
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: color,
@@ -410,7 +402,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
           const Text(
             'SCORE / TOTAL STROKES',
             style: TextStyle(
-              fontFamily: 'ZxGamut',
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -441,7 +432,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
               Text(
                 '$_strokes',
                 style: const TextStyle(
-                  fontFamily: 'ZxGamut',
                   fontSize: 76,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -2,
@@ -486,7 +476,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             child: Text(
               badgeText,
               style: TextStyle(
-                fontFamily: 'ZxGamut',
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
@@ -513,7 +502,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
           const Text(
             'PERFORMANCE STATS',
             style: TextStyle(
-              fontFamily: 'ZxGamut',
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -529,7 +517,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
               children: [
                 const Text(
                   'Fairway Accuracy',
-                  style: TextStyle(fontFamily: 'ZxGamut', color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 Row(
                   children: [
@@ -551,7 +539,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             children: [
               const Text(
                 'Putts Taken',
-                style: TextStyle(fontFamily: 'ZxGamut', color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               Row(
                 children: [1, 2, 3, 4].map((p) {
@@ -573,7 +561,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                         child: Text(
                           '$p',
                           style: TextStyle(
-                            fontFamily: 'ZxGamut',
                             fontWeight: FontWeight.bold,
                             color: isSelected ? Colors.white : Colors.white60,
                           ),
@@ -593,7 +580,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             children: [
               const Text(
                 'Green in Regulation (GIR)',
-                style: TextStyle(fontFamily: 'ZxGamut', color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               Switch.adaptive(
                 value: _gir,
@@ -623,7 +610,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         child: Text(
           text,
           style: TextStyle(
-            fontFamily: 'ZxGamut',
             fontSize: 11,
             fontWeight: FontWeight.bold,
             color: active ? const Color(0xFF34D399) : Colors.white60,
@@ -656,7 +642,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             Text(
               _currentHoleIndex < 17 ? 'SAVE & PROCEED TO HOLE ${_currentHoleIndex + 2}' : 'COMPLETE ROUND',
               style: const TextStyle(
-                fontFamily: 'ZxGamut',
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,

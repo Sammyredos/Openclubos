@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +16,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = true;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -27,7 +27,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -44,16 +43,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Strict Security Gate: Mobile app is exclusively for tournament players
         if (role != 'PLAYER') {
           throw Exception(
-            'Access Denied: The Openclub Mobile App is reserved for players. Organizers and Administrators must sign in through the Web Admin Portal.',
+            'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
           );
         }
 
         Navigator.of(context).pushReplacementNamed('/app/home');
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
+      if (mounted) {
+        final rawMsg = e.toString().replaceAll('Exception: ', '');
+        final errMsg = (rawMsg.toLowerCase().contains('organizer') || rawMsg.toLowerCase().contains('web admin'))
+            ? 'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.'
+            : rawMsg;
+        final isRoleRestricted = errMsg.toLowerCase().contains('role') ||
+            errMsg.toLowerCase().contains('access') ||
+            errMsg.toLowerCase().contains('restricted');
+        final isConnectionError = errMsg.toLowerCase().contains('connection') ||
+            errMsg.toLowerCase().contains('socket') ||
+            errMsg.toLowerCase().contains('timeout') ||
+            errMsg.toLowerCase().contains('failed to connect') ||
+            errMsg.toLowerCase().contains('network');
+        final errorTitle = isRoleRestricted
+            ? 'ACCESS RESTRICTED'
+            : isConnectionError
+                ? 'SERVER CONNECTION FAILURE'
+                : 'AUTHENTICATION FAILED';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        errorTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        errMsg,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -80,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -159,53 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Security Error Banner
-                  if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFCA5A5)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            color: Color(0xFFDC2626),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Access Restricted',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF991B1B),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFFB91C1C),
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+
 
                   // 4. Email Address Input
                   const Text(
@@ -320,10 +324,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               width: 18,
                               height: 18,
                               decoration: BoxDecoration(
-                                color: _rememberMe ? const Color(0xFF009A60) : Colors.transparent,
+                                color: _rememberMe ? const Color(0xFF009A60) : const Color(0xFFF5FAF6),
                                 borderRadius: BorderRadius.circular(5),
                                 border: Border.all(
-                                  color: _rememberMe ? const Color(0xFF009A60) : const Color(0xFFD1D5DB),
+                                  color: _rememberMe ? const Color(0xFF009A60) : const Color(0xFFE1EFE5),
                                   width: 1.5,
                                 ),
                               ),
@@ -347,8 +351,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // Forgot Password Link
                       GestureDetector(
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Password recovery instructions sent to your email.')),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ForgotPasswordScreen(
+                                initialEmail: _emailController.text.trim(),
+                              ),
+                            ),
                           );
                         },
                         child: const Text(

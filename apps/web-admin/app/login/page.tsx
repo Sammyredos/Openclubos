@@ -76,7 +76,6 @@ function LoginPageInner() {
         );
       }
       login(response.accessToken, response.user, rememberMe);
-      toast.success("Successfully Logged into your Account");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid email or password.";
       if (msg === "EMAIL_NOT_VERIFIED" || msg.toLowerCase() === "email not verified") {

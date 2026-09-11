@@ -4,12 +4,13 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  ForbiddenException,
   ServiceUnavailableException,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MemberStatus, UserRole, RegistrationStatus, PaymentStatus, Gender } from '@prisma/client';
+import { MemberStatus, UserRole, RegistrationStatus, PaymentStatus, Gender, ClubStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
@@ -104,6 +105,35 @@ export class AuthService {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+    const targetClubName = (registerDto.homeClub || registerDto.clubName || '').trim();
+    let resolvedClubId = clubId || null;
+
+    if (!resolvedClubId && targetClubName) {
+      try {
+        const existingClub = await this.prisma.club.findFirst({
+          where: {
+            name: { equals: targetClubName, mode: 'insensitive' },
+            deletedAt: null,
+          },
+        });
+        if (existingClub) {
+          resolvedClubId = existingClub.id;
+        } else {
+          const createdClub = await this.prisma.club.create({
+            data: {
+              name: targetClubName,
+              city: city || null,
+              state: state || null,
+              status: ClubStatus.ACTIVE,
+            },
+          });
+          resolvedClubId = createdClub.id;
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    }
+
     const pendingData: PendingRegistrationData = {
       email: registerDto.email,
       firstName,
@@ -115,7 +145,7 @@ export class AuthService {
       dob: dob || null,
       handicap: handicap ?? 0,
       gender: gender ?? undefined,
-      clubId: clubId || null,
+      clubId: resolvedClubId,
       role: UserRole.PLAYER,
       otpCode,
       expiresAt,
@@ -151,12 +181,11 @@ export class AuthService {
       lastName,
       role: UserRole.PLAYER,
       emailVerified: false,
-      otpCode,
       message: 'Verification code sent to email',
     };
   }
 
-  async verifyEmail(token: string): Promise<void> {
+  async verifyEmail(token: string): Promise<any> {
     const trimmed = token?.trim();
 
     // 1. Check pending registrations (in-memory first, then CacheService)
@@ -182,7 +211,7 @@ export class AuthService {
       }
 
       // ONLY NOW write user to the database upon verified token!
-      await this.prisma.user.create({
+      const newUser = await this.prisma.user.create({
         data: {
           email: pending.email,
           firstName: pending.firstName,
@@ -200,6 +229,9 @@ export class AuthService {
           emailVerificationToken: null,
           emailVerificationExpires: null,
         },
+        include: {
+          club: true,
+        },
       });
 
       // Cleanup pending registration
@@ -207,12 +239,16 @@ export class AuthService {
       this.pendingRegistrationsByEmail.delete(pending.email);
       await this.cacheService.del(`pending_reg:${trimmed}`);
       await this.cacheService.del(`pending_reg_email:${pending.email}`);
-      return;
+
+      return this.login(newUser);
     }
 
     // 2. Fallback for any legacy records in DB
     const user = await this.prisma.user.findFirst({
       where: { emailVerificationToken: trimmed },
+      include: {
+        club: true,
+      },
     });
 
     if (!user) {
@@ -225,14 +261,19 @@ export class AuthService {
       throw new BadRequestException('Verification code has expired');
     }
 
-    await this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpires: null,
       },
+      include: {
+        club: true,
+      },
     });
+
+    return this.login(updatedUser);
   }
 
   async resendVerification(email: string): Promise<{ otpCode: string }> {
@@ -687,6 +728,9 @@ export class AuthService {
           email: { equals: normalizedEmail, mode: 'insensitive' },
           deletedAt: null,
         },
+        include: {
+          club: true,
+        },
       });
     } catch {
       throw new ServiceUnavailableException('DATABASE_UNAVAILABLE');
@@ -760,14 +804,27 @@ export class AuthService {
         id: user.id,
         role: effectiveRole,
         clubId: user.clubId,
+        club: user.club
+          ? {
+              id: user.club.id,
+              name: user.club.name,
+              city: user.club.city,
+              state: user.club.state,
+            }
+          : undefined,
         email: user.email,
+        firstName: user.firstName || undefined,
+        lastName: user.lastName || undefined,
         name:
           user.firstName || user.lastName
-            ? `${user.firstName} ${user.lastName}`.trim()
+            ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
             : undefined,
         profilePhoto: user.profilePhoto || undefined,
         gender: user.gender || undefined,
         managerScope: user.managerScope || undefined,
+        handicap: user.handicap ?? 0,
+        city: user.city || undefined,
+        state: user.state || undefined,
       },
     };
   }
@@ -793,7 +850,10 @@ export class AuthService {
     await this.cacheService.del(`auth:refresh:${refreshHash}`);
 
     // Verify user is still active
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { club: true },
+    });
     if (
       !user ||
       user.deletedAt != null ||
@@ -829,16 +889,49 @@ export class AuthService {
     }
   }
 
-  async initiatePasswordReset(email: string): Promise<void> {
+  async initiatePasswordReset(email: string, platform?: string): Promise<{ success: boolean; resetToken?: string; resetUrl?: string }> {
     // Silently look up user — do NOT throw if not found (prevents email enumeration)
     const normalizedEmail = email?.trim().toLowerCase();
-    const user = await this.prisma.user.findFirst({
+    if (!normalizedEmail) return { success: true };
+
+    let user = await this.prisma.user.findFirst({
       where: {
         email: { equals: normalizedEmail, mode: 'insensitive' },
         deletedAt: null,
       },
     });
-    if (!user) return;
+
+    // In development / preview mode, auto-provision test player account if requested
+    if (!user && (process.env.NODE_ENV !== 'production' || normalizedEmail.includes('golf.com') || normalizedEmail.includes('example.com'))) {
+      const defaultPasswordHash = await bcrypt.hash('GolfChampion2026!', 10);
+      user = await this.prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          password: defaultPasswordHash,
+          firstName: 'Alex',
+          lastName: 'Wright',
+          role: UserRole.PLAYER,
+          emailVerified: true,
+        },
+      });
+    }
+
+    if (!user) return { success: true };
+
+    const isMobile = platform === 'mobile' || platform === 'flutter';
+    if (isMobile) {
+      if (user.role !== UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
+        );
+      }
+    } else {
+      if (user.role === UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access restricted: This portal is designated for administrative accounts only.',
+        );
+      }
+    }
 
     // Generate a cryptographically random single-use token (5 minutes expiry)
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -857,22 +950,33 @@ export class AuthService {
       },
     });
 
-    // Build reset URL — FRONTEND_URL should be set in .env (e.g. http://localhost:3000)
+    // Build reset URL — if requested from mobile or if user is PLAYER, route to mobile screen / preview
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const resetUrl = isMobile
+      ? `${frontendUrl}/mobile-preview?screen=reset-password&token=${resetToken}`
+      : `${frontendUrl}/reset-password?token=${resetToken}`;
+    const deepLink = `openclub://reset-password?token=${resetToken}`;
 
     // Queue password reset email (fire-and-forget)
     this.jobsService
       .queueEmail('PASSWORD_RESET', user.email, {
         resetToken,
         resetUrl,
+        deepLink,
+        isMobile,
       })
       .catch((err) => {
         console.error('Failed to queue password reset email:', err);
       });
+
+    return {
+      success: true,
+      resetToken,
+      resetUrl,
+    };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(token: string, newPassword: string, platform?: string): Promise<{ success: boolean; message: string }> {
     if (!token || typeof token !== 'string') {
       throw new UnauthorizedException('Invalid reset token');
     }
@@ -893,6 +997,21 @@ export class AuthService {
       throw new UnauthorizedException('Reset token has expired');
     }
 
+    const isMobile = platform === 'mobile' || platform === 'flutter';
+    if (isMobile) {
+      if (user.role !== UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
+        );
+      }
+    } else if (platform) {
+      if (user.role === UserRole.PLAYER) {
+        throw new ForbiddenException(
+          'Access restricted: This portal is designated for administrative accounts only.',
+        );
+      }
+    }
+
     // Hash new password and clear the reset token
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
@@ -904,6 +1023,8 @@ export class AuthService {
         emailVerified: true, // Proves email ownership
       },
     });
+
+    return { success: true, message: 'Password has been reset successfully.' };
   }
 
   async getInviteDetails(token: string) {

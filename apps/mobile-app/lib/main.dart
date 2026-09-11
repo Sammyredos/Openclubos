@@ -2,9 +2,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/login_screen.dart';
+import 'screens/landing_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/verify_email_screen.dart';
+import 'screens/competitor_home_screen.dart';
 import 'features/tournaments/screens/tournament_list_screen.dart';
 import 'features/tournaments/screens/leaderboard_screen.dart';
 import 'services/notification_service.dart';
@@ -43,7 +46,7 @@ class OpenclubApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF06090E),
-        fontFamily: 'ZxGamut',
+        textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF10B981), // Masters Tournament Emerald
           secondary: Color(0xFFF59E0B), // Championship Gold
@@ -53,16 +56,15 @@ class OpenclubApp extends StatelessWidget {
           onSurface: Color(0xFFF8FAFC),
         ),
         useMaterial3: true,
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontFamily: 'ZxGamut',
+          titleTextStyle: GoogleFonts.dmSans(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             letterSpacing: -0.2,
-            color: Color(0xFFF8FAFC),
+            color: const Color(0xFFF8FAFC),
           ),
         ),
       ),
@@ -77,13 +79,15 @@ class OpenclubApp extends StatelessWidget {
         return null;
       },
       routes: {
+        '/landing': (context) => const LandingScreen(),
+        '/get-started': (context) => const LandingScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegistrationScreen(),
         '/verify': (context) => const VerifyEmailScreen(),
         '/super-admin/dashboard': (context) => const DashboardScreen(title: 'Super Admin Dashboard'),
         '/admin/dashboard': (context) => const DashboardScreen(title: 'Club Admin Dashboard'),
         '/staff/dashboard': (context) => const DashboardScreen(title: 'Staff Dashboard'),
-        '/app/home': (context) => const TournamentListScreen(),
+        '/app/home': (context) => const CompetitorHomeScreen(),
         '/app/scoring': (context) => const DashboardScreen(title: 'Scoring Panel'),
         '/dashboard': (context) => const DashboardScreen(title: 'Dashboard'),
       },

@@ -29,7 +29,7 @@ class AuthService {
         // Strict Role Gate: Exclusively registered players can log in via the mobile application
         if (role != 'PLAYER') {
           throw Exception(
-            'Access Denied: The Openclub Mobile App is reserved for players. Organizers and Administrators must sign in through the Web Admin Portal.',
+            'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
           );
         }
 
@@ -65,7 +65,7 @@ class AuthService {
     return box.get('user');
   }
 
-  Future<void> verifyEmail(String token) async {
+  Future<Map<String, dynamic>> verifyEmail(String token) async {
     try {
       final response = await _dio.post('/auth/verify-email', data: {
         'token': token.trim(),
@@ -73,6 +73,18 @@ class AuthService {
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(response.data?['message'] ?? 'Failed to verify email');
       }
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final user = data['user'];
+        final tokenStr = data['accessToken'] ?? data['token'];
+        if (user != null || tokenStr != null) {
+          final box = await Hive.openBox('auth');
+          if (tokenStr != null) await box.put('token', tokenStr);
+          if (user != null) await box.put('user', user);
+        }
+        return data;
+      }
+      return {};
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Verification failed';
       throw Exception(message);
@@ -119,6 +131,57 @@ class AuthService {
       }
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Registration failed';
+      throw Exception(message);
+    }
+  }
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await _dio.post(
+        '/auth/forgot-password',
+        data: {
+          'email': email.trim(),
+          'platform': 'mobile',
+        },
+        options: Options(
+          headers: {
+            'x-platform': 'mobile',
+            'x-client-platform': 'mobile',
+          },
+        ),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return Map<String, dynamic>.from(response.data);
+      } else {
+        throw Exception(response.data?['message'] ?? 'Failed to send reset link');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Failed to send reset link';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> resetPassword(String token, String newPassword) async {
+    try {
+      final response = await _dio.post(
+        '/auth/reset-password',
+        data: {
+          'token': token.trim(),
+          'newPassword': newPassword,
+          'platform': 'mobile',
+        },
+        options: Options(
+          headers: {
+            'x-platform': 'mobile',
+            'x-client-platform': 'mobile',
+          },
+        ),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(response.data?['message'] ?? 'Failed to reset password');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Failed to reset password';
       throw Exception(message);
     }
   }

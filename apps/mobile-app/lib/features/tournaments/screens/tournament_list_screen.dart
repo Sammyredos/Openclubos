@@ -62,9 +62,8 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'TOURNAMENT HUB',
+          'HOME',
           style: TextStyle(
-            fontFamily: 'ZxGamut',
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
             fontSize: 16,
@@ -95,7 +94,7 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                 ? const Center(
                     child: Text(
                       'No active tournaments found.',
-                      style: TextStyle(fontFamily: 'ZxGamut', color: Colors.white60),
+                      style: TextStyle(color: Colors.white60),
                     ),
                   )
                 : ListView.builder(
@@ -160,7 +159,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                                         Text(
                                           isLive ? 'LIVE NOW' : (tournament['status'] ?? 'UPCOMING'),
                                           style: TextStyle(
-                                            fontFamily: 'ZxGamut',
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             letterSpacing: 0.8,
@@ -174,7 +172,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                                     Text(
                                       tournament['purse'],
                                       style: const TextStyle(
-                                        fontFamily: 'ZxGamut',
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFFF59E0B),
@@ -186,7 +183,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                               Text(
                                 tournament['name'] ?? 'Tournament Championship',
                                 style: const TextStyle(
-                                  fontFamily: 'ZxGamut',
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: -0.3,
@@ -197,7 +193,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                               Text(
                                 tournament['course'] ?? 'Championship Golf Course',
                                 style: TextStyle(
-                                  fontFamily: 'ZxGamut',
                                   fontSize: 13,
                                   color: Colors.white.withOpacity(0.6),
                                 ),
@@ -213,7 +208,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                                       Text(
                                         tournament['dates'] ?? 'Official Round',
                                         style: const TextStyle(
-                                          fontFamily: 'ZxGamut',
                                           fontSize: 12,
                                           color: Colors.white38,
                                         ),
@@ -225,7 +219,6 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                                       Text(
                                         'Leaderboard',
                                         style: TextStyle(
-                                          fontFamily: 'ZxGamut',
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF10B981),

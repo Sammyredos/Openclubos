@@ -2,32 +2,13 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
-import localFont from 'next/font/local';
+import { DM_Sans } from 'next/font/google';
 
-const zxgamutFont = localFont({
-  src: [
-    {
-      path: './fonts/ZxGamut-Light.woff2',
-      weight: '300',
-      style: 'normal',
-    },
-    {
-      path: './fonts/ZxGamut-Regular.woff2',
-      weight: '400',
-      style: 'normal',
-    },
-    {
-      path: './fonts/ZxGamut-Medium.woff2',
-      weight: '500',
-      style: 'normal',
-    },
-    {
-      path: './fonts/ZxGamut-Bold.woff2',
-      weight: '700',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-zxgamut',
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -50,8 +31,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className={`min-h-full flex flex-col font-sans ${zxgamutFont.variable}`} suppressHydrationWarning>
+      <body className={`min-h-full flex flex-col font-sans ${dmSans.variable}`} suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster 
           richColors 
