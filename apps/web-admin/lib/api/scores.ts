@@ -47,3 +47,20 @@ export const getPublicLeaderboardData = async (tournamentId: string) => {
     throw error;
   }
 };
+
+export const forfeitTournamentRound = async (tournamentId: string, reason?: string) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/scores/tournament/${tournamentId}/forfeit`,
+      { reason },
+      getHeaders()
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      await handleAuthFailure(error.response);
+    }
+    throw error;
+  }
+};
+

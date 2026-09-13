@@ -78,4 +78,15 @@ export class ScoresController {
   ) {
     return this.scoresService.verifyScorecard(tournamentId, userId, groupId);
   }
+
+  @Post('tournament/:tournamentId/forfeit')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  forfeitTournamentRound(
+    @Request() req: any,
+    @Param('tournamentId') tournamentId: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.scoresService.forfeitTournamentRound(tournamentId, req.user, reason);
+  }
 }
+

@@ -71,6 +71,7 @@ import {
   Banknote,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { forfeitTournamentRound } from "@/lib/api/scores";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
 import { Country, State, City } from "country-state-city";
@@ -571,8 +572,10 @@ export default function MobilePreviewPage() {
     score: string;
     thru: string;
     flightText: string;
+    tournamentId?: string;
   } | null>({
     id: "ar-oakwood-14",
+    tournamentId: "tourn-oakwood-championship",
     tournamentName: "Oakwood Championship",
     holeNumber: 14,
     par: 4,
@@ -7879,7 +7882,14 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                   {/* Vertically Stacked Action Buttons */}
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      try {
+                        if (activeRound?.tournamentId) {
+                          await forfeitTournamentRound(activeRound.tournamentId);
+                        }
+                      } catch (err) {
+                        console.warn("Forfeit API fallback to preview simulator:", err);
+                      }
                       setActiveRound(null);
                       setShowForfeitModal(false);
                       showToast("Withdrawn from tournament round.", "success", "ROUND FORFEITED");

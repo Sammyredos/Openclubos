@@ -8,7 +8,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ScoreStatus, UserRole } from '@prisma/client';
+import { ScoreStatus, UserRole, RegistrationStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import { createClient, RedisClientType } from 'redis';
 import { PrismaService } from '../../common/prisma.service';
@@ -526,6 +526,93 @@ export class ScoresService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Forfeits/withdraws a player from an active tournament round.
+   * Updates registration status to DISQUALIFIED, records immutable audit log with completed thru holes,
+   * and triggers real-time leaderboard reconciliation.
+   */
+  async forfeitTournamentRound(tournamentId: string, user: any, reason?: string) {
+    const userId = user.userId || user.id;
+
+    // Find player registration for the tournament
+    const registration = await this.prisma.registration.findUnique({
+      where: {
+        userId_tournamentId: {
+          userId,
+          tournamentId,
+        },
+      },
+      include: {
+        tournament: { select: { id: true, name: true, clubId: true } },
+      },
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Registration for this tournament was not found');
+    }
+
+    if (registration.status === RegistrationStatus.DISQUALIFIED) {
+      return {
+        success: true,
+        message: 'Player is already withdrawn or disqualified from this tournament',
+        status: registration.status,
+      };
+    }
+
+    // Count how many holes player completed
+    const completedHolesCount = await this.prisma.score.count({
+      where: {
+        userId,
+        group: { tournamentId },
+      },
+    });
+
+    // Update status to DISQUALIFIED
+    const updatedRegistration = await this.prisma.registration.update({
+      where: { id: registration.id },
+      data: {
+        status: RegistrationStatus.DISQUALIFIED,
+      },
+    });
+
+    // Record immutable audit log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'TOURNAMENT_ROUND_FORFEIT',
+          resource: `Registration:${registration.id}`,
+          before: {
+            status: registration.status,
+          },
+          after: {
+            status: RegistrationStatus.DISQUALIFIED,
+            tournamentId,
+            tournamentName: registration.tournament?.name || 'Tournament',
+            reason: reason || 'Player self-forfeited round mid-match',
+            thruHoles: completedHolesCount,
+          },
+        },
+      });
+    } catch (auditErr: any) {
+      this.logger.warn(`Failed to write forfeit audit log: ${auditErr.message}`);
+    }
+
+    // Trigger real-time leaderboard reconciliation & WebSocket broadcast
+    try {
+      await this.reconcileLeaderboard(tournamentId);
+    } catch (reconcileErr: any) {
+      this.logger.warn(`Failed to reconcile leaderboard after forfeit: ${reconcileErr.message}`);
+    }
+
+    return {
+      success: true,
+      message: 'Successfully withdrawn from tournament round',
+      status: updatedRegistration.status,
+      thruHoles: completedHolesCount,
+    };
+  }
+
+  /**
    * Computes official standings from raw PostgreSQL registration and score entities
    */
   computeLeaderboardStandings(tournamentId: string, data: { registrations: any[]; scores: any[] }) {
@@ -545,19 +632,29 @@ export class ScoresService implements OnModuleInit, OnModuleDestroy {
         status: reg.status,
         madeCut: reg.madeCut,
         profilePhoto: reg.user.profilePhoto,
-        position: 0,
+        position: 0 as number | null,
       };
     });
 
-    // Sort by Net Score asc
-    playerScores.sort((a, b) => a.netScore - b.netScore);
-    playerScores.forEach((ps, index) => {
+    // Separate active players from disqualified / withdrawn players
+    const activePlayers = playerScores.filter((p) => p.status !== 'DISQUALIFIED');
+    const disqualifiedPlayers = playerScores.filter((p) => p.status === 'DISQUALIFIED');
+
+    // Sort active players by Net Score asc
+    activePlayers.sort((a, b) => a.netScore - b.netScore);
+    activePlayers.forEach((ps, index) => {
       ps.position = index + 1;
+    });
+
+    // Disqualified players are placed at the bottom with position null and thru holes preserved
+    disqualifiedPlayers.sort((a, b) => b.thru - a.thru);
+    disqualifiedPlayers.forEach((ps) => {
+      ps.position = null;
     });
 
     return {
       tournamentId,
-      scores: playerScores,
+      scores: [...activePlayers, ...disqualifiedPlayers],
       updatedAt: new Date().toISOString(),
       reconciledFrom: 'PostgreSQL_Source_Of_Truth',
     };
