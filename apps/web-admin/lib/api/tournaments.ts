@@ -27,6 +27,7 @@ export interface Tournament {
   cutAfterRound?: number;
   scoringType?: string;
   visibility?: string;
+  isFeatured?: boolean;
   createdAt?: string;
   _count?: { registrations: number };
   lockedGroupingsDays?: number[];
@@ -43,6 +44,7 @@ export type UpdateTournamentPayload = {
   startDate?: string;
   endDate?: string | null;
   status?: Tournament['status'];
+  isFeatured?: boolean;
   description?: string | null;
   bannerUrl?: string | null;
   venue?: string | null;

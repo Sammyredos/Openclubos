@@ -62,8 +62,15 @@ import {
   Menu,
   Shield,
   Home,
+  CalendarCheck,
+  Star,
+  Flame,
+  Share2,
+  Bookmark,
+  Banknote,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
 import { Country, State, City } from "country-state-city";
 
@@ -85,6 +92,12 @@ interface RealTournament {
   cutLine: string;
   weather: string;
   stimp: string;
+  isFeatured?: boolean;
+  bannerUrl?: string | null;
+  divisions?: string;
+  gender?: string;
+  hcpLimit?: string;
+  deadline?: string;
 }
 
 interface CourseHole {
@@ -405,6 +418,8 @@ export default function MobilePreviewPage() {
   // Default Scroll Reset Refs
   const phoneContentScrollRef = useRef<HTMLDivElement>(null);
   const regScrollRef = useRef<HTMLDivElement>(null);
+  const featuredTournamentsCarouselRef = useRef<HTMLDivElement>(null);
+  const playingNowCarouselRef = useRef<HTMLDivElement>(null);
 
   const scrollToTopAll = () => {
     if (regScrollRef.current) {
@@ -484,6 +499,40 @@ export default function MobilePreviewPage() {
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
 
+  // --- Mobile Bottom Navigation State (5-item bar with flush PLAY GOLF button) ---
+  const [activeBottomNavTab, setActiveBottomNavTab] = useState<"home" | "tournaments" | "challenges" | "deals">("home");
+  const [friendsSearchQuery, setFriendsSearchQuery] = useState("");
+  const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
+
+  // Searchable Golf Competitors Database (Search by Name or Email, No GHIN)
+  const ALL_GOLF_COMPETITORS = [
+    { id: "p1", name: "Marcus Thorne", email: "marcus.thorne@augustagc.com", club: "Augusta National GC", hcp: "1.2", initial: "M" },
+    { id: "p2", name: "David O'Connor", email: "david.oconnor@pinevalley.com", club: "Pine Valley GC", hcp: "4.8", initial: "D" },
+    { id: "p3", name: "Elena Rostova", email: "elena.rostova@cypresspoint.com", club: "Cypress Point Club", hcp: "0.4", initial: "E" },
+    { id: "p4", name: "Amina Bello", email: "amina.bello@ikoyiclub.com", club: "Ikoyi Club 1938", hcp: "6.2", initial: "A" },
+    { id: "p5", name: "Chidi Okafor", email: "chidi.okafor@oakwood.ng", club: "Oakwood Golf Club", hcp: "8.5", initial: "C" },
+    { id: "p6", name: "Tunde Bakare", email: "tunde.bakare@ibadan.org", club: "Ibadan Golf Club", hcp: "5.1", initial: "T" },
+    { id: "p7", name: "Sophie Van Der Merwe", email: "sophie.vdm@sunshinetour.za", club: "Fancourt Golf Estate", hcp: "2.3", initial: "S" },
+    { id: "p8", name: "Liam Gallagher", email: "liam.gallagher@standrews.uk", club: "St Andrews Links", hcp: "3.7", initial: "L" },
+    { id: "p9", name: "Zainab Ibrahim", email: "zainab.ibrahim@abuja.ng", club: "IBB International Golf Club", hcp: "9.0", initial: "Z" },
+    { id: "p10", name: "Emeka Nwosu", email: "emeka.nwosu@enugugolf.com", club: "Enugu Golf Club", hcp: "11.4", initial: "E" },
+  ];
+
+  // --- Friends on Course State (Live Simulation & Active Scrollable Carousel) ---
+  const sampleFriendsOnCourse = [
+    { id: "f1", name: "Sarah Jenkins", initials: "SJ", score: "Hole 14 • Even", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f2", name: "David Miller", initials: "DM", score: "Hole 9 • +2", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f3", name: "Marcus Chen", initials: "MC", score: "Hole 18 • -1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f4", name: "Kevin Brown", initials: "KB", score: "Hole 7 • +3", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f5", name: "Alex Wright", initials: "AW", score: "Hole 11 • -2", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f6", name: "Sophie Van Der Merwe", initials: "SV", score: "Hole 5 • Even", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f7", name: "Amina Bello", initials: "AB", score: "Hole 16 • +1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f8", name: "Chidi Okafor", initials: "CO", score: "Hole 3 • -1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+    { id: "f9", name: "Liam Gallagher", initials: "LG", score: "Hole 8 • +4", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
+  ];
+  // Initialized with live competitors on the course so carousel is fully scrollable
+  const [friendsOnCourse, setFriendsOnCourse] = useState<any[]>(sampleFriendsOnCourse);
+
   // --- Real Organizer Tournaments State ---
   const [liveTournaments, setLiveTournaments] = useState<RealTournament[]>([]);
   const [selectedTournamentIndex, setSelectedTournamentIndex] = useState(0);
@@ -544,6 +593,12 @@ export default function MobilePreviewPage() {
       } catch { }
     }
   }, []);
+  const filteredFriends = friendsSearchQuery.trim()
+    ? ALL_GOLF_COMPETITORS.filter((p) => {
+        const q = friendsSearchQuery.trim().toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.club.toLowerCase().includes(q);
+      })
+    : ALL_GOLF_COMPETITORS.slice(0, 4);
 
   // --- Verify Email (6-Digit OTP) State ---
   const [verifyEmailTarget, setVerifyEmailTarget] = useState("alex.wright@example.com");
@@ -789,6 +844,9 @@ export default function MobilePreviewPage() {
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
   const [regShowPassword, setRegShowPassword] = useState(false);
   const [regShowConfirm, setRegShowConfirm] = useState(false);
+
+  const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Samuel Obadina");
+  const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "SO");
 
   // Step 2
   const [regClassification, setRegClassification] = useState<"BEGINNER" | "AMATEUR" | "PROFESSIONAL" | null>(null);
@@ -1352,24 +1410,40 @@ export default function MobilePreviewPage() {
         if (res && res.ok) {
           const data = await res.json().catch(() => null);
           if (isMounted && Array.isArray(data) && data.length > 0) {
-            const mapped: RealTournament[] = data.map((t: any, idx: number) => ({
-              id: t.id || `tournament_${idx}`,
-              name: t.name || "Championship Tournament",
-              status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
-              organizerClub: t.club?.name || "OpenClub Golf Club",
-              organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
-              courseName: t.course?.name || "Championship Course",
-              coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
-              courseHoles: t.holes || 18,
-              format: t.format ? t.format.replace(/_/g, " ") : "Stroke Play",
-              dates: t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming",
-              purse: t.prizePool ? `$${formatNumber(Number(t.prizePool))}` : `$${formatNumber(t.entryFee ? Number(t.entryFee) * 50 : 250000)}`,
-              entryFee: t.entryFee ? `$${formatNumber(Number(t.entryFee))}` : "$250",
-              fieldCount: t._count?.registrations ?? t.maxPlayers ?? 0,
-              cutLine: t.enableCut ? `Top ${t.cutLine || 30} + Ties` : "None",
-              weather: "74°F Sunny • 6mph NW",
-              stimp: "12.5 Stimp",
-            }));
+            const mapped: RealTournament[] = data.map((t: any, idx: number) => {
+              const isFree = t.requiresPayment === false || !t.entryFee || Number(t.entryFee) === 0;
+              const formattedPurse = (t.prizePool && Number(t.prizePool) > 0)
+                ? (t.currency === "NGN" ? `₦${formatNumber(Number(t.prizePool))}` : `$${formatNumber(Number(t.prizePool))}`)
+                : (isFree ? "—" : `$${formatNumber(Number(t.entryFee) * 50)}`);
+              const formattedFee = isFree
+                ? "Free"
+                : (t.currency === "NGN" ? `₦${formatNumber(Number(t.entryFee))}` : `$${formatNumber(Number(t.entryFee))}`);
+
+              return {
+                id: t.id || `tournament_${idx}`,
+                name: t.name || "Championship Tournament",
+                status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
+                organizerClub: t.club?.name || "OpenClub Golf Club",
+                organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
+                courseName: t.course?.name || "Championship Course",
+                coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
+                courseHoles: t.holes || 18,
+                format: t.format ? t.format.replace(/_/g, " ") : "Stroke Play",
+                dates: t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming",
+                purse: formattedPurse,
+                entryFee: formattedFee,
+                fieldCount: t._count?.registrations ?? t.maxPlayers ?? 0,
+                cutLine: t.enableCut ? `Top ${t.cutLine || 30} + Ties` : "None",
+                weather: "74°F Sunny • 6mph NW",
+                stimp: "12.5 Stimp",
+                isFeatured: Boolean(t.isFeatured),
+                bannerUrl: t.bannerUrl || null,
+                divisions: Array.isArray(t.divisions) && t.divisions.length > 0 ? t.divisions.join(" & ") : "Championship",
+                gender: t.genderRestriction === "MALE_ONLY" ? "Male" : t.genderRestriction === "FEMALE_ONLY" ? "Ladies" : undefined,
+                hcpLimit: t.hasHandicapRestriction ? `HCP ${t.minHandicap ?? 0}–${t.maxHandicap ?? 36}` : "No Limit",
+                deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
+              };
+            });
             setLiveTournaments(mapped);
           } else if (isMounted) {
             setLiveTournaments([]);
@@ -3213,7 +3287,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                   {/* 3. COMPETITOR PROFILE & TOURNAMENT HUB SCREEN (DAYLIGHT MODE) */}
                   {targetScreen === "hub" && (
-                    <div className="flex-1 flex flex-col pb-8 bg-[#F8FAFC] relative overflow-x-hidden">
+                    <div className="flex-1 min-h-full flex flex-col pb-0 bg-[#F8FAFC] relative overflow-x-hidden">
                       {/* --- 1. TOP SCENIC SUNSET GOLF HERO (SAGAMU GOLF COURSE, AFRICA) --- */}
                       <div className="relative w-full h-[325px] shrink-0 overflow-hidden">
                         {/* Course Landscape Photo: Sagamu Golf Club, Ogun State, Africa */}
@@ -3349,480 +3423,620 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                         </div>
                       </div>
 
-                      {/* --- 2. DUAL FLOATING ACTION CARDS (REDUCED HEIGHT, UNBROKEN WIDTH, LIGHTER FONT) --- */}
+                      {/* --- 2. DUAL FLOATING ACTION CARDS (BALANCED EQUAL WIDTH, HEIGHT 66PX, MORE ROUNDED [26PX]) --- */}
                       <div className="-mt-5 px-4 relative z-10 w-full max-w-sm mx-auto">
                         <div className="flex items-center gap-2.5">
-                          {/* Left Card: Add friends (Expanded flex-[1.3] for unbroken line, reduced height 62px) */}
+                          {/* Left Card: Book a Pro (Equal flex-1) */}
+                          <button
+                            type="button"
+                            onClick={() => showToast("PGA Certified Pro booking directory coming soon!", "success", "BOOK A PRO")}
+                            className="flex-1 h-[66px] bg-white rounded-[26px] px-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0"
+                          >
+                            <CalendarCheck className="h-5 w-5 text-[#009A60] stroke-[1.8] shrink-0 group-hover:scale-105 transition-transform" />
+                            <div className="flex flex-col text-left min-w-0 justify-center">
+                              <span className="text-[13px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                                Book a Pro
+                              </span>
+                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight mt-0.5">
+                                Book the club pro
+                              </span>
+                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight">
+                                for golfing sessions
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Right Card: HCP (Equal flex-1, matching Book a Pro icon & description) */}
+                          <button
+                            type="button"
+                            onClick={() => showToast("Your verified player handicap index", "success", "HANDICAP INDEX")}
+                            className="flex-1 h-[66px] bg-white rounded-[26px] px-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0"
+                          >
+                            <Award className="h-5 w-5 text-[#009A60] stroke-[1.8] shrink-0 group-hover:scale-105 transition-transform" />
+                            <div className="flex flex-col text-left min-w-0 justify-center">
+                              <span className="text-[13px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                                {currentHandicap} HCP
+                              </span>
+                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight mt-0.5">
+                                Your verified
+                              </span>
+                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight">
+                                handicap index
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* --- 2.5 PLAYING NOW SECTION (ENHANCED VERTICAL SPACING & EMPTY STATE) --- */}
+                      <div className="w-full max-w-sm mx-auto px-4 pt-6 pb-4">
+                        <div className="flex items-center justify-between mb-3.5">
+                          <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight">
+                            Playing Now
+                          </h3>
+                          {friendsOnCourse.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAddFriendsModal(true)}
+                              className="text-[13px] font-semibold text-[#009A60] hover:text-[#007A4D] transition-colors cursor-pointer"
+                            >
+                              Invite New
+                            </button>
+                          )}
+                        </div>
+
+                        {friendsOnCourse.length > 0 ? (
+                          /* Circular Display Row (Interactive Drag-to-Scroll & Mouse Wheel Support) */
+                          <div
+                            ref={playingNowCarouselRef}
+                            onWheel={(e) => {
+                              if (e.deltaY !== 0) {
+                                e.currentTarget.scrollLeft += e.deltaY;
+                              }
+                            }}
+                            onMouseDown={(e) => {
+                              const el = e.currentTarget;
+                              el.dataset.isDown = "true";
+                              el.dataset.startX = String(e.pageX - el.offsetLeft);
+                              el.dataset.scrollLeft = String(el.scrollLeft);
+                              el.dataset.moved = "false";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.dataset.isDown = "false";
+                            }}
+                            onMouseUp={(e) => {
+                              e.currentTarget.dataset.isDown = "false";
+                            }}
+                            onMouseMove={(e) => {
+                              const el = e.currentTarget;
+                              if (el.dataset.isDown !== "true") return;
+                              e.preventDefault();
+                              const x = e.pageX - el.offsetLeft;
+                              const startX = Number(el.dataset.startX);
+                              const scrollLeftStart = Number(el.dataset.scrollLeft);
+                              const walk = (x - startX) * 1.4;
+                              if (Math.abs(walk) > 6) {
+                                el.dataset.moved = "true";
+                              }
+                              el.scrollLeft = scrollLeftStart - walk;
+                            }}
+                            className="flex items-center gap-3 overflow-x-auto scrollbar-hide no-scrollbar py-2 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                          >
+                            {/* Circle 1: OpenClub Brand / Invite Action */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (playingNowCarouselRef.current?.dataset.moved === "true") {
+                                  playingNowCarouselRef.current.dataset.moved = "false";
+                                  return;
+                                }
+                                setShowAddFriendsModal(true);
+                              }}
+                              className="w-[54px] h-[54px] rounded-full border-2 border-[#009A60] bg-white flex flex-col items-center justify-center shrink-0 shadow-[0_2px_10px_rgba(0,154,96,0.12)] hover:bg-emerald-50/40 transition-all cursor-pointer group active:scale-95"
+                              title="Invite Friends"
+                            >
+                              <span className="text-[8px] font-black tracking-wider text-[#009A60] leading-none">OPEN</span>
+                              <span className="text-[8.5px] font-black tracking-wider text-[#009A60] my-0.5 leading-none">CLUB</span>
+                              <span className="text-[7px] font-bold tracking-widest text-[#009A60]/75 leading-none">GOLF</span>
+                            </button>
+
+                            {/* Friends on Course Avatars with Initials (Strictly No Images, Uniform MC Slate Gradient & White Text, 5 Max) */}
+                            {friendsOnCourse.slice(0, 5).map((friend) => (
+                              <button
+                                key={friend.id}
+                                type="button"
+                                onClick={() => {
+                                  if (playingNowCarouselRef.current?.dataset.moved === "true") {
+                                    playingNowCarouselRef.current.dataset.moved = "false";
+                                    return;
+                                  }
+                                  showToast(`${friend.name} is currently playing: ${friend.score}`, "success", "PLAYING NOW");
+                                }}
+                                className="w-[54px] h-[54px] rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-gradient-to-b from-slate-300 to-slate-400 text-white flex items-center justify-center shrink-0 font-bold text-[14px] relative hover:scale-105 transition-all cursor-pointer active:scale-95"
+                                title={`${friend.name} (${friend.score})`}
+                              >
+                                {friend.initials}
+                                <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          /* Rounded Dashed Empty Display (When no user is on the course) */
                           <button
                             type="button"
                             onClick={() => setShowAddFriendsModal(true)}
-                            className="flex-[1.3] h-[62px] bg-white rounded-[18px] px-3.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2.5 hover:shadow-md transition-all cursor-pointer group active:scale-98"
+                            className="w-full rounded-[22px] border-2 border-dashed border-slate-300/90 hover:border-[#009A60] bg-slate-50/70 hover:bg-emerald-50/30 p-3.5 flex items-center justify-between transition-all cursor-pointer group active:scale-98 text-left shadow-2xs"
+                            title="Add Golf Friends"
                           >
-                            <UserPlus className="h-5 w-5 text-[#009A60] stroke-[1.8] shrink-0 group-hover:scale-105 transition-transform" />
-                            <span className="text-[13.5px] font-semibold text-[#009A60] whitespace-nowrap tracking-tight">
-                              Add friends
-                            </span>
-                          </button>
-
-                          {/* Right Card: HCP (Flex-1, reduced height 62px, centered alignment) */}
-                          <button
-                            type="button"
-                            onClick={() => showToast("Certified USGA Handicap Index", "success", "HANDICAP INDEX")}
-                            className="flex-1 h-[62px] bg-white rounded-[18px] px-3 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-1.5 hover:shadow-md transition-all cursor-pointer group active:scale-98"
-                          >
-                            <span className="text-[24px] font-bold tracking-tight text-[#009A60] leading-none">
-                              {currentHandicap}
-                            </span>
-                            <span className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
-                              HCP
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* --- 3. TOURNAMENT HUB CONTENT AREA (DAYLIGHT MODE) --- */}
-                      <div className="w-full max-w-sm mx-auto px-4 pt-4 pb-6 space-y-3.5">
-                        {/* Section Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Home className="h-4 w-4 text-[#009A60] stroke-[1.8]" />
-                            <h3 className="text-xs font-semibold tracking-wider text-slate-800 uppercase">
-                              HOME
-                            </h3>
-                          </div>
-                          <div className="h-5 px-2 rounded-full bg-emerald-50 border border-emerald-200/80 text-[9.5px] font-semibold text-[#009A60] flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#009A60]" />
-                            {liveTournaments.length} EVENTS
-                          </div>
-                        </div>
-
-                        {liveTournaments.length === 0 ? (
-                          <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center shadow-2xs">
-                            {isLoadingTournaments ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="h-5 w-5 text-[#009A60] animate-spin stroke-[1.8]" />
-                                <p className="text-xs text-slate-500 font-medium">Loading tournaments...</p>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-[50px] h-[50px] rounded-full border-2 border-dashed border-[#009A60] bg-white flex items-center justify-center shrink-0 text-[#009A60] group-hover:scale-105 transition-transform shadow-xs">
+                                <UserPlus className="w-5 h-5 text-[#009A60]" />
                               </div>
-                            ) : (
-                              <div className="space-y-1.5">
-                                <Trophy className="h-7 w-7 text-slate-400 mx-auto stroke-[1.8]" />
-                                <h4 className="text-xs font-semibold text-slate-800">No Tournaments Found</h4>
-                                <p className="text-[11px] text-slate-500">
-                                  No tournaments are currently active in the database.
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13.5px] font-bold text-[#0F172A] leading-tight group-hover:text-[#009A60] transition-colors truncate">
+                                  No friends on the course yet
+                                </p>
+                                <p className="text-[11.5px] text-slate-400 leading-tight mt-0.5 truncate">
+                                  Invite fellow golfers or join active rounds
                                 </p>
                               </div>
-                            )}
-                          </div>
-                        ) : activeTournament ? (
-                          <div className="space-y-3">
-                            {/* Featured Live Tournament Card (Daylight) */}
-                            <div className="rounded-2xl bg-white border border-slate-200/90 p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] relative overflow-hidden">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-emerald-50 text-[#009A60] border border-emerald-200/80 flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#009A60]" />
-                                  {activeTournament.status}
-                                </span>
-                                <span className="text-[11.5px] text-amber-600 font-bold">
-                                  Purse: {activeTournament.purse}
-                                </span>
-                              </div>
-
-                              <h4 className="text-sm font-semibold text-slate-900 mb-0.5 leading-snug">
-                                {activeTournament.name}
-                              </h4>
-                              <p className="text-[11px] text-slate-500 flex items-center gap-1 mb-3">
-                                <Flag className="h-3 w-3 text-[#009A60] shrink-0 stroke-[1.8]" />
-                                <span className="truncate">{activeTournament.courseName} ({activeTournament.organizerCity})</span>
-                              </p>
-
-                              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600 bg-slate-50 rounded-xl p-2.5 mb-3 border border-slate-100 font-medium">
-                                <div>Format: <span className="font-semibold text-slate-800">{activeTournament.format}</span></div>
-                                <div>Field: <span className="font-semibold text-slate-800">{activeTournament.fieldCount} Players</span></div>
-                                <div>Entry Fee: <span className="font-semibold text-slate-800">{activeTournament.entryFee}</span></div>
-                                <div>Cut: <span className="font-semibold text-slate-800">{activeTournament.cutLine}</span></div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => switchScreen("scoring")}
-                                  className="h-9 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-semibold text-xs text-center transition-colors shadow-xs flex items-center justify-center cursor-pointer"
-                                >
-                                  Enter Scoring
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => switchScreen("leaderboard")}
-                                  className="h-9 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs text-center border border-slate-200 transition-colors flex items-center justify-center cursor-pointer"
-                                >
-                                  Leaderboard
-                                </button>
-                              </div>
                             </div>
-
-                            {/* Quick Action Shortcuts */}
-                            <div className="grid grid-cols-2 gap-2.5">
-                              <button
-                                type="button"
-                                onClick={() => switchScreen("attestation")}
-                                className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-left transition-all cursor-pointer flex items-center gap-2.5 shadow-2xs"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                                  <ShieldCheck className="h-4 w-4 text-[#009A60] stroke-[1.8]" />
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="text-[11px] font-semibold text-slate-800 block truncate leading-tight">
-                                    Attest Scorecard
-                                  </span>
-                                  <span className="text-[9.5px] text-slate-500 block truncate">
-                                    Peer marker check
-                                  </span>
-                                </div>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => showToast("Loading past attested rounds...", "success", "ROUND HISTORY")}
-                                className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-left transition-all cursor-pointer flex items-center gap-2.5 shadow-2xs"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                                  <Clock className="h-4 w-4 text-amber-600 stroke-[1.8]" />
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="text-[11px] font-semibold text-slate-800 block truncate leading-tight">
-                                    Round History
-                                  </span>
-                                  <span className="text-[9.5px] text-slate-500 block truncate">
-                                    Gross & net logs
-                                  </span>
-                                </div>
-                              </button>
+                            <div className="shrink-0 pl-2">
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 group-hover:border-emerald-200 text-[11px] font-semibold text-[#009A60] shadow-2xs group-hover:bg-emerald-50 transition-colors whitespace-nowrap">
+                                + Add Friends
+                              </span>
                             </div>
-
-                            {/* Tournaments Selector Strip */}
-                            {liveTournaments.length > 1 && (
-                              <div>
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1.5 font-semibold">
-                                  All Scheduled Tournaments:
-                                </span>
-                                <div className="flex gap-2 overflow-x-auto scrollbar-hide no-scrollbar pb-1">
-                                  {liveTournaments.map((t, idx) => {
-                                    const isSelected = selectedTournamentIndex === idx;
-                                    return (
-                                      <button
-                                        key={t.id}
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedTournamentIndex(idx);
-                                          showToast(`Loaded ${t.name}`);
-                                        }}
-                                        className={`shrink-0 text-left p-2.5 rounded-xl border transition-all w-[150px] cursor-pointer ${
-                                          isSelected
-                                            ? "bg-emerald-50/80 border-[#009A60] text-slate-900 shadow-2xs"
-                                            : "bg-white border-slate-200 text-slate-600 hover:text-slate-900"
-                                        }`}
-                                      >
-                                        <span className="text-[9px] text-[#009A60] block font-semibold truncate">
-                                          {t.organizerClub}
-                                        </span>
-                                        <h5 className="text-[11px] font-medium text-slate-800 truncate mt-0.5">
-                                          {t.name}
-                                        </h5>
-                                        <div className="flex items-center justify-between text-[9px] text-slate-500 mt-1 font-medium">
-                                          <span>{t.dates}</span>
-                                          <span className="text-amber-600 font-bold">{t.purse}</span>
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
+                          </button>
+                        )}
                       </div>
 
-                      {/* --- BOTTOM SHEET: ADD FRIENDS MODAL --- */}
-                      {showAddFriendsModal && (
-                        <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150">
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
-                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] flex items-center justify-center">
-                                  <UserPlus className="h-5 w-5 text-[#009A60]" />
-                                </div>
-                                <div>
-                                  <h4 className="text-base font-bold text-slate-900">Add Golf Friends</h4>
-                                  <p className="text-xs text-slate-500">Connect with competitors and markers</p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowAddFriendsModal(false)}
-                                className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600"
-                              >
-                                ✕
-                              </button>
+                      {/* --- 2.75 OPENCLUBOS SYSTEM PROMOTIONAL CARD (HOST. SCORE. WIN.) --- */}
+                      <div className="w-full max-w-sm mx-auto px-4 pb-2.5">
+                        <div className="w-full bg-white rounded-[22px] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between gap-3 select-none">
+                          {/* Left Column */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            {/* Brand Tag + System Pill */}
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[10.5px] font-black tracking-wider text-[#009A60] uppercase">
+                                OPENCLUBOS
+                              </span>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[8px] font-black uppercase tracking-wider bg-[#009A60] text-white">
+                                SYSTEM
+                              </span>
                             </div>
 
-                            <div className="py-3 space-y-2.5">
-                              <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Search by Player Name or GHIN..."
-                                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                                />
-                              </div>
+                            {/* Title */}
+                            <h3 className="text-[17px] font-extrabold text-[#0F172A] tracking-tight leading-tight">
+                              Host. Score. Win.
+                            </h3>
 
-                              <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-1">
-                                Recent Club Competitors
-                              </div>
+                            {/* Subtitle */}
+                            <p className="text-[12.5px] font-bold text-[#F97316] tracking-tight mt-0.5 mb-3">
+                              Full Tournament OS
+                            </p>
 
-                              {[
-                                { name: "Marcus Thorne", club: "Augusta GC", hcp: "1.2" },
-                                { name: "David O'Connor", club: "Pine Valley", hcp: "4.8" },
-                                { name: "Elena Rostova", club: "Cypress Point", hcp: "0.4" },
-                              ].map((player, pIdx) => (
-                                <div key={pIdx} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs flex items-center justify-center">
-                                      {player.name[0]}
-                                    </div>
-                                    <div>
-                                      <div className="text-xs font-bold text-slate-800">{player.name}</div>
-                                      <div className="text-[10px] text-slate-500">{player.club} • {player.hcp} HCP</div>
-                                    </div>
+                            {/* Action Button */}
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBottomNavTab("tournaments");
+                                  showToast("Accessing OpenClub Full Tournament OS", "success", "TOURNAMENT OS");
+                                }}
+                                className="h-8 px-4 rounded-xl bg-[#064E3B] hover:bg-[#065F46] active:scale-95 text-white font-extrabold text-[10px] tracking-wider uppercase transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center"
+                              >
+                                EXPLORE
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Right Column: Abstract Tournament Leaderboard Illustration Card */}
+                          <div className="w-[102px] h-[78px] rounded-[18px] bg-[#F4F9F6] border border-emerald-100/60 p-2.5 flex flex-col justify-center gap-2.5 shrink-0 shadow-2xs">
+                            {/* Row 1: Green Active Dot + Mint Bar */}
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#009A60] shrink-0 shadow-2xs" />
+                              <span className="h-2 rounded-full bg-[#009A60]/30 w-14" />
+                            </div>
+
+                            {/* Row 2: Soft Blue Dot + Soft Pastel Blue Bar */}
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#93C5FD] shrink-0" />
+                              <span className="h-2 rounded-full bg-[#E0EDFA] w-12" />
+                            </div>
+
+                            {/* Row 3: Soft Slate Dot + Subtle Bar */}
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#CBD5E1] shrink-0" />
+                              <span className="h-2 rounded-full bg-[#F1F5F9] w-10" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* --- 3. FEATURED TOURNAMENTS SECTION (REFERENCE MATCH) --- */}
+                      <div className="w-full max-w-sm mx-auto pt-3 pb-1">
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between px-4 mb-2.5">
+                          <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight whitespace-nowrap">
+                            Featured Tournaments
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBottomNavTab("tournaments");
+                              showToast("Viewing all scheduled tournaments", "success", "TOURNAMENTS");
+                            }}
+                            className="text-[13px] font-semibold text-[#009A60] hover:text-[#007A4D] transition-colors cursor-pointer whitespace-nowrap"
+                          >
+                            View More
+                          </button>
+                        </div>
+
+                        {/* Horizontal Carousel with Multi-Device Drag & Wheel Support */}
+                        <div
+                          ref={featuredTournamentsCarouselRef}
+                          onWheel={(e) => {
+                            if (e.deltaY !== 0) {
+                              e.currentTarget.scrollLeft += e.deltaY;
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            const el = e.currentTarget;
+                            el.dataset.isDown = "true";
+                            el.dataset.startX = String(e.pageX - el.offsetLeft);
+                            el.dataset.scrollLeft = String(el.scrollLeft);
+                            el.dataset.moved = "false";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.dataset.isDown = "false";
+                          }}
+                          onMouseUp={(e) => {
+                            e.currentTarget.dataset.isDown = "false";
+                          }}
+                          onMouseMove={(e) => {
+                            const el = e.currentTarget;
+                            if (el.dataset.isDown !== "true") return;
+                            e.preventDefault();
+                            const x = e.pageX - el.offsetLeft;
+                            const startX = Number(el.dataset.startX);
+                            const scrollLeftStart = Number(el.dataset.scrollLeft);
+                            const walk = (x - startX) * 1.4;
+                            if (Math.abs(walk) > 6) {
+                              el.dataset.moved = "true";
+                            }
+                            el.scrollLeft = scrollLeftStart - walk;
+                          }}
+                          className="flex gap-3.5 overflow-x-auto scrollbar-hide no-scrollbar px-4 pb-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                        >
+                          {(() => {
+                            const featuredFromDb = liveTournaments.filter((t) => t.isFeatured);
+                            const rawList = featuredFromDb.length > 0 ? featuredFromDb : liveTournaments;
+
+                            if (rawList.length === 0) {
+                              return (
+                                <div className="w-[315px] h-[230px] rounded-[22px] overflow-hidden shrink-0 relative flex flex-col items-center justify-center p-6 text-center border border-dashed border-white/15 bg-gradient-to-b from-slate-900/90 to-slate-950/95 shadow-md select-none">
+                                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3">
+                                    <Trophy className="w-6 h-6 text-emerald-400" />
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setShowAddFriendsModal(false);
-                                      showToast(`Friend request sent to ${player.name}!`);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-[#009A60] text-white text-[11px] font-bold"
-                                  >
-                                    Add
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowAddFriendsModal(false);
-                                showToast("Invite link copied to clipboard!");
-                              }}
-                              className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-colors shadow-md"
-                            >
-                              Share Invite Link or QR
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* --- BOTTOM SHEET: NOTIFICATIONS MODAL --- */}
-                      {showNotificationsModal && (
-                        <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150">
-                          <div className="relative z-10 bg-[#0E1521] rounded-t-[28px] border-t border-slate-800 shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
-                            <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-4" />
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-                                  <Bell className="h-5 w-5 text-emerald-400" />
-                                </div>
-                                <div>
-                                  <h4 className="text-base font-bold text-white">Notifications</h4>
-                                  <p className="text-xs text-slate-400">Live tee times & attestations</p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowNotificationsModal(false)}
-                                className="h-7 w-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            <div className="py-3 space-y-2.5">
-                              <div className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-start gap-2.5">
-                                <Flag className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <span className="text-xs font-bold text-white block">Tee Time Confirmed: 08:40 AM</span>
-                                  <span className="text-[11px] text-slate-400 block">Hole 1 • Flight 4 • Masters Invitational</span>
-                                </div>
-                                <span className="text-[9px] text-emerald-400 font-mono">10m ago</span>
-                              </div>
-
-                              <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-2.5">
-                                <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <span className="text-xs font-bold text-white block">Attestation Request</span>
-                                  <span className="text-[11px] text-slate-400 block">Marcus Thorne requested marker attestation</span>
-                                </div>
-                                <span className="text-[9px] text-slate-500 font-mono">1h ago</span>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => setShowNotificationsModal(false)}
-                              className="mt-2 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors"
-                            >
-                              Dismiss All
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* --- BOTTOM SHEET: MESSAGES MODAL --- */}
-                      {showMessagesModal && (
-                        <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150">
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
-                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] flex items-center justify-center">
-                                  <Send className="h-4 w-4 text-[#009A60]" />
-                                </div>
-                                <div>
-                                  <h4 className="text-base font-bold text-slate-900">Player Direct Messages</h4>
-                                  <p className="text-xs text-slate-500">Group chats & tournament updates</p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowMessagesModal(false)}
-                                className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600"
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            <div className="py-3 space-y-2">
-                              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs flex items-center justify-center shrink-0">
-                                  TC
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-bold text-slate-900">Tournament Committee</div>
-                                  <p className="text-[11px] text-slate-600 truncate">Course conditions: Greens running at 12.5 stimp.</p>
-                                </div>
-                                <span className="text-[9px] text-slate-400">07:30 AM</span>
-                              </div>
-
-                              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                                  MT
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-bold text-slate-900">Marcus Thorne</div>
-                                  <p className="text-[11px] text-slate-600 truncate">See you on the first tee box!</p>
-                                </div>
-                                <span className="text-[9px] text-slate-400">Yesterday</span>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowMessagesModal(false);
-                                showToast("Direct messaging open for flight group.", "success", "MESSAGES");
-                              }}
-                              className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-colors shadow-md"
-                            >
-                              Compose New Message
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* --- MENU DRAWER MODAL --- */}
-                      {showMenuDrawer && (
-                        <div className="absolute inset-0 z-50 bg-black/75 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150">
-                          <div className="relative z-10 bg-[#0E1521] rounded-t-[28px] border-t border-slate-800 shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
-                            <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-4" />
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-black text-sm flex items-center justify-center shadow-md select-none border border-white/20">
-                                  {currentInitials}
-                                </div>
-                                <div>
-                                  <h4 className="text-sm font-bold text-white">
-                                    {currentDisplayName}
-                                  </h4>
-                                  <p className="text-[11px] text-slate-400">
-                                    {authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@openclub.app")}
+                                  <p className="text-white text-[14px] font-bold">No Active Tournaments</p>
+                                  <p className="text-slate-400 text-[11.5px] mt-1 max-w-[220px] leading-relaxed">
+                                    Create a tournament in the Admin to feature it here.
                                   </p>
                                 </div>
+                              );
+                            }
+
+                            const listToRender = rawList.map((t, idx) => {
+                              const assignedImage = resolveTournamentBanner(idx, t.bannerUrl);
+                              const formattedTitle = formatFeaturedTournamentTitle(t.name);
+
+                              return {
+                                id: t.id,
+                                title: t.name,
+                                titleLine1: formattedTitle.line1,
+                                titleLine2: formattedTitle.line2,
+                                gender: t.gender,
+                                divisions: t.divisions || "Championship",
+                                venue: t.organizerClub || t.courseName || "Ikoyi Club 1938",
+                                entryFee: t.entryFee || "Free",
+                                hcpLimit: t.hcpLimit || "No Limit",
+                                deadline: t.deadline || "Open",
+                                image: assignedImage,
+                              };
+                            });
+
+                            return listToRender.map((tourn) => (
+                              <div
+                                key={tourn.id}
+                                className="w-[315px] h-[224px] rounded-[22px] overflow-hidden shrink-0 relative shadow-md hover:shadow-lg transition-all group select-none border border-white/5"
+                              >
+                                {/* Background Image */}
+                                <div
+                                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+                                  style={{ backgroundImage: `url('${tourn.image}')` }}
+                                />
+                                {/* Dark Contrast Gradient Overlay (Deep contrast for crisp text readability) */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-black/50 pointer-events-none" />
+
+                                {/* Card Content */}
+                                <div className="relative z-10 flex flex-col h-full p-3.5 pb-2.5">
+                                  {/* Top Row: Badges, Title + Bookmark */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-col min-w-0 flex-1 pr-1">
+                                      {/* Badges: Gender + Divisions */}
+                                      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                        {tourn.gender && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-white text-slate-900 shadow-xs">
+                                            {tourn.gender}
+                                          </span>
+                                        )}
+                                        {tourn.divisions && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-[#009A60]/35 text-emerald-300 border border-[#009A60]/50 backdrop-blur-xs shadow-xs">
+                                            {tourn.divisions}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Title: Exactly matches 'Featured Tournaments' font size (17px, font-bold) */}
+                                      <h4 className="text-[17px] font-bold text-white tracking-tight leading-[1.2] drop-shadow-sm max-w-[255px]">
+                                        {tourn.titleLine2 ? (
+                                          <>
+                                            <span className="block truncate">{tourn.titleLine1}</span>
+                                            <span className="block truncate">{tourn.titleLine2}</span>
+                                          </>
+                                        ) : (
+                                          <span className="block line-clamp-2">{tourn.titleLine1}</span>
+                                        )}
+                                      </h4>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
+                                          featuredTournamentsCarouselRef.current.dataset.moved = "false";
+                                          return;
+                                        }
+                                        showToast(`${tourn.title} saved to bookmarks`, "success", "BOOKMARKED");
+                                      }}
+                                      className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all shrink-0 mt-0.5"
+                                      title="Bookmark Tournament"
+                                    >
+                                      <Bookmark className="w-3.5 h-3.5 text-emerald-400" />
+                                    </button>
+                                  </div>
+
+                                  {/* Tight spacing directly under tournament title */}
+                                  <div className="h-2" />
+
+                                  {/* Middle: 2x2 Metadata Grid */}
+                                  <div className="grid grid-cols-2 gap-x-2.5 gap-y-1.5">
+                                    {/* 1. Venue */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                                      </div>
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                          VENUE
+                                        </span>
+                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate" title={tourn.venue}>
+                                          {tourn.venue}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 2. Entry Fee */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                        <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                                      </div>
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                          ENTRY FEE
+                                        </span>
+                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate">
+                                          {tourn.entryFee}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 3. HCP Limit */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                        <Award className="w-3.5 h-3.5 text-emerald-400" />
+                                      </div>
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                          HCP LIMIT
+                                        </span>
+                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate">
+                                          {tourn.hcpLimit}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 4. Deadline */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                                      </div>
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                          DEADLINE
+                                        </span>
+                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate">
+                                          {tourn.deadline}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Flexible Spacer between Metadata and Action Buttons */}
+                                  <div className="flex-1 min-h-1.5" />
+
+                                  {/* Bottom: Action Buttons (Register 70%, Share 30%) */}
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
+                                          featuredTournamentsCarouselRef.current.dataset.moved = "false";
+                                          return;
+                                        }
+                                        showToast(`Opening registration for ${tourn.title}`, "success", "REGISTRATION");
+                                        switchScreen("scoring");
+                                      }}
+                                      className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                    >
+                                      <span>Register Now</span>
+                                      <ChevronRight className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
+                                          featuredTournamentsCarouselRef.current.dataset.moved = "false";
+                                          return;
+                                        }
+                                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                          navigator.clipboard.writeText(`https://openclub.app/tournaments/${tourn.id}`).catch(() => {});
+                                        }
+                                        showToast(`${tourn.title} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
+                                      }}
+                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200"
+                                      title="Share Tournament"
+                                    >
+                                      <Share2 className="w-3.5 h-3.5 text-[#0F172A]" />
+                                      <span>Share</span>
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowMenuDrawer(false)}
-                                className="h-7 w-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            <div className="py-3 space-y-1.5 text-xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowMenuDrawer(false);
-                                  showToast("Competitor profile certified active.", "success", "PROFILE STATUS");
-                                }}
-                                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-200 flex items-center gap-2.5"
-                              >
-                                <UserCheck className="h-4 w-4 text-emerald-400" />
-                                <span>My Competitor Profile</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowMenuDrawer(false);
-                                  showToast("USGA GHIN #88294 Verified Active.", "success", "GHIN INDEX");
-                                }}
-                                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-200 flex items-center gap-2.5"
-                              >
-                                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                                <span>GHIN & Handicap Index</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowMenuDrawer(false);
-                                  showToast("Home Club: Augusta National Golf Club", "success", "HOME CLUB");
-                                }}
-                                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-200 flex items-center gap-2.5"
-                              >
-                                <Building2 className="h-4 w-4 text-emerald-400" />
-                                <span>Home Club Directory</span>
-                              </button>
-                            </div>
-
-                            <div className="pt-2 border-t border-slate-800">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowMenuDrawer(false);
-                                  updateAuthenticatedPlayer(null);
-                                  switchScreen("login");
-                                }}
-                                className="w-full py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors flex items-center justify-center gap-2"
-                              >
-                                <LogOut className="h-4 w-4 text-rose-400" />
-                                <span>Sign Out to Player Login</span>
-                              </button>
-                            </div>
-                          </div>
+                            ));
+                          })()}
                         </div>
-                      )}
+                      </div>
+
+                      {/* --- 4. CUSTOM MOBILE BOTTOM NAVIGATION BAR (FLUSH, PLAY GOLF DOES NOT PROTRUDE) --- */}
+                      <div className="mt-auto sticky bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] shrink-0">
+                        <div className="w-full max-w-sm mx-auto h-16 flex items-center justify-between px-3">
+                          {/* 1. Home */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBottomNavTab("home");
+                              showToast("Home Dashboard & Activity", "success", "HOME");
+                            }}
+                            className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                          >
+                            <Home
+                              className={`h-5 w-5 transition-colors ${
+                                activeBottomNavTab === "home" ? "text-[#009A60]" : "text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-[10px] mt-1 tracking-tight transition-colors ${
+                                activeBottomNavTab === "home" ? "font-bold text-[#009A60]" : "font-medium text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            >
+                              Home
+                            </span>
+                          </button>
+
+                          {/* 2. Tournaments (with Red Notification Dot) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBottomNavTab("tournaments");
+                              showToast("Tournaments Schedule & Live Scoring", "success", "TOURNAMENTS");
+                            }}
+                            className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors relative"
+                          >
+                            <div className="relative">
+                              <Trophy
+                                className={`h-5 w-5 transition-colors ${
+                                  activeBottomNavTab === "tournaments" ? "text-[#009A60]" : "text-[#94A3B8] group-hover:text-slate-600"
+                                }`}
+                              />
+                              {/* Red Notification Dot at top-right of trophy */}
+                              <span className="absolute -top-0.5 -right-1.5 w-2 h-2 rounded-full bg-[#EF4444] border-1.5 border-white shadow-xs" />
+                            </div>
+                            <span
+                              className={`text-[10px] mt-1 tracking-tight transition-colors ${
+                                activeBottomNavTab === "tournaments" ? "font-bold text-[#009A60]" : "font-medium text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            >
+                              Tournaments
+                            </span>
+                          </button>
+
+                          {/* 3. Center Flush Action Button ("PLAY GOLF" - Does NOT protrude) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showToast("Ready to tee off. Launching live scoring...", "success", "PLAY GOLF");
+                              setTimeout(() => switchScreen("scoring"), 350);
+                            }}
+                            className="w-[48px] h-[48px] rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,154,96,0.32)] border-2 border-white flex flex-col items-center justify-center shrink-0 cursor-pointer group"
+                            title="Play Golf"
+                          >
+                            <span className="text-[9px] font-black text-white tracking-wider leading-none">PLAY</span>
+                            <span className="text-[9px] font-black text-white tracking-wider leading-none mt-0.5">GOLF</span>
+                          </button>
+
+                          {/* 4. Challenges */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBottomNavTab("challenges");
+                              showToast("Active Club Challenges & Skins leaderboards", "success", "CHALLENGES");
+                            }}
+                            className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                          >
+                            <Star
+                              className={`h-5 w-5 transition-colors ${
+                                activeBottomNavTab === "challenges" ? "text-[#009A60]" : "text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-[10px] mt-1 tracking-tight transition-colors ${
+                                activeBottomNavTab === "challenges" ? "font-bold text-[#009A60]" : "font-medium text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            >
+                              Challenges
+                            </span>
+                          </button>
+
+                          {/* 5. Deals */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBottomNavTab("deals");
+                              showToast("Member Exclusive Equipment & Tee Time Deals", "success", "DEALS");
+                            }}
+                            className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                          >
+                            <Flame
+                              className={`h-5 w-5 transition-colors ${
+                                activeBottomNavTab === "deals" ? "text-[#009A60]" : "text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-[10px] mt-1 tracking-tight transition-colors ${
+                                activeBottomNavTab === "deals" ? "font-bold text-[#009A60]" : "font-medium text-[#94A3B8] group-hover:text-slate-600"
+                              }`}
+                            >
+                              Deals
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -3925,7 +4139,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                   {/* 5. PLAYER-ONLY LOGIN SCREEN (Exact Reference Design Match) */}
                   {targetScreen === "login" && (
-                    <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto">
+                    <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto scrollbar-hide no-scrollbar" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                       <div className="w-full max-w-sm mx-auto space-y-4">
                         {/* Top Header Navigation (Unified Back Button to Landing) */}
                         <div className="flex items-center justify-between pb-1 -mt-1">
@@ -5202,7 +5416,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                             </div>
 
                             {/* Courses List */}
-                            <div className="overflow-y-auto flex-1 divide-y divide-[#f1f5f9] -mx-5 px-5 min-h-48 max-h-72">
+                            <div className="overflow-y-auto flex-1 divide-y divide-[#f1f5f9] -mx-5 px-5 min-h-48 max-h-72 scrollbar-hide no-scrollbar" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                               {filteredCourses.length > 0 ? (
                                 filteredCourses.map((c) => {
                                   const isSelected = regHomeClub === c.name;
@@ -5454,7 +5668,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                             />
 
                             {/* Bottom Sheet Card */}
-                            <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[92%] overflow-y-auto">
+                            <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[92%] overflow-y-auto scrollbar-hide no-scrollbar" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                               {/* Drag Pill Handle */}
                               <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3" />
 
@@ -6538,8 +6752,9 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
           {/* Inner Screen Surface */}
           <div
-            style={{ fontFamily: 'var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['DM_Sans',sans-serif]`}
+            data-mobile-screen="true"
+            style={{ fontFamily: 'var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['DM_Sans',sans-serif] scrollbar-hide no-scrollbar`}
           >
             {/* Status Bar / Camera Cutout depending on model */}
             {modelSpec.notchType === "dynamic-island" && (
@@ -6719,6 +6934,388 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                 }`}
               />
             </div>
+
+            {/* --- BOTTOM SHEET 1: ADD GOLF FRIENDS MODAL (Full Device Frame Overlay) --- */}
+            {showAddFriendsModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowAddFriendsModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[90%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                        <UserPlus className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900">Add Golf Friends</h4>
+                        <p className="text-xs text-slate-500">Connect with competitors and peer markers</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddFriendsModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="py-3 space-y-2.5 flex-1 min-h-0 flex flex-col">
+                    <div className="relative">
+                      <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={friendsSearchQuery}
+                        onChange={(e) => setFriendsSearchQuery(e.target.value)}
+                        placeholder="Search by player name or email..."
+                        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#009A60] focus:ring-1 focus:ring-[#009A60] transition-colors"
+                        autoFocus
+                      />
+                      {friendsSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setFriendsSearchQuery("")}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                          title="Clear search"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-1 flex items-center justify-between">
+                      <span>{friendsSearchQuery.trim() ? `Search Results (${filteredFriends.length})` : "Recent Club Competitors"}</span>
+                      {friendsSearchQuery.trim() && (
+                        <span className="text-[10px] text-emerald-600 font-semibold">Active Filter</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto max-h-[250px] space-y-2 pr-0.5 scrollbar-hide">
+                      {filteredFriends.length > 0 ? (
+                        filteredFriends.map((player) => (
+                          <div
+                            key={player.id}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs flex items-center justify-center shrink-0">
+                                {player.initial}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold text-slate-900 truncate">{player.name}</div>
+                                <div className="text-[10px] text-slate-500 truncate">
+                                  {player.email} • {player.club}
+                                </div>
+                              </div>
+                            </div>
+                            {sentFriendRequests.includes(player.id) ? (
+                              <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-[#009A60] border border-emerald-200 text-[11px] font-bold shrink-0">
+                                Sent ✓
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSentFriendRequests((prev) => [...prev, player.id]);
+                                  showToast(`Friend request sent to ${player.name}!`, "success", "FRIEND REQUEST");
+                                }}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white text-[11px] font-bold transition-all cursor-pointer shadow-xs shrink-0"
+                              >
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-6 text-center flex flex-col items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                            <Search className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-700">No golfers found for &quot;{friendsSearchQuery}&quot;</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Search by another player name or email address</p>
+                          <button
+                            type="button"
+                            onClick={() => setFriendsSearchQuery("")}
+                            className="mt-2 text-xs text-[#009A60] font-semibold hover:underline cursor-pointer"
+                          >
+                            Clear search
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddFriendsModal(false);
+                      showToast("Invite link copied to clipboard!", "success", "SHARE INVITE");
+                    }}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    Share Invite Link or QR
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET 2: NOTIFICATIONS MODAL --- */}
+            {showNotificationsModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowNotificationsModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                        <Bell className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900">Notifications</h4>
+                        <p className="text-xs text-slate-500">Live tee times & attestations</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNotificationsModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="py-3 space-y-2.5">
+                    {/* Tee Time Confirmed */}
+                    <div className="p-3 rounded-xl bg-[#F0FDF4] border border-[#C6F0DB] flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#EAF7EE] flex items-center justify-center shrink-0 mt-0.5">
+                        <Flag className="h-4 w-4 text-[#009A60]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block">Tee Time Confirmed: 08:40 AM</span>
+                        <span className="text-[11px] text-slate-600 block truncate">Hole 1 • Flight 4 • Masters Invitational</span>
+                      </div>
+                      <span className="text-[10px] text-[#009A60] font-semibold shrink-0">10m ago</span>
+                    </div>
+
+                    {/* Attestation Request */}
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0 mt-0.5">
+                        <ShieldCheck className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block">Attestation Request</span>
+                        <span className="text-[11px] text-slate-600 block truncate">Marcus Thorne requested marker attestation</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium shrink-0">1h ago</span>
+                    </div>
+
+                    {/* Cut Line Movement */}
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                        <Trophy className="h-4 w-4 text-[#009A60]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block">Cut Line Movement: +3</span>
+                        <span className="text-[11px] text-slate-600 block truncate">Projected cut settled at +3 after morning flight</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium shrink-0">3h ago</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNotificationsModal(false)}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Dismiss All
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET 3: MESSAGES MODAL --- */}
+            {showMessagesModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowMessagesModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                        <Send className="h-4 w-4 text-[#009A60]" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900">Player Direct Messages</h4>
+                        <p className="text-xs text-slate-500">Group chats & tournament updates</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMessagesModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="py-3 space-y-2">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs flex items-center justify-center shrink-0">
+                        TC
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-900">Tournament Committee</div>
+                        <p className="text-[11px] text-slate-600 truncate">Course conditions: Greens running at 12.5 stimp.</p>
+                      </div>
+                      <span className="text-[9px] text-slate-400">07:30 AM</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                        MT
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-900">Marcus Thorne</div>
+                        <p className="text-[11px] text-slate-600 truncate">See you on the first tee box!</p>
+                      </div>
+                      <span className="text-[9px] text-slate-400">Yesterday</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMessagesModal(false);
+                      showToast("Direct messaging open for flight group.", "success", "MESSAGES");
+                    }}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-colors shadow-md cursor-pointer"
+                  >
+                    Compose New Message
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET 4: MENU DRAWER MODAL --- */}
+            {showMenuDrawer && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowMenuDrawer(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-black text-sm flex items-center justify-center shadow-md select-none border border-emerald-600/20 shrink-0">
+                        {currentInitials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-slate-900 truncate">
+                          {currentDisplayName}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@openclub.app")}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMenuDrawer(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="py-3 space-y-1.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
+                        showToast("Competitor profile certified active.", "success", "PROFILE STATUS");
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <UserCheck className="h-4 w-4 text-[#009A60]" />
+                      <span>My Competitor Profile</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
+                        showToast("Handicap Index Verified Active.", "success", "HANDICAP INDEX");
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <ShieldCheck className="h-4 w-4 text-[#009A60]" />
+                      <span>Verified Handicap Index</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
+                        showToast("Home Club: Augusta National Golf Club", "success", "HOME CLUB");
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <Building2 className="h-4 w-4 text-[#009A60]" />
+                      <span>Home Club Directory</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
+                        showToast("Settings & Preferences opened.", "success", "SETTINGS");
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <Sliders className="h-4 w-4 text-[#009A60]" />
+                      <span>Settings & Preferences</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
+                        updateAuthenticatedPlayer(null);
+                        switchScreen("login");
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-rose-200/60"
+                    >
+                      <LogOut className="h-4 w-4 text-rose-600" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -6932,6 +7529,41 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                   )}
                 </select>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
+              </div>
+
+              {/* Friends on Course Simulator Control */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-medium">Course Players:</span>
+                <div className="flex items-center bg-[#080D15] rounded-lg p-0.5 border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFriendsOnCourse([]);
+                      showToast("Course players cleared. Empty state active.", "success", "COURSE EMPTY");
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
+                      friendsOnCourse.length === 0
+                        ? "bg-slate-800 text-emerald-400 font-bold shadow-xs"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Empty (0)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFriendsOnCourse(sampleFriendsOnCourse);
+                      showToast("Active course players simulated.", "success", "5 PLAYERS ACTIVE");
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
+                      friendsOnCourse.length > 0
+                        ? "bg-slate-800 text-emerald-400 font-bold shadow-xs"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Active (5)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

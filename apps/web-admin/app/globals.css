@@ -148,14 +148,32 @@
 
 
   .scrollbar-hide,
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .no-scrollbar,
+  .hide-scrollbar,
+  [data-mobile-screen],
+  [data-mobile-screen] * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 
   .scrollbar-hide::-webkit-scrollbar,
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  .no-scrollbar::-webkit-scrollbar,
+  .hide-scrollbar::-webkit-scrollbar,
+  [data-mobile-screen]::-webkit-scrollbar,
+  [data-mobile-screen] *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+    background: transparent !important;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-thumb,
+  .no-scrollbar::-webkit-scrollbar-thumb,
+  .hide-scrollbar::-webkit-scrollbar-thumb,
+  [data-mobile-screen]::-webkit-scrollbar-thumb,
+  [data-mobile-screen] *::-webkit-scrollbar-thumb {
+    display: none !important;
   }
 
   .tab-shadow {

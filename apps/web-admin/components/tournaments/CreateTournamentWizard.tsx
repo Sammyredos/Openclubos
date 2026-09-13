@@ -16,7 +16,8 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle } from "lucide-react";
+import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle, Sparkles, Check } from "lucide-react";
+import { getRandomCourseBanner } from "@/lib/tournament-banners";
 
 type WizardProps = {
   isOpen: boolean;
@@ -39,7 +40,7 @@ function getErrorMessage(e: unknown) {
 
 const DEFAULT_FORM = {
   name: "", clubId: "", courseId: "",
-  bannerUrl: "/yellow-9-flag-realistic.png", bannerPreview: "/yellow-9-flag-realistic.png",
+  bannerUrl: "", bannerPreview: "",
   description: "", venue: "NG", location: "",
   startDate: "", endDate: "", registrationOpenAt: "", registrationCloseAt: "",
   format: "STROKE_PLAY" as const, scoringType: "BOTH" as const, holes: 18, divisions: [] as string[],
@@ -52,6 +53,7 @@ const DEFAULT_FORM = {
 
   publishImmediately: false, visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
+  isFeatured: false,
 };
 
 type FormData = typeof DEFAULT_FORM;
@@ -137,8 +139,8 @@ const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean;
   </label>
 );
 
-const Field = ({ label, required, children, error, optional }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean }) => (
-  <div className="space-y-1.5">
+const Field = ({ label, required, children, error, optional, className }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean; className?: string }) => (
+  <div className={cn("space-y-1.5", className)}>
     <Label className="text-[13px] font-medium text-gray-600">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
@@ -319,6 +321,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
               publishImmediately: t.status !== "DRAFT",
               visibility: t.visibility || "PUBLIC",
               genderRestriction: t.genderRestriction || "MIXED",
+              isFeatured: t.isFeatured ?? false,
             });
             // Auto-enable multi-day if the tournament already has an end date
             setIsMultiDay(!!t.endDate);
@@ -415,7 +418,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         clubId: f.clubId,
         courseId: f.courseId,
         description: f.description || null,
-        bannerUrl: f.bannerUrl || null,
+        bannerUrl: f.bannerUrl || getRandomCourseBanner(),
         venue: f.venue || null,
         location: f.location || null,
         startDate: new Date(f.startDate).toISOString(),
@@ -453,6 +456,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
 
         publishImmediately: f.publishImmediately,
         visibility: f.visibility,
+        isFeatured: f.isFeatured,
         status: tournamentId
           ? (f.publishImmediately
             ? (originalStatus === "DRAFT" ? "REGISTRATION_OPEN" : undefined)
@@ -582,9 +586,9 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <textarea
                   value={formData.description}
                   onChange={(e) => set("description", e.target.value)}
-                  placeholder="Brief description of the tournament..."
+                  placeholder="Brief description of the tournament, eligibility criteria, schedule highlights, and prize information..."
                   className={cn(
-                    "flex h-32 w-full rounded-xl border border-[#e1efe5] bg-white px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
+                    "flex h-36 w-full rounded-xl border border-[#e1efe5] bg-white px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
                     req(formData.description)
                   )}
                 />
@@ -1319,6 +1323,36 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* ── Featured Tournament Ad Card ── */}
+            <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
+              <div
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => set("isFeatured", !formData.isFeatured)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors", formData.isFeatured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-[14px] font-medium text-gray-900">Featured Tournament Ad</h4>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
+                        Mobile App Spotlight
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-gray-500">
+                      Promote this tournament as a featured ad in the mobile app home screen spotlight carousel
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.isFeatured ? "bg-openclub-700" : "bg-gray-200")}>
+                    <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.isFeatured ? "left-6" : "left-1")} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -15,6 +15,37 @@ import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
 const MAX_PAGE_SIZE = 100;
 
+const GOLF_COURSE_BANNERS = [
+  '/images/tournaments/course_banner_01.jpg',
+  '/images/tournaments/course_banner_02.jpg',
+  '/images/tournaments/course_banner_03.jpg',
+  '/images/tournaments/course_banner_04.jpg',
+  '/images/tournaments/course_banner_05.jpg',
+  '/images/tournaments/course_banner_06.jpg',
+  '/images/tournaments/course_banner_07.jpg',
+  '/images/tournaments/course_banner_08.jpg',
+  '/images/tournaments/course_banner_09.jpg',
+  '/images/tournaments/course_banner_10.jpg',
+  '/images/tournaments/course_banner_11.jpg',
+  '/images/tournaments/course_banner_12.jpg',
+  '/images/tournaments/course_banner_13.jpg',
+  '/images/tournaments/course_banner_14.jpg',
+  '/images/tournaments/course_banner_15.jpg',
+  '/images/tournaments/course_banner_16.jpg',
+  '/images/tournaments/course_banner_17.jpg',
+  '/images/tournaments/course_banner_18.jpg',
+  '/images/tournaments/course_banner_19.jpg',
+  '/images/tournaments/course_banner_20.jpg',
+  '/images/tournaments/course_banner_21.jpg',
+  '/images/tournaments/course_banner_22.jpg',
+  '/images/tournaments/course_banner_23.jpg',
+  '/images/tournaments/course_banner_24.jpg',
+];
+
+const BANNER_PERMUTATION = [
+  0, 11, 4, 18, 1, 14, 7, 21, 2, 12, 8, 19, 5, 15, 9, 22, 3, 16, 6, 20, 10, 23, 13, 17
+];
+
 @Injectable()
 export class TournamentsService {
   constructor(
@@ -46,7 +77,14 @@ export class TournamentsService {
       // Basic
       name: dto.name,
       description: dto.description ?? null,
-      bannerUrl: dto.bannerUrl || '/yellow-9-flag-realistic.png',
+      bannerUrl:
+        dto.bannerUrl && !dto.bannerUrl.includes('yellow-9')
+          ? dto.bannerUrl
+          : GOLF_COURSE_BANNERS[
+              BANNER_PERMUTATION[
+                Math.floor(Math.random() * BANNER_PERMUTATION.length)
+              ]
+            ],
       venue: dto.venue ?? null,
       location: dto.location ?? null,
       // Club / Course
@@ -104,6 +142,7 @@ export class TournamentsService {
       // Publish
       publishImmediately: dto.publishImmediately ?? false,
       visibility: dto.visibility ?? 'PUBLIC',
+      isFeatured: dto.isFeatured ?? false,
       status:
         dto.status ?? (dto.publishImmediately ? 'REGISTRATION_OPEN' : 'DRAFT'),
     } as any;
@@ -159,10 +198,11 @@ export class TournamentsService {
   }
 
   // Get all tournaments with optimized select to avoid over-fetching
-  async findAll(query: { clubId?: string; status?: string; search?: string }) {
+  async findAll(query: { clubId?: string; status?: string; search?: string; isFeatured?: boolean }) {
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
+    if (query.isFeatured !== undefined) where.isFeatured = query.isFeatured;
     if (query.search?.trim()) {
       const q = query.search.trim();
       const tokens = q.split(/[\s-]+/).filter(Boolean);
@@ -190,6 +230,15 @@ export class TournamentsService {
         currency: true,
         maxPlayers: true,
         playerTypes: true,
+        isFeatured: true,
+        venue: true,
+        bannerUrl: true,
+        description: true,
+        minHandicap: true,
+        maxHandicap: true,
+        registrationCloseAt: true,
+        divisions: true,
+        genderRestriction: true,
         club: { select: { id: true, name: true, logo: true } },
         course: { select: { id: true, name: true, coverImage: true } },
         visibility: true,
@@ -211,6 +260,7 @@ export class TournamentsService {
     clubId?: string;
     status?: string;
     search?: string;
+    isFeatured?: boolean;
     skip?: number;
     take?: number;
   }) {
@@ -219,13 +269,13 @@ export class TournamentsService {
     const search = query.search ?? '';
     const skip = query.skip ?? '';
     const takeParam = query.take ?? '';
-    const cacheKey = `tournaments:list:${clubId}:${status}:${search}:${skip}:${takeParam}`;
-
-
+    const isFeatured = query.isFeatured !== undefined ? String(query.isFeatured) : '';
+    const cacheKey = `tournaments:list:${clubId}:${status}:${search}:${isFeatured}:${skip}:${takeParam}`;
 
     const where: any = {};
     if (query.clubId) where.clubId = query.clubId;
     if (query.status) where.status = query.status;
+    if (query.isFeatured !== undefined) where.isFeatured = query.isFeatured;
     if (query.search?.trim()) {
       const q = query.search.trim();
       const tokens = q.split(/[\s-]+/).filter(Boolean);
@@ -259,6 +309,7 @@ export class TournamentsService {
           currency: true,
           maxPlayers: true,
           playerTypes: true,
+          isFeatured: true,
           club: { select: { id: true, name: true, logo: true } },
           course: { select: { id: true, name: true, coverImage: true } },
           visibility: true,
@@ -457,6 +508,7 @@ export class TournamentsService {
     if (dto.publishImmediately !== undefined)
       data.publishImmediately = dto.publishImmediately;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
+    if (dto.isFeatured !== undefined) data.isFeatured = dto.isFeatured;
     if (dto.status !== undefined) {
       if (['ONGOING', 'COMPLETED'].includes(dto.status)) {
         throw new ConflictException(
@@ -657,6 +709,21 @@ export class TournamentsService {
       }
       throw error; // Let NestJS handle other errors (will return 500 but now it's logged)
     }
+  }
+
+  async toggleFeatured(id: string, isFeatured: boolean) {
+    const tournament = await this.prisma.tournament.update({
+      where: { id },
+      data: { isFeatured },
+      select: {
+        id: true,
+        name: true,
+        isFeatured: true,
+      },
+    });
+    await this.cacheService.invalidatePattern('tournaments:*');
+    await this.cacheService.invalidatePattern(`tournament:${id}:*`);
+    return tournament;
   }
 
   async remove(id: string) {

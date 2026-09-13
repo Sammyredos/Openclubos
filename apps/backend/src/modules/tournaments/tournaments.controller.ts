@@ -48,8 +48,10 @@ export class TournamentsController {
   findAllPublic(
     @Query('status') status?: string,
     @Query('clubId') clubId?: string,
+    @Query('isFeatured') isFeatured?: string,
   ) {
-    return this.tournamentsService.findAll({ clubId, status });
+    const featuredBool = isFeatured !== undefined ? isFeatured === 'true' : undefined;
+    return this.tournamentsService.findAll({ clubId, status, isFeatured: featuredBool });
   }
 
   @Get()
@@ -59,6 +61,7 @@ export class TournamentsController {
     @Query('clubId') clubId?: string,
     @Query('organizerId') organizerId?: string,
     @Query('status') status?: string,
+    @Query('isFeatured') isFeatured?: string,
   ) {
     const role = req.user?.role as UserRole | undefined;
     const userClubId = req.user?.clubId as string | undefined;
@@ -71,8 +74,9 @@ export class TournamentsController {
     ] as UserRole[]).includes(role);
 
     const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
+    const featuredBool = isFeatured !== undefined ? isFeatured === 'true' : undefined;
 
-    return this.tournamentsService.findAll({ clubId: effectiveClubId, status });
+    return this.tournamentsService.findAll({ clubId: effectiveClubId, status, isFeatured: featuredBool });
   }
 
   @Get('paged')
@@ -82,6 +86,7 @@ export class TournamentsController {
     @Query('clubId') clubId?: string,
     @Query('organizerId') organizerId?: string,
     @Query('status') status?: string,
+    @Query('isFeatured') isFeatured?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
@@ -96,13 +101,26 @@ export class TournamentsController {
     ] as UserRole[]).includes(role);
 
     const effectiveClubId = isOrgRole ? userClubId : (clubId ?? organizerId);
+    const featuredBool = isFeatured !== undefined ? isFeatured === 'true' : undefined;
 
     return this.tournamentsService.findAllPaged({
       clubId: effectiveClubId,
       status,
+      isFeatured: featuredBool,
       skip,
       take,
     });
+  }
+
+  @Patch(':id/feature')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
+  @AuditLog('Tournament', 'UPDATE')
+  async toggleFeatured(
+    @Param('id') id: string,
+    @Body('isFeatured') isFeatured: boolean,
+  ) {
+    return this.tournamentsService.toggleFeatured(id, Boolean(isFeatured));
   }
 
   @Get(':id')

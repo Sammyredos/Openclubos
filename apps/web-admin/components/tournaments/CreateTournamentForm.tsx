@@ -18,6 +18,7 @@ import { incrementAIUsage } from "@/lib/api/auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { getRandomCourseBanner } from "@/lib/tournament-banners";
 import {
   Upload,
   X,
@@ -71,8 +72,8 @@ const DEFAULT_FORM = {
   name: "",
   clubId: "",
   courseId: "",
-  bannerUrl: "/yellow-9-flag-realistic.png",
-  bannerPreview: "/yellow-9-flag-realistic.png",
+  bannerUrl: "",
+  bannerPreview: "",
   description: "",
   venue: "NG",
   location: "",
@@ -112,6 +113,7 @@ const DEFAULT_FORM = {
   publishImmediately: false,
   visibility: "PUBLIC" as const,
   genderRestriction: "MIXED" as const,
+  isFeatured: false,
 };
 
 type FormData = typeof DEFAULT_FORM;
@@ -206,8 +208,8 @@ const Toggle = ({ label, checked, onChange, disabled, onClickDisabled }: { label
   </div>
 );
 
-const Field = ({ label, required, children, error, optional }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean }) => (
-  <div className="space-y-1.5">
+const Field = ({ label, required, children, error, optional, className }: { label: string; required?: boolean; children: React.ReactNode; error?: string; optional?: boolean; className?: string }) => (
+  <div className={cn("space-y-1.5", className)}>
     <Label className="text-[13px] font-medium text-gray-600">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
@@ -488,6 +490,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 publishImmediately: t.publishImmediately ?? false,
                 visibility: t.visibility || "PUBLIC",
                 genderRestriction: t.genderRestriction || "MIXED",
+                isFeatured: t.isFeatured ?? false,
               });
               if (t.endDate) setIsMultiDay(true);
             })
@@ -593,7 +596,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       const basePayload: any = {
         name: f.name,
         description: f.description || null,
-        bannerUrl: f.bannerUrl || null,
+        bannerUrl: f.bannerUrl || getRandomCourseBanner(),
         venue: f.venue || null,
         location: f.location || null,
         startDate: new Date(f.startDate).toISOString(),
@@ -634,6 +637,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
 
       basePayload.publishImmediately = f.publishImmediately;
       basePayload.visibility = f.visibility;
+      basePayload.isFeatured = f.isFeatured;
       basePayload.status = tournamentId
         ? (f.publishImmediately
           ? (originalStatus === "DRAFT" ? "REGISTRATION_OPEN" : undefined)
@@ -796,48 +800,48 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                   )}
                 </div>
 
-                {/* ── Tournament Description Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Tournament Description</h4>
-                    <p className="text-[12px] text-gray-500">Provide an overview of the event, prizes, schedule highlights, and general details.</p>
-                  </div>
-                  <Field label="Description" required>
-                    <div className="relative">
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) => set("description", e.target.value)}
-                        placeholder="Brief description of the tournament..."
-                        className={cn(
-                          "flex h-40 w-full rounded-xl border border-[#e1efe5] bg-white px-4 py-3 text-[12px] transition-all placeholder:text-gray-400 focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
-                          req(formData.description)
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={generateAIDescription}
-                        disabled={isGeneratingDesc || !!tournamentId || isAiLocked || !formData.name?.trim()}
-                        className="absolute bottom-3 right-3 h-7 px-2.5 text-[11px] font-medium bg-openclub-50 hover:bg-openclub-100 text-openclub-700 border border-openclub-200 flex items-center shadow-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isGeneratingDesc ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
-                            Writing...
-                          </>
-                        ) : isAiLocked ? (
-                          <>Limit Reached</>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3 h-3 mr-1.5" />
-                            Write with AI ({remainingUses === "Unlimited" ? "Unlimited" : `${remainingUses} left`})
-                          </>
-                        )}
-                      </Button>
+                  {/* ── Tournament Description Card ── */}
+                  <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Tournament Description</h4>
+                      <p className="text-[12px] text-gray-500">Provide an overview of the event, prizes, schedule highlights, and general details.</p>
                     </div>
-                  </Field>
-                </div>
+                    <Field label="Description" required>
+                      <div className="relative">
+                        <textarea
+                          value={formData.description}
+                          onChange={(e) => set("description", e.target.value)}
+                          placeholder="Brief description of the tournament, eligibility criteria, schedule highlights, and prize information..."
+                          className={cn(
+                            "flex h-36 w-full rounded-xl border border-[#e1efe5] bg-white px-4 py-3 pb-12 text-[12px] transition-all placeholder:text-gray-400 focus:border-openclub-700 focus-visible:outline-none resize-none font-normal",
+                            req(formData.description)
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={generateAIDescription}
+                          disabled={isGeneratingDesc || !!tournamentId || isAiLocked || !formData.name?.trim()}
+                          className="absolute bottom-3 right-3 h-7 px-2.5 text-[11px] font-medium bg-openclub-50 hover:bg-openclub-100 text-openclub-700 border border-openclub-200 flex items-center shadow-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingDesc ? (
+                            <>
+                              <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                              Writing...
+                            </>
+                          ) : isAiLocked ? (
+                            <>Limit Reached</>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3 mr-1.5" />
+                              Write with AI ({remainingUses === "Unlimited" ? "Unlimited" : `${remainingUses} left`})
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </Field>
+                  </div>
               </div>
             </div>
           </div>
@@ -1677,6 +1681,36 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* ── Featured Tournament Ad Card ── */}
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
+                  <div
+                    className="flex items-center justify-between cursor-pointer select-none"
+                    onClick={() => set("isFeatured", !formData.isFeatured)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors", formData.isFeatured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-[14px] font-medium text-gray-900">Featured Tournament Ad</h4>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
+                            Mobile App Spotlight
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-gray-500">
+                          Promote this tournament as a featured ad in the mobile app home screen spotlight carousel
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.isFeatured ? "bg-openclub-700" : "bg-gray-200")}>
+                        <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.isFeatured ? "left-6" : "left-1")} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

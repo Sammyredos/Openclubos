@@ -194,6 +194,10 @@ export class CreateTournamentDto {
   visibility?: TournamentVisibility;
 
   @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  @IsOptional()
   @IsEnum(TournamentStatus)
   status?: TournamentStatus;
 }

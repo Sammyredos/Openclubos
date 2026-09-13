@@ -43,6 +43,9 @@ class OpenclubApp extends StatelessWidget {
     return MaterialApp(
       title: 'OpenclubOS',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        scrollbars: false,
+      ),
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF06090E),
