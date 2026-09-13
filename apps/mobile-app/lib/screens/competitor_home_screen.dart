@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/api/api_client.dart';
+import '../features/scoring/presentation/screens/scoring_screen.dart';
 
 class CompetitorHomeScreen extends StatefulWidget {
   const CompetitorHomeScreen({super.key});
@@ -18,6 +19,21 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   List<dynamic> _tournaments = [];
   bool _isLoadingTournaments = true;
 
+  // Active in-progress round state (Oakwood Championship, Hole 14 Live)
+  Map<String, dynamic>? _activeRound = {
+    'id': 'ar-oakwood-14',
+    'tournamentName': 'Oakwood Championship',
+    'holeNumber': 14,
+    'par': 4,
+    'yardage': 415,
+    'holeInfo': 'Par 4 • 415 yards',
+    'isLive': true,
+    'dayText': 'ROUND 2',
+    'score': '-1',
+    'thru': '13',
+    'flightText': 'Active Flight',
+  };
+
   // Live competitors on course for horizontal carousel
   List<Map<String, dynamic>> _friendsOnCourse = [
     {'id': 'f1', 'name': 'Sarah Jenkins', 'initials': 'SJ', 'score': 'Hole 14 • Even'},
@@ -31,6 +47,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     {'id': 'f9', 'name': 'Liam Gallagher', 'initials': 'LG', 'score': 'Hole 8 • +4'},
   ];
   String _activeNavTab = 'home'; // Default to Home tab
+  List<Map<String, dynamic>> _recentRounds = [];
 
   final ScrollController _featuredTournamentsScrollController = ScrollController();
 
@@ -208,7 +225,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             final name = (c['name'] as String).toLowerCase();
             final email = (c['email'] as String).toLowerCase();
             final club = (c['club'] as String).toLowerCase();
-            return name.contains(query) || email.contains(query) || club.contains(query);
+            final hcp = (c['hcp'] as String).toLowerCase();
+            return name.contains(query) || email.contains(query) || club.contains(query) || hcp.contains(query);
           }).toList();
 
           return Center(
@@ -293,17 +311,17 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Search by Name or Email (GHIN removed)
+                    // Search by Name or Golf Club (GHIN removed)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: const Color(0xFFF5FAF6),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: const Color(0xFFE1EFE5)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
+                          const Icon(Icons.search_rounded, color: Color(0xFF8CA0BA), size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
@@ -313,12 +331,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   searchQuery = val;
                                 });
                               },
-                              style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A)),
+                              style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
-                                hintText: 'Search by player name or email...',
+                                hintText: 'Search by player name or golf club...',
                                 hintStyle: GoogleFonts.dmSans(
                                   fontSize: 13,
-                                  color: const Color(0xFF94A3B8),
+                                  color: const Color(0xFF8CA0BA),
                                 ),
                                 border: InputBorder.none,
                                 isDense: true,
@@ -374,7 +392,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                                color: const Color(0xFFF4F6F3),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: const Color(0xFFF1F5F9)),
                               ),
@@ -767,7 +785,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFF4F6F3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
@@ -848,7 +866,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC), // Daylight mode clean background
+      backgroundColor: const Color(0xFFF4F6F3), // Daylight mode clean background (matches web dashboard)
       endDrawer: _buildMenuDrawer(),
       bottomNavigationBar: _buildBottomNav(),
       body: Center(
@@ -1436,6 +1454,448 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Active In-Progress Round Card (Displayed when player has an unfinished round)
+                        if (_activeRound != null) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 18),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF052417),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: const Color(0xFF0D3826)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.18),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Top Row: Squircle Hole Badge + Details
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Squircle Hole Badge (Clean, without top-right dot)
+                                    Container(
+                                      width: 64,
+                                      height: 82,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0B3523),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(color: const Color(0xFF16603E).withOpacity(0.7)),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'HOLE',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFF10B981).withOpacity(0.9),
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${_activeRound!['holeNumber']}',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w900,
+                                              color: const Color(0xFF10B981),
+                                              height: 1.0,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+
+                                    // Right Details Column
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // LIVE Badge (Pulsing/Blinking) + Day Info + Score Pill
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  const _BlinkingLiveBadge(),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    _activeRound!['dayText'] as String,
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(0xFF8FAEA2),
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF0B3523),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  border: Border.all(color: const Color(0xFF16603E).withOpacity(0.8)),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      'SCORE',
+                                                      style: GoogleFonts.dmSans(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: const Color(0xFF8FAEA2),
+                                                        letterSpacing: 0.8,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 5),
+                                                    Text(
+                                                      _activeRound!['score'] as String? ?? '-1',
+                                                      style: GoogleFonts.dmSans(
+                                                        fontSize: 13,
+                                                        fontWeight: FontWeight.w900,
+                                                        color: Colors.white,
+                                                        height: 1.0,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 5),
+
+                                          // Tournament Name (Full display)
+                                          Text(
+                                            _activeRound!['tournamentName'] as String,
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                              letterSpacing: -0.2,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+
+                                          // Hole Information under Tournament Name
+                                          Text(
+                                            (_activeRound!['holeInfo'] as String?) ?? 'Par 4 • 415 yards',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF10B981),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+
+                                          // Flight Avatars + Active Flight text + Thru Holes
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  SizedBox(
+                                                    width: 34,
+                                                    height: 20,
+                                                    child: Stack(
+                                                      children: [
+                                                        Positioned(
+                                                          left: 0,
+                                                          child: Container(
+                                                            width: 20,
+                                                            height: 20,
+                                                            decoration: BoxDecoration(
+                                                              shape: BoxShape.circle,
+                                                              color: const Color(0xFFD1FAE5),
+                                                              border: Border.all(color: const Color(0xFF052417), width: 1.5),
+                                                            ),
+                                                            child: Center(
+                                                              child: Text(
+                                                                'A',
+                                                                style: GoogleFonts.dmSans(
+                                                                  fontSize: 10,
+                                                                  fontWeight: FontWeight.w700,
+                                                                  color: const Color(0xFF009A60),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Positioned(
+                                                          left: 14,
+                                                          child: Container(
+                                                            width: 20,
+                                                            height: 20,
+                                                            decoration: BoxDecoration(
+                                                              shape: BoxShape.circle,
+                                                              color: const Color(0xFFE2E8F0),
+                                                              border: Border.all(color: const Color(0xFF052417), width: 1.5),
+                                                            ),
+                                                            child: Center(
+                                                              child: Text(
+                                                                'M',
+                                                                style: GoogleFonts.dmSans(
+                                                                  fontSize: 10,
+                                                                  fontWeight: FontWeight.w700,
+                                                                  color: const Color(0xFF475569),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    _activeRound!['flightText'] as String,
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 11.5,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: const Color(0xFF10B981),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Text(
+                                                'Thru ${_activeRound!['thru'] ?? "13"} Holes',
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 10.5,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: const Color(0xFF8FAEA2),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 14),
+                                const Divider(color: Color(0xFF0F3D2A), height: 1),
+                                const SizedBox(height: 14),
+
+                                // Bottom Row: Resume Play + Forfeit (Consistent with Featured Tournament Card)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 7,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Resuming score entry for ${_activeRound!['tournamentName']} (Hole ${_activeRound!['holeNumber']})...'),
+                                              backgroundColor: const Color(0xFF009A60),
+                                            ),
+                                          );
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => const ScoringScreen(tournamentId: 't1', courseId: 'c1'),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF009A60),
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFF009A60).withOpacity(0.35),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'Resume Play',
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 16),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 3,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showModalBottomSheet(
+                                            context: context,
+                                            backgroundColor: Colors.transparent,
+                                            builder: (ctx) => Center(
+                                              child: ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 440),
+                                                child: Container(
+                                                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        width: 44,
+                                                        height: 4,
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFFE2E8F0),
+                                                          borderRadius: BorderRadius.circular(2),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 20),
+                                                      // Centered Squircle Warning Badge
+                                                      Container(
+                                                        width: 64,
+                                                        height: 64,
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFFFFF1F2),
+                                                          borderRadius: BorderRadius.circular(22),
+                                                          border: Border.all(color: const Color(0xFFFFE4E6)),
+                                                        ),
+                                                        child: const Icon(Icons.warning_rounded, color: Color(0xFFDC2626), size: 32),
+                                                      ),
+                                                      const SizedBox(height: 18),
+                                                      // Centered Title
+                                                      Text(
+                                                        'Withdraw from Round?',
+                                                        style: GoogleFonts.dmSans(
+                                                          fontSize: 22,
+                                                          fontWeight: FontWeight.w900,
+                                                          color: const Color(0xFF0F172A),
+                                                          letterSpacing: -0.4,
+                                                        ),
+                                                        textAlign: TextAlign.center,
+                                                      ),
+                                                      const SizedBox(height: 10),
+                                                      // Centered Body with bold tournament name
+                                                      RichText(
+                                                        textAlign: TextAlign.center,
+                                                        text: TextSpan(
+                                                          style: GoogleFonts.dmSans(
+                                                            fontSize: 13.5,
+                                                            color: const Color(0xFF64748B),
+                                                            height: 1.45,
+                                                          ),
+                                                          children: [
+                                                            const TextSpan(text: 'Forfeiting now will disqualify your score from the '),
+                                                            TextSpan(
+                                                              text: _activeRound?['tournamentName'] ?? 'Oakwood Championship',
+                                                              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                                            ),
+                                                            const TextSpan(text: '. This action cannot be undone.'),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 24),
+                                                      // Button 1: Yes, Forfeit Match
+                                                      SizedBox(
+                                                        width: double.infinity,
+                                                        height: 48,
+                                                        child: ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFFD92D20),
+                                                            foregroundColor: Colors.white,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                            elevation: 2,
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() => _activeRound = null);
+                                                            Navigator.pop(ctx);
+                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                              const SnackBar(content: Text('Withdrawn from tournament round.')),
+                                                            );
+                                                          },
+                                                          child: Text(
+                                                            'Yes, Forfeit Match',
+                                                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 12),
+                                                      // Button 2: Cancel, Stay in Play
+                                                      SizedBox(
+                                                        width: double.infinity,
+                                                        height: 48,
+                                                        child: ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFFF1F5F9),
+                                                            foregroundColor: const Color(0xFF0F172A),
+                                                            elevation: 0,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                          ),
+                                                          onPressed: () => Navigator.pop(ctx),
+                                                          child: Text(
+                                                            'Cancel, Stay in Play',
+                                                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF0C241B),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: const Color(0xFF1A3F30)),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.2),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'Forfeit',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFFFB7185),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         // Section Header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1605,7 +2065,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF8FAFC).withOpacity(0.75),
+                                  color: const Color(0xFFF4F6F3).withOpacity(0.75),
                                   borderRadius: BorderRadius.circular(22),
                                 ),
                                 child: Row(
@@ -1966,11 +2426,297 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       ],
                     ),
                   ),
+
+                  // --- 3.5 ROUNDS SECTION ---
+                  _buildRoundsSection(),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRoundsSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Rounds (${_recentRounds.length})',
+                style: GoogleFonts.dmSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.3,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Viewing All Round Scorecards'),
+                      backgroundColor: Color(0xFF009A60),
+                    ),
+                  );
+                },
+                child: Text(
+                  'View History',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF009A60),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Card 1: Upcoming Rounds (Empty State)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Dashed Badge with count
+                CustomPaint(
+                  painter: DashedBorderPainter(
+                    color: const Color(0xFF009A60),
+                    borderRadius: 18.0,
+                    strokeWidth: 2.0,
+                    dashWidth: 4.5,
+                    dashSpace: 3.5,
+                  ),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7EE),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      '${_recentRounds.length}',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF009A60),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Middle Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upcoming Rounds',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'No rounds scheduled yet',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12.5,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Plus Button
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Schedule a new tournament or practice round'),
+                        backgroundColor: Color(0xFF009A60),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF009A60),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Card 2: Recent Completed Round - only shown when there's a recent round
+          if (_recentRounds.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ..._recentRounds.map((round) => GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${round['clubName'] ?? 'Golf Round'} • Net Score ${round['netScore'] ?? 72}'),
+                    backgroundColor: const Color(0xFF009A60),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Mint Date Badge
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF7EE),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFC6F0DB)),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            round['month'] ?? 'OCT',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF009A60),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            round['day'] ?? '12',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF009A60),
+                              height: 1.05,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Middle Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            round['clubName'] ?? 'Ikoyi Club 1938',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                '${round['holes'] ?? 18} Holes',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12.5,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                '•',
+                                style: TextStyle(color: Color(0xFFCBD5E1)),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                round['status'] ?? 'COMPLETED',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF009A60),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Right Score Column
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${round['netScore'] ?? 72}',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'NET SCORE',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF94A3B8),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )),
+          ],
+        ],
       ),
     );
   }
@@ -2024,30 +2770,54 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           width: 315,
           height: 238,
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withOpacity(0.15)),
+            border: Border.all(color: const Color(0xFFE1EFE5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.emoji_events_outlined, color: Color(0xFF34D399), size: 36),
-                const SizedBox(height: 8),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF7EE),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFC6F0DB)),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.emoji_events_outlined, color: Color(0xFF009A60), size: 24),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   'No Active Tournaments',
                   style: GoogleFonts.dmSans(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Create a tournament in Admin to view it here',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11.5,
-                    color: const Color(0xFF94A3B8),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'Stay on the lookout for upcoming tournaments and club championship events.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -2338,9 +3108,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.dmSans(
                                         fontSize: 17,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w800,
                                         color: Colors.white,
-                                        height: 1.2,
+                                        height: 1.15,
                                         letterSpacing: -0.3,
                                       ),
                                     ),
@@ -2351,9 +3121,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.dmSans(
                                           fontSize: 17,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w800,
                                           color: Colors.white,
-                                          height: 1.2,
+                                          height: 1.15,
                                           letterSpacing: -0.3,
                                         ),
                                       ),
@@ -2868,6 +3638,59 @@ extension on _CompetitorHomeScreenState {
               maxLines: 1,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlinkingLiveBadge extends StatefulWidget {
+  const _BlinkingLiveBadge({Key? key}) : super(key: key);
+
+  @override
+  State<_BlinkingLiveBadge> createState() => _BlinkingLiveBadgeState();
+}
+
+class _BlinkingLiveBadgeState extends State<_BlinkingLiveBadge> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.25, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Text(
+          'LIVE',
+          style: GoogleFonts.dmSans(
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 0.8,
+          ),
         ),
       ),
     );

@@ -93,5 +93,8 @@ Always ensure that every page has a distinct title shown in the browser tab.
   - **Pinned Screen Footers**: Pinned bottom footers (e.g., "Remember your password? Back to Login", "New to OpenclubOS? Create Player Account", "VERIFICATION EXPIRES IN 10 MINUTES", device session disclaimers) must maintain `w-full max-w-sm mx-auto` to remain centered directly beneath the form column.
   - **Bottom Sheet Modals**: All bottom sheets and selector modals (e.g., Select Home Golf Club, Select Player Classification, Country Picker, State Picker, City Picker) must apply `w-full max-w-sm mx-auto` to their inner sheet card container (`bg-white rounded-t-[28px]`) so they display as a clean, properly proportioned mobile bottom sheet on tablets rather than spanning the entire tablet width.
 
-
-
+## In-App Input Styling Rules
+- All form inputs, search fields, credential inputs, and modal search bars across mobile screens and modals (including Add Golf Friends search, Country/State/City pickers, and authentication inputs) must strictly use the unified soft-mint background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)` in Flutter) with a subtle mint border `border-[#e1efe5]` (`Color(0xFFE1EFE5)` in Flutter).
+- Input focus states must apply `focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20` and remove default browser outlines with `focus:outline-hidden`.
+- Input text must use dark slate `text-[#0F172A]` and placeholder text must use `placeholder:text-[#8CA0BA]`.
+- Never use generic gray `bg-slate-50` or `border-slate-200` for in-app inputs.

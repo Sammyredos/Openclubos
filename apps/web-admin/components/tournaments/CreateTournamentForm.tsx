@@ -274,6 +274,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     return false;
   }, [aiUsageCount, aiUsageResetAt, user?.role]);
 
+  const isCourseLocked = Boolean(tournamentId && originalStatus && originalStatus !== "DRAFT");
+
   const remainingUses = user?.role === "SUPER_ADMIN" ? "Unlimited" : (isAiLocked ? 0 : 2 - (aiUsageCount >= 2 ? 0 : aiUsageCount));
 
   const generateAIDescription = async () => {
@@ -632,8 +634,9 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
       basePayload.teeStartTime = f.teeStartTime || "08:00";
       basePayload.teeIntervalMinutes = f.startType === "TEE_TIMES" ? (Number(f.teeIntervalMinutes) || 10) : 10;
 
-
-
+      if (!isCourseLocked && f.courseId) {
+        basePayload.courseId = f.courseId;
+      }
 
       basePayload.publishImmediately = f.publishImmediately;
       basePayload.visibility = f.visibility;
@@ -760,7 +763,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         }}
                         options={countryOptions}
                         placeholder="Select country..."
-                        triggerClassName={cn("bg-white", req(formData.venue))}
+                        disabled={isCourseLocked}
+                        triggerClassName={cn("bg-white", req(formData.venue), isCourseLocked && "bg-gray-50/70 border-gray-200 text-gray-500")}
                       />
                     </Field>
                     <Field label="Golf Course" required>
@@ -773,18 +777,27 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`,
                         }))}
                         placeholder="Select course..."
-                        disabled={!formData.venue}
-                        triggerClassName={cn("bg-white", req(formData.courseId))}
+                        disabled={isCourseLocked || !formData.venue}
+                        triggerClassName={cn("bg-white", req(formData.courseId), isCourseLocked && "bg-gray-50/70 border-gray-200 text-gray-500")}
                       />
                     </Field>
                   </div>
 
-                  <div className="bg-white border border-[#e1efe5] rounded-xl p-3 flex items-center gap-3">
-                    <Info className="w-4 h-4 text-openclub-700 shrink-0" />
-                    <p className="text-[12px] font-normal text-emerald-800">
-                      Note: You will only see golf courses available in the selected country.
-                    </p>
-                  </div>
+                  {isCourseLocked ? (
+                    <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 flex items-center gap-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <p className="text-[12px] font-normal text-amber-800">
+                        Host golf course and country cannot be modified once a tournament is upcoming or registration has opened.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-[#e1efe5] rounded-xl p-3 flex items-center gap-3">
+                      <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                      <p className="text-[12px] font-normal text-emerald-800">
+                        Note: You will only see golf courses available in the selected country.
+                      </p>
+                    </div>
+                  )}
 
                   {user?.role === "SUPER_ADMIN" && (
                     <Field label="Organizer" required>

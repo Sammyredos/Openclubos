@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
+  Delete,
   Compass,
   Plus,
   Minus,
@@ -356,6 +357,17 @@ const CHASSIS_COLORS: Record<DeviceColorId, ChassisColorSpec> = {
   },
 };
 
+export interface DummyKeyboardConfig {
+  isOpen: boolean;
+  phoneIndex: number;
+  type: "numeric" | "text";
+  allowDecimal?: boolean;
+  allowPlus?: boolean;
+  title?: string;
+  queryValue?: string;
+  onInput: (char: string) => void;
+  onBackspace: () => void;
+}
 
 export default function MobilePreviewPage() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("landing");
@@ -364,6 +376,19 @@ export default function MobilePreviewPage() {
   const [showInspector, setShowInspector] = useState(false);
   const [isInspectorExpanded, setIsInspectorExpanded] = useState(false);
   const [deviceScale, setDeviceScale] = useState<number>(100);
+
+  // --- Simulator Dummy Virtual Mobile Keyboard State ---
+  const [virtualKeyboard, setVirtualKeyboard] = useState<DummyKeyboardConfig | null>(null);
+  const [keyboardShift, setKeyboardShift] = useState(false);
+  const [keyboardSymbols, setKeyboardSymbols] = useState(false);
+
+  const openVirtualKeyboard = (config: Omit<DummyKeyboardConfig, "isOpen">) => {
+    setVirtualKeyboard({
+      ...config,
+      isOpen: true,
+    });
+  };
+
   interface ToastNotification {
     type: "success" | "error" | "alert";
     title?: string;
@@ -533,11 +558,50 @@ export default function MobilePreviewPage() {
   // Initialized with live competitors on the course so carousel is fully scrollable
   const [friendsOnCourse, setFriendsOnCourse] = useState<any[]>(sampleFriendsOnCourse);
 
+  // --- Active In-Progress Round State (Oakwood Championship, Hole 14 Live) ---
+  const [activeRound, setActiveRound] = useState<{
+    id: string;
+    tournamentName: string;
+    holeNumber: number;
+    holeInfo?: string;
+    par?: number;
+    yardage?: number;
+    isLive: boolean;
+    dayText: string;
+    score: string;
+    thru: string;
+    flightText: string;
+  } | null>({
+    id: "ar-oakwood-14",
+    tournamentName: "Oakwood Championship",
+    holeNumber: 14,
+    par: 4,
+    yardage: 415,
+    holeInfo: "Par 4 • 415 yards",
+    isLive: true,
+    dayText: "ROUND 2",
+    score: "-1",
+    thru: "13",
+    flightText: "Active Flight",
+  });
+  const [showForfeitModal, setShowForfeitModal] = useState(false);
+
   // --- Real Organizer Tournaments State ---
   const [liveTournaments, setLiveTournaments] = useState<RealTournament[]>([]);
   const [selectedTournamentIndex, setSelectedTournamentIndex] = useState(0);
   const [isLoadingTournaments, setIsLoadingTournaments] = useState(true);
   const activeTournament: RealTournament | null = liveTournaments[selectedTournamentIndex] || liveTournaments[0] || null;
+
+  // --- Recent Golfing Rounds State ---
+  const [recentRounds, setRecentRounds] = useState<{
+    id: string;
+    clubName: string;
+    holes: number;
+    status: string;
+    netScore: number;
+    month: string;
+    day: string;
+  }[]>([]);
 
   // --- Real Course Holes State (Loaded from DB for active tournament) ---
   const [courseHoles, setCourseHoles] = useState<CourseHole[]>([]);
@@ -596,7 +660,12 @@ export default function MobilePreviewPage() {
   const filteredFriends = friendsSearchQuery.trim()
     ? ALL_GOLF_COMPETITORS.filter((p) => {
         const q = friendsSearchQuery.trim().toLowerCase();
-        return p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.club.toLowerCase().includes(q);
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.club.toLowerCase().includes(q) ||
+          p.hcp.toLowerCase().includes(q) ||
+          p.email.toLowerCase().includes(q)
+        );
       })
     : ALL_GOLF_COMPETITORS.slice(0, 4);
 
@@ -616,31 +685,84 @@ export default function MobilePreviewPage() {
     }
   }, [resendCooldown]);
 
+  // --- Strict Numeric Keydown Interceptor (Strictly blocks alphabetic characters) ---
+  const handleStrictNumericKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    options?: { allowDecimal?: boolean; allowPlus?: boolean }
+  ) => {
+    // Allow essential navigation / editing keys
+    const allowedNavKeys = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Enter",
+      "Escape",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+    ];
+    if (allowedNavKeys.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return; // Allow system shortcuts (Ctrl+A, Ctrl+C, Ctrl+V, etc.)
+
+    // Check if key is a single digit 0-9
+    if (/^\d$/.test(e.key)) return;
+
+    // Decimal point (allowed only once if allowDecimal is true)
+    if (options?.allowDecimal && e.key === "." && !e.currentTarget.value.includes(".")) {
+      return;
+    }
+
+    // Plus sign (allowed only at beginning if allowPlus is true)
+    if (options?.allowPlus && e.key === "+" && e.currentTarget.value.length === 0) {
+      return;
+    }
+
+    // STRICTLY BLOCK ALL ALPHABETIC AND NON-NUMERIC CHARACTERS
+    e.preventDefault();
+  };
+
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      const digits = value.replace(/\D/g, "").slice(0, 6).split("");
+    // Strip any non-digit characters
+    const clean = value.replace(/\D/g, "");
+    if (!clean && value !== "") return;
+
+    if (clean.length > 1) {
+      const digits = clean.slice(0, 6).split("");
       const newDigits = [...otpDigits];
       digits.forEach((d, i) => {
         if (i < 6) newDigits[i] = d;
       });
       setOtpDigits(newDigits);
+      const nextIdx = Math.min(digits.length, 5);
+      document.getElementById(`otp-box-${nextIdx}`)?.focus();
       return;
     }
 
     const newDigits = [...otpDigits];
-    newDigits[index] = value.slice(-1);
+    newDigits[index] = clean.slice(-1);
     setOtpDigits(newDigits);
 
-    if (value && index < 5) {
+    if (clean && index < 5) {
       const nextInput = document.getElementById(`otp-box-${index + 1}`);
       nextInput?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowedNavKeys = ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"];
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       const prevInput = document.getElementById(`otp-box-${index - 1}`);
       prevInput?.focus();
+      return;
+    }
+    if (allowedNavKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+
+    // Strictly block any non-digit character (a-z, A-Z, symbols)
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
     }
   };
 
@@ -1973,7 +2095,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Daylight mode
+      backgroundColor: const Color(0xFFF4F6F3), // Match web dashboard background
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -3287,7 +3409,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                   {/* 3. COMPETITOR PROFILE & TOURNAMENT HUB SCREEN (DAYLIGHT MODE) */}
                   {targetScreen === "hub" && (
-                    <div className="flex-1 min-h-full flex flex-col pb-0 bg-[#F8FAFC] relative overflow-x-hidden">
+                    <div className="flex-1 min-h-full flex flex-col pb-0 bg-[#f4f6f3] relative overflow-x-hidden">
                       {/* --- 1. TOP SCENIC SUNSET GOLF HERO (SAGAMU GOLF COURSE, AFRICA) --- */}
                       <div className="relative w-full h-[325px] shrink-0 overflow-hidden">
                         {/* Course Landscape Photo: Sagamu Golf Club, Ogun State, Africa */}
@@ -3470,6 +3592,117 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                       {/* --- 2.5 PLAYING NOW SECTION (ENHANCED VERTICAL SPACING & EMPTY STATE) --- */}
                       <div className="w-full max-w-sm mx-auto px-4 pt-6 pb-4">
+                        {/* --- ACTIVE IN-PROGRESS ROUND CARD (DISPLAYED WHEN PLAYER HAS NOT YET FINISHED ROUND) --- */}
+                        {activeRound && (
+                          <div className="mb-4.5 w-full rounded-[22px] bg-[#052417] text-white p-4 sm:p-4.5 border border-[#0D3826] shadow-[0_8px_24px_rgba(0,0,0,0.18)] select-none">
+                            {/* Top Row: Hole Squircle Badge + Live Info */}
+                            <div className="flex items-start gap-3.5">
+                              {/* Hole Squircle Badge */}
+                              <div className="w-[64px] h-[82px] rounded-[18px] bg-[#0B3523] border border-[#16603E]/70 flex flex-col items-center justify-center shrink-0">
+                                <span className="text-[9.5px] font-bold text-[#10B981]/90 uppercase tracking-widest leading-none">
+                                  HOLE
+                                </span>
+                                <span className="text-[26px] font-black text-[#10B981] leading-none mt-1.5 tracking-tight">
+                                  {activeRound.holeNumber}
+                                </span>
+                              </div>
+
+                              {/* Right Column Details */}
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                {/* Row 1: LIVE Badge + Day Info + Current Score Pill */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {activeRound.isLive && (
+                                      <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-black tracking-wider uppercase leading-none animate-pulse">
+                                        LIVE
+                                      </span>
+                                    )}
+                                    <span className="text-[11px] font-bold text-[#8FAEA2] tracking-wider uppercase">
+                                      {activeRound.dayText}
+                                    </span>
+                                  </div>
+
+                                  {/* Player's Current Score Badge */}
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0B3523] border border-[#16603E]/80 shadow-2xs">
+                                    <span className="text-[9px] font-bold text-[#8FAEA2] uppercase tracking-wider">
+                                      SCORE
+                                    </span>
+                                    <span className="text-[13px] font-black text-white leading-none">
+                                      {activeRound.score}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Row 2: Full Display of Tournament Title */}
+                                <h3 className="text-[17px] font-bold text-white tracking-tight leading-tight truncate mt-1">
+                                  {activeRound.tournamentName}
+                                </h3>
+
+                                {/* Row 3: Hole Information under Tournament Name */}
+                                <p className="text-[11.5px] font-semibold text-[#10B981] mt-0.5 leading-none">
+                                  {activeRound.holeInfo || "Par 4 • 415 yards"}
+                                </p>
+
+                                {/* Row 3: Flight Avatars & Status */}
+                                <div className="flex items-center justify-between mt-1.5">
+                                  <div className="flex items-center">
+                                    <div className="flex items-center -space-x-1.5">
+                                      <img
+                                        src="/images/landing/onboarding1.jpg"
+                                        alt="Flight Golfer 1"
+                                        className="w-5 h-5 rounded-full border border-[#052417] object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLElement).style.display = "none";
+                                        }}
+                                      />
+                                      <img
+                                        src="/images/competitor/alex_avatar.jpg"
+                                        alt="Flight Golfer 2"
+                                        className="w-5 h-5 rounded-full border border-[#052417] object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLElement).style.display = "none";
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[11.5px] font-semibold text-[#10B981] ml-2">
+                                      {activeRound.flightText}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10.5px] font-medium text-[#8FAEA2]">
+                                    Thru {activeRound.thru} Holes
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Thin subtle divider */}
+                            <div className="border-t border-[#0F3D2A]/80 my-3.5" />
+
+                            {/* Bottom Row: Resume Play & Forfeit Buttons (Consistent with Featured Tournament Card) */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})...`, "success", "RESUME PLAY");
+                                  setTimeout(() => switchScreen("scoring"), 250);
+                                }}
+                                className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                              >
+                                <span>Resume Play</span>
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setShowForfeitModal(true)}
+                                className="flex-[3] h-[38px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                              >
+                                <span>Forfeit</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between mb-3.5">
                           <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight">
                             Playing Now
@@ -3716,13 +3949,13 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                             if (rawList.length === 0) {
                               return (
-                                <div className="w-[315px] h-[230px] rounded-[22px] overflow-hidden shrink-0 relative flex flex-col items-center justify-center p-6 text-center border border-dashed border-white/15 bg-gradient-to-b from-slate-900/90 to-slate-950/95 shadow-md select-none">
-                                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3">
-                                    <Trophy className="w-6 h-6 text-emerald-400" />
+                                <div className="w-[315px] h-[230px] rounded-[22px] overflow-hidden shrink-0 relative flex flex-col items-center justify-center p-6 text-center border border-[#e1efe5] bg-white shadow-xs select-none">
+                                  <div className="w-12 h-12 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mb-3 shadow-2xs">
+                                    <Trophy className="w-6 h-6 text-[#009A60]" />
                                   </div>
-                                  <p className="text-white text-[14px] font-bold">No Active Tournaments</p>
-                                  <p className="text-slate-400 text-[11.5px] mt-1 max-w-[220px] leading-relaxed">
-                                    Create a tournament in the Admin to feature it here.
+                                  <p className="text-[#0F172A] text-[15px] font-bold tracking-tight">No Active Tournaments</p>
+                                  <p className="text-[#64748B] text-[12px] mt-1.5 max-w-[240px] leading-relaxed font-normal">
+                                    Stay on the lookout for upcoming tournaments and club championship events.
                                   </p>
                                 </div>
                               );
@@ -3779,8 +4012,8 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                         )}
                                       </div>
 
-                                      {/* Title: Exactly matches 'Featured Tournaments' font size (17px, font-bold) */}
-                                      <h4 className="text-[17px] font-bold text-white tracking-tight leading-[1.2] drop-shadow-sm max-w-[255px]">
+                                      {/* Title: Exactly matches 'Host. Score. Win.' typography (17px, font-extrabold, tracking-tight, leading-tight) */}
+                                      <h4 className="text-[17px] font-extrabold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
                                         {tourn.titleLine2 ? (
                                           <>
                                             <span className="block truncate">{tourn.titleLine1}</span>
@@ -3920,6 +4153,106 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               </div>
                             ));
                           })()}
+                        </div>
+                      </div>
+
+                      {/* --- 3.5 ROUNDS SECTION --- */}
+                      <div className="w-full max-w-sm mx-auto px-4 pt-3 pb-6">
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
+                            Rounds ({recentRounds.length})
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showToast("Viewing all past round scorecards", "success", "ROUNDS HISTORY");
+                            }}
+                            className="text-[13px] font-semibold text-[#009A60] hover:text-[#007A4D] transition-colors cursor-pointer"
+                          >
+                            View History
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {/* Card 1: Upcoming Rounds (Empty / Schedule New Round) */}
+                          <div className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300">
+                            {/* Dashed Rounded Badge with count */}
+                            <div className="w-[56px] h-[56px] rounded-[18px] border-2 border-dashed border-[#009A60] bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-2xs">
+                              <span className="text-[22px] font-bold text-[#009A60] select-none">{recentRounds.length}</span>
+                            </div>
+
+                            {/* Middle Info */}
+                            <div className="min-w-0 flex-1 ml-3.5 pr-2">
+                              <h4 className="text-[15px] font-bold text-[#0F172A] leading-snug">
+                                Upcoming Rounds
+                              </h4>
+                              <p className="text-[12.5px] text-slate-400 font-normal leading-snug mt-0.5">
+                                No rounds scheduled yet
+                              </p>
+                            </div>
+
+                            {/* Circular Plus Action Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                showToast("Schedule a new tournament or practice round.", "success", "SCHEDULE ROUND");
+                                switchScreen("scoring");
+                              }}
+                              className="w-10 h-10 rounded-full bg-[#009A60] hover:bg-[#007A4D] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-2xs"
+                              title="Schedule New Round"
+                              aria-label="Schedule New Round"
+                            >
+                              <Plus className="w-5 h-5 stroke-[2.2]" />
+                            </button>
+                          </div>
+
+                          {/* Card 2: Recent / Completed Round - only displayed when there is a recent round */}
+                          {recentRounds.length > 0 && recentRounds.map((round) => (
+                            <div
+                              key={round.id}
+                              onClick={() => {
+                                showToast(`${round.clubName} • Net Score ${round.netScore}`, "success", "ROUND DETAILS");
+                              }}
+                              className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300 cursor-pointer group"
+                            >
+                              {/* Mint Date Badge */}
+                              <div className="w-[56px] h-[56px] rounded-[18px] bg-[#EAF7EE] border border-[#C6F0DB]/60 flex flex-col items-center justify-center shrink-0 shadow-2xs">
+                                <span className="text-[11px] font-bold text-[#009A60] tracking-wider leading-none">
+                                  {round.month}
+                                </span>
+                                <span className="text-[20px] font-black text-[#009A60] leading-none mt-1">
+                                  {round.day}
+                                </span>
+                              </div>
+
+                              {/* Middle Info */}
+                              <div className="min-w-0 flex-1 ml-3.5 pr-2">
+                                <h4 className="text-[15px] font-bold text-[#0F172A] leading-snug truncate group-hover:text-[#009A60] transition-colors">
+                                  {round.clubName}
+                                </h4>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[12.5px] text-slate-400 font-normal">
+                                    {round.holes} Holes
+                                  </span>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="text-[11px] font-bold text-[#009A60] tracking-wide">
+                                    {round.status}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Right Net Score Column */}
+                              <div className="flex flex-col items-end shrink-0 pl-1">
+                                <span className="text-[23px] font-black text-[#0F172A] tracking-tight leading-none">
+                                  {round.netScore}
+                                </span>
+                                <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase mt-1 leading-none">
+                                  NET SCORE
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
@@ -4244,6 +4577,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 type="email"
                                 disabled={isLoggingIn}
                                 value={loginEmail}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Email Address",
+                                    onInput: (char) => setLoginEmail((prev) => prev + char),
+                                    onBackspace: () => setLoginEmail((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => {
                                   setLoginEmail(e.target.value);
                                   if (loginError) setLoginError(null);
@@ -4281,6 +4623,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 type={showPassword ? "text" : "password"}
                                 disabled={isLoggingIn}
                                 value={loginPassword}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Password",
+                                    onInput: (char) => setLoginPassword((prev) => prev + char),
+                                    onBackspace: () => setLoginPassword((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => setLoginPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className={`w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-10 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all ${
@@ -4477,6 +4828,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type="text"
                                 value={regFirstName}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "First Name",
+                                    onInput: (char) => setRegFirstName((prev) => prev + char),
+                                    onBackspace: () => setRegFirstName((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => setRegFirstName(e.target.value)}
                                 placeholder="Alex"
                                 className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
@@ -4491,6 +4851,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type="text"
                                 value={regLastName}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Last Name",
+                                    onInput: (char) => setRegLastName((prev) => prev + char),
+                                    onBackspace: () => setRegLastName((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => setRegLastName(e.target.value)}
                                 placeholder="Wright"
                                 className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
@@ -4513,6 +4882,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 <input
                                   type="email"
                                   value={regEmail}
+                                  onFocus={() => {
+                                    openVirtualKeyboard({
+                                      phoneIndex: phoneIdx,
+                                      type: "text",
+                                      title: "Email Address",
+                                      onInput: (char) => setRegEmail((prev) => prev + char),
+                                      onBackspace: () => setRegEmail((prev) => prev.slice(0, -1)),
+                                    });
+                                  }}
                                   onChange={(e) => {
                                     setRegEmail(e.target.value);
                                     if (regEmailError) setRegEmailError(null);
@@ -4553,6 +4931,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 <input
                                   type={regShowPassword ? "text" : "password"}
                                   value={regPassword}
+                                  onFocus={() => {
+                                    openVirtualKeyboard({
+                                      phoneIndex: phoneIdx,
+                                      type: "text",
+                                      title: "Password",
+                                      onInput: (char) => setRegPassword((prev) => prev + char),
+                                      onBackspace: () => setRegPassword((prev) => prev.slice(0, -1)),
+                                    });
+                                  }}
                                   onChange={(e) => setRegPassword(e.target.value)}
                                   placeholder="••••••••••••"
                                   className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
@@ -4607,6 +4994,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 <input
                                   type={regShowConfirm ? "text" : "password"}
                                   value={regConfirmPassword}
+                                  onFocus={() => {
+                                    openVirtualKeyboard({
+                                      phoneIndex: phoneIdx,
+                                      type: "text",
+                                      title: "Confirm Password",
+                                      onInput: (char) => setRegConfirmPassword((prev) => prev + char),
+                                      onBackspace: () => setRegConfirmPassword((prev) => prev.slice(0, -1)),
+                                    });
+                                  }}
                                   onChange={(e) => setRegConfirmPassword(e.target.value)}
                                   placeholder="••••••••••••"
                                   className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
@@ -4749,17 +5145,48 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 <div className="relative">
                                   <input
                                     type="text"
+                                    inputMode="decimal"
                                     value={regHandicap}
                                     disabled={regClassification === "BEGINNER"}
                                     readOnly={regClassification === "BEGINNER"}
+                                    onFocus={() => {
+                                      if (regClassification === "BEGINNER") return;
+                                      openVirtualKeyboard({
+                                        phoneIndex: phoneIdx,
+                                        type: "numeric",
+                                        allowDecimal: true,
+                                        title: "Handicap Index",
+                                        onInput: (char) => {
+                                          setRegHandicap((prev) => {
+                                            if (char === ".") {
+                                              if (prev.includes(".")) return prev;
+                                              return prev === "" ? "0." : prev + ".";
+                                            }
+                                            if (!/^\d$/.test(char)) return prev;
+                                            const next = prev + char;
+                                            const num = parseFloat(next);
+                                            if (!isNaN(num) && num >= 36) {
+                                              showToast("Intermediate handicap must be less than 36.0", "alert", "HANDICAP LIMIT");
+                                              return "35.9";
+                                            }
+                                            return next;
+                                          });
+                                        },
+                                        onBackspace: () => {
+                                          setRegHandicap((prev) => prev.slice(0, -1));
+                                        },
+                                      });
+                                    }}
+                                    onKeyDown={(e) => handleStrictNumericKeyDown(e, { allowDecimal: true, allowPlus: false })}
                                     onChange={(e) => {
-                                      const val = e.target.value;
+                                      // Strictly filter out any alphabetic or invalid characters
+                                      const rawVal = e.target.value.replace(/[^0-9.]/g, "");
+                                      const parts = rawVal.split(".");
+                                      const val = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : rawVal;
                                       if (val === "" || val === ".") {
                                         setRegHandicap(val);
                                         return;
                                       }
-                                      // Only allow digits and decimal point
-                                      if (!/^\d*\.?\d*$/.test(val)) return;
                                       const num = parseFloat(val);
                                       if (!isNaN(num)) {
                                         if (num >= 36) {
@@ -5024,9 +5451,30 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 </button>
                                 <input
                                   type="tel"
+                                  inputMode="numeric"
                                   value={regPhone}
+                                  onFocus={() => {
+                                    openVirtualKeyboard({
+                                      phoneIndex: phoneIdx,
+                                      type: "numeric",
+                                      allowDecimal: false,
+                                      allowPlus: false,
+                                      title: "Phone Number",
+                                      onInput: (char) => {
+                                        if (!/^\d$/.test(char)) return;
+                                        setRegPhone((prev) => prev + char);
+                                        if (regPhoneError) setRegPhoneError(null);
+                                        if (regError) setRegError(null);
+                                      },
+                                      onBackspace: () => {
+                                        setRegPhone((prev) => prev.slice(0, -1));
+                                      },
+                                    });
+                                  }}
+                                  onKeyDown={(e) => handleStrictNumericKeyDown(e, { allowDecimal: false, allowPlus: false })}
                                   onChange={(e) => {
-                                    setRegPhone(e.target.value);
+                                    const cleanDigits = e.target.value.replace(/\D/g, "");
+                                    setRegPhone(cleanDigits);
                                     if (regPhoneError) setRegPhoneError(null);
                                     if (regError) setRegError(null);
                                   }}
@@ -5364,11 +5812,20 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           {/* Dark Backdrop Overlay */}
                           <div
                             className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
-                            onClick={() => setShowClubModal(false)}
+                            onClick={() => {
+                              setShowClubModal(false);
+                              setVirtualKeyboard(null);
+                            }}
                           />
 
                           {/* Bottom Sheet Card */}
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto">
+                          <div
+                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            style={{
+                              marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                              maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "88%",
+                            }}
+                          >
                             {/* Drag Pill Handle */}
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
 
@@ -5384,7 +5841,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setShowClubModal(false)}
+                                onClick={() => {
+                                  setShowClubModal(false);
+                                  setVirtualKeyboard(null);
+                                }}
                                 className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                               >
                                 <span className="text-sm font-semibold">✕</span>
@@ -5396,16 +5856,44 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <MapPin className="h-4 w-4 text-[#009A60] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                               <input
                                 type="text"
-                                autoFocus
                                 value={clubSearchQuery}
-                                onChange={(e) => setClubSearchQuery(e.target.value)}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search Golf Club",
+                                    queryValue: clubSearchQuery,
+                                    onInput: (char) => {
+                                      setClubSearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                    onBackspace: () => {
+                                      setClubSearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setClubSearchQuery(val);
+                                  setVirtualKeyboard((k) => k ? { ...k, queryValue: val } : null);
+                                }}
                                 placeholder="Search golf club or location..."
                                 className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-10 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden transition-all"
                               />
                               {clubSearchQuery ? (
                                 <button
                                   type="button"
-                                  onClick={() => setClubSearchQuery("")}
+                                  onClick={() => {
+                                    setClubSearchQuery("");
+                                    setVirtualKeyboard((k) => k ? { ...k, queryValue: "" } : null);
+                                  }}
                                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CA0BA] hover:text-[#0F172A] transition-colors cursor-pointer"
                                 >
                                   <span className="text-xs font-semibold bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full w-4 h-4 flex items-center justify-center">✕</span>
@@ -5842,9 +6330,18 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                         <div className="absolute inset-0 z-50 flex flex-col justify-end">
                           <div
                             className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
-                            onClick={() => setShowCountryModal(false)}
+                            onClick={() => {
+                              setShowCountryModal(false);
+                              setVirtualKeyboard(null);
+                            }}
                           />
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
+                          <div
+                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            style={{
+                              marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                              maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
+                            }}
+                          >
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
                             <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
                               <div>
@@ -5853,7 +6350,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setShowCountryModal(false)}
+                                onClick={() => {
+                                  setShowCountryModal(false);
+                                  setVirtualKeyboard(null);
+                                }}
                                 className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                               >
                                 <span className="text-sm font-semibold">✕</span>
@@ -5866,7 +6366,33 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type="text"
                                 value={countrySearchQuery}
-                                onChange={(e) => setCountrySearchQuery(e.target.value)}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search Country",
+                                    queryValue: countrySearchQuery,
+                                    onInput: (char) => {
+                                      setCountrySearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                    onBackspace: () => {
+                                      setCountrySearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCountrySearchQuery(val);
+                                  setVirtualKeyboard((k) => k ? { ...k, queryValue: val } : null);
+                                }}
                                 placeholder="Search country name or dial code..."
                                 className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
                               />
@@ -5939,9 +6465,18 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                         <div className="absolute inset-0 z-50 flex flex-col justify-end">
                           <div
                             className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
-                            onClick={() => setShowStateModal(false)}
+                            onClick={() => {
+                              setShowStateModal(false);
+                              setVirtualKeyboard(null);
+                            }}
                           />
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
+                          <div
+                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            style={{
+                              marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                              maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
+                            }}
+                          >
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
                             <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
                               <div>
@@ -5954,7 +6489,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setShowStateModal(false)}
+                                onClick={() => {
+                                  setShowStateModal(false);
+                                  setVirtualKeyboard(null);
+                                }}
                                 className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                               >
                                 <span className="text-sm font-semibold">✕</span>
@@ -5967,7 +6505,33 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type="text"
                                 value={stateSearchQuery}
-                                onChange={(e) => setStateSearchQuery(e.target.value)}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search State",
+                                    queryValue: stateSearchQuery,
+                                    onInput: (char) => {
+                                      setStateSearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                    onBackspace: () => {
+                                      setStateSearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setStateSearchQuery(val);
+                                  setVirtualKeyboard((k) => k ? { ...k, queryValue: val } : null);
+                                }}
                                 placeholder="Search states..."
                                 className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
                               />
@@ -6029,9 +6593,18 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                         <div className="absolute inset-0 z-50 flex flex-col justify-end">
                           <div
                             className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
-                            onClick={() => setShowCityModal(false)}
+                            onClick={() => {
+                              setShowCityModal(false);
+                              setVirtualKeyboard(null);
+                            }}
                           />
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
+                          <div
+                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            style={{
+                              marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                              maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
+                            }}
+                          >
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
                             <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
                               <div>
@@ -6044,7 +6617,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setShowCityModal(false)}
+                                onClick={() => {
+                                  setShowCityModal(false);
+                                  setVirtualKeyboard(null);
+                                }}
                                 className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                               >
                                 <span className="text-sm font-semibold">✕</span>
@@ -6057,7 +6633,33 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type="text"
                                 value={citySearchQuery}
-                                onChange={(e) => setCitySearchQuery(e.target.value)}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search City",
+                                    queryValue: citySearchQuery,
+                                    onInput: (char) => {
+                                      setCitySearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                    onBackspace: () => {
+                                      setCitySearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                        return next;
+                                      });
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCitySearchQuery(val);
+                                  setVirtualKeyboard((k) => k ? { ...k, queryValue: val } : null);
+                                }}
                                 placeholder={`Search in ${regState}...`}
                                 className="w-full h-10 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] rounded-xl pl-9 pr-3.5 text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden"
                               />
@@ -6204,6 +6806,22 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               inputMode="numeric"
                               maxLength={1}
                               value={digit}
+                              onFocus={() => {
+                                openVirtualKeyboard({
+                                  phoneIndex: phoneIdx,
+                                  type: "numeric",
+                                  allowDecimal: false,
+                                  allowPlus: false,
+                                  title: `Digit ${idx + 1} of 6`,
+                                  onInput: (char) => {
+                                    if (!/^\d$/.test(char)) return;
+                                    handleOtpChange(idx, char);
+                                  },
+                                  onBackspace: () => {
+                                    handleOtpKeyDown(idx, { key: "Backspace" } as any);
+                                  },
+                                });
+                              }}
                               onChange={(e) => handleOtpChange(idx, e.target.value)}
                               onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                               className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold bg-[#f5faf6] border border-[#e1efe5] focus:bg-white focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-2xl text-[#111827] focus:outline-hidden transition-all shadow-2xs"
@@ -6315,6 +6933,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 <input
                                   type="email"
                                   value={forgotEmail}
+                                  onFocus={() => {
+                                    openVirtualKeyboard({
+                                      phoneIndex: phoneIdx,
+                                      type: "text",
+                                      title: "Email Address",
+                                      onInput: (char) => setForgotEmail((prev) => prev + char),
+                                      onBackspace: () => setForgotEmail((prev) => prev.slice(0, -1)),
+                                    });
+                                  }}
                                   onChange={(e) => setForgotEmail(e.target.value)}
                                   placeholder="alex.wright@golf.com"
                                   className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-3.5 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
@@ -6500,6 +7127,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type={showNewResetPassword ? "text" : "password"}
                                 value={newResetPassword}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "New Password",
+                                    onInput: (char) => setNewResetPassword((prev) => prev + char),
+                                    onBackspace: () => setNewResetPassword((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => setNewResetPassword(e.target.value)}
                                 placeholder="••••••••••••"
                                 className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
@@ -6554,6 +7190,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <input
                                 type={showConfirmResetPassword ? "text" : "password"}
                                 value={confirmResetPassword}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Confirm Password",
+                                    onInput: (char) => setConfirmResetPassword((prev) => prev + char),
+                                    onBackspace: () => setConfirmResetPassword((prev) => prev.slice(0, -1)),
+                                  });
+                                }}
                                 onChange={(e) => setConfirmResetPassword(e.target.value)}
                                 placeholder="••••••••••••"
                                 className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 pr-10 text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
@@ -6935,14 +7580,341 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
               />
             </div>
 
+            {/* --- SIMULATOR DUMMY VIRTUAL MOBILE KEYBOARD OVERLAY (SLIDES UP ON INPUT FOCUS) --- */}
+            {virtualKeyboard?.isOpen && (virtualKeyboard.phoneIndex === index || viewMode === "single") && (
+              <div
+                className="absolute bottom-0 left-0 right-0 z-60 bg-[#161B22]/98 backdrop-blur-xl border-t border-slate-700/80 shadow-[0_-16px_40px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom duration-200 select-none pb-4 pt-1 font-sans text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Accessory Toolbar */}
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/80 mb-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase ${
+                        virtualKeyboard.type === "numeric"
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-slate-800 text-slate-300 border border-slate-700"
+                      }`}
+                    >
+                      {virtualKeyboard.type === "numeric" ? "🔢 NUMERIC PAD" : "⌨️ QWERTY KEYBOARD"}
+                    </span>
+                    {virtualKeyboard.type === "numeric" ? (
+                      <span className="text-[10px] text-amber-400 font-semibold tracking-tight">
+                        Numbers Only • Alphabets Blocked
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] text-slate-400 font-medium tracking-tight truncate">
+                          {virtualKeyboard.title || "Interactive Keypad"}
+                        </span>
+                        {virtualKeyboard.queryValue !== undefined && virtualKeyboard.queryValue.length > 0 && (
+                          <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/70 border border-emerald-800/40 px-1.5 py-0.5 rounded-sm truncate max-w-[120px]">
+                            &quot;{virtualKeyboard.queryValue}&quot;
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setVirtualKeyboard(null)}
+                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-bold tracking-wide transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Done</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Layout 1: NUMERIC KEYPAD */}
+                {virtualKeyboard.type === "numeric" ? (
+                  <div className="grid grid-cols-3 gap-1.5 px-3 py-1">
+                    {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                      <button
+                        key={digit}
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput(digit)}
+                        className="h-11 rounded-xl bg-slate-800/95 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-bold text-[19px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/60"
+                      >
+                        {digit}
+                      </button>
+                    ))}
+                    {/* Row 4: Decimal / Plus, 0, Backspace */}
+                    {virtualKeyboard.allowDecimal ? (
+                      <button
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput(".")}
+                        className="h-11 rounded-xl bg-slate-800/95 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-bold text-[20px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/60"
+                      >
+                        .
+                      </button>
+                    ) : virtualKeyboard.allowPlus ? (
+                      <button
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput("+")}
+                        className="h-11 rounded-xl bg-slate-800/95 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-bold text-[18px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/60"
+                      >
+                        +
+                      </button>
+                    ) : (
+                      <div className="h-11 rounded-xl bg-slate-900/30 border border-transparent" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => virtualKeyboard.onInput("0")}
+                      className="h-11 rounded-xl bg-slate-800/95 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-bold text-[19px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/60"
+                    >
+                      0
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => virtualKeyboard.onBackspace()}
+                      className="h-11 rounded-xl bg-slate-900 hover:bg-rose-950/40 active:bg-rose-900/60 active:scale-95 text-slate-300 hover:text-rose-400 font-bold shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/60"
+                      title="Backspace"
+                    >
+                      <Delete className="w-5 h-5 stroke-[2.2]" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Layout 2: QWERTY KEYBOARD */
+                  <div className="px-1.5 py-1 space-y-1">
+                    {!keyboardSymbols ? (
+                      <>
+                        {/* Letters Row 1 */}
+                        <div className="flex items-center gap-1 justify-center">
+                          {["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"].map((letter) => {
+                            const char = keyboardShift ? letter.toUpperCase() : letter;
+                            return (
+                              <button
+                                key={letter}
+                                type="button"
+                                onClick={() => virtualKeyboard.onInput(char)}
+                                className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                              >
+                                {char}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Letters Row 2 */}
+                        <div className="flex items-center gap-1 justify-center px-2">
+                          {["a", "s", "d", "f", "g", "h", "j", "k", "l"].map((letter) => {
+                            const char = keyboardShift ? letter.toUpperCase() : letter;
+                            return (
+                              <button
+                                key={letter}
+                                type="button"
+                                onClick={() => virtualKeyboard.onInput(char)}
+                                className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                              >
+                                {char}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Letters Row 3 */}
+                        <div className="flex items-center gap-1 justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setKeyboardShift(!keyboardShift)}
+                            className={`w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold shadow-sm cursor-pointer transition-all border ${
+                              keyboardShift
+                                ? "bg-emerald-600 text-white border-emerald-500"
+                                : "bg-slate-900 text-slate-300 border-slate-700/50 hover:bg-slate-800"
+                            }`}
+                            title="Shift"
+                          >
+                            ⇧
+                          </button>
+                          {["z", "x", "c", "v", "b", "n", "m"].map((letter) => {
+                            const char = keyboardShift ? letter.toUpperCase() : letter;
+                            return (
+                              <button
+                                key={letter}
+                                type="button"
+                                onClick={() => virtualKeyboard.onInput(char)}
+                                className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 active:scale-95 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                              >
+                                {char}
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            onClick={() => virtualKeyboard.onBackspace()}
+                            className="w-9 h-9 rounded-lg bg-slate-900 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 font-bold shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                            title="Backspace"
+                          >
+                            <Delete className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Symbols Row 1 */}
+                        <div className="flex items-center gap-1 justify-center">
+                          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => virtualKeyboard.onInput(num)}
+                              className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                            >
+                              {num}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Symbols Row 2 */}
+                        <div className="flex items-center gap-1 justify-center">
+                          {["-", "/", ":", ";", "(", ")", "$", "&", "@", `"`].map((sym) => (
+                            <button
+                              key={sym}
+                              type="button"
+                              onClick={() => virtualKeyboard.onInput(sym)}
+                              className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                            >
+                              {sym}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Symbols Row 3 */}
+                        <div className="flex items-center gap-1 justify-center">
+                          {[".", ",", "?", "!", "'", "#", "%", "*"].map((sym) => (
+                            <button
+                              key={sym}
+                              type="button"
+                              onClick={() => virtualKeyboard.onInput(sym)}
+                              className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white font-medium text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                            >
+                              {sym}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => virtualKeyboard.onBackspace()}
+                            className="w-9 h-9 rounded-lg bg-slate-900 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 font-bold shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                            title="Backspace"
+                          >
+                            <Delete className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Bottom Row 4 */}
+                    <div className="flex items-center gap-1 justify-center pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setKeyboardSymbols(!keyboardSymbols)}
+                        className="px-2.5 h-9 rounded-lg bg-slate-900 text-slate-300 hover:text-white font-bold text-[11px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                      >
+                        {keyboardSymbols ? "ABC" : "123"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput("@")}
+                        className="px-2.5 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[12px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                      >
+                        @
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput(" ")}
+                        className="flex-1 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 font-medium text-[11px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                      >
+                        space
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => virtualKeyboard.onInput(".")}
+                        className="px-2.5 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[13px] shadow-sm flex items-center justify-center cursor-pointer transition-all border border-slate-700/50"
+                      >
+                        .
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVirtualKeyboard(null)}
+                        className="px-3 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm flex items-center justify-center cursor-pointer transition-all"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: FORFEIT ROUND CONFIRMATION MODAL --- */}
+            {showForfeitModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowForfeitModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                  {/* Centered Warning Squircle Badge */}
+                  <div className="w-16 h-16 rounded-[22px] bg-[#FFF1F2] border border-[#FFE4E6] flex items-center justify-center mx-auto mb-5 shadow-xs">
+                    <svg className="w-8 h-8 text-[#DC2626]" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+
+                  {/* Centered Heading */}
+                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                    Withdraw from Round?
+                  </h3>
+
+                  {/* Centered Body */}
+                  <p className="text-[13.5px] text-[#64748B] text-center leading-relaxed max-w-[280px] mx-auto mb-7 font-normal">
+                    Forfeiting now will disqualify your score from the{" "}
+                    <strong className="font-bold text-[#0F172A]">
+                      {activeRound?.tournamentName || "Oakwood Championship"}
+                    </strong>
+                    . This action cannot be undone.
+                  </p>
+
+                  {/* Vertically Stacked Action Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveRound(null);
+                      setShowForfeitModal(false);
+                      showToast("Withdrawn from tournament round.", "success", "ROUND FORFEITED");
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#D92D20] hover:bg-[#B42318] active:scale-98 text-white text-sm font-bold tracking-wide shadow-md flex items-center justify-center mb-3 cursor-pointer transition-all"
+                  >
+                    Yes, Forfeit Match
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowForfeitModal(false)}
+                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                  >
+                    Cancel, Stay in Play
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* --- BOTTOM SHEET 1: ADD GOLF FRIENDS MODAL (Full Device Frame Overlay) --- */}
             {showAddFriendsModal && (
               <div
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
-                onClick={() => setShowAddFriendsModal(false)}
+                onClick={() => {
+                  setShowAddFriendsModal(false);
+                  setVirtualKeyboard(null);
+                }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[90%] flex flex-col w-full max-w-sm mx-auto"
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                  style={{
+                    marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                    maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "90%",
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
@@ -6958,7 +7930,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowAddFriendsModal(false)}
+                      onClick={() => {
+                        setShowAddFriendsModal(false);
+                        setVirtualKeyboard(null);
+                      }}
                       className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                       title="Close"
                     >
@@ -6968,19 +7943,47 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                   <div className="py-3 space-y-2.5 flex-1 min-h-0 flex flex-col">
                     <div className="relative">
-                      <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                      <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#8CA0BA]" />
                       <input
                         type="text"
                         value={friendsSearchQuery}
-                        onChange={(e) => setFriendsSearchQuery(e.target.value)}
-                        placeholder="Search by player name or email..."
-                        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#009A60] focus:ring-1 focus:ring-[#009A60] transition-colors"
-                        autoFocus
+                        onFocus={() => {
+                          openVirtualKeyboard({
+                            phoneIndex: index,
+                            type: "text",
+                            title: "Search Friends",
+                            queryValue: friendsSearchQuery,
+                            onInput: (char) => {
+                              setFriendsSearchQuery((prev) => {
+                                const next = prev + char;
+                                setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                return next;
+                              });
+                            },
+                            onBackspace: () => {
+                              setFriendsSearchQuery((prev) => {
+                                const next = prev.slice(0, -1);
+                                setVirtualKeyboard((k) => k ? { ...k, queryValue: next } : null);
+                                return next;
+                              });
+                            },
+                          });
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFriendsSearchQuery(val);
+                          setVirtualKeyboard((k) => k ? { ...k, queryValue: val } : null);
+                        }}
+                        placeholder="Search by player name or golf club..."
+                        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
                       />
                       {friendsSearchQuery && (
                         <button
                           type="button"
-                          onClick={() => setFriendsSearchQuery("")}
+                          onClick={() => {
+                            setFriendsSearchQuery("");
+                            setVirtualKeyboard((k) => k ? { ...k, queryValue: "" } : null);
+                          }}
                           className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                           title="Clear search"
                         >
@@ -7010,7 +8013,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               <div className="min-w-0 flex-1">
                                 <div className="text-xs font-bold text-slate-900 truncate">{player.name}</div>
                                 <div className="text-[10px] text-slate-500 truncate">
-                                  {player.email} • {player.club}
+                                  {player.club} • {player.hcp} HCP
                                 </div>
                               </div>
                             </div>
@@ -7038,7 +8041,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                             <Search className="w-5 h-5" />
                           </div>
                           <p className="text-xs font-bold text-slate-700">No golfers found for &quot;{friendsSearchQuery}&quot;</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Search by another player name or email address</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Search by another player name or golf club</p>
                           <button
                             type="button"
                             onClick={() => setFriendsSearchQuery("")}
@@ -7069,7 +8072,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
             {showNotificationsModal && (
               <div
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
-                onClick={() => setShowNotificationsModal(false)}
+                onClick={() => {
+                  setShowNotificationsModal(false);
+                  setVirtualKeyboard(null);
+                }}
               >
                 <div
                   className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
@@ -7088,7 +8094,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowNotificationsModal(false)}
+                      onClick={() => {
+                        setShowNotificationsModal(false);
+                        setVirtualKeyboard(null);
+                      }}
                       className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
                       title="Close"
                     >
@@ -7136,7 +8145,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                   <button
                     type="button"
-                    onClick={() => setShowNotificationsModal(false)}
+                    onClick={() => {
+                      setShowNotificationsModal(false);
+                      setVirtualKeyboard(null);
+                    }}
                     className="mt-2 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                   >
                     Dismiss All
@@ -7149,7 +8161,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
             {showMessagesModal && (
               <div
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
-                onClick={() => setShowMessagesModal(false)}
+                onClick={() => {
+                  setShowMessagesModal(false);
+                  setVirtualKeyboard(null);
+                }}
               >
                 <div
                   className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
@@ -7168,7 +8183,10 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowMessagesModal(false)}
+                      onClick={() => {
+                        setShowMessagesModal(false);
+                        setVirtualKeyboard(null);
+                      }}
                       className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
                       title="Close"
                     >
@@ -7957,6 +8975,17 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                 onClick={() => {
                   setAttestationConfirmed(true);
                   setShowAttestModal(false);
+                  setRecentRounds([
+                    {
+                      id: "round_recent_1",
+                      clubName: authenticatedPlayer?.club || regHomeClub || "Ikoyi Club 1938",
+                      holes: 18,
+                      status: "COMPLETED",
+                      netScore: 72,
+                      month: new Date().toLocaleString("en-US", { month: "short" }).toUpperCase(),
+                      day: String(new Date().getDate()),
+                    },
+                  ]);
                   showToast("Attestation submitted and certified!");
                 }}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-950"

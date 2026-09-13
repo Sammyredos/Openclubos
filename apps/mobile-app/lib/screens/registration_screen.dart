@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import 'verify_email_screen.dart';
@@ -1893,6 +1894,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             hintText: _selectedClassification == 'BEGINNER' ? '36' : 'e.g. 2.4 (< 36)',
             enabled: _selectedClassification != 'BEGINNER',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+            ],
             onChanged: (val) {
               if (val.isEmpty || val == '.') return;
               final num = double.tryParse(val);
@@ -2244,6 +2248,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 controller: _phoneController,
                 hintText: _selectedCountryCode == 'NG' ? '803 555 0192' : 'Phone number',
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
               ),
             ),
           ],
@@ -2891,6 +2898,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     Widget? prefixIcon,
     Widget? suffixIcon,
     ValueChanged<String>? onChanged,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Container(
       height: 48,
@@ -2904,6 +2912,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         obscureText: obscureText,
         enabled: enabled,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         textAlignVertical: TextAlignVertical.center,
         onChanged: (val) {
           if (onChanged != null) onChanged(val);

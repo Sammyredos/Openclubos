@@ -48,13 +48,13 @@ class OpenclubApp extends StatelessWidget {
       ),
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF06090E),
+        scaffoldBackgroundColor: const Color(0xFFF4F6F3),
         textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF10B981), // Masters Tournament Emerald
           secondary: Color(0xFFF59E0B), // Championship Gold
           surface: Color(0xFF0E1521), // Luxury obsidian surface
-          background: Color(0xFF06090E),
+          background: Color(0xFFF4F6F3),
           onPrimary: Colors.white,
           onSurface: Color(0xFFF8FAFC),
         ),
