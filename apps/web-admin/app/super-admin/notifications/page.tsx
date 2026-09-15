@@ -196,8 +196,14 @@ export default function SuperAdminNotificationsPage() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push("/super-admin/payments/withdrawals");
-    } else if (notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT") {
-      router.push("/super-admin/tournaments");
+    } else if (notif.type === "TOURNAMENT_ALERT") {
+      const tournId = notif.data?.tournamentId;
+      const target = tournId ? `/super-admin/tournaments/${tournId}?tab=penalize` : "/super-admin/tournaments";
+      router.push(target);
+    } else if (notif.type === "TOURNAMENT_UPDATE") {
+      const tournId = notif.data?.tournamentId;
+      const target = tournId ? `/super-admin/tournaments/${tournId}` : "/super-admin/tournaments";
+      router.push(target);
     }
   };
 

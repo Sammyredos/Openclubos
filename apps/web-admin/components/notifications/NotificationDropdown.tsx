@@ -119,27 +119,7 @@ export function NotificationDropdown() {
       setPendingWithdrawals(withdrawRes.items || []);
       setPendingWithdrawalCount(withdrawRes.total || (withdrawRes.items ? withdrawRes.items.length : 0));
 
-      // Trigger pop-up alert for newly detected pending withdrawal payout request
       const currentPendingCount = withdrawRes.total || (withdrawRes.items ? withdrawRes.items.length : 0);
-      if (isSuperAdmin && currentPendingCount > 0) {
-        if (
-          !isInitial &&
-          prevPendingCountRef.current !== null &&
-          currentPendingCount > prevPendingCountRef.current
-        ) {
-          const newest = withdrawRes.items[0];
-          toast.warning("New Payout Request Received", {
-            description: `${formatCurrency(newest?.amount || 0)} from ${
-              newest?.club?.name || "Club Organizer"
-            }. Action required.`,
-            action: {
-              label: "Take Action",
-              onClick: () => router.push(payoutManagementUrl),
-            },
-            duration: 8000,
-          });
-        }
-      }
       prevPendingCountRef.current = currentPendingCount;
     } catch {
       // Ignore background errors
@@ -191,18 +171,6 @@ export function NotificationDropdown() {
             return [alertItem, ...prev];
           });
           setUnreadCount((prev) => prev + 1);
-
-          toast.warning(alertItem.title || "Pace of Play Alert (30m Inactivity)", {
-            description: alertItem.body,
-            action: {
-              label: "View Tournament",
-              onClick: () => {
-                const targetUrl = isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments";
-                router.push(targetUrl);
-              },
-            },
-            duration: 9000,
-          });
         }
       } else if (event.type === "tournament-inactivity-resolved" || event.type === "player-forfeited") {
         const stored = getStoredLiveAlerts();
@@ -260,8 +228,17 @@ export function NotificationDropdown() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push(payoutManagementUrl);
-    } else if (notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT") {
-      const targetUrl = isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments";
+    } else if (notif.type === "TOURNAMENT_ALERT") {
+      const tournId = notif.data?.tournamentId;
+      const targetUrl = tournId
+        ? (isSuperAdmin ? `/super-admin/tournaments/${tournId}?tab=penalize` : `/organizer-admin/tournaments/${tournId}?tab=penalize`)
+        : (isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments");
+      router.push(targetUrl);
+    } else if (notif.type === "TOURNAMENT_UPDATE") {
+      const tournId = notif.data?.tournamentId;
+      const targetUrl = tournId
+        ? (isSuperAdmin ? `/super-admin/tournaments/${tournId}` : `/organizer-admin/tournaments/${tournId}`)
+        : (isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments");
       router.push(targetUrl);
     } else {
       router.push(notificationsUrl);

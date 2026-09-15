@@ -39,7 +39,7 @@ export function PenalizeActionDropdown({
           e.stopPropagation();
           setOpen((prev) => !prev);
         }}
-        title="Penalize Player"
+        title="Committee Actions"
         className={cn(
           "h-9 w-9 p-0 bg-white rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors",
           open && "bg-gray-50 ring-2 ring-gray-100"

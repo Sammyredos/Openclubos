@@ -196,8 +196,14 @@ export default function OrganizerNotificationsPage() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push("/organizer-admin/payments/withdrawals");
-    } else if (notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT") {
-      router.push("/organizer-admin/tournaments");
+    } else if (notif.type === "TOURNAMENT_ALERT") {
+      const tournId = notif.data?.tournamentId;
+      const target = tournId ? `/organizer-admin/tournaments/${tournId}?tab=penalize` : "/organizer-admin/tournaments";
+      router.push(target);
+    } else if (notif.type === "TOURNAMENT_UPDATE") {
+      const tournId = notif.data?.tournamentId;
+      const target = tournId ? `/organizer-admin/tournaments/${tournId}` : "/organizer-admin/tournaments";
+      router.push(target);
     }
   };
 

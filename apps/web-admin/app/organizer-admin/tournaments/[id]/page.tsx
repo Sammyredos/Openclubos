@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Trash2,
   AlertTriangle,
+  UserCog,
   Link,
   Globe,
   Lock,
@@ -165,7 +166,7 @@ const TABS = [
   { id: "invite", label: "Invite a Player", icon: UserPlus },
   { id: "waitlist", label: "Waitlisted Players", icon: Clock },
   { id: "groupings", label: "Flights & Tee Times", icon: Calendar },
-  { id: "penalize", label: "Penalize a Player", icon: AlertTriangle },
+  { id: "penalize", label: "Committee Actions", icon: UserCog },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -3214,8 +3215,8 @@ function ViewTournamentPageInner() {
               <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
                   <div>
-                    <h2 className="text-[15px] font-medium text-gray-900">Penalize Player</h2>
-                    <p className="text-[12px] text-gray-500 mt-1">Apply stroke play penalties or disqualify players for rule infractions.</p>
+                    <h2 className="text-[15px] font-medium text-gray-900">Committee Actions</h2>
+                    <p className="text-[12px] text-gray-500 mt-1">Manage stroke penalties, tournament forfeits (WD), and disqualifications for registered players.</p>
                   </div>
                 </div>
 
