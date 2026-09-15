@@ -1892,8 +1892,12 @@ function ViewTournamentPageInner() {
                                     <td className="px-6 py-4 text-center">
                                       {entry.status === "DISQUALIFIED" ? (
                                         <span className="text-[10px] font-normal bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">DQ</span>
+                                      ) : (entry as any).status === "FORFEITED" || (entry as any).status === "WITHDRAWN" ? (
+                                        <span className="text-[10px] font-normal bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full uppercase tracking-wider">WD</span>
                                       ) : entry.madeCut === false ? (
                                         <span className="text-[10px] font-normal bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Missed Cut</span>
+                                      ) : (entry as any).isInactive || (entry as any).inactiveMins >= 60 || (entry as any).status === "INACTIVE" ? (
+                                        <span className="text-[10px] font-normal bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap" title="Player inactive for over 60 minutes">Inactive</span>
                                       ) : entry.grossStrokes > 0 ? (
                                         entry.holesCount === (18 * getTournamentDays()) ? (
                                           <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Finished</span>

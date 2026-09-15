@@ -67,7 +67,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatWithCommas, subscribeAdminEvents, getGolfCategory, formatTeeTime } from "@/lib/utils";
+import { cn, formatWithCommas, subscribeAdminEvents, broadcastAdminEvent, getGolfCategory, formatTeeTime } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -394,6 +394,7 @@ function ViewTournamentPageInner() {
   const [newlyRegisteredUserIds, setNewlyRegisteredUserIds] = useState<string[]>([]);
 
   const [isDisqualifyModalOpen, setIsDisqualifyModalOpen] = useState(false);
+  const [isForfeitModalOpen, setIsForfeitModalOpen] = useState(false);
   const [isRemovePlayerModalOpen, setIsRemovePlayerModalOpen] = useState(false);
   const [isEnablePlayerModalOpen, setIsEnablePlayerModalOpen] = useState(false);
   const [isDayLockModalOpen, setIsDayLockModalOpen] = useState(false);
@@ -1394,6 +1395,11 @@ function ViewTournamentPageInner() {
     setIsDisqualifyModalOpen(true);
   };
 
+  const openForfeitPlayer = (reg: RegistrationListItem) => {
+    setActionRegistration(reg);
+    setIsForfeitModalOpen(true);
+  };
+
   const openRemovePlayer = async (reg: RegistrationListItem) => {
     setActionRegistration(reg);
     if (!groupingsData && tournamentId) {
@@ -1477,6 +1483,33 @@ function ViewTournamentPageInner() {
     if (!actionRegistration) return;
     setIsDisqualifyModalOpen(false);
     updateTournamentRegistrationStatus(actionRegistration.id, "DISQUALIFIED");
+  };
+
+  const confirmForfeit = () => {
+    if (!actionRegistration) return;
+    setIsForfeitModalOpen(false);
+    const regId = actionRegistration.id;
+    const playerEmail = actionRegistration.user?.email || "";
+    const playerName = `${actionRegistration.user?.firstName || ""} ${actionRegistration.user?.lastName || ""}`.trim() || "Player";
+
+    updateTournamentRegistrationStatus(regId, "DISQUALIFIED");
+
+    broadcastAdminEvent("player-forfeited", {
+      registrationId: regId,
+      email: playerEmail,
+      tournamentId: selectedTournament?.id,
+      playerName,
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("openclub_active_round_forfeited", "true");
+      } catch {}
+    }
+
+    toast.error(`${playerName} has been forfeited from the tournament`, {
+      description: "Scorecard closed. Status recorded as Withdrawn (WD).",
+    });
   };
 
   const confirmEnablePlayer = () => {
@@ -1950,10 +1983,12 @@ function ViewTournamentPageInner() {
                                           r.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                                             r.status === "PENDING" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                                               r.status === "WAITLISTED" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                                                r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
-                                                  "bg-background text-gray-600 border border-gray-200"
+                                                ((r as any).status === "FORFEITED" || (r as any).status === "WITHDRAWN") ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                                                  (r as any).status === "INACTIVE" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                                    r.status === "DISQUALIFIED" ? "bg-red-50 text-red-700 border border-red-100" :
+                                                      "bg-background text-gray-600 border border-gray-200"
                                       )}>
-                                        {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : r.status}
+                                        {(r.status === "APPROVED" && r.paymentStatus !== "PAID") ? "PENDING" : (r as any).status === "FORFEITED" ? "WITHDRAWN" : r.status}
                                       </span>
                                       <span className={cn(
                                         "text-[10px] font-normal px-2 py-0.5 rounded-lg uppercase tracking-wider",
@@ -3390,6 +3425,7 @@ function ViewTournamentPageInner() {
                                               openStrokeModal={openStrokeModal}
                                               openDisqualify={openDisqualify}
                                               openEnablePlayer={openEnablePlayer}
+                                              openForfeitPlayer={openForfeitPlayer}
                                             />
                                           </div>
                                         </td>
@@ -3578,6 +3614,39 @@ function ViewTournamentPageInner() {
           <h4 className="text-[14px] font-normal text-gray-900 mb-2">Disqualify Player?</h4>
           <p className="text-gray-500 max-w-sm">
             Are you sure you want to disqualify <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>?
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isForfeitModalOpen}
+        onClose={() => {
+          setIsForfeitModalOpen(false);
+          setActionRegistration(null);
+        }}
+        title="Forfeit Player (WD)?"
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsForfeitModalOpen(false)} className="rounded-lg font-semibold">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-lg font-semibold px-8 text-white border bg-rose-600 hover:bg-rose-700 border-rose-700/30"
+              onClick={confirmForfeit}
+            >
+              Confirm Forfeit
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-rose-50 text-rose-600 border border-rose-100">
+            <Flag className="h-8 w-8" />
+          </div>
+          <h4 className="text-[16px] font-bold text-gray-900 mb-1.5">Administrative Forfeit</h4>
+          <p className="text-[13.5px] text-gray-600 max-w-sm leading-normal">
+            Are you sure you want to force-forfeit <strong>{actionRegistration ? `${actionRegistration.user?.firstName} ${actionRegistration.user?.lastName}` : "this player"}</strong>{actionRegistration?.user?.email ? ` (${actionRegistration.user.email})` : ""}? Their active scorecard will be closed and status marked as <strong>Withdrawn (WD)</strong>.
           </p>
         </div>
       </Modal>

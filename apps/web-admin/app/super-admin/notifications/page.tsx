@@ -67,6 +67,11 @@ const TYPE_META: Record<
     badge: "bg-blue-50 text-blue-600 border-blue-100",
     icon: Layers,
   },
+  TOURNAMENT_ALERT: {
+    label: "Pace of Play",
+    badge: "bg-amber-50 text-amber-800 border-amber-200",
+    icon: Clock,
+  },
   PAYMENT_RECEIVED: {
     label: "Payment",
     badge: "bg-emerald-50 text-openclub-800 border-[#e1efe5]",
@@ -103,8 +108,22 @@ export default function SuperAdminNotificationsPage() {
     setError(null);
     try {
       const listRes = await getNotifications({ take: 200 });
-      setNotifications(listRes.items);
-      setUnreadCount(listRes.unreadCount);
+      let liveItems: AppNotification[] = [];
+      try {
+        const raw = localStorage.getItem("openclub_live_admin_notifications");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) liveItems = parsed;
+        }
+      } catch {}
+      const combinedMap = new Map<string, AppNotification>();
+      liveItems.forEach((item) => combinedMap.set(item.id, item));
+      listRes.items.forEach((item) => combinedMap.set(item.id, item));
+      const allItems = Array.from(combinedMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setNotifications(allItems);
+      setUnreadCount(allItems.filter((n) => !n.isRead).length);
     } catch {
       setError("Failed to load notifications. Please try again.");
       toast.error("Failed to load notifications");
@@ -121,7 +140,17 @@ export default function SuperAdminNotificationsPage() {
     if (unreadCount === 0 || isMarkingAll) return;
     setIsMarkingAll(true);
     try {
-      await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead().catch(() => {});
+      try {
+        const raw = localStorage.getItem("openclub_live_admin_notifications");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const updated = parsed.map((item) => ({ ...item, isRead: true, readAt: new Date().toISOString() }));
+            localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+          }
+        }
+      } catch {}
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       );
@@ -137,7 +166,18 @@ export default function SuperAdminNotificationsPage() {
   const handleMarkRead = async (notif: AppNotification) => {
     if (notif.isRead) return;
     try {
-      await markNotificationAsRead(notif.id);
+      if (notif.id.startsWith("inact-") || notif.type === "TOURNAMENT_ALERT") {
+        const raw = localStorage.getItem("openclub_live_admin_notifications");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const updated = parsed.map((item) => (item.id === notif.id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item));
+            localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+          }
+        }
+      } else {
+        await markNotificationAsRead(notif.id);
+      }
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n))
       );
@@ -156,7 +196,7 @@ export default function SuperAdminNotificationsPage() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push("/super-admin/payments/withdrawals");
-    } else if (notif.type === "TOURNAMENT_UPDATE") {
+    } else if (notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT") {
       router.push("/super-admin/tournaments");
     }
   };

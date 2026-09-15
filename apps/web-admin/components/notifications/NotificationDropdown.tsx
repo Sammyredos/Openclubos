@@ -31,8 +31,27 @@ import {
   type AdminWithdrawalStats,
 } from "@/lib/api/withdrawals";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, subscribeAdminEvents } from "@/lib/utils";
 import { toast } from "sonner";
+
+function getStoredLiveAlerts(): AppNotification[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("openclub_live_admin_notifications");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredLiveAlerts(alerts: AppNotification[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(alerts));
+  } catch {}
+}
 
 export function NotificationDropdown() {
   const { user } = useAuth();
@@ -86,9 +105,17 @@ export function NotificationDropdown() {
 
       const [notifRes, withdrawRes] = await Promise.all([notifPromise, withdrawalsPromise]);
 
-      const unreadItems = (notifRes.items || []).filter((n) => !n.isRead);
-      setNotifications(unreadItems);
-      setUnreadCount(notifRes.unreadCount || unreadItems.length);
+      const unreadDbItems = (notifRes.items || []).filter((n) => !n.isRead);
+      const unreadLiveAlerts = getStoredLiveAlerts().filter((n) => !n.isRead);
+      const combinedMap = new Map<string, AppNotification>();
+      unreadLiveAlerts.forEach((a) => combinedMap.set(a.id, a));
+      unreadDbItems.forEach((u) => combinedMap.set(u.id, u));
+      const combinedItems = Array.from(combinedMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setNotifications(combinedItems);
+      setUnreadCount(combinedItems.length);
       setPendingWithdrawals(withdrawRes.items || []);
       setPendingWithdrawalCount(withdrawRes.total || (withdrawRes.items ? withdrawRes.items.length : 0));
 
@@ -152,11 +179,53 @@ export function NotificationDropdown() {
     };
   }, [isOpen]);
 
+  // Subscribe to real-time broadcast admin events (such as pace-of-play alerts)
+  useEffect(() => {
+    const unsubscribe = subscribeAdminEvents((event) => {
+      if (event.type === "tournament-inactivity-alert") {
+        const alertItem = event.payload as AppNotification;
+        if (alertItem && alertItem.id) {
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.id === alertItem.id);
+            if (exists) return prev;
+            return [alertItem, ...prev];
+          });
+          setUnreadCount((prev) => prev + 1);
+
+          toast.warning(alertItem.title || "Pace of Play Alert (30m Inactivity)", {
+            description: alertItem.body,
+            action: {
+              label: "View Tournament",
+              onClick: () => {
+                const targetUrl = isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments";
+                router.push(targetUrl);
+              },
+            },
+            duration: 9000,
+          });
+        }
+      } else if (event.type === "tournament-inactivity-resolved" || event.type === "player-forfeited") {
+        const stored = getStoredLiveAlerts();
+        const updated = stored.map((item) => (item.id.includes("inact") ? { ...item, isRead: true } : item));
+        saveStoredLiveAlerts(updated);
+        setNotifications((prev) => prev.filter((n) => !n.id.includes("inact")));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [isSuperAdmin, router]);
+
   const handleMarkAllRead = async () => {
     if (unreadCount === 0 || isMarkingAll) return;
     setIsMarkingAll(true);
     try {
-      await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead().catch(() => {});
+      const stored = getStoredLiveAlerts();
+      const updated = stored.map((n) => ({ ...n, isRead: true }));
+      saveStoredLiveAlerts(updated);
+
       // Remove all seen/read notifications from dropdown
       setNotifications([]);
       setUnreadCount(0);
@@ -170,8 +239,16 @@ export function NotificationDropdown() {
   };
 
   const handleNotificationClick = async (notif: AppNotification) => {
-    // Mark as read and immediately remove from dropdown
-    markNotificationAsRead(notif.id).catch(() => {});
+    // If it's a live tournament inactivity alert, mark read in localStorage
+    if (notif.id.startsWith("inact-") || notif.type === "TOURNAMENT_ALERT") {
+      const stored = getStoredLiveAlerts();
+      const updated = stored.map((item) => (item.id === notif.id ? { ...item, isRead: true } : item));
+      saveStoredLiveAlerts(updated);
+    } else {
+      markNotificationAsRead(notif.id).catch(() => {});
+    }
+
+    // Immediately remove from dropdown
     setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
@@ -183,7 +260,7 @@ export function NotificationDropdown() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push(payoutManagementUrl);
-    } else if (notif.type === "TOURNAMENT_UPDATE") {
+    } else if (notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT") {
       const targetUrl = isSuperAdmin ? "/super-admin/tournaments" : "/organizer-admin/tournaments";
       router.push(targetUrl);
     } else {
@@ -218,6 +295,18 @@ export function NotificationDropdown() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case "TOURNAMENT_ALERT":
+        return (
+          <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+            <Clock className="w-4 h-4" />
+          </div>
+        );
+      case "TOURNAMENT_UPDATE":
+        return (
+          <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <Clock className="w-4 h-4" />
+          </div>
+        );
       case "WITHDRAWAL_REQUESTED":
         return (
           <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">

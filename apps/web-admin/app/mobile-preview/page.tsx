@@ -70,7 +70,7 @@ import {
   Bookmark,
   Banknote,
 } from "lucide-react";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
@@ -126,6 +126,8 @@ interface LeaderboardPlayer {
 interface AuthenticatedPlayer {
   id?: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   handicap: number | string;
   club: string;
@@ -137,7 +139,7 @@ interface AuthenticatedPlayer {
   classification?: string;
 }
 
-type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password";
+type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard";
 
 type DeviceModelId = "iphone-16-pro" | "galaxy-s24" | "pixel-9" | "iphone-notch" | "iphone-16-max" | "ipad-pro-11" | "ipad-mini" | "galaxy-tab-s9";
 type DeviceColorId = "natural-titanium" | "midnight" | "silver" | "desert-gold" | "emerald-pine";
@@ -169,6 +171,38 @@ interface ChassisColorSpec {
   gradient: string;
   borderColor: string;
   shadow: string;
+}
+
+interface GroupPlayer {
+  id: string;
+  name: string;
+  initials: string;
+  avatar?: string;
+}
+
+function GroupPlayerAvatarItem({ player }: { player: GroupPlayer }) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (player.avatar && !imgFailed) {
+    return (
+      <img
+        src={player.avatar}
+        alt={player.name}
+        title={player.name}
+        className="w-5 h-5 rounded-full border border-[#052417] object-cover shrink-0"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      title={player.name}
+      className="w-5 h-5 rounded-full border border-[#052417] bg-[#0E3D27] text-[#10B981] flex items-center justify-center text-[8.5px] font-bold tracking-tighter shrink-0 select-none"
+    >
+      {player.initials}
+    </div>
+  );
 }
 
 const DEVICE_MODELS: Record<DeviceModelId, DeviceModelSpec> = {
@@ -545,6 +579,7 @@ export default function MobilePreviewPage() {
   ];
 
   // --- Friends on Course State (Live Simulation & Active Scrollable Carousel) ---
+  // --- Friends on Course State (Live Simulation & Active Scrollable Carousel) ---
   const sampleFriendsOnCourse = [
     { id: "f1", name: "Sarah Jenkins", initials: "SJ", score: "Hole 14 • Even", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
     { id: "f2", name: "David Miller", initials: "DM", score: "Hole 9 • +2", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
@@ -559,34 +594,238 @@ export default function MobilePreviewPage() {
   // Initialized with live competitors on the course so carousel is fully scrollable
   const [friendsOnCourse, setFriendsOnCourse] = useState<any[]>(sampleFriendsOnCourse);
 
+  // --- Active On-Course Competitors Data & Telemetry Scorecards ---
+  const STANDARD_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
+  const STANDARD_YARDS = [385, 410, 175, 520, 395, 430, 190, 545, 415, 405, 390, 165, 535, 415, 440, 185, 420, 550];
+
+  const buildScorecardHoles = (strokesList: (number | null)[]) => {
+    return STANDARD_PARS.map((par, idx) => ({
+      hole: idx + 1,
+      par,
+      yards: STANDARD_YARDS[idx],
+      strokes: strokesList[idx] ?? null,
+    }));
+  };
+
+  const ACTIVE_COMPETITORS_DATA = [
+    {
+      id: "f1",
+      name: "Sarah Jenkins",
+      initials: "SJ",
+      club: "Ikoyi Club 1938",
+      hcp: "4.2",
+      score: "Hole 14 • Even",
+      toPar: 0,
+      currentHole: 14,
+      thru: 13,
+      gross: 51,
+      net: 48,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight A",
+      teeTime: "08:20 AM",
+      ball: "Titleist Pro V1",
+      marker: "David Miller",
+      pace: "On Pace",
+      holes: buildScorecardHoles([4, 4, 3, 5, 4, 4, 2, 5, 5, 4, 4, 3, 4, null, null, null, null, null]),
+    },
+    {
+      id: "f2",
+      name: "David Miller",
+      initials: "DM",
+      club: "Augusta National GC",
+      hcp: "1.8",
+      score: "Hole 9 • +2",
+      toPar: 2,
+      currentHole: 9,
+      thru: 8,
+      gross: 34,
+      net: 33,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight A",
+      teeTime: "08:20 AM",
+      ball: "TaylorMade TP5",
+      marker: "Sarah Jenkins",
+      pace: "On Pace",
+      holes: buildScorecardHoles([4, 5, 3, 5, 4, 5, 3, 5, null, null, null, null, null, null, null, null, null, null]),
+    },
+    {
+      id: "f3",
+      name: "Marcus Chen",
+      initials: "MC",
+      club: "Pine Valley GC",
+      hcp: "0.4",
+      score: "Hole 18 • -1",
+      toPar: -1,
+      currentHole: 18,
+      thru: 17,
+      gross: 66,
+      net: 66,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight B",
+      teeTime: "08:00 AM",
+      ball: "Callaway Chrome Soft",
+      marker: "Alex Wright",
+      pace: "+3m Ahead",
+      holes: buildScorecardHoles([4, 3, 3, 5, 4, 4, 3, 5, 4, 4, 4, 2, 5, 4, 4, 3, 5, null]),
+    },
+    {
+      id: "f4",
+      name: "Kevin Brown",
+      initials: "KB",
+      club: "St Andrews Links",
+      hcp: "5.5",
+      score: "Hole 7 • +3",
+      toPar: 3,
+      currentHole: 7,
+      thru: 6,
+      gross: 27,
+      net: 25,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight C",
+      teeTime: "08:40 AM",
+      ball: "Srixon Z-Star",
+      marker: "Sophie Van Der Merwe",
+      pace: "On Pace",
+      holes: buildScorecardHoles([5, 4, 4, 6, 4, 4, null, null, null, null, null, null, null, null, null, null, null, null]),
+    },
+    {
+      id: "f5",
+      name: "Alex Wright",
+      initials: "AW",
+      club: "Cypress Point Club",
+      hcp: "+1.2",
+      score: "Hole 11 • -2",
+      toPar: -2,
+      currentHole: 11,
+      thru: 10,
+      gross: 38,
+      net: 39,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight B",
+      teeTime: "08:00 AM",
+      ball: "Titleist Pro V1x",
+      marker: "Marcus Chen",
+      pace: "+3m Ahead",
+      holes: buildScorecardHoles([3, 4, 3, 4, 4, 4, 3, 5, 4, 4, null, null, null, null, null, null, null, null]),
+    },
+    {
+      id: "f6",
+      name: "Sophie Van Der Merwe",
+      initials: "SV",
+      club: "Fancourt Golf Estate",
+      hcp: "2.3",
+      score: "Hole 5 • Even",
+      toPar: 0,
+      currentHole: 5,
+      thru: 4,
+      gross: 16,
+      net: 15,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight C",
+      teeTime: "08:40 AM",
+      ball: "TaylorMade Tour Response",
+      marker: "Kevin Brown",
+      pace: "On Pace",
+      holes: buildScorecardHoles([4, 4, 3, 5, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
+    },
+    {
+      id: "f7",
+      name: "Amina Bello",
+      initials: "AB",
+      club: "IBB International Golf Club",
+      hcp: "6.2",
+      score: "Hole 16 • +1",
+      toPar: 1,
+      currentHole: 16,
+      thru: 15,
+      gross: 61,
+      net: 56,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight A",
+      teeTime: "07:50 AM",
+      ball: "Bridgestone Tour B",
+      marker: "Chidi Okafor",
+      pace: "On Pace",
+      holes: buildScorecardHoles([4, 4, 3, 6, 4, 4, 3, 5, 4, 4, 5, 3, 5, 4, 4, null, null, null]),
+    },
+    {
+      id: "f8",
+      name: "Chidi Okafor",
+      initials: "CO",
+      club: "Oakwood Golf Club",
+      hcp: "8.5",
+      score: "Hole 3 • -1",
+      toPar: -1,
+      currentHole: 3,
+      thru: 2,
+      gross: 7,
+      net: 6,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight D",
+      teeTime: "09:10 AM",
+      ball: "Titleist AVX",
+      marker: "Liam Gallagher",
+      pace: "On Pace",
+      holes: buildScorecardHoles([3, 4, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
+    },
+    {
+      id: "f9",
+      name: "Liam Gallagher",
+      initials: "LG",
+      club: "Enugu Golf Club",
+      hcp: "3.7",
+      score: "Hole 8 • +4",
+      toPar: 4,
+      currentHole: 8,
+      thru: 7,
+      gross: 32,
+      net: 30,
+      tournament: "Oakwood Championship",
+      round: "Round 2",
+      flight: "Flight D",
+      teeTime: "09:10 AM",
+      ball: "Callaway Supersoft",
+      marker: "Chidi Okafor",
+      pace: "On Pace",
+      holes: buildScorecardHoles([5, 5, 4, 5, 4, 5, 4, null, null, null, null, null, null, null, null, null, null, null]),
+    },
+  ];
+
+  const [showActivePlayersModal, setShowActivePlayersModal] = useState(false);
+  const [activePlayersSearchQuery, setActivePlayersSearchQuery] = useState("");
+  const [selectedPlayerForScorecard, setSelectedPlayerForScorecard] = useState<typeof ACTIVE_COMPETITORS_DATA[0] | null>(ACTIVE_COMPETITORS_DATA[0]);
+  const [scorecardViewSection, setScorecardViewSection] = useState<"all" | "out" | "in">("all");
+
   // --- Active In-Progress Round State (Oakwood Championship, Hole 14 Live) ---
-  const [activeRound, setActiveRound] = useState<{
-    id: string;
-    tournamentName: string;
-    holeNumber: number;
-    holeInfo?: string;
-    par?: number;
-    yardage?: number;
-    isLive: boolean;
-    dayText: string;
-    score: string;
-    thru: string;
-    flightText: string;
-    tournamentId?: string;
-  } | null>({
+  const sampleActiveRound = {
     id: "ar-oakwood-14",
     tournamentId: "tourn-oakwood-championship",
     tournamentName: "Oakwood Championship",
     holeNumber: 14,
     par: 4,
     yardage: 415,
-    holeInfo: "Par 4 • 415 yards",
+    holeInfo: "Par 4 • 415 yds",
     isLive: true,
     dayText: "ROUND 2",
     score: "-1",
     thru: "13",
     flightText: "Active Flight",
-  });
+    groupPlayers: [
+      { id: "gp1", name: "Sarah Jenkins", initials: "SJ", avatar: "/images/landing/onboarding1.jpg" },
+      { id: "gp2", name: "David Miller", initials: "DM", avatar: "/images/competitor/alex_avatar.jpg" },
+    ] as GroupPlayer[],
+  };
+  const [activeRound, setActiveRound] = useState<typeof sampleActiveRound | null>(sampleActiveRound);
+  const [activeRoundMinutesElapsed, setActiveRoundMinutesElapsed] = useState<number>(0);
+  const [hasInactivityWarning, setHasInactivityWarning] = useState(false);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
 
   // --- Real Organizer Tournaments State ---
@@ -660,6 +899,110 @@ export default function MobilePreviewPage() {
       } catch { }
     }
   }, []);
+
+  // Hybrid 3-Stage Inactivity & Lifecycle Management
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const checkStatus = () => {
+      try {
+        // Only evaluate and notify when player is authenticated
+        const storedPlayer = localStorage.getItem("openclub_authenticated_player");
+        if (!authenticatedPlayer && !storedPlayer) {
+          setHasInactivityWarning(false);
+          return;
+        }
+
+        // Never trigger in-game inactivity notifications on public or auth screens
+        const authScreens = ["landing", "login", "register", "verify-email", "check-inbox", "forgot-password", "reset-password"];
+        if (authScreens.includes(activeScreen)) {
+          setHasInactivityWarning(false);
+          return;
+        }
+
+        const isForfeited = localStorage.getItem("openclub_active_round_forfeited");
+        const isClosed = localStorage.getItem("openclub_active_round_closed");
+        if (isForfeited === "true" || isClosed === "true") {
+          setActiveRound(null);
+          setActiveRoundMinutesElapsed(0);
+          setHasInactivityWarning(false);
+          return;
+        }
+
+        let startedAtStr = localStorage.getItem("openclub_active_round_started_at");
+        let startedAt = startedAtStr ? parseInt(startedAtStr, 10) : 0;
+        const now = Date.now();
+
+        if (!startedAt || isNaN(startedAt)) {
+          startedAt = now;
+          localStorage.setItem("openclub_active_round_started_at", String(now));
+        }
+
+        const elapsedMs = now - startedAt;
+        const thirtyMinsMs = 30 * 60 * 1000;
+        const elapsedMins = Math.floor(elapsedMs / 60000);
+
+        if (elapsedMs >= thirtyMinsMs) {
+          setActiveRoundMinutesElapsed(elapsedMins);
+          setHasInactivityWarning(true);
+          const hasNotified = sessionStorage.getItem("openclub_inactivity_notified");
+          if (!hasNotified) {
+            sessionStorage.setItem("openclub_inactivity_notified", "true");
+            showToast("Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.", "alert", "INACTIVE FOR 30 MINUTES");
+
+            // Dispatch real-time Pace of Play alert for Samuel Obadina to Organizer & Super Admin TopNav
+            const playerEmail = authenticatedPlayer?.email || (storedPlayer ? JSON.parse(storedPlayer).email : "samuel.obadina@gmail.com");
+            const playerName = authenticatedPlayer?.name || (storedPlayer ? JSON.parse(storedPlayer).name : "Samuel Obadina");
+            const alertNotification = {
+              id: "inact-alert-samuel-14",
+              userId: "admin",
+              title: "Pace of Play Alert (30m Inactivity)",
+              body: `${playerName} (${playerEmail}) is yet to enter a score on Hole 14 in Oakwood Championship (30 mins elapsed).`,
+              type: "TOURNAMENT_ALERT",
+              isRead: false,
+              createdAt: new Date().toISOString(),
+              data: {
+                tournamentId: activeRound?.tournamentId || "tourn-oakwood-championship",
+                tournamentName: activeRound?.tournamentName || "Oakwood Championship",
+                playerName,
+                playerEmail,
+                holeNumber: 14,
+                minutesInactive: elapsedMins >= 30 ? elapsedMins : 30,
+                category: "PACE_OF_PLAY",
+              },
+            };
+
+            try {
+              const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
+              const existingList = existingRaw ? JSON.parse(existingRaw) : [];
+              const filtered = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== alertNotification.id) : [];
+              localStorage.setItem("openclub_live_admin_notifications", JSON.stringify([alertNotification, ...filtered]));
+            } catch { }
+
+            broadcastAdminEvent("tournament-inactivity-alert", alertNotification);
+          }
+        } else {
+          setActiveRoundMinutesElapsed(elapsedMins);
+          setHasInactivityWarning(false);
+        }
+      } catch { }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 5000);
+    const unsubscribeEvents = subscribeAdminEvents((event) => {
+      if (event.type === "player-forfeited") {
+        setActiveRound(null);
+        setActiveRoundMinutesElapsed(0);
+        setHasInactivityWarning(false);
+        showToast("Oakwood Championship match forfeited by Tournament Committee.", "error", "ADMIN FORFEIT (WD)");
+      }
+    });
+    return () => {
+      clearInterval(interval);
+      unsubscribeEvents();
+    };
+  }, [authenticatedPlayer, activeScreen]);
   const filteredFriends = friendsSearchQuery.trim()
     ? ALL_GOLF_COMPETITORS.filter((p) => {
         const q = friendsSearchQuery.trim().toLowerCase();
@@ -671,6 +1014,18 @@ export default function MobilePreviewPage() {
         );
       })
     : ALL_GOLF_COMPETITORS.slice(0, 4);
+
+  const filteredActivePlayers = ACTIVE_COMPETITORS_DATA.filter((p) => {
+    if (!activePlayersSearchQuery.trim()) return true;
+    const q = activePlayersSearchQuery.toLowerCase().trim();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.club.toLowerCase().includes(q) ||
+      p.flight.toLowerCase().includes(q) ||
+      p.score.toLowerCase().includes(q) ||
+      `hole ${p.currentHole}`.toLowerCase().includes(q)
+    );
+  });
 
   // --- Verify Email (6-Digit OTP) State ---
   const [verifyEmailTarget, setVerifyEmailTarget] = useState("alex.wright@example.com");
@@ -2744,6 +3099,54 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
   }
 }`,
     },
+    "player-scorecard": {
+      path: "apps/mobile-app/lib/screens/player_scorecard_screen.dart",
+      summary:
+        "Official 18-hole player scorecard screen featuring live on-course telemetry, Hole/Par/Yards/Strokes/Diff tabular grid, Front 9 / Back 9 breakdowns, score-to-par formatting (birdies/pars/bogeys), and marker attestation status.",
+      snippet: `// Dart & Flutter: player_scorecard_screen.dart (Official Attested Scorecard)
+import 'package:flutter/material.dart';
+
+class PlayerScorecardScreen extends StatefulWidget {
+  final Map<String, dynamic> competitor;
+  const PlayerScorecardScreen({super.key, required this.competitor});
+
+  @override
+  State<PlayerScorecardScreen> createState() => _PlayerScorecardScreenState();
+}
+
+class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
+  String _selectedSection = 'all'; // 'all', 'out', 'in'
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          widget.competitor['name'] ?? 'Scorecard',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // 1. On-Course Telemetry Card (Current Hole, Thru, Score, Gross, Flight)
+            _buildTelemetryHeroCard(),
+            // 2. 18-Hole Official Scorecard Table (Hole, Par, Yards, Strokes, Diff)
+            _buildScorecardTable(),
+          ],
+        ),
+      ),
+    );
+  }
+}`,
+    },
   };
 
   const copyCode = () => {
@@ -2802,6 +3205,12 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
   // Reusable Screen Content Renderer for any phone slot
   const renderScreenContent = (targetScreen: ScreenId, phoneIdx: number) => {
     const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Samuel Obadina");
+    const currentFirstName = (() => {
+      if (authenticatedPlayer?.firstName?.trim()) return authenticatedPlayer.firstName.trim();
+      if (regFirstName?.trim()) return regFirstName.trim();
+      if (currentDisplayName.trim()) return currentDisplayName.trim().split(" ")[0];
+      return "Samuel";
+    })();
     const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "SO");
     const currentIsPro = Boolean(authenticatedPlayer?.isPro || authenticatedPlayer?.classification === "PROFESSIONAL" || regClassification === "PROFESSIONAL");
     const currentClub = (authenticatedPlayer?.club && !authenticatedPlayer.club.toLowerCase().includes("openclub") && !authenticatedPlayer.club.toLowerCase().includes("open club")
@@ -3513,11 +3922,11 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               READY TO TEE OFF
                             </span>
 
-                            {/* Player Name with 'PRO.' prefix and automatic horizontal adjustment across full width */}
+                            {/* Player First Name with 'PRO.' prefix and automatic horizontal adjustment across full width */}
                             <div className="w-full max-w-full overflow-hidden min-w-0">
                               <div 
                                 className="flex items-center gap-2 whitespace-nowrap min-w-0"
-                                title={`${currentIsPro ? "PRO. " : ""}${currentDisplayName}`}
+                                title={`${currentIsPro ? "PRO. " : ""}${currentFirstName}`}
                               >
                                 {currentIsPro && (
                                   <span className="shrink-0 text-[11px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/35 text-emerald-300 border border-emerald-400/50 tracking-wider shadow-xs">
@@ -3530,7 +3939,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                     fontSize: "clamp(18px, 5.5vw, 25px)",
                                   }}
                                 >
-                                  {currentDisplayName}
+                                  {currentFirstName}
                                 </h2>
                               </div>
                             </div>
@@ -3612,7 +4021,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
                               {/* Right Column Details */}
                               <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                {/* Row 1: LIVE Badge + Day Info + Current Score Pill */}
+                                {/* Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link */}
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     {activeRound.isLive && (
@@ -3621,19 +4030,19 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                       </span>
                                     )}
                                     <span className="text-[11px] font-bold text-[#8FAEA2] tracking-wider uppercase">
-                                      {activeRound.dayText}
+                                      {activeRound.dayText || "ROUND 2"}
                                     </span>
                                   </div>
 
-                                  {/* Player's Current Score Badge */}
-                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0B3523] border border-[#16603E]/80 shadow-2xs">
-                                    <span className="text-[9px] font-bold text-[#8FAEA2] uppercase tracking-wider">
-                                      SCORE
-                                    </span>
-                                    <span className="text-[13px] font-black text-white leading-none">
-                                      {activeRound.score}
-                                    </span>
-                                  </div>
+                                  {/* Relocated Leaderboard Link (matching Par 4 font: 11.5px font-medium with arrow) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => switchScreen("leaderboard")}
+                                    className="text-[11.5px] font-medium text-[#10B981] hover:text-[#34D399] active:opacity-75 flex items-center gap-0.5 cursor-pointer transition-colors leading-none"
+                                  >
+                                    <span>Leaderboard</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
 
                                 {/* Row 2: Full Display of Tournament Title */}
@@ -3641,52 +4050,63 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                   {activeRound.tournamentName}
                                 </h3>
 
-                                {/* Row 3: Hole Information under Tournament Name */}
-                                <p className="text-[11.5px] font-semibold text-[#10B981] mt-0.5 leading-none">
-                                  {activeRound.holeInfo || "Par 4 • 415 yards"}
-                                </p>
+                                {/* Row 3: Hole Information */}
+                                <div className="flex items-center mt-1">
+                                  <p className="text-[11.5px] font-medium text-[#8FAEA2] leading-none">
+                                    {activeRound.holeInfo?.replace("yards", "yds") || "Par 4 • 415 yds"}
+                                  </p>
+                                </div>
 
-                                {/* Row 3: Flight Avatars & Status */}
-                                <div className="flex items-center justify-between mt-1.5">
-                                  <div className="flex items-center">
-                                    <div className="flex items-center -space-x-1.5">
-                                      <img
-                                        src="/images/landing/onboarding1.jpg"
-                                        alt="Flight Golfer 1"
-                                        className="w-5 h-5 rounded-full border border-[#052417] object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLElement).style.display = "none";
-                                        }}
-                                      />
-                                      <img
-                                        src="/images/competitor/alex_avatar.jpg"
-                                        alt="Flight Golfer 2"
-                                        className="w-5 h-5 rounded-full border border-[#052417] object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLElement).style.display = "none";
-                                        }}
-                                      />
-                                    </div>
-                                    <span className="text-[11.5px] font-semibold text-[#10B981] ml-2">
-                                      {activeRound.flightText}
-                                    </span>
+                                {/* Row 4: Flight Avatars & Inactivity Status (Only visible when 30+ mins reached) */}
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <div className="flex items-center -space-x-1.5">
+                                    {(activeRound.groupPlayers && activeRound.groupPlayers.length > 0
+                                      ? activeRound.groupPlayers
+                                      : [
+                                          { id: "gp1", name: "Sarah Jenkins", initials: "SJ", avatar: "/images/landing/onboarding1.jpg" },
+                                          { id: "gp2", name: "David Miller", initials: "DM", avatar: "/images/competitor/alex_avatar.jpg" },
+                                        ]
+                                    ).map((player) => (
+                                      <GroupPlayerAvatarItem key={player.id} player={player} />
+                                    ))}
                                   </div>
-                                  <span className="text-[10.5px] font-medium text-[#8FAEA2]">
-                                    Thru {activeRound.thru} Holes
-                                  </span>
+                                  {hasInactivityWarning ? (
+                                    <span className="text-[10px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none">
+                                      INACTIVE FOR {activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30} MINUTES
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10.5px] font-medium text-[#8FAEA2] leading-none">
+                                      {activeRound.flightText || "Active Flight"}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
 
                             {/* Thin subtle divider */}
-                            <div className="border-t border-[#0F3D2A]/80 my-3.5" />
+                            <div className="border-t border-[#0F3D2A]/80 my-2.5" />
 
                             {/* Bottom Row: Resume Play & Forfeit Buttons (Consistent with Featured Tournament Card) */}
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => {
-                                  showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})...`, "success", "RESUME PLAY");
+                                  if (typeof window !== "undefined") {
+                                    try {
+                                      localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
+                                      sessionStorage.removeItem("openclub_inactivity_notified");
+                                      const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
+                                      if (existingRaw) {
+                                        const existingList = JSON.parse(existingRaw);
+                                        const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
+                                        localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+                                      }
+                                    } catch { }
+                                  }
+                                  broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
+                                  setHasInactivityWarning(false);
+                                  setActiveRoundMinutesElapsed(0);
+                                  showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
                                   setTimeout(() => switchScreen("scoring"), 250);
                                 }}
                                 className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -3706,17 +4126,17 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between mb-3.5">
+                        <div className="flex items-center justify-between mb-1.5 mt-0.5">
                           <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight">
                             Playing Now
                           </h3>
                           {friendsOnCourse.length > 0 && (
                             <button
                               type="button"
-                              onClick={() => setShowAddFriendsModal(true)}
+                              onClick={() => setShowActivePlayersModal(true)}
                               className="text-[13px] font-semibold text-[#009A60] hover:text-[#007A4D] transition-colors cursor-pointer"
                             >
-                              Invite New
+                              View Players
                             </button>
                           )}
                         </div>
@@ -3756,53 +4176,68 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                               }
                               el.scrollLeft = scrollLeftStart - walk;
                             }}
-                            className="flex items-center gap-3 overflow-x-auto scrollbar-hide no-scrollbar py-2 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                            className="flex items-start gap-3.5 overflow-x-auto scrollbar-hide no-scrollbar pt-0.5 pb-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
                             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                           >
                             {/* Circle 1: OpenClub Brand / Invite Action */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (playingNowCarouselRef.current?.dataset.moved === "true") {
-                                  playingNowCarouselRef.current.dataset.moved = "false";
-                                  return;
-                                }
-                                setShowAddFriendsModal(true);
-                              }}
-                              className="w-[54px] h-[54px] rounded-full border-2 border-[#009A60] bg-white flex flex-col items-center justify-center shrink-0 shadow-[0_2px_10px_rgba(0,154,96,0.12)] hover:bg-emerald-50/40 transition-all cursor-pointer group active:scale-95"
-                              title="Invite Friends"
-                            >
-                              <span className="text-[8px] font-black tracking-wider text-[#009A60] leading-none">OPEN</span>
-                              <span className="text-[8.5px] font-black tracking-wider text-[#009A60] my-0.5 leading-none">CLUB</span>
-                              <span className="text-[7px] font-bold tracking-widest text-[#009A60]/75 leading-none">GOLF</span>
-                            </button>
-
-                            {/* Friends on Course Avatars with Initials (Strictly No Images, Uniform MC Slate Gradient & White Text, 5 Max) */}
-                            {friendsOnCourse.slice(0, 5).map((friend) => (
+                            <div className="flex flex-col items-center shrink-0">
                               <button
-                                key={friend.id}
                                 type="button"
                                 onClick={() => {
                                   if (playingNowCarouselRef.current?.dataset.moved === "true") {
                                     playingNowCarouselRef.current.dataset.moved = "false";
                                     return;
                                   }
-                                  showToast(`${friend.name} is currently playing: ${friend.score}`, "success", "PLAYING NOW");
+                                  setShowAddFriendsModal(true);
                                 }}
-                                className="w-[54px] h-[54px] rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-gradient-to-b from-slate-300 to-slate-400 text-white flex items-center justify-center shrink-0 font-bold text-[14px] relative hover:scale-105 transition-all cursor-pointer active:scale-95"
-                                title={`${friend.name} (${friend.score})`}
+                                className="w-[54px] h-[54px] rounded-full border-2 border-[#009A60] bg-white flex flex-col items-center justify-center shrink-0 shadow-[0_2px_10px_rgba(0,154,96,0.12)] hover:bg-emerald-50/40 transition-all cursor-pointer group active:scale-95"
+                                title="Invite Friends"
                               >
-                                {friend.initials}
-                                <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                                <span className="text-[8px] font-black tracking-wider text-[#009A60] leading-none">OPEN</span>
+                                <span className="text-[8.5px] font-black tracking-wider text-[#009A60] my-0.5 leading-none">CLUB</span>
+                                <span className="text-[7px] font-bold tracking-widest text-[#009A60]/75 leading-none">GOLF</span>
                               </button>
-                            ))}
+                              <span className="text-[11px] font-semibold text-[#009A60] mt-1.5 max-w-[56px] truncate text-center leading-tight">
+                                Invite
+                              </span>
+                            </div>
+
+                            {/* Friends on Course Avatars with Player First Name Underneath (5 Max) */}
+                            {friendsOnCourse.slice(0, 5).map((friend) => {
+                              const friendFirstName = friend.name ? friend.name.split(" ")[0] : "";
+                              return (
+                                <div key={friend.id} className="flex flex-col items-center shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (playingNowCarouselRef.current?.dataset.moved === "true") {
+                                        playingNowCarouselRef.current.dataset.moved = "false";
+                                        return;
+                                      }
+                                      const competitor = ACTIVE_COMPETITORS_DATA.find((c) => c.name.toLowerCase() === friend.name.toLowerCase()) || ACTIVE_COMPETITORS_DATA[0];
+                                      setSelectedPlayerForScorecard(competitor);
+                                      setScorecardViewSection("all");
+                                      switchScreen("player-scorecard");
+                                    }}
+                                    className="w-[54px] h-[54px] rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-gradient-to-b from-slate-300 to-slate-400 text-white flex items-center justify-center shrink-0 font-bold text-[14px] relative hover:scale-105 transition-all cursor-pointer active:scale-95"
+                                    title={`${friend.name} (${friend.score}) - Tap to view scorecard`}
+                                  >
+                                    {friend.initials}
+                                    <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                                  </button>
+                                  <span className="text-[11px] font-semibold text-slate-700 mt-1.5 max-w-[56px] truncate text-center leading-tight">
+                                    {friendFirstName}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           /* Rounded Dashed Empty Display (When no user is on the course) */
                           <button
                             type="button"
                             onClick={() => setShowAddFriendsModal(true)}
-                            className="w-full rounded-[22px] border-2 border-dashed border-slate-300/90 hover:border-[#009A60] bg-slate-50/70 hover:bg-emerald-50/30 p-3.5 flex items-center justify-between transition-all cursor-pointer group active:scale-98 text-left shadow-2xs"
+                            className="w-full rounded-[22px] border-2 border-dashed border-slate-300/90 hover:border-[#009A60] bg-slate-50/70 hover:bg-emerald-50/30 py-2.5 px-3.5 flex items-center justify-between transition-all cursor-pointer group active:scale-98 text-left shadow-2xs"
                             title="Add Golf Friends"
                           >
                             <div className="flex items-center gap-3 min-w-0">
@@ -3909,85 +4344,88 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           </button>
                         </div>
 
-                        {/* Horizontal Carousel with Multi-Device Drag & Wheel Support */}
-                        <div
-                          ref={featuredTournamentsCarouselRef}
-                          onWheel={(e) => {
-                            if (e.deltaY !== 0) {
-                              e.currentTarget.scrollLeft += e.deltaY;
-                            }
-                          }}
-                          onMouseDown={(e) => {
-                            const el = e.currentTarget;
-                            el.dataset.isDown = "true";
-                            el.dataset.startX = String(e.pageX - el.offsetLeft);
-                            el.dataset.scrollLeft = String(el.scrollLeft);
-                            el.dataset.moved = "false";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.dataset.isDown = "false";
-                          }}
-                          onMouseUp={(e) => {
-                            e.currentTarget.dataset.isDown = "false";
-                          }}
-                          onMouseMove={(e) => {
-                            const el = e.currentTarget;
-                            if (el.dataset.isDown !== "true") return;
-                            e.preventDefault();
-                            const x = e.pageX - el.offsetLeft;
-                            const startX = Number(el.dataset.startX);
-                            const scrollLeftStart = Number(el.dataset.scrollLeft);
-                            const walk = (x - startX) * 1.4;
-                            if (Math.abs(walk) > 6) {
-                              el.dataset.moved = "true";
-                            }
-                            el.scrollLeft = scrollLeftStart - walk;
-                          }}
-                          className="flex gap-3.5 overflow-x-auto scrollbar-hide no-scrollbar px-4 pb-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
-                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                        >
-                          {(() => {
-                            const featuredFromDb = liveTournaments.filter((t) => t.isFeatured);
-                            const rawList = featuredFromDb.length > 0 ? featuredFromDb : liveTournaments;
+                        {/* Featured Tournaments (Carousel or Consistent-Width Empty State) */}
+                        {(() => {
+                          const featuredFromDb = liveTournaments.filter((t) => t.isFeatured);
+                          const rawList = featuredFromDb.length > 0 ? featuredFromDb : liveTournaments;
 
-                            if (rawList.length === 0) {
-                              return (
-                                <div className="w-[315px] h-[230px] rounded-[22px] overflow-hidden shrink-0 relative flex flex-col items-center justify-center p-6 text-center border border-[#e1efe5] bg-white shadow-xs select-none">
-                                  <div className="w-12 h-12 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mb-3 shadow-2xs">
-                                    <Trophy className="w-6 h-6 text-[#009A60]" />
+                          if (rawList.length === 0) {
+                            return (
+                              <div className="px-4 pb-1">
+                                <div className="w-full rounded-[22px] py-5 px-4 flex flex-col items-center justify-center text-center border border-[#e1efe5] bg-white shadow-xs select-none">
+                                  <div className="w-11 h-11 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mb-2.5 shadow-2xs">
+                                    <Trophy className="w-5 h-5 text-[#009A60]" />
                                   </div>
-                                  <p className="text-[#0F172A] text-[15px] font-bold tracking-tight">No Active Tournaments</p>
-                                  <p className="text-[#64748B] text-[12px] mt-1.5 max-w-[240px] leading-relaxed font-normal">
+                                  <p className="text-[#0F172A] text-[14.5px] font-bold tracking-tight">No Active Tournaments</p>
+                                  <p className="text-[#64748B] text-[12px] mt-1 max-w-[260px] leading-relaxed font-normal">
                                     Stay on the lookout for upcoming tournaments and club championship events.
                                   </p>
                                 </div>
-                              );
-                            }
+                              </div>
+                            );
+                          }
 
-                            const listToRender = rawList.map((t, idx) => {
-                              const assignedImage = resolveTournamentBanner(idx, t.bannerUrl);
-                              const formattedTitle = formatFeaturedTournamentTitle(t.name);
+                          const listToRender = rawList.map((t, idx) => {
+                            const assignedImage = resolveTournamentBanner(idx, t.bannerUrl);
+                            const formattedTitle = formatFeaturedTournamentTitle(t.name);
 
-                              return {
-                                id: t.id,
-                                title: t.name,
-                                titleLine1: formattedTitle.line1,
-                                titleLine2: formattedTitle.line2,
-                                gender: t.gender,
-                                divisions: t.divisions || "Championship",
-                                venue: t.organizerClub || t.courseName || "Ikoyi Club 1938",
-                                entryFee: t.entryFee || "Free",
-                                hcpLimit: t.hcpLimit || "No Limit",
-                                deadline: t.deadline || "Open",
-                                image: assignedImage,
-                              };
-                            });
+                            return {
+                              id: t.id,
+                              title: t.name,
+                              titleLine1: formattedTitle.line1,
+                              titleLine2: formattedTitle.line2,
+                              gender: t.gender,
+                              divisions: t.divisions || "Championship",
+                              venue: t.organizerClub || t.courseName || "Ikoyi Club 1938",
+                              entryFee: t.entryFee || "Free",
+                              hcpLimit: t.hcpLimit || "No Limit",
+                              deadline: t.deadline || "Open",
+                              image: assignedImage,
+                            };
+                          });
 
-                            return listToRender.map((tourn) => (
-                              <div
-                                key={tourn.id}
-                                className="w-[315px] h-[224px] rounded-[22px] overflow-hidden shrink-0 relative shadow-md hover:shadow-lg transition-all group select-none border border-white/5"
-                              >
+                          return (
+                            <div
+                              ref={featuredTournamentsCarouselRef}
+                              onWheel={(e) => {
+                                if (e.deltaY !== 0) {
+                                  e.currentTarget.scrollLeft += e.deltaY;
+                                }
+                              }}
+                              onMouseDown={(e) => {
+                                const el = e.currentTarget;
+                                el.dataset.isDown = "true";
+                                el.dataset.startX = String(e.pageX - el.offsetLeft);
+                                el.dataset.scrollLeft = String(el.scrollLeft);
+                                el.dataset.moved = "false";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.dataset.isDown = "false";
+                              }}
+                              onMouseUp={(e) => {
+                                e.currentTarget.dataset.isDown = "false";
+                              }}
+                              onMouseMove={(e) => {
+                                const el = e.currentTarget;
+                                if (el.dataset.isDown !== "true") return;
+                                e.preventDefault();
+                                const x = e.pageX - el.offsetLeft;
+                                const startX = Number(el.dataset.startX);
+                                const scrollLeftStart = Number(el.dataset.scrollLeft);
+                                const walk = (x - startX) * 1.4;
+                                if (Math.abs(walk) > 6) {
+                                  el.dataset.moved = "true";
+                                }
+                                el.scrollLeft = scrollLeftStart - walk;
+                              }}
+                              className="flex gap-3.5 overflow-x-auto scrollbar-hide no-scrollbar px-4 pb-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                            >
+                              {listToRender.map((tourn) => (
+                                <div
+                                  key={tourn.id}
+                                  className="w-[315px] h-[224px] rounded-[22px] overflow-hidden shrink-0 relative shadow-md hover:shadow-lg transition-all group select-none border border-white/5"
+                                >
                                 {/* Background Image */}
                                 <div
                                   className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105 pointer-events-none"
@@ -4154,10 +4592,11 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                   </div>
                                 </div>
                               </div>
-                            ));
-                          })()}
-                        </div>
-                      </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                       {/* --- 3.5 ROUNDS SECTION --- */}
                       <div className="w-full max-w-sm mx-auto px-4 pt-3 pb-6">
@@ -7277,6 +7716,382 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     </div>
                   )}
 
+                  {/* SCREEN: PLAYER SCORECARD & ON-COURSE TELEMETRY */}
+                  {targetScreen === "player-scorecard" && (() => {
+                    const competitor = selectedPlayerForScorecard || ACTIVE_COMPETITORS_DATA[0];
+                    const holes = competitor.holes || [];
+                    const front9Holes = holes.slice(0, 9);
+                    const back9Holes = holes.slice(9, 18);
+
+                    const displayedHoles =
+                      scorecardViewSection === "out"
+                        ? front9Holes
+                        : scorecardViewSection === "in"
+                        ? back9Holes
+                        : holes;
+
+                    // Compute Out / In / Total stats
+                    const calcSubtotal = (slice: typeof holes) => {
+                      const parTotal = slice.reduce((sum, h) => sum + h.par, 0);
+                      const yardsTotal = slice.reduce((sum, h) => sum + h.yards, 0);
+                      const played = slice.filter((h) => h.strokes !== null);
+                      const grossTotal = played.reduce((sum, h) => sum + (h.strokes || 0), 0);
+                      const parOfPlayed = played.reduce((sum, h) => sum + h.par, 0);
+                      const diffTotal = played.length > 0 ? grossTotal - parOfPlayed : 0;
+                      return { parTotal, yardsTotal, grossTotal, diffTotal, playedCount: played.length };
+                    };
+
+                    const outStats = calcSubtotal(front9Holes);
+                    const inStats = calcSubtotal(back9Holes);
+                    const totalStats = calcSubtotal(holes);
+
+                    const formatDiff = (diff: number, count: number) => {
+                      if (count === 0) return "-";
+                      if (diff === 0) return "E";
+                      return diff > 0 ? `+${diff}` : `${diff}`;
+                    };
+
+                    const getStrokeBadge = (strokes: number | null, par: number) => {
+                      if (strokes === null) {
+                        return <span className="text-slate-300 font-medium">-</span>;
+                      }
+                      const diff = strokes - par;
+                      if (diff <= -2) {
+                        return (
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100/80 border-2 border-amber-500 text-amber-700 font-bold text-[11px] shadow-xs">
+                            {strokes}
+                          </span>
+                        );
+                      }
+                      if (diff === -1) {
+                        return (
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 border border-[#009A60] text-[#009A60] font-bold text-[11px] shadow-2xs">
+                            {strokes}
+                          </span>
+                        );
+                      }
+                      if (diff === 0) {
+                        return <span className="text-slate-800 font-bold text-xs">{strokes}</span>;
+                      }
+                      if (diff === 1) {
+                        return (
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-bold text-[11px]">
+                            {strokes}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-50 border border-rose-200 text-rose-600 font-bold text-[11px]">
+                          {strokes}
+                        </span>
+                      );
+                    };
+
+                    return (
+                      <div className="h-full bg-[#F4F6F3] text-slate-900 flex flex-col overflow-hidden relative">
+                        {/* Top Navigation Header (Unified Mobile System: 16px top, 24px gutter, 48px height) */}
+                        <div className="px-6 pt-4 pb-3 bg-white border-b border-slate-200/80 shrink-0 z-10">
+                          <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("hub")}
+                              className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                              title="Back to Tournament Hub"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+
+                            <div className="text-center">
+                              <h2 className="text-sm font-bold text-[#0F172A] leading-tight">Player Scorecard</h2>
+                              <p className="text-[10.5px] text-[#64748B] font-medium leading-none mt-0.5">
+                                {competitor.tournament}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setShowActivePlayersModal(true)}
+                              className="h-8 px-2.5 rounded-full bg-[#EAF7EE] text-[#009A60] hover:bg-emerald-100 transition-colors text-[11px] font-bold flex items-center gap-1 cursor-pointer border border-[#C6F0DB]"
+                              title="Switch Player"
+                            >
+                              <Users className="h-3 w-3" />
+                              <span>All</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-3 scrollbar-hide">
+                          <div className="w-full max-w-sm mx-auto space-y-3">
+                            {/* 1. On-Course Telemetry Hero Card */}
+                            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="relative shrink-0">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-b from-slate-200 to-slate-300 text-slate-700 font-bold text-sm flex items-center justify-center border-2 border-white shadow-xs">
+                                      {competitor.initials}
+                                    </div>
+                                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <h3 className="text-[15px] font-bold text-[#0F172A] truncate">
+                                        {competitor.name}
+                                      </h3>
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-[#009A60] border border-[#C6F0DB]">
+                                        HCP {competitor.hcp}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                                      {competitor.club} • {competitor.flight}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span
+                                    className={`inline-block px-2.5 py-1 rounded-lg text-xs font-black tracking-tight border ${
+                                      competitor.toPar < 0
+                                        ? "bg-emerald-50 text-[#009A60] border-emerald-200"
+                                        : competitor.toPar === 0
+                                        ? "bg-slate-50 text-slate-700 border-slate-200"
+                                        : "bg-rose-50 text-rose-600 border-rose-200"
+                                    }`}
+                                  >
+                                    {competitor.toPar < 0 ? `${competitor.toPar}` : competitor.toPar === 0 ? "Even" : `+${competitor.toPar}`}
+                                  </span>
+                                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                                    TO PAR
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* On-Course Telemetry Metrics 4-Box Grid */}
+                              <div className="grid grid-cols-4 gap-2 mt-3.5 pt-3 border-t border-slate-100">
+                                <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">HOLE</span>
+                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">#{competitor.currentHole}</span>
+                                </div>
+                                <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">THRU</span>
+                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">{competitor.thru}</span>
+                                </div>
+                                <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">GROSS</span>
+                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">{competitor.gross}</span>
+                                </div>
+                                <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">NET</span>
+                                  <span className="text-sm font-black text-[#009A60] block mt-0.5">{competitor.net}</span>
+                                </div>
+                              </div>
+
+                              {/* Telemetry Details Pills */}
+                              <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium text-slate-600">
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                  Tee: {competitor.teeTime}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                  Ball: {competitor.ball}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-[#009A60] border border-[#C6F0DB]">
+                                  Pace: {competitor.pace}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                  Marker: {competitor.marker}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* 2. Official Scorecard Table */}
+                            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-xs">
+                              {/* View Toggle (All 18 / Front 9 / Back 9) */}
+                              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                                  Scorecard
+                                </h4>
+                                <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-lg">
+                                  <button
+                                    type="button"
+                                    onClick={() => setScorecardViewSection("all")}
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                      scorecardViewSection === "all"
+                                        ? "bg-white text-[#0F172A] shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                    }`}
+                                  >
+                                    All 18
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setScorecardViewSection("out")}
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                      scorecardViewSection === "out"
+                                        ? "bg-white text-[#0F172A] shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                    }`}
+                                  >
+                                    Out (1-9)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setScorecardViewSection("in")}
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                      scorecardViewSection === "in"
+                                        ? "bg-white text-[#0F172A] shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                    }`}
+                                  >
+                                    In (10-18)
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Score Legend Key */}
+                              <div className="flex items-center justify-center gap-3 py-2 text-[10px] text-slate-500 border-b border-slate-100">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-3.5 h-3.5 rounded-full bg-emerald-50 border border-[#009A60] inline-block" /> Birdie
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="w-3.5 h-3.5 rounded-full bg-amber-100 border border-amber-500 inline-block" /> Eagle
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="font-bold text-slate-700">#</span> Par
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="w-3.5 h-3.5 rounded-sm bg-slate-200 inline-block" /> Bogey
+                                </span>
+                              </div>
+
+                              {/* Score Table */}
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs">
+                                  <thead>
+                                    <tr className="border-b border-slate-200/80 text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
+                                      <th className="py-2 px-2">Hole</th>
+                                      <th className="py-2 px-2 text-center">Par</th>
+                                      <th className="py-2 px-2 text-center">Yards</th>
+                                      <th className="py-2 px-2 text-center">Score</th>
+                                      <th className="py-2 px-2 text-right">Diff</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {displayedHoles.map((h) => {
+                                      const isCurrent = h.hole === competitor.currentHole;
+                                      const diff = h.strokes !== null ? h.strokes - h.par : null;
+                                      return (
+                                        <tr
+                                          key={h.hole}
+                                          className={`transition-colors ${
+                                            isCurrent ? "bg-emerald-50/60 font-semibold" : "hover:bg-slate-50/80"
+                                          }`}
+                                        >
+                                          <td className="py-2 px-2 font-bold text-[#0F172A] flex items-center gap-1.5">
+                                            <span>{h.hole}</span>
+                                            {isCurrent && (
+                                              <span className="text-[9px] font-black uppercase px-1 py-0.2 rounded bg-emerald-500 text-white leading-none">
+                                                Now
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-2 text-center text-slate-600 font-medium">
+                                            {h.par}
+                                          </td>
+                                          <td className="py-2 px-2 text-center text-slate-400 text-[11px]">
+                                            {h.yards}
+                                          </td>
+                                          <td className="py-2 px-2 text-center">
+                                            {getStrokeBadge(h.strokes, h.par)}
+                                          </td>
+                                          <td className="py-2 px-2 text-right font-bold text-[11px]">
+                                            {diff === null ? (
+                                              <span className="text-slate-300">-</span>
+                                            ) : diff === 0 ? (
+                                              <span className="text-slate-400">E</span>
+                                            ) : diff > 0 ? (
+                                              <span className="text-rose-600">+{diff}</span>
+                                            ) : (
+                                              <span className="text-[#009A60]">{diff}</span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+
+                                    {/* Front 9 Subtotal (Out) */}
+                                    {(scorecardViewSection === "all" || scorecardViewSection === "out") && (
+                                      <tr className="bg-slate-50 font-bold border-t-2 border-slate-200 text-[#0F172A]">
+                                        <td className="py-2 px-2 text-[11px] uppercase">OUT (1-9)</td>
+                                        <td className="py-2 px-2 text-center text-[11px]">{outStats.parTotal}</td>
+                                        <td className="py-2 px-2 text-center text-slate-400 text-[10.5px]">{outStats.yardsTotal}</td>
+                                        <td className="py-2 px-2 text-center text-[12px]">{outStats.grossTotal || "-"}</td>
+                                        <td className="py-2 px-2 text-right text-[11px]">
+                                          {formatDiff(outStats.diffTotal, outStats.playedCount)}
+                                        </td>
+                                      </tr>
+                                    )}
+
+                                    {/* Back 9 Subtotal (In) */}
+                                    {(scorecardViewSection === "all" || scorecardViewSection === "in") && (
+                                      <tr className="bg-slate-50 font-bold border-t-2 border-slate-200 text-[#0F172A]">
+                                        <td className="py-2 px-2 text-[11px] uppercase">IN (10-18)</td>
+                                        <td className="py-2 px-2 text-center text-[11px]">{inStats.parTotal}</td>
+                                        <td className="py-2 px-2 text-center text-slate-400 text-[10.5px]">{inStats.yardsTotal}</td>
+                                        <td className="py-2 px-2 text-center text-[12px]">{inStats.grossTotal || "-"}</td>
+                                        <td className="py-2 px-2 text-right text-[11px]">
+                                          {formatDiff(inStats.diffTotal, inStats.playedCount)}
+                                        </td>
+                                      </tr>
+                                    )}
+
+                                    {/* Total 18 Holes Summary */}
+                                    {scorecardViewSection === "all" && (
+                                      <tr className="bg-[#EAF7EE] font-black border-t-2 border-[#009A60] text-[#009A60]">
+                                        <td className="py-2.5 px-2 text-xs uppercase">TOTAL</td>
+                                        <td className="py-2.5 px-2 text-center">{totalStats.parTotal}</td>
+                                        <td className="py-2.5 px-2 text-center text-[10.5px] text-emerald-800">{totalStats.yardsTotal}</td>
+                                        <td className="py-2.5 px-2 text-center text-sm">{totalStats.grossTotal || "-"}</td>
+                                        <td className="py-2.5 px-2 text-right text-xs">
+                                          {formatDiff(totalStats.diffTotal, totalStats.playedCount)}
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            {/* 3. Attestation & Marker Verification Card */}
+                            <div className="p-3 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-start gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center shrink-0 mt-0.5 text-[#009A60]">
+                                <ShieldCheck className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold text-[#0F172A] block">
+                                  USGA Rule 3.3b Peer Attestation
+                                </span>
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                                  Scores actively recorded and certified by marker{" "}
+                                  <strong className="text-slate-800 font-bold">{competitor.marker}</strong> for {competitor.round}.
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Action Button: Return to Hub */}
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("hub")}
+                              className="w-full h-12 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-md shadow-emerald-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              <span>Return to Tournament Hub</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
       </div>
     );
   };
@@ -7890,7 +8705,13 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                       } catch (err) {
                         console.warn("Forfeit API fallback to preview simulator:", err);
                       }
+                      if (typeof window !== "undefined") {
+                        try {
+                          localStorage.setItem("openclub_active_round_forfeited", "true");
+                        } catch { }
+                      }
                       setActiveRound(null);
+                      setActiveRoundMinutesElapsed(0);
                       setShowForfeitModal(false);
                       showToast("Withdrawn from tournament round.", "success", "ROUND FORFEITED");
                     }}
@@ -8073,6 +8894,192 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/20 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     Share Invite Link or QR
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: VIEW PLAYERS (ACTIVE ON-COURSE COMPETITORS) --- */}
+            {showActivePlayersModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => {
+                  setShowActivePlayersModal(false);
+                  setVirtualKeyboard(null);
+                }}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-5 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                  style={{
+                    marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
+                    height: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "auto",
+                    maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "88%",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                        <Users className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900">Active Players</h4>
+                        <p className="text-xs text-slate-500">Currently competing on the course</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowActivePlayersModal(false);
+                        setVirtualKeyboard(null);
+                      }}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Search Input for Active Competitors */}
+                  <div className="py-2.5 space-y-2.5 flex-1 min-h-0 flex flex-col">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-[#8CA0BA] absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        value={activePlayersSearchQuery}
+                        onFocus={() => {
+                          openVirtualKeyboard({
+                            phoneIndex: index,
+                            type: "text",
+                            title: "Search Active Competitors",
+                            queryValue: activePlayersSearchQuery,
+                            onInput: (char) => {
+                              setActivePlayersSearchQuery((prev) => {
+                                const next = prev + char;
+                                setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                return next;
+                              });
+                            },
+                            onBackspace: () => {
+                              setActivePlayersSearchQuery((prev) => {
+                                const next = prev.slice(0, -1);
+                                setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                return next;
+                              });
+                            },
+                          });
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setActivePlayersSearchQuery(val);
+                          setVirtualKeyboard((k) => (k ? { ...k, queryValue: val } : null));
+                        }}
+                        placeholder="Search player, flight, or hole..."
+                        className="w-full h-10 pl-9 pr-8 text-xs font-medium rounded-xl bg-[#f5faf6] border border-[#e1efe5] text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
+                      />
+                      {activePlayersSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActivePlayersSearchQuery("");
+                            setVirtualKeyboard((k) => k ? { ...k, queryValue: "" } : null);
+                          }}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                          title="Clear search"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-0.5 flex items-center justify-between">
+                      <span>{activePlayersSearchQuery.trim() ? `Search Results (${filteredActivePlayers.length})` : `On-Course Competitors (${ACTIVE_COMPETITORS_DATA.length})`}</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
+                      </span>
+                    </div>
+
+                    {/* Competitor Cards */}
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-hide min-h-0">
+                      {filteredActivePlayers.length > 0 ? (
+                        filteredActivePlayers.map((player) => (
+                          <div
+                            key={player.id}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                              <div className="relative shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-b from-slate-200 to-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center border border-white">
+                                  {player.initials}
+                                </div>
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-slate-900 truncate">{player.name}</span>
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md border ${
+                                    player.toPar < 0
+                                      ? "bg-emerald-50 text-[#009A60] border-emerald-200"
+                                      : player.toPar === 0
+                                      ? "bg-slate-50 text-slate-700 border-slate-200"
+                                      : "bg-rose-50 text-rose-600 border-rose-200"
+                                  }`}>
+                                    {player.toPar < 0 ? `${player.toPar}` : player.toPar === 0 ? "E" : `+${player.toPar}`}
+                                  </span>
+                                </div>
+                                <div className="text-[10.5px] text-slate-500 truncate">
+                                  Hole {player.currentHole} • Thru {player.thru} • Gross {player.gross}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPlayerForScorecard(player);
+                                setScorecardViewSection("all");
+                                setShowActivePlayersModal(false);
+                                setVirtualKeyboard(null);
+                                switchScreen("player-scorecard");
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white text-[11px] font-bold transition-all cursor-pointer shadow-xs shrink-0 flex items-center gap-1"
+                            >
+                              <span>Score</span>
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-6 text-center flex flex-col items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                            <Search className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-700">No active golfers matching &quot;{activePlayersSearchQuery}&quot;</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Search by name, flight, or score</p>
+                          <button
+                            type="button"
+                            onClick={() => setActivePlayersSearchQuery("")}
+                            className="mt-2 text-xs text-[#009A60] font-semibold hover:underline cursor-pointer"
+                          >
+                            Clear search
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActivePlayersModal(false);
+                      setVirtualKeyboard(null);
+                      switchScreen("leaderboard");
+                    }}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/20 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <span>View Full Live Leaderboard</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -8263,7 +9270,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           {currentDisplayName}
                         </h4>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@openclub.app")}
+                          {authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@gmail.com")}
                         </p>
                       </div>
                     </div>
@@ -8333,6 +9340,13 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                       onClick={() => {
                         setShowMenuDrawer(false);
                         updateAuthenticatedPlayer(null);
+                        setHasInactivityWarning(false);
+                        setActiveRoundMinutesElapsed(0);
+                        if (typeof window !== "undefined") {
+                          try {
+                            sessionStorage.removeItem("openclub_inactivity_notified");
+                          } catch { }
+                        }
                         switchScreen("login");
                       }}
                       className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-rose-200/60"
@@ -8590,6 +9604,152 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                     }`}
                   >
                     Active (5)
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Match (Hybrid 3-Stage Model) Simulator Control */}
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 font-medium">Active Match (3-Stage):</span>
+                  <span className="text-[9.5px] text-slate-500 font-medium">
+                    {!activeRound
+                      ? "Closed / Forfeited"
+                      : hasInactivityWarning
+                      ? `⚠️ Inactivity Alert (${activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)`
+                      : `Normal Play (${activeRoundMinutesElapsed}m / 30m)`}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1 bg-[#080D15] rounded-lg p-1 border border-slate-800 text-xs">
+                  {/* Stage 1: 30m Nudge */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!activeRound) {
+                        setActiveRound(sampleActiveRound);
+                      }
+                      setActiveRoundMinutesElapsed(30);
+                      setHasInactivityWarning(true);
+                      if (typeof window !== "undefined") {
+                        try {
+                          localStorage.setItem("openclub_active_round_started_at", String(Date.now() - 30 * 60 * 1000));
+                          sessionStorage.setItem("openclub_inactivity_notified", "true");
+                        } catch { }
+                      }
+                      showToast("Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.", "alert", "INACTIVE FOR 30 MINUTES");
+
+                      // Dispatch live pace-of-play alert to the admin dashboard & TopNav Bell icon
+                      const playerEmail = authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@gmail.com");
+                      const playerName = authenticatedPlayer?.name || currentDisplayName || "Samuel Obadina";
+                      const alertNotification = {
+                        id: "inact-alert-samuel-14",
+                        userId: "admin",
+                        title: "Pace of Play Alert (30m Inactivity)",
+                        body: `${playerName} (${playerEmail}) is yet to enter a score on Hole 14 in Oakwood Championship (30 mins elapsed).`,
+                        type: "TOURNAMENT_ALERT",
+                        isRead: false,
+                        createdAt: new Date().toISOString(),
+                        data: {
+                          tournamentId: activeRound?.tournamentId || "tourn-oakwood-championship",
+                          tournamentName: activeRound?.tournamentName || "Oakwood Championship",
+                          playerName,
+                          playerEmail,
+                          holeNumber: 14,
+                          minutesInactive: 30,
+                          category: "PACE_OF_PLAY",
+                        },
+                      };
+
+                      if (typeof window !== "undefined") {
+                        try {
+                          const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
+                          const existingList = existingRaw ? JSON.parse(existingRaw) : [];
+                          const filtered = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== alertNotification.id) : [];
+                          localStorage.setItem("openclub_live_admin_notifications", JSON.stringify([alertNotification, ...filtered]));
+                        } catch { }
+                      }
+
+                      broadcastAdminEvent("tournament-inactivity-alert", alertNotification);
+                    }}
+                    className={`px-1.5 py-1 rounded-md text-[9.5px] font-semibold transition-all cursor-pointer text-center truncate ${
+                      hasInactivityWarning
+                        ? "bg-amber-500/25 text-amber-300 border border-amber-500/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                    title="Simulate 30-minute inactivity nudge (shows INACTIVE FOR 30 MINUTES badge)"
+                  >
+                    Nudge
+                  </button>
+
+                  {/* Stage 2: Forfeit */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        try {
+                          localStorage.setItem("openclub_active_round_forfeited", "true");
+                        } catch { }
+                      }
+                      setActiveRound(null);
+                      setActiveRoundMinutesElapsed(0);
+                      setHasInactivityWarning(false);
+                      showToast("Oakwood Championship match forfeited by player.", "error", "ROUND FORFEITED");
+                    }}
+                    className={`px-1.5 py-1 rounded-md text-[9.5px] font-semibold transition-all cursor-pointer text-center truncate ${
+                      !activeRound
+                        ? "bg-rose-950/70 text-rose-300 border border-rose-800/50"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                    title="Simulate voluntary player withdrawal (undisplays round)"
+                  >
+                    Forfeit
+                  </button>
+
+                  {/* Stage 3: Daily Cut-Off */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        try {
+                          localStorage.setItem("openclub_active_round_closed", "true");
+                        } catch { }
+                      }
+                      setActiveRound(null);
+                      setActiveRoundMinutesElapsed(0);
+                      setHasInactivityWarning(false);
+                      showToast("Tournament daily deadline reached. Incomplete scorecard archived.", "alert", "ROUND CLOSED");
+                    }}
+                    className="px-1.5 py-1 rounded-md text-[9.5px] font-semibold text-slate-400 hover:text-slate-200 transition-all cursor-pointer text-center truncate"
+                    title="Simulate daily tournament cut-off deadline (archives & undisplays round)"
+                  >
+                    Cut-Off
+                  </button>
+
+                  {/* Reset */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        try {
+                          localStorage.removeItem("openclub_active_round_forfeited");
+                          localStorage.removeItem("openclub_active_round_closed");
+                          localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
+                          sessionStorage.removeItem("openclub_inactivity_notified");
+                        } catch { }
+                      }
+                      setActiveRound(sampleActiveRound);
+                      setActiveRoundMinutesElapsed(0);
+                      setHasInactivityWarning(false);
+                      showToast("Active tournament match restored. Inactivity timer reset to 0m (warning hidden).", "success", "MATCH RESET");
+                    }}
+                    className={`px-1.5 py-1 rounded-md text-[9.5px] font-semibold transition-all cursor-pointer text-center truncate ${
+                      activeRound && !hasInactivityWarning
+                        ? "bg-emerald-950/70 text-emerald-300 border border-emerald-800/50"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                    title="Reset timer to 0m (clean display, hides 30m badge) and restore live round"
+                  >
+                    Reset
                   </button>
                 </div>
               </div>

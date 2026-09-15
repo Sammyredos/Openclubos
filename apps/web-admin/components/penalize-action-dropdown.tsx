@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { FloatingMenu } from "@/components/ui/floating-menu";
-import { MoreHorizontal, ShieldAlert, RotateCcw, Ban, CheckCircle2, UserCog } from "lucide-react";
+import { MoreHorizontal, ShieldAlert, RotateCcw, Ban, CheckCircle2, UserCog, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,17 +12,19 @@ export function PenalizeActionDropdown({
   openStrokeModal,
   openDisqualify,
   openEnablePlayer,
+  openForfeitPlayer,
 }: {
   player: any;
   selectedTournament: any;
   openStrokeModal: (player: any, action: "ADD_1" | "ADD_2" | "CLEAR") => void;
   openDisqualify: (player: any) => void;
   openEnablePlayer: (player: any) => void;
+  openForfeitPlayer?: (player: any) => void;
 }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLButtonElement>(null);
   
-  const isDisqualified = player.status === "DISQUALIFIED";
+  const isDisqualified = player.status === "DISQUALIFIED" || player.status === "FORFEITED" || player.status === "WITHDRAWN";
   const disabledActions = selectedTournament.statusKey === "CANCELLED" || selectedTournament.statusKey === "COMPLETED";
 
   if (disabledActions) return null;
@@ -111,6 +113,21 @@ export function PenalizeActionDropdown({
                   <span>Disqualify Player</span>
                 </div>
               </button>
+
+              {openForfeitPlayer && (
+                <button
+                  className="w-full px-3 py-2 flex items-center justify-between text-left text-[13px] text-rose-600 hover:bg-rose-50 transition-colors font-medium"
+                  onClick={() => {
+                    openForfeitPlayer(player);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Flag className="w-4 h-4 text-rose-600" />
+                    <span>Forfeit Player (WD)</span>
+                  </div>
+                </button>
+              )}
             </>
           ) : (
             <button
