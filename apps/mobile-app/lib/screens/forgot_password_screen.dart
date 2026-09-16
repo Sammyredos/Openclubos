@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(
-      text: widget.initialEmail?.isNotEmpty == true ? widget.initialEmail : 'alex.wright@golf.com',
+      text: widget.initialEmail ?? '',
     );
   }
 
@@ -249,7 +249,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                             contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: InputBorder.none,
                             prefixIcon: Icon(Icons.mail_outline_rounded, size: 18, color: Color(0xFF8CA0BA)),
-                            hintText: 'alex.wright@golf.com',
+                            hintText: 'player@golfclub.com',
                             hintStyle: TextStyle(color: Color(0xFF8CA0BA), fontSize: 13.5),
                           ),
                         ),

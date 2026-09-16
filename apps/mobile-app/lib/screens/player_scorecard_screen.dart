@@ -129,7 +129,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                             ),
                           ),
                           Text(
-                            (competitor['tournament'] as String?) ?? 'Oakwood Championship',
+                            (competitor['tournament'] as String?) ?? 'Tournament',
                             style: GoogleFonts.dmSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -378,17 +378,17 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Card B: 18-Hole Official Scorecard Table
+                        // Card B: 18-Hole Official Scorecard Card (Matching Reference Design Pattern)
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
-                                blurRadius: 8,
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
                             ],
@@ -396,21 +396,77 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Filter Buttons Row
+                              // Header: FINAL SCORECARD • ROUND 1   and   Total: 71 (-1)
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'SCORECARD',
+                                    'FINAL SCORECARD • ROUND 1',
                                     style: GoogleFonts.dmSans(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: kDarkSlate,
-                                      letterSpacing: 0.6,
+                                      color: const Color(0xFF8CA0BA),
+                                      letterSpacing: 0.8,
                                     ),
                                   ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Total: ',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: kDarkSlate,
+                                        ),
+                                      ),
+                                      Text(
+                                        totalPlayed > 0 ? '$totalGross ' : '$totalPar ',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w900,
+                                          color: kDarkSlate,
+                                        ),
+                                      ),
+                                      Text(
+                                        '(${toPar < 0 ? "$toPar" : toPar == 0 ? "E" : "+$toPar"})',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: toPar < 0
+                                              ? kTournamentEmerald
+                                              : toPar == 0
+                                                  ? const Color(0xFF64748B)
+                                                  : const Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+                              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              const SizedBox(height: 10),
+
+                              // Filter Tabs Row & Mini Legend
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Mini Legend Chips
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildMiniLegendBadge(const Color(0xFFEAF7EE), const Color(0xFF86EFAC), 'Birdie'),
+                                      const SizedBox(width: 8),
+                                      _buildMiniLegendBadge(Colors.white, const Color(0xFFE2E8F0), 'Par'),
+                                      const SizedBox(width: 8),
+                                      _buildMiniLegendBadge(const Color(0xFFFFFBEB), const Color(0xFFFDE68A), 'Bogey'),
+                                    ],
+                                  ),
+                                  // Filter Tabs
                                   Container(
-                                    padding: const EdgeInsets.all(2.5),
+                                    padding: const EdgeInsets.all(2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF1F5F9),
                                       borderRadius: BorderRadius.circular(8),
@@ -419,307 +475,58 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         _buildFilterTab('all', 'All 18'),
-                                        _buildFilterTab('out', 'Out (1-9)'),
-                                        _buildFilterTab('in', 'In (10-18)'),
+                                        _buildFilterTab('out', 'Out'),
+                                        _buildFilterTab('in', 'In'),
                                       ],
                                     ),
                                   ),
                                 ],
                               ),
 
-                              const SizedBox(height: 10),
-
-                              // Legend
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildLegendItem(
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: kSoftMintBg,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: kTournamentEmerald),
-                                      ),
-                                    ),
-                                    'Birdie',
-                                  ),
-                                  const SizedBox(width: 14),
-                                  _buildLegendItem(
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFEF3C7),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: const Color(0xFFF59E0B)),
-                                      ),
-                                    ),
-                                    'Eagle',
-                                  ),
-                                  const SizedBox(width: 14),
-                                  _buildLegendItem(
-                                    Text('#', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.bold, color: kDarkSlate)),
-                                    'Par',
-                                  ),
-                                  const SizedBox(width: 14),
-                                  _buildLegendItem(
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(3),
-                                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                                      ),
-                                    ),
-                                    'Bogey',
-                                  ),
-                                ],
-                              ),
-
                               const SizedBox(height: 12),
-                              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                              const SizedBox(height: 8),
 
-                              // Scorecard Header
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                child: Row(
-                                  children: [
-                                    Expanded(flex: 2, child: _tableHeader('HOLE')),
-                                    Expanded(flex: 2, child: _tableHeader('PAR', align: TextAlign.center)),
-                                    Expanded(flex: 2, child: _tableHeader('YDS', align: TextAlign.center)),
-                                    Expanded(flex: 2, child: _tableHeader('SCORE', align: TextAlign.center)),
-                                    Expanded(flex: 2, child: _tableHeader('DIFF', align: TextAlign.right)),
-                                  ],
-                                ),
-                              ),
-                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-                              // Holes List
-                              ...displayedHoles.map((h) {
-                                final holeNum = h['hole'] as int? ?? 0;
-                                final par = h['par'] as int? ?? 4;
-                                final yards = h['yards'] as int? ?? 400;
-                                final strokes = h['strokes'] as int?;
-                                final isCurrent = holeNum == (competitor['currentHole'] as int? ?? 0);
-                                final diff = strokes != null ? strokes - par : null;
-
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: isCurrent ? const Color(0xFFF0FDF4) : Colors.transparent,
-                                    border: const Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Hole #
-                                      Expanded(
-                                        flex: 2,
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              '$holeNum',
-                                              style: GoogleFonts.dmSans(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700,
-                                                color: kDarkSlate,
-                                              ),
-                                            ),
-                                            if (isCurrent) ...[
-                                              const SizedBox(width: 4),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                decoration: BoxDecoration(
-                                                  color: kTournamentEmerald,
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  'NOW',
-                                                  style: GoogleFonts.dmSans(
-                                                    fontSize: 8,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Par
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          '$par',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF475569),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Yards
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          '$yards',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 11.5,
-                                            color: const Color(0xFF94A3B8),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Strokes Badge
-                                      Expanded(
-                                        flex: 2,
-                                        child: Center(
-                                          child: _buildStrokesBadge(strokes, par),
-                                        ),
-                                      ),
-
-                                      // Diff
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          diff == null
-                                              ? '-'
-                                              : diff == 0
-                                                  ? 'E'
-                                                  : diff > 0
-                                                      ? '+$diff'
-                                                      : '$diff',
-                                          textAlign: TextAlign.right,
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: diff == null || diff == 0
-                                                ? const Color(0xFF94A3B8)
-                                                : diff > 0
-                                                    ? const Color(0xFFE11D48)
-                                                    : kTournamentEmerald,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-
-                              // Front 9 Out Row
-                              if (_selectedSection == 'all' || _selectedSection == 'out')
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                  color: const Color(0xFFF8FAFC),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('OUT (1-9)', style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$outPar', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$outYards', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF94A3B8))),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(outPlayed > 0 ? '$outGross' : '-', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          outPlayed > 0 ? (outGross - outPar == 0 ? 'E' : outGross - outPar > 0 ? '+${outGross - outPar}' : '${outGross - outPar}') : '-',
-                                          textAlign: TextAlign.right,
-                                          style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate),
-                                        ),
-                                      ),
-                                    ],
+                              // Front 9 (OUT)
+                              if (_selectedSection == 'all' || _selectedSection == 'out') ...[
+                                _buildNineHoleGrid(front9),
+                                const SizedBox(height: 6),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    'OUT: ${outPlayed > 0 ? outGross : outPar}',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF8CA0BA),
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
+                              ],
 
-                              // Back 9 In Row
-                              if (_selectedSection == 'all' || _selectedSection == 'in')
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                  color: const Color(0xFFF8FAFC),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('IN (10-18)', style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$inPar', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$inYards', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF94A3B8))),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(inPlayed > 0 ? '$inGross' : '-', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w800, color: kDarkSlate)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          inPlayed > 0 ? (inGross - inPar == 0 ? 'E' : inGross - inPar > 0 ? '+${inGross - inPar}' : '${inGross - inPar}') : '-',
-                                          textAlign: TextAlign.right,
-                                          style: GoogleFonts.dmSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: kDarkSlate),
-                                        ),
-                                      ),
-                                    ],
+                              // Divider between Front 9 and Back 9
+                              if (_selectedSection == 'all') ...[
+                                const SizedBox(height: 10),
+                                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                                const SizedBox(height: 10),
+                              ],
+
+                              // Back 9 (IN)
+                              if (_selectedSection == 'all' || _selectedSection == 'in') ...[
+                                _buildNineHoleGrid(back9),
+                                const SizedBox(height: 6),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    'IN: ${inPlayed > 0 ? inGross : inPar}',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF8CA0BA),
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
-
-                              // Total Row
-                              if (_selectedSection == 'all')
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFEAF7EE),
-                                    border: Border(top: BorderSide(color: kTournamentEmerald, width: 2)),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('TOTAL', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w900, color: kTournamentEmerald)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$totalPar', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w900, color: kTournamentEmerald)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text('$totalYards', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF007A4D))),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(totalPlayed > 0 ? '$totalGross' : '-', textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w900, color: kTournamentEmerald)),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          totalPlayed > 0 ? toParText : '-',
-                                          textAlign: TextAlign.right,
-                                          style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w900, color: kTournamentEmerald),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -902,110 +709,166 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
     );
   }
 
-  Widget _buildLegendItem(Widget iconWidget, String text) {
+  Widget _buildMiniLegendBadge(Color bg, Color border, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        iconWidget,
-        const SizedBox(width: 4),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(2.5),
+            border: Border.all(color: border, width: 1),
+          ),
+        ),
+        const SizedBox(width: 3.5),
         Text(
-          text,
-          style: GoogleFonts.dmSans(fontSize: 10, color: const Color(0xFF64748B)),
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF8CA0BA),
+          ),
         ),
       ],
     );
   }
 
-  Widget _tableHeader(String text, {TextAlign align = TextAlign.left}) {
-    return Text(
-      text,
-      textAlign: align,
-      style: GoogleFonts.dmSans(
-        fontSize: 10,
-        fontWeight: FontWeight.w800,
-        color: const Color(0xFF94A3B8),
-        letterSpacing: 0.5,
-      ),
-    );
-  }
+  Widget _buildNineHoleGrid(List<Map<String, dynamic>> slice) {
+    return Column(
+      children: [
+        // Row 1: H (Hole Numbers)
+        Row(
+          children: [
+            SizedBox(
+              width: 18,
+              child: Text(
+                'H',
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF8CA0BA),
+                ),
+              ),
+            ),
+            ...slice.map((h) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    '${h['hole'] ?? 0}',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF8CA0BA),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+        const SizedBox(height: 5),
 
-  Widget _buildStrokesBadge(int? strokes, int par) {
-    if (strokes == null) {
-      return Text('-', style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFFCBD5E1)));
-    }
-    final diff = strokes - par;
-    if (diff <= -2) {
-      // Eagle
-      return Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFEF3C7),
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+        // Row 2: P (Pars)
+        Row(
+          children: [
+            SizedBox(
+              width: 18,
+              child: Text(
+                'P',
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF8CA0BA),
+                ),
+              ),
+            ),
+            ...slice.map((h) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    '${h['par'] ?? 4}',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
         ),
-        alignment: Alignment.center,
-        child: Text(
-          '$strokes',
-          style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w900, color: const Color(0xFFB45309)),
+        const SizedBox(height: 5),
+
+        // Row 3: S (Scores - Squircles)
+        Row(
+          children: [
+            SizedBox(
+              width: 18,
+              child: Text(
+                'S',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: kDarkSlate,
+                ),
+              ),
+            ),
+            ...slice.map((h) {
+              final par = (h['par'] as int?) ?? 4;
+              final strokes = h['strokes'] as int?;
+              final diff = strokes != null ? strokes - par : null;
+
+              Color bgColor = Colors.white;
+              Color borderColor = const Color(0xFFE2E8F0);
+              Color textColor = kDarkSlate;
+
+              if (strokes != null) {
+                if (diff! < 0) {
+                  bgColor = const Color(0xFFEAF7EE);
+                  borderColor = const Color(0xFF86EFAC);
+                  textColor = kTournamentEmerald;
+                } else if (diff > 0) {
+                  bgColor = const Color(0xFFFFFBEB);
+                  borderColor = const Color(0xFFFDE68A);
+                  textColor = const Color(0xFFD97706);
+                } else {
+                  bgColor = Colors.white;
+                  borderColor = const Color(0xFFE2E8F0);
+                  textColor = kDarkSlate;
+                }
+              } else {
+                bgColor = const Color(0xFFF8FAFC);
+                borderColor = const Color(0xFFE2E8F0);
+                textColor = const Color(0xFFCBD5E1);
+              }
+
+              return Expanded(
+                child: Container(
+                  height: 38,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 1.1),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    strokes != null ? '$strokes' : '-',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
         ),
-      );
-    }
-    if (diff == -1) {
-      // Birdie
-      return Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: kSoftMintBg,
-          shape: BoxShape.circle,
-          border: Border.all(color: kTournamentEmerald, width: 1.5),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '$strokes',
-          style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w900, color: kTournamentEmerald),
-        ),
-      );
-    }
-    if (diff == 0) {
-      // Par
-      return Text(
-        '$strokes',
-        style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w800, color: kDarkSlate),
-      );
-    }
-    if (diff == 1) {
-      // Bogey
-      return Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0xFFCBD5E1)),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '$strokes',
-          style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF334155)),
-        ),
-      );
-    }
-    // Double Bogey or worse
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF1F2),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFFECDD3)),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$strokes',
-        style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFE11D48)),
-      ),
+      ],
     );
   }
 }

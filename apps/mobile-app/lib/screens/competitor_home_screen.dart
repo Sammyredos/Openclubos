@@ -21,38 +21,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   List<dynamic> _tournaments = [];
   bool _isLoadingTournaments = true;
 
-  Map<String, dynamic>? _activeRound = {
-    'id': 'ar-oakwood-14',
-    'tournamentName': 'Oakwood Championship',
-    'holeNumber': 14,
-    'par': 4,
-    'yardage': 415,
-    'holeInfo': 'Par 4 • 415 yds',
-    'isLive': true,
-    'dayText': 'ROUND 2',
-    'score': '-1',
-    'thru': '13',
-    'flightText': 'Active Flight',
-    'groupPlayers': [
-      {'id': 'gp1', 'name': 'Sarah Jenkins', 'initials': 'SJ', 'avatar': 'assets/images/onboarding1.jpg'},
-      {'id': 'gp2', 'name': 'David Miller', 'initials': 'DM', 'avatar': 'assets/images/alex_avatar.jpg'},
-    ],
-  };
+  Map<String, dynamic>? _activeRound;
   Timer? _forfeitTimer;
   bool _hasInactivityWarning = false;
 
   // Live competitors on course for horizontal carousel
-  List<Map<String, dynamic>> _friendsOnCourse = [
-    {'id': 'f1', 'name': 'Sarah Jenkins', 'initials': 'SJ', 'score': 'Hole 14 • Even'},
-    {'id': 'f2', 'name': 'David Miller', 'initials': 'DM', 'score': 'Hole 9 • +2'},
-    {'id': 'f3', 'name': 'Marcus Chen', 'initials': 'MC', 'score': 'Hole 18 • -1'},
-    {'id': 'f4', 'name': 'Kevin Brown', 'initials': 'KB', 'score': 'Hole 7 • +3'},
-    {'id': 'f5', 'name': 'Alex Wright', 'initials': 'AW', 'score': 'Hole 11 • -2'},
-    {'id': 'f6', 'name': 'Sophie Van Der Merwe', 'initials': 'SV', 'score': 'Hole 5 • Even'},
-    {'id': 'f7', 'name': 'Amina Bello', 'initials': 'AB', 'score': 'Hole 16 • +1'},
-    {'id': 'f8', 'name': 'Chidi Okafor', 'initials': 'CO', 'score': 'Hole 3 • -1'},
-    {'id': 'f9', 'name': 'Liam Gallagher', 'initials': 'LG', 'score': 'Hole 8 • +4'},
-  ];
+  List<Map<String, dynamic>> _friendsOnCourse = [];
 
   static List<Map<String, dynamic>> _buildScorecardHoles(List<int?> strokesList) {
     const pars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
@@ -61,201 +35,15 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       'hole': idx + 1,
       'par': pars[idx],
       'yards': yards[idx],
-      'strokes': strokesList[idx],
+      'strokes': idx < strokesList.length ? strokesList[idx] : null,
     });
   }
 
-  static final List<Map<String, dynamic>> _activeCompetitorsData = [
-    {
-      'id': 'f1',
-      'name': 'Sarah Jenkins',
-      'initials': 'SJ',
-      'club': 'Ikoyi Club 1938',
-      'hcp': '4.2',
-      'score': 'Hole 14 • Even',
-      'toPar': 0,
-      'currentHole': 14,
-      'thru': 13,
-      'gross': 51,
-      'net': 48,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight A',
-      'teeTime': '08:20 AM',
-      'ball': 'Titleist Pro V1',
-      'marker': 'David Miller',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([4, 4, 3, 5, 4, 4, 2, 5, 5, 4, 4, 3, 4, null, null, null, null, null]),
-    },
-    {
-      'id': 'f2',
-      'name': 'David Miller',
-      'initials': 'DM',
-      'club': 'Augusta National GC',
-      'hcp': '1.8',
-      'score': 'Hole 9 • +2',
-      'toPar': 2,
-      'currentHole': 9,
-      'thru': 8,
-      'gross': 34,
-      'net': 33,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight A',
-      'teeTime': '08:20 AM',
-      'ball': 'TaylorMade TP5',
-      'marker': 'Sarah Jenkins',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([4, 5, 3, 5, 4, 5, 3, 5, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      'id': 'f3',
-      'name': 'Marcus Chen',
-      'initials': 'MC',
-      'club': 'Pine Valley GC',
-      'hcp': '0.4',
-      'score': 'Hole 18 • -1',
-      'toPar': -1,
-      'currentHole': 18,
-      'thru': 17,
-      'gross': 66,
-      'net': 66,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight B',
-      'teeTime': '08:00 AM',
-      'ball': 'Callaway Chrome Soft',
-      'marker': 'Alex Wright',
-      'pace': '+3m Ahead',
-      'holes': _buildScorecardHoles([4, 3, 3, 5, 4, 4, 3, 5, 4, 4, 4, 2, 5, 4, 4, 3, 5, null]),
-    },
-    {
-      'id': 'f4',
-      'name': 'Kevin Brown',
-      'initials': 'KB',
-      'club': 'St Andrews Links',
-      'hcp': '5.5',
-      'score': 'Hole 7 • +3',
-      'toPar': 3,
-      'currentHole': 7,
-      'thru': 6,
-      'gross': 27,
-      'net': 25,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight C',
-      'teeTime': '08:40 AM',
-      'ball': 'Srixon Z-Star',
-      'marker': 'Sophie Van Der Merwe',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([5, 4, 4, 6, 4, 4, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      'id': 'f5',
-      'name': 'Alex Wright',
-      'initials': 'AW',
-      'club': 'Cypress Point Club',
-      'hcp': '+1.2',
-      'score': 'Hole 11 • -2',
-      'toPar': -2,
-      'currentHole': 11,
-      'thru': 10,
-      'gross': 38,
-      'net': 39,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight B',
-      'teeTime': '08:00 AM',
-      'ball': 'Titleist Pro V1x',
-      'marker': 'Marcus Chen',
-      'pace': '+3m Ahead',
-      'holes': _buildScorecardHoles([3, 4, 3, 4, 4, 4, 3, 5, 4, 4, null, null, null, null, null, null, null, null]),
-    },
-    {
-      'id': 'f6',
-      'name': 'Sophie Van Der Merwe',
-      'initials': 'SV',
-      'club': 'Fancourt Golf Estate',
-      'hcp': '2.3',
-      'score': 'Hole 5 • Even',
-      'toPar': 0,
-      'currentHole': 5,
-      'thru': 4,
-      'gross': 16,
-      'net': 15,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight C',
-      'teeTime': '08:40 AM',
-      'ball': 'TaylorMade Tour Response',
-      'marker': 'Kevin Brown',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([4, 4, 3, 5, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      'id': 'f7',
-      'name': 'Amina Bello',
-      'initials': 'AB',
-      'club': 'IBB International Golf Club',
-      'hcp': '6.2',
-      'score': 'Hole 16 • +1',
-      'toPar': 1,
-      'currentHole': 16,
-      'thru': 15,
-      'gross': 61,
-      'net': 56,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight A',
-      'teeTime': '07:50 AM',
-      'ball': 'Bridgestone Tour B',
-      'marker': 'Chidi Okafor',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([4, 4, 3, 6, 4, 4, 3, 5, 4, 4, 5, 3, 5, 4, 4, null, null, null]),
-    },
-    {
-      'id': 'f8',
-      'name': 'Chidi Okafor',
-      'initials': 'CO',
-      'club': 'Oakwood Golf Club',
-      'hcp': '8.5',
-      'score': 'Hole 3 • -1',
-      'toPar': -1,
-      'currentHole': 3,
-      'thru': 2,
-      'gross': 7,
-      'net': 6,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight D',
-      'teeTime': '09:10 AM',
-      'ball': 'Titleist AVX',
-      'marker': 'Liam Gallagher',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([3, 4, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      'id': 'f9',
-      'name': 'Liam Gallagher',
-      'initials': 'LG',
-      'club': 'Enugu Golf Club',
-      'hcp': '3.7',
-      'score': 'Hole 8 • +4',
-      'toPar': 4,
-      'currentHole': 8,
-      'thru': 7,
-      'gross': 32,
-      'net': 30,
-      'tournament': 'Oakwood Championship',
-      'round': 'Round 2',
-      'flight': 'Flight D',
-      'teeTime': '09:10 AM',
-      'ball': 'Callaway Supersoft',
-      'marker': 'Chidi Okafor',
-      'pace': 'On Pace',
-      'holes': _buildScorecardHoles([5, 5, 4, 5, 4, 5, 4, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-  ];
+  List<Map<String, dynamic>> _activeCompetitorsData = [];
+  List<Map<String, dynamic>> _candidateCompetitors = [];
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoadingNotifications = false;
+
   String _activeNavTab = 'home'; // Default to Home tab
   List<Map<String, dynamic>> _recentRounds = [];
 
@@ -266,6 +54,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     super.initState();
     _loadUserData();
     _fetchTournaments();
+    _fetchMembers();
+    _fetchNotifications();
     _checkActiveRoundForfeitStatus();
   }
 
@@ -277,10 +67,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   }
 
   Future<void> _checkActiveRoundForfeitStatus() async {
+    if (_activeRound == null) return;
     try {
+      final roundKey = _activeRound!['id'] ?? 'active_round';
       final box = await Hive.openBox('rounds');
-      final isForfeited = box.get('round_forfeited_oakwood', defaultValue: false) == true;
-      final isClosed = box.get('round_closed_oakwood', defaultValue: false) == true;
+      final isForfeited = box.get('round_forfeited_$roundKey', defaultValue: false) == true;
+      final isClosed = box.get('round_closed_$roundKey', defaultValue: false) == true;
       if (isForfeited || isClosed) {
         if (mounted) {
           setState(() {
@@ -291,25 +83,27 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         return;
       }
 
-      int? startedAt = box.get('round_started_at_oakwood') as int?;
+      int? startedAt = box.get('round_started_at_$roundKey') as int?;
       final now = DateTime.now().millisecondsSinceEpoch;
       if (startedAt == null) {
         startedAt = now;
-        await box.put('round_started_at_oakwood', now);
+        await box.put('round_started_at_$roundKey', now);
       }
 
       final elapsedMs = now - startedAt;
       const thirtyMinsMs = 30 * 60 * 1000;
+      final tournName = _activeRound!['tournamentName'] ?? 'Active Round';
+      final holeNum = _activeRound!['holeNumber'] ?? '';
       if (elapsedMs >= thirtyMinsMs) {
         if (mounted) {
           setState(() => _hasInactivityWarning = true);
-          final hasNotified = box.get('round_notified_oakwood', defaultValue: false) == true;
+          final hasNotified = box.get('round_notified_$roundKey', defaultValue: false) == true;
           if (!hasNotified) {
-            await box.put('round_notified_oakwood', true);
+            await box.put('round_notified_$roundKey', true);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.'),
-                backgroundColor: Color(0xFFD97706),
+              SnackBar(
+                content: Text('$tournName: Inactivity alert on Hole $holeNum. Tap Resume Play to record your score.'),
+                backgroundColor: const Color(0xFFD97706),
               ),
             );
           }
@@ -320,13 +114,13 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         _forfeitTimer?.cancel();
         _forfeitTimer = Timer(Duration(milliseconds: remainingMs), () async {
           final b = await Hive.openBox('rounds');
-          await b.put('round_notified_oakwood', true);
+          await b.put('round_notified_$roundKey', true);
           if (mounted) {
             setState(() => _hasInactivityWarning = true);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.'),
-                backgroundColor: Color(0xFFD97706),
+              SnackBar(
+                content: Text('$tournName: Inactivity alert on Hole $holeNum. Tap Resume Play to record your score.'),
+                backgroundColor: const Color(0xFFD97706),
               ),
             );
           }
@@ -349,134 +143,212 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     try {
       final response = await _apiClient.dio.get('/tournaments');
       if (mounted) {
+        final data = response.data;
+        final List<dynamic> list = (data is Map && data['items'] != null)
+            ? data['items']
+            : (data is List ? data : []);
         setState(() {
-          _tournaments = response.data;
+          _tournaments = list;
           _isLoadingTournaments = false;
         });
+
+        if (list.isNotEmpty) {
+          final liveTourn = list.firstWhere(
+            (t) => (t['status'] == 'LIVE' || t['status'] == 'IN_PROGRESS' || t['status'] == 'ACTIVE'),
+            orElse: () => list.first,
+          );
+          if (liveTourn != null && liveTourn['id'] != null) {
+            _fetchLiveTournamentData(liveTourn);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingTournaments = false;
-          // Fallback realistic tournaments for preview
-          _tournaments = [
-            {
-              'id': 'tourn_ikoyi_open_2024',
-              'name': 'Ikoyi Open Championship 2024',
-              'status': 'REGISTRATION_OPEN',
-              'isFeatured': true,
-              'course': 'Ikoyi 1938 Championship Course',
-              'city': 'Lagos, Nigeria',
-              'organizerClub': 'Ikoyi Club 1938',
-              'format': 'Stroke Play',
-              'dates': 'Oct 14 - Oct 17',
-              'purse': '₦15,000,000',
-              'fieldCount': 120,
-              'cutLine': '+4',
-              'entryFee': 'Free',
-            },
-            {
-              'id': 'tourn_masters_2026',
-              'name': 'Openclub Masters Invitational 2026',
-              'status': 'LIVE',
-              'isFeatured': true,
-              'course': 'Augusta National Golf Club',
-              'city': 'Augusta, GA',
-              'organizerClub': 'Augusta National GC',
-              'format': 'Stroke Play',
-              'dates': 'Sep 2 - Sep 5',
-              'purse': '\$2,500,000',
-              'fieldCount': 72,
-              'cutLine': '+3',
-              'entryFee': '\$350',
-            },
-            {
-              'id': 'tourn_autumn_2026',
-              'name': 'Autumn Club Championship',
-              'status': 'UPCOMING',
-              'isFeatured': true,
-              'course': 'Pinehurst No. 2',
-              'city': 'Pinehurst, NC',
-              'organizerClub': 'Pinehurst Resort',
-              'format': 'Stableford',
-              'dates': 'Sep 12 - Sep 14',
-              'purse': '\$500,000',
-              'fieldCount': 48,
-              'cutLine': 'None',
-              'entryFee': '\$150',
-            },
-          ];
+          _tournaments = [];
         });
       }
     }
   }
 
-  static const List<Map<String, dynamic>> _candidateCompetitors = [
-    {
-      'id': 'c1',
-      'name': 'Marcus Thorne',
-      'email': 'marcus.thorne@golf.com',
-      'club': 'Augusta GC',
-      'hcp': '1.2',
-      'initial': 'M',
-    },
-    {
-      'id': 'c2',
-      'name': 'David O\'Connor',
-      'email': 'david.oconnor@golf.com',
-      'club': 'Pine Valley',
-      'hcp': '4.8',
-      'initial': 'D',
-    },
-    {
-      'id': 'c3',
-      'name': 'Elena Rostova',
-      'email': 'elena.rostova@cypress.org',
-      'club': 'Cypress Point',
-      'hcp': '0.4',
-      'initial': 'E',
-    },
-    {
-      'id': 'c4',
-      'name': 'Samuel Obadina',
-      'email': 'samuel.obadina@openclubos.com',
-      'club': 'Oakwood Country Club',
-      'hcp': '10.0',
-      'initial': 'S',
-    },
-    {
-      'id': 'c5',
-      'name': 'Adedamola Bello',
-      'email': 'damola.bello@ikoyiclub.ng',
-      'club': 'Ikoyi Club 1938',
-      'hcp': '7.4',
-      'initial': 'A',
-    },
-    {
-      'id': 'c6',
-      'name': 'Kolawole Johnson',
-      'email': 'kola.johnson@ibadanclub.com',
-      'club': 'Ibadan Golf Club',
-      'hcp': '12.1',
-      'initial': 'K',
-    },
-    {
-      'id': 'c7',
-      'name': 'Chloe Sterling',
-      'email': 'chloe.sterling@pebblebeach.com',
-      'club': 'Pebble Beach GL',
-      'hcp': '3.5',
-      'initial': 'C',
-    },
-    {
-      'id': 'c8',
-      'name': 'Tunde Bakare',
-      'email': 'tunde.bakare@smokin-hills.ng',
-      'club': 'Smokin Hills Golf Resort',
-      'hcp': '8.2',
-      'initial': 'T',
-    },
-  ];
+  Future<void> _fetchLiveTournamentData(dynamic tourn) async {
+    try {
+      final tournamentId = tourn['id'];
+      final res = await _apiClient.dio.get('/scores/tournament/$tournamentId/leaderboard-data');
+      final data = res.data;
+      if (data != null && data['registrations'] is List) {
+        final List<dynamic> regs = data['registrations'];
+        final List<dynamic> scoresList = data['scores'] is List ? data['scores'] : [];
+        const pars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
+
+        final List<Map<String, dynamic>> mappedCompetitors = [];
+        final List<Map<String, dynamic>> mappedFriends = [];
+        Map<String, dynamic>? userActiveRound;
+
+        for (int i = 0; i < regs.length; i++) {
+          final reg = regs[i];
+          final user = reg['user'] as Map<String, dynamic>?;
+          final fName = user?['firstName']?.toString() ?? '';
+          final lName = user?['lastName']?.toString() ?? '';
+          final name = '$fName $lName'.trim().isNotEmpty ? '$fName $lName'.trim() : (reg['playerName']?.toString() ?? 'Player ${i + 1}');
+          final initials = (fName.isNotEmpty && lName.isNotEmpty)
+              ? '${fName[0]}${lName[0]}'.toUpperCase()
+              : (name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'PL');
+          final club = user?['homeClub']?.toString() ?? tourn['club']?['name']?.toString() ?? tourn['venue']?.toString() ?? 'OpenClub Member';
+          final hcp = (user?['handicap'] ?? reg['extraStrokes'] ?? 0).toString();
+
+          final regScores = scoresList.where((s) => s['registrationId'] == reg['id'] || s['userId'] == user?['id']).toList();
+          final List<int?> strokes = List.generate(18, (hIdx) {
+            final holeNum = hIdx + 1;
+            final match = regScores.firstWhere((s) => s['holeNumber'] == holeNum, orElse: () => null);
+            return match != null ? (match['strokes'] as int?) : null;
+          });
+
+          int gross = 0;
+          int parSum = 0;
+          int thruCount = 0;
+          for (int h = 0; h < 18; h++) {
+            if (strokes[h] != null) {
+              gross += strokes[h]!;
+              parSum += pars[h];
+              thruCount++;
+            }
+          }
+          final toPar = thruCount > 0 ? (gross - parSum) : 0;
+          final currentHole = (thruCount < 18) ? (thruCount + 1) : 18;
+          final scoreText = thruCount == 0 ? 'Tee Time: ${reg['teeTime'] ?? '08:00 AM'}' : 'Hole $currentHole • ${toPar == 0 ? 'Even' : (toPar > 0 ? '+$toPar' : '$toPar')}';
+
+          final compData = {
+            'id': reg['id']?.toString() ?? 'c_$i',
+            'name': name,
+            'initials': initials,
+            'club': club,
+            'hcp': hcp,
+            'score': scoreText,
+            'toPar': toPar,
+            'currentHole': currentHole,
+            'thru': thruCount,
+            'gross': gross,
+            'net': gross,
+            'tournament': tourn['name']?.toString() ?? 'Tournament',
+            'round': 'Round ${tourn['currentRound'] ?? 1}',
+            'flight': reg['flight']?.toString() ?? 'Championship Flight',
+            'teeTime': reg['teeTime']?.toString() ?? '08:00 AM',
+            'ball': 'Titleist Pro V1',
+            'marker': reg['markerName']?.toString() ?? 'Official Marker',
+            'pace': 'On Pace',
+            'holes': _buildScorecardHoles(strokes),
+          };
+
+          mappedCompetitors.add(compData);
+
+          if (thruCount > 0) {
+            mappedFriends.add({
+              'id': reg['id']?.toString() ?? 'f_$i',
+              'name': name,
+              'initials': initials,
+              'score': scoreText,
+            });
+          }
+
+          if (_user != null) {
+            final currentUserId = _user!['id']?.toString();
+            final currentUserEmail = _user!['email']?.toString()?.toLowerCase();
+            final regUserId = user?['id']?.toString();
+            final regEmail = user?['email']?.toString()?.toLowerCase();
+
+            if ((currentUserId != null && currentUserId == regUserId) ||
+                (currentUserEmail != null && currentUserEmail == regEmail)) {
+              userActiveRound = {
+                'id': reg['id']?.toString() ?? 'ar_${tourn['id']}',
+                'tournamentName': tourn['name']?.toString() ?? 'Tournament',
+                'holeNumber': currentHole,
+                'par': pars[currentHole - 1],
+                'yardage': 415,
+                'holeInfo': 'Par ${pars[currentHole - 1]} • Hole $currentHole',
+                'isLive': tourn['status'] == 'LIVE' || tourn['status'] == 'IN_PROGRESS' || tourn['status'] == 'ACTIVE',
+                'dayText': 'ROUND ${tourn['currentRound'] ?? 1}',
+                'score': toPar == 0 ? 'E' : (toPar > 0 ? '+$toPar' : '$toPar'),
+                'thru': thruCount.toString(),
+                'flightText': reg['flight']?.toString() ?? 'Championship Flight',
+                'groupPlayers': <Map<String, dynamic>>[],
+              };
+            }
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _activeCompetitorsData = mappedCompetitors;
+            _friendsOnCourse = mappedFriends;
+            if (userActiveRound != null) {
+              _activeRound = userActiveRound;
+              _checkActiveRoundForfeitStatus();
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchMembers() async {
+    try {
+      final res = await _apiClient.dio.get('/members?take=100');
+      final data = res.data;
+      final List<dynamic> items = (data is Map && data['items'] != null)
+          ? data['items']
+          : (data is List ? data : []);
+      if (mounted) {
+        setState(() {
+          _candidateCompetitors = items.map((m) {
+            final fName = m['firstName']?.toString() ?? '';
+            final lName = m['lastName']?.toString() ?? '';
+            final name = '$fName $lName'.trim();
+            final email = m['email']?.toString() ?? '';
+            final club = m['homeClub']?.toString() ?? m['club']?['name']?.toString() ?? 'OpenClub Member';
+            final hcp = m['handicap']?.toString() ?? '0.0';
+            final initial = fName.isNotEmpty ? fName[0].toUpperCase() : (name.isNotEmpty ? name[0].toUpperCase() : 'G');
+            return {
+              'id': m['id']?.toString() ?? '',
+              'name': name.isNotEmpty ? name : 'Golfer',
+              'email': email,
+              'club': club,
+              'hcp': hcp,
+              'initial': initial,
+            };
+          }).toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoadingNotifications = true);
+    try {
+      final res = await _apiClient.dio.get('/notifications');
+      final data = res.data;
+      final List<dynamic> items = (data is Map && data['items'] != null)
+          ? data['items']
+          : (data is List ? data : []);
+      if (mounted) {
+        setState(() {
+          _notifications = items.map((n) {
+            return {
+              'id': n['id']?.toString() ?? '',
+              'title': n['title']?.toString() ?? 'Tournament Notice',
+              'desc': n['message']?.toString() ?? n['description']?.toString() ?? '',
+              'time': 'Just now',
+              'unread': n['isRead'] != true,
+            };
+          }).toList();
+          _isLoadingNotifications = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingNotifications = false);
+    }
+  }
 
   void _showAddFriendsModal() {
     final Set<String> sentRequestIds = {};
@@ -1216,27 +1088,45 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildNotificationTile(
-                  icon: Icons.golf_course_rounded,
-                  title: 'Tee Time Confirmed: 08:40 AM',
-                  desc: 'Hole 1 • Group 4 • Augusta National Masters',
-                  time: '12m ago',
-                  unread: true,
-                ),
-                _buildNotificationTile(
-                  icon: Icons.verified_user_rounded,
-                  title: 'Scorecard Attestation Request',
-                  desc: 'Marcus Thorne requested marker score verification for Round 1',
-                  time: '1h ago',
-                  unread: true,
-                ),
-                _buildNotificationTile(
-                  icon: Icons.emoji_events_rounded,
-                  title: 'Cut Line Movement: +3',
-                  desc: 'Projected cut settled at +3 after morning flight finishes',
-                  time: '3h ago',
-                  unread: false,
-                ),
+                if (_notifications.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5FAF6),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFE1EFE5)),
+                            ),
+                            child: const Icon(Icons.notifications_none_rounded, size: 24, color: Color(0xFF8CA0BA)),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'No Notifications',
+                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'All caught up. No new tournament notifications or marker alerts.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ..._notifications.map((n) => _buildNotificationTile(
+                    icon: Icons.notifications_active_rounded,
+                    title: (n['title'] ?? 'Notice').toString(),
+                    desc: (n['desc'] ?? '').toString(),
+                    time: (n['time'] ?? 'Just now').toString(),
+                    unread: n['unread'] == true,
+                  )),
                 const SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
@@ -1382,15 +1272,35 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildMessageConversation(
-                  sender: 'Tournament Committee',
-                  preview: 'Weather advisory: Tee times delayed by 15 mins due to morning mist.',
-                  time: '07:15 AM',
-                ),
-                _buildMessageConversation(
-                  sender: 'Marcus Thorne (Marker)',
-                  preview: 'Hey Alex, ready at the 1st tee box whenever you arrive!',
-                  time: 'Yesterday',
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5FAF6),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE1EFE5)),
+                          ),
+                          child: const Icon(Icons.chat_bubble_outline_rounded, size: 24, color: Color(0xFF8CA0BA)),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No Active Messages',
+                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Group chat and marker communications will appear here.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -1406,7 +1316,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text('Start New Chat', style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: Text('Close', style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -2243,10 +2153,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           // Row 4: Flight Avatars + Inactivity Status (Written in full)
                                           Builder(
                                             builder: (context) {
-                                              final groupPlayers = ((_activeRound!['groupPlayers'] as List<dynamic>?) ?? [
-                                                {'id': 'gp1', 'name': 'Sarah Jenkins', 'initials': 'SJ', 'avatar': 'assets/images/onboarding1.jpg'},
-                                                {'id': 'gp2', 'name': 'David Miller', 'initials': 'DM', 'avatar': 'assets/images/alex_avatar.jpg'},
-                                              ]).cast<Map<String, dynamic>>();
+                                              final groupPlayers = ((_activeRound!['groupPlayers'] as List<dynamic>?) ?? [])
+                                                  .cast<Map<String, dynamic>>();
 
                                               final double stackWidth = groupPlayers.isEmpty
                                                   ? 20.0
@@ -2351,9 +2259,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       child: GestureDetector(
                                         onTap: () async {
                                           try {
+                                            final roundKey = _activeRound?['id'] ?? 'active_round';
                                             final box = await Hive.openBox('rounds');
-                                            await box.put('round_started_at_oakwood', DateTime.now().millisecondsSinceEpoch);
-                                            await box.put('round_notified_oakwood', false);
+                                            await box.put('round_started_at_$roundKey', DateTime.now().millisecondsSinceEpoch);
+                                            await box.put('round_notified_$roundKey', false);
                                           } catch (_) {}
                                           if (mounted) setState(() => _hasInactivityWarning = false);
                                           ScaffoldMessenger.of(context).showSnackBar(
@@ -2466,7 +2375,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                           children: [
                                                             const TextSpan(text: 'Forfeiting now will disqualify your score from the '),
                                                             TextSpan(
-                                                              text: _activeRound?['tournamentName'] ?? 'Oakwood Championship',
+                                                              text: _activeRound?['tournamentName'] ?? 'the tournament',
                                                               style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
                                                             ),
                                                             const TextSpan(text: '. This action cannot be undone.'),
@@ -2487,8 +2396,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                           ),
                                                           onPressed: () async {
                                                             try {
+                                                              final roundKey = _activeRound?['id'] ?? 'active_round';
                                                               final box = await Hive.openBox('rounds');
-                                                              await box.put('round_forfeited_oakwood', true);
+                                                              await box.put('round_forfeited_$roundKey', true);
                                                             } catch (_) {}
                                                             _forfeitTimer?.cancel();
                                                             if (mounted) {
@@ -3582,7 +3492,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           title: name,
           gender: gender,
           divisions: divisions,
-          venue: (t['club']?['name'] ?? t['venue'] ?? 'OpenClub Golf Club').toString(),
+          venue: (t['club']?['name'] ?? t['venue'] ?? t['location'] ?? 'Championship Course').toString(),
           entryFee: fee,
           hcpLimit: hcp,
           deadline: deadline,

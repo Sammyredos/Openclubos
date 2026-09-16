@@ -226,7 +226,7 @@ export class MembersService {
     if (clubId) {
       where.clubId = clubId;
       if (role) {
-        if (role === UserRole.PLAYER || role === UserRole.SUPER_ADMIN) {
+        if (role === UserRole.SUPER_ADMIN) {
           where.role = { in: [] };
         } else {
           where.role = role as UserRole;
@@ -281,14 +281,12 @@ export class MembersService {
     const baseWhere = { 
       ...where, 
       deletedAt: null,
-      NOT: [
-        { firstName: null },
-        { lastName: null },
-        { firstName: '' },
-        { lastName: '' },
-        { firstName: '-' },
-        { firstName: '—' },
-      ],
+      NOT: {
+        AND: [
+          { OR: [{ firstName: null }, { firstName: '' }, { firstName: '-' }, { firstName: '—' }] },
+          { OR: [{ lastName: null }, { lastName: '' }, { lastName: '-' }, { lastName: '—' }] },
+        ],
+      },
     };
 
     const [items, total, activeCount, suspendedCount, roleCounts] =

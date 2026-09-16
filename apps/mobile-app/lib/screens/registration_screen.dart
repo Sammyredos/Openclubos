@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
+import '../core/api/api_client.dart';
 import 'verify_email_screen.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
@@ -88,34 +89,48 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   bool _showClubSuggestions = false;
 
-  final List<Map<String, String>> _allGolfCourses = [
-    {'name': 'Ikoyi Golf Club', 'location': 'Lagos, Nigeria • 18 Holes'},
-    {'name': 'Oakwood Country Club Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'Achimota Golf Club', 'location': 'Accra, Ghana • 18 Holes'},
-    {'name': 'Augusta National Golf Club', 'location': 'Augusta, United States • 18 Holes'},
-    {'name': 'Pinehurst Resort No. 2', 'location': 'Pinehurst, United States • 18 Holes'},
-    {'name': 'St Andrews Old Course', 'location': 'St Andrews, United Kingdom • 18 Holes'},
-    {'name': 'Pebble Beach Golf Links', 'location': 'Pebble Beach, United States • 18 Holes'},
-    {'name': 'OpenClub Golf Club 2 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 3 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 4 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 5 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 6 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 7 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 8 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 9 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 10 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 11 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 12 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 13 Course', 'location': 'Ghana • 18 Holes'},
-    {'name': 'OpenClub Golf Club 14 Course', 'location': 'Ghana • 18 Holes'},
-    {'name': 'OpenClub Golf Club 15 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 16 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 17 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 18 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 19 Course', 'location': 'Nigeria • 18 Holes'},
-    {'name': 'OpenClub Golf Club 20 Course', 'location': 'Nigeria • 18 Holes'},
-  ];
+  final ApiClient _apiClient = ApiClient();
+  List<Map<String, String>> _allGolfCourses = [];
+  bool _isLoadingCourses = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    setState(() => _isLoadingCourses = true);
+    try {
+      final res = await _apiClient.dio.get('/courses');
+      final data = res.data;
+      final List<dynamic> items = (data is Map && data['items'] != null)
+          ? data['items']
+          : (data is List ? data : []);
+      if (mounted) {
+        setState(() {
+          _allGolfCourses = items.map((c) {
+            final name = c['name']?.toString() ?? 'Golf Course';
+            final city = c['city']?.toString() ?? '';
+            final country = c['country']?.toString() ?? '';
+            final locationPart = city.isNotEmpty
+                ? (country.isNotEmpty ? '$city, $country' : city)
+                : (country.isNotEmpty ? country : 'Nigeria');
+            final holes = c['holes']?.toString() ?? '18';
+            return {
+              'name': name,
+              'location': '$locationPart • $holes Holes',
+            };
+          }).toList();
+          _isLoadingCourses = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingCourses = false);
+      }
+    }
+  }
 
   static const Map<String, List<String>> _nigerianStatesLgas = {
     'Abia': ['Aba North', 'Aba South', 'Arochukwu', 'Bende', 'Ikwuano', 'Isiala Ngwa North', 'Isiala Ngwa South', 'Isuikwuato', 'Obi Ngwa', 'Ohafia', 'Osisioma', 'Ugwunagbo', 'Ukwa East', 'Ukwa West', 'Umuahia North', 'Umuahia South', 'Umunneochi'],
@@ -2500,17 +2515,17 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         ? '0.0 (Scratch)'
         : (isBeginner
             ? '36.0'
-            : (hcp.isNotEmpty ? hcp : '4.2'));
-    final clubDisplay = club.isNotEmpty ? club : 'Oakwood National GC';
+            : (hcp.isNotEmpty ? hcp : '0.0'));
+    final clubDisplay = club.isNotEmpty ? club : 'Not specified';
     final genderDisplay = _selectedGender == 'MALE'
         ? 'Male'
-        : (_selectedGender == 'FEMALE' ? 'Female' : (_selectedGender != null && _selectedGender!.isNotEmpty ? _selectedGender! : 'Male'));
-    final dobDisplay = _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : 'May 14, 1992';
-    final emailDisplay = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'alex.t@example.com';
+        : (_selectedGender == 'FEMALE' ? 'Female' : (_selectedGender.isNotEmpty ? _selectedGender : 'Not specified'));
+    final dobDisplay = _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : 'Not specified';
+    final emailDisplay = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'Not provided';
     final phone = _phoneController.text.trim();
     final phoneDisplay = phone.isNotEmpty
         ? '+$_selectedPhoneCode $phone'
-        : '+1 (555) 012-3456';
+        : 'Not specified';
     final classificationDisplay = isPro
         ? 'Professional'
         : (isBeginner ? 'Beginner' : 'Amateur');

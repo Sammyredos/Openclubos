@@ -16,6 +16,7 @@ import {
 import { MemberStatus, UserRole } from '@prisma/client';
 import { SkipClubGuard } from '../../common/guards/club.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateMemberDto } from './dto/create-member.dto';
@@ -24,11 +25,11 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 import { MembersService } from './members.service';
 
 @Controller('members')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   @Post('invite')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN)
   @SkipClubGuard()
   @HttpCode(HttpStatus.CREATED)
@@ -45,14 +46,15 @@ export class MembersController {
     });
   }
 
-
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLUB_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() createMemberDto: CreateMemberDto) {
     return this.membersService.create(createMemberDto);
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   findAll(
     @Request() req: any,
     @Query('skip') skip?: number,
@@ -78,6 +80,7 @@ export class MembersController {
   }
 
   @Get('all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   findAllUsers(
     @Query('skip') skip?: number,
@@ -102,11 +105,13 @@ export class MembersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async findOne(@Request() req: any, @Param('id') id: string) {
     return this.membersService.findOne(id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
     @Request() req: any,
     @Param('id') id: string,
@@ -116,12 +121,14 @@ export class MembersController {
   }
 
   @Post(':id/force-logout')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   forceLogout(@Param('id') id: string) {
     return this.membersService.forceLogout(id);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);

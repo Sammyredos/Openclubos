@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Smartphone,
@@ -100,12 +100,14 @@ interface RealTournament {
   gender?: string;
   hcpLimit?: string;
   deadline?: string;
+  clubName?: string;
 }
 
 interface CourseHole {
   number: number;
   par: number;
   yards: number;
+  yardage?: number;
   hcp: number;
 }
 
@@ -121,6 +123,7 @@ interface LeaderboardPlayer {
   f9: string;
   b9: string;
   putts: number;
+  club?: string;
 }
 
 interface AuthenticatedPlayer {
@@ -564,35 +567,25 @@ export default function MobilePreviewPage() {
   const [friendsSearchQuery, setFriendsSearchQuery] = useState("");
   const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
 
-  // Searchable Golf Competitors Database (Search by Name or Email, No GHIN)
-  const ALL_GOLF_COMPETITORS = [
-    { id: "p1", name: "Marcus Thorne", email: "marcus.thorne@augustagc.com", club: "Augusta National GC", hcp: "1.2", initial: "M" },
-    { id: "p2", name: "David O'Connor", email: "david.oconnor@pinevalley.com", club: "Pine Valley GC", hcp: "4.8", initial: "D" },
-    { id: "p3", name: "Elena Rostova", email: "elena.rostova@cypresspoint.com", club: "Cypress Point Club", hcp: "0.4", initial: "E" },
-    { id: "p4", name: "Amina Bello", email: "amina.bello@ikoyiclub.com", club: "Ikoyi Club 1938", hcp: "6.2", initial: "A" },
-    { id: "p5", name: "Chidi Okafor", email: "chidi.okafor@oakwood.ng", club: "Oakwood Golf Club", hcp: "8.5", initial: "C" },
-    { id: "p6", name: "Tunde Bakare", email: "tunde.bakare@ibadan.org", club: "Ibadan Golf Club", hcp: "5.1", initial: "T" },
-    { id: "p7", name: "Sophie Van Der Merwe", email: "sophie.vdm@sunshinetour.za", club: "Fancourt Golf Estate", hcp: "2.3", initial: "S" },
-    { id: "p8", name: "Liam Gallagher", email: "liam.gallagher@standrews.uk", club: "St Andrews Links", hcp: "3.7", initial: "L" },
-    { id: "p9", name: "Zainab Ibrahim", email: "zainab.ibrahim@abuja.ng", club: "IBB International Golf Club", hcp: "9.0", initial: "Z" },
-    { id: "p10", name: "Emeka Nwosu", email: "emeka.nwosu@enugugolf.com", club: "Enugu Golf Club", hcp: "11.4", initial: "E" },
-  ];
+  // --- Searchable Golf Competitors Database (Loaded dynamically from database /api/members) ---
+  const [golfCompetitors, setGolfCompetitors] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    club: string;
+    hcp: string;
+    initial: string;
+  }[]>([]);
+  const [isLoadingCompetitors, setIsLoadingCompetitors] = useState(false);
 
-  // --- Friends on Course State (Live Simulation & Active Scrollable Carousel) ---
-  // --- Friends on Course State (Live Simulation & Active Scrollable Carousel) ---
-  const sampleFriendsOnCourse = [
-    { id: "f1", name: "Sarah Jenkins", initials: "SJ", score: "Hole 14 • Even", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f2", name: "David Miller", initials: "DM", score: "Hole 9 • +2", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f3", name: "Marcus Chen", initials: "MC", score: "Hole 18 • -1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f4", name: "Kevin Brown", initials: "KB", score: "Hole 7 • +3", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f5", name: "Alex Wright", initials: "AW", score: "Hole 11 • -2", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f6", name: "Sophie Van Der Merwe", initials: "SV", score: "Hole 5 • Even", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f7", name: "Amina Bello", initials: "AB", score: "Hole 16 • +1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f8", name: "Chidi Okafor", initials: "CO", score: "Hole 3 • -1", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-    { id: "f9", name: "Liam Gallagher", initials: "LG", score: "Hole 8 • +4", bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white" },
-  ];
-  // Initialized with live competitors on the course so carousel is fully scrollable
-  const [friendsOnCourse, setFriendsOnCourse] = useState<any[]>(sampleFriendsOnCourse);
+  // --- Friends on Course State (Derived dynamically from active tournament registered players) ---
+  const [friendsOnCourse, setFriendsOnCourse] = useState<{
+    id: string;
+    name: string;
+    initials: string;
+    score: string;
+    bg: string;
+  }[]>([]);
 
   // --- Active On-Course Competitors Data & Telemetry Scorecards ---
   const STANDARD_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
@@ -607,226 +600,31 @@ export default function MobilePreviewPage() {
     }));
   };
 
-  const ACTIVE_COMPETITORS_DATA = [
-    {
-      id: "f1",
-      name: "Sarah Jenkins",
-      initials: "SJ",
-      club: "Ikoyi Club 1938",
-      hcp: "4.2",
-      score: "Hole 14 • Even",
-      toPar: 0,
-      currentHole: 14,
-      thru: 13,
-      gross: 51,
-      net: 48,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight A",
-      teeTime: "08:20 AM",
-      ball: "Titleist Pro V1",
-      marker: "David Miller",
-      pace: "On Pace",
-      holes: buildScorecardHoles([4, 4, 3, 5, 4, 4, 2, 5, 5, 4, 4, 3, 4, null, null, null, null, null]),
-    },
-    {
-      id: "f2",
-      name: "David Miller",
-      initials: "DM",
-      club: "Augusta National GC",
-      hcp: "1.8",
-      score: "Hole 9 • +2",
-      toPar: 2,
-      currentHole: 9,
-      thru: 8,
-      gross: 34,
-      net: 33,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight A",
-      teeTime: "08:20 AM",
-      ball: "TaylorMade TP5",
-      marker: "Sarah Jenkins",
-      pace: "On Pace",
-      holes: buildScorecardHoles([4, 5, 3, 5, 4, 5, 3, 5, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      id: "f3",
-      name: "Marcus Chen",
-      initials: "MC",
-      club: "Pine Valley GC",
-      hcp: "0.4",
-      score: "Hole 18 • -1",
-      toPar: -1,
-      currentHole: 18,
-      thru: 17,
-      gross: 66,
-      net: 66,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight B",
-      teeTime: "08:00 AM",
-      ball: "Callaway Chrome Soft",
-      marker: "Alex Wright",
-      pace: "+3m Ahead",
-      holes: buildScorecardHoles([4, 3, 3, 5, 4, 4, 3, 5, 4, 4, 4, 2, 5, 4, 4, 3, 5, null]),
-    },
-    {
-      id: "f4",
-      name: "Kevin Brown",
-      initials: "KB",
-      club: "St Andrews Links",
-      hcp: "5.5",
-      score: "Hole 7 • +3",
-      toPar: 3,
-      currentHole: 7,
-      thru: 6,
-      gross: 27,
-      net: 25,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight C",
-      teeTime: "08:40 AM",
-      ball: "Srixon Z-Star",
-      marker: "Sophie Van Der Merwe",
-      pace: "On Pace",
-      holes: buildScorecardHoles([5, 4, 4, 6, 4, 4, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      id: "f5",
-      name: "Alex Wright",
-      initials: "AW",
-      club: "Cypress Point Club",
-      hcp: "+1.2",
-      score: "Hole 11 • -2",
-      toPar: -2,
-      currentHole: 11,
-      thru: 10,
-      gross: 38,
-      net: 39,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight B",
-      teeTime: "08:00 AM",
-      ball: "Titleist Pro V1x",
-      marker: "Marcus Chen",
-      pace: "+3m Ahead",
-      holes: buildScorecardHoles([3, 4, 3, 4, 4, 4, 3, 5, 4, 4, null, null, null, null, null, null, null, null]),
-    },
-    {
-      id: "f6",
-      name: "Sophie Van Der Merwe",
-      initials: "SV",
-      club: "Fancourt Golf Estate",
-      hcp: "2.3",
-      score: "Hole 5 • Even",
-      toPar: 0,
-      currentHole: 5,
-      thru: 4,
-      gross: 16,
-      net: 15,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight C",
-      teeTime: "08:40 AM",
-      ball: "TaylorMade Tour Response",
-      marker: "Kevin Brown",
-      pace: "On Pace",
-      holes: buildScorecardHoles([4, 4, 3, 5, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      id: "f7",
-      name: "Amina Bello",
-      initials: "AB",
-      club: "IBB International Golf Club",
-      hcp: "6.2",
-      score: "Hole 16 • +1",
-      toPar: 1,
-      currentHole: 16,
-      thru: 15,
-      gross: 61,
-      net: 56,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight A",
-      teeTime: "07:50 AM",
-      ball: "Bridgestone Tour B",
-      marker: "Chidi Okafor",
-      pace: "On Pace",
-      holes: buildScorecardHoles([4, 4, 3, 6, 4, 4, 3, 5, 4, 4, 5, 3, 5, 4, 4, null, null, null]),
-    },
-    {
-      id: "f8",
-      name: "Chidi Okafor",
-      initials: "CO",
-      club: "Oakwood Golf Club",
-      hcp: "8.5",
-      score: "Hole 3 • -1",
-      toPar: -1,
-      currentHole: 3,
-      thru: 2,
-      gross: 7,
-      net: 6,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight D",
-      teeTime: "09:10 AM",
-      ball: "Titleist AVX",
-      marker: "Liam Gallagher",
-      pace: "On Pace",
-      holes: buildScorecardHoles([3, 4, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-    {
-      id: "f9",
-      name: "Liam Gallagher",
-      initials: "LG",
-      club: "Enugu Golf Club",
-      hcp: "3.7",
-      score: "Hole 8 • +4",
-      toPar: 4,
-      currentHole: 8,
-      thru: 7,
-      gross: 32,
-      net: 30,
-      tournament: "Oakwood Championship",
-      round: "Round 2",
-      flight: "Flight D",
-      teeTime: "09:10 AM",
-      ball: "Callaway Supersoft",
-      marker: "Chidi Okafor",
-      pace: "On Pace",
-      holes: buildScorecardHoles([5, 5, 4, 5, 4, 5, 4, null, null, null, null, null, null, null, null, null, null, null]),
-    },
-  ];
-
   const [showActivePlayersModal, setShowActivePlayersModal] = useState(false);
   const [activePlayersSearchQuery, setActivePlayersSearchQuery] = useState("");
-  const [selectedPlayerForScorecard, setSelectedPlayerForScorecard] = useState<typeof ACTIVE_COMPETITORS_DATA[0] | null>(ACTIVE_COMPETITORS_DATA[0]);
+  const [selectedPlayerForScorecard, setSelectedPlayerForScorecard] = useState<any | null>(null);
   const [scorecardViewSection, setScorecardViewSection] = useState<"all" | "out" | "in">("all");
 
-  // --- Active In-Progress Round State (Oakwood Championship, Hole 14 Live) ---
-  const sampleActiveRound = {
-    id: "ar-oakwood-14",
-    tournamentId: "tourn-oakwood-championship",
-    tournamentName: "Oakwood Championship",
-    holeNumber: 14,
-    par: 4,
-    yardage: 415,
-    holeInfo: "Par 4 • 415 yds",
-    isLive: true,
-    dayText: "ROUND 2",
-    score: "-1",
-    thru: "13",
-    flightText: "Active Flight",
-    groupPlayers: [
-      { id: "gp1", name: "Sarah Jenkins", initials: "SJ", avatar: "/images/landing/onboarding1.jpg" },
-      { id: "gp2", name: "David Miller", initials: "DM", avatar: "/images/competitor/alex_avatar.jpg" },
-    ] as GroupPlayer[],
-  };
-  const [activeRound, setActiveRound] = useState<typeof sampleActiveRound | null>(sampleActiveRound);
+  // --- Active In-Progress Round State (Derived dynamically from live tournament database) ---
+  const [activeRound, setActiveRound] = useState<{
+    id: string;
+    tournamentId: string;
+    tournamentName: string;
+    holeNumber: number;
+    par: number;
+    yardage: number;
+    holeInfo: string;
+    isLive: boolean;
+    dayText: string;
+    score: string;
+    thru: string;
+    flightText: string;
+    groupPlayers: GroupPlayer[];
+  } | null>(null);
   const [activeRoundMinutesElapsed, setActiveRoundMinutesElapsed] = useState<number>(0);
   const [hasInactivityWarning, setHasInactivityWarning] = useState(false);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
+  const [mobileNotifications, setMobileNotifications] = useState<any[]>([]);
 
   // --- Real Organizer Tournaments State ---
   const [liveTournaments, setLiveTournaments] = useState<RealTournament[]>([]);
@@ -852,6 +650,73 @@ export default function MobilePreviewPage() {
   // --- Real Leaderboard & Registered Players State (Loaded from DB for active tournament) ---
   const [registeredPlayers, setRegisteredPlayers] = useState<LeaderboardPlayer[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
+  // Dynamically build competitor scorecards from active tournament registered players and course holes
+  const activeCompetitorsData = useMemo(() => {
+    if (!registeredPlayers || registeredPlayers.length === 0) return [];
+    return registeredPlayers.map((p, idx) => {
+      const holes = courseHoles.length > 0
+        ? courseHoles.map((ch) => ({
+            hole: ch.number,
+            par: ch.par,
+            yards: ch.yards || ch.yardage || 400,
+            strokes: null,
+          }))
+        : STANDARD_PARS.map((par, i) => ({
+            hole: i + 1,
+            par,
+            yards: STANDARD_YARDS[i],
+            strokes: null,
+          }));
+
+      return {
+        id: p.id,
+        name: p.name,
+        initials: p.initials,
+        club: activeTournament?.organizerClub || activeTournament?.clubName || "Home Club",
+        hcp: String(p.handicap ?? "0.0"),
+        score: p.gross !== "--" ? `Gross ${p.gross}` : "Even",
+        toPar: 0,
+        currentHole: 1,
+        thru: 0,
+        gross: p.gross !== "--" ? Number(p.gross) : 0,
+        net: 0,
+        tournament: activeTournament?.name || "Tournament",
+        round: "Round 1",
+        flight: "Championship",
+        teeTime: "08:00 AM",
+        ball: "Golf Ball",
+        marker: idx > 0 ? registeredPlayers[0].name : (registeredPlayers[1]?.name || "Marker"),
+        pace: "On Pace",
+        holes,
+      };
+    });
+  }, [registeredPlayers, courseHoles, activeTournament]);
+
+  // Synchronize friends on course directly with active tournament registered players
+  useEffect(() => {
+    if (registeredPlayers && registeredPlayers.length > 0) {
+      const mapped = registeredPlayers.map((p) => ({
+        id: p.id,
+        name: p.name,
+        initials: p.initials,
+        score: p.gross !== "--" ? `Gross ${p.gross}` : "On Course",
+        bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white",
+      }));
+      setFriendsOnCourse(mapped);
+    } else {
+      setFriendsOnCourse([]);
+    }
+  }, [registeredPlayers]);
+
+  // Keep scorecard competitor in sync
+  useEffect(() => {
+    if (!selectedPlayerForScorecard && activeCompetitorsData.length > 0) {
+      setSelectedPlayerForScorecard(activeCompetitorsData[0]);
+    } else if (activeCompetitorsData.length === 0) {
+      setSelectedPlayerForScorecard(null);
+    }
+  }, [activeCompetitorsData, selectedPlayerForScorecard]);
 
   // --- Real Player Authentication State ---
   const [loginEmail, setLoginEmail] = useState("");
@@ -900,6 +765,155 @@ export default function MobilePreviewPage() {
     }
   }, []);
 
+  // Load real members from database for Add Golf Friends search
+  useEffect(() => {
+    let isMounted = true;
+    async function loadGolfCompetitors() {
+      setIsLoadingCompetitors(true);
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${backendBase}/members?take=100`, { headers }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          const items = Array.isArray(data) ? data : data?.items || [];
+          if (isMounted && Array.isArray(items)) {
+            const mapped = items.map((m: any) => {
+              const firstName = m.firstName || "";
+              const lastName = m.lastName || "";
+              const fullName = `${firstName} ${lastName}`.trim() || m.email?.split("@")[0] || "Player";
+              return {
+                id: m.id,
+                name: fullName,
+                email: m.email || "",
+                club: m.club?.name || m.homeClub || "OpenClub Golfer",
+                hcp: m.handicap !== undefined && m.handicap !== null ? String(m.handicap) : "0.0",
+                initial: fullName.charAt(0).toUpperCase() || "P",
+              };
+            });
+            setGolfCompetitors(mapped);
+            return;
+          }
+        }
+      } catch { }
+      finally {
+        if (isMounted) setIsLoadingCompetitors(false);
+      }
+    }
+    loadGolfCompetitors();
+    return () => { isMounted = false; };
+  }, [authenticatedPlayer?.id]);
+
+  // Dynamic server-side search query when typing in Add Golf Friends
+  useEffect(() => {
+    if (!friendsSearchQuery || friendsSearchQuery.trim().length < 2) return;
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(`${backendBase}/members?search=${encodeURIComponent(friendsSearchQuery.trim())}&take=50`, { headers }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          const items = Array.isArray(data) ? data : data?.items || [];
+          if (isMounted && Array.isArray(items) && items.length > 0) {
+            const mapped = items.map((m: any) => {
+              const firstName = m.firstName || "";
+              const lastName = m.lastName || "";
+              const fullName = `${firstName} ${lastName}`.trim() || m.email?.split("@")[0] || "Player";
+              return {
+                id: m.id,
+                name: fullName,
+                email: m.email || "",
+                club: m.club?.name || m.homeClub || "OpenClub Golfer",
+                hcp: m.handicap !== undefined && m.handicap !== null ? String(m.handicap) : "0.0",
+                initial: fullName.charAt(0).toUpperCase() || "P",
+              };
+            });
+            setGolfCompetitors((prev) => {
+              const prevIds = new Set(prev.map((p) => p.id));
+              const newItems = mapped.filter((m: any) => !prevIds.has(m.id));
+              return [...prev, ...newItems];
+            });
+          }
+        }
+      } catch {}
+    }, 250);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [friendsSearchQuery]);
+
+  // Fetch real notifications for mobile user from database
+  useEffect(() => {
+    let isMounted = true;
+    async function loadNotifications() {
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+        if (!token) return;
+        const res = await fetch(`${backendBase}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          const items = Array.isArray(data) ? data : data?.items || [];
+          if (isMounted && Array.isArray(items)) {
+            setMobileNotifications(items);
+          }
+        }
+      } catch { }
+    }
+    loadNotifications();
+    return () => { isMounted = false; };
+  }, [authenticatedPlayer]);
+
+  // Synchronize active round with live database tournament
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isForfeited = localStorage.getItem("openclub_active_round_forfeited");
+      const isClosed = localStorage.getItem("openclub_active_round_closed");
+      if (isForfeited === "true" || isClosed === "true") {
+        setActiveRound(null);
+        return;
+      }
+    }
+
+    if (activeTournament && activeTournament.status === "LIVE") {
+      const firstHolePar = courseHoles[0]?.par || 4;
+      const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+      setActiveRound({
+        id: `ar-${activeTournament.id}`,
+        tournamentId: activeTournament.id,
+        tournamentName: activeTournament.name,
+        holeNumber: 1,
+        par: firstHolePar,
+        yardage: firstHoleYards,
+        holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
+        isLive: true,
+        dayText: "ROUND 1",
+        score: "E",
+        thru: "0",
+        flightText: activeTournament.divisions || "Championship Flight",
+        groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
+          id: p.id,
+          name: p.name,
+          initials: p.initials,
+          avatar: "/images/competitor/alex_avatar.jpg",
+        })),
+      });
+    } else {
+      setActiveRound(null);
+    }
+  }, [activeTournament, courseHoles, registeredPlayers]);
+
   // Hybrid 3-Stage Inactivity & Lifecycle Management
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -922,8 +936,10 @@ export default function MobilePreviewPage() {
 
         const isForfeited = localStorage.getItem("openclub_active_round_forfeited");
         const isClosed = localStorage.getItem("openclub_active_round_closed");
-        if (isForfeited === "true" || isClosed === "true") {
-          setActiveRound(null);
+        if (isForfeited === "true" || isClosed === "true" || !activeRound) {
+          if (isForfeited === "true" || isClosed === "true") {
+            setActiveRound(null);
+          }
           setActiveRoundMinutesElapsed(0);
           setHasInactivityWarning(false);
           return;
@@ -942,31 +958,34 @@ export default function MobilePreviewPage() {
         const thirtyMinsMs = 30 * 60 * 1000;
         const elapsedMins = Math.floor(elapsedMs / 60000);
 
+        const currentTournName = activeRound.tournamentName || activeTournament?.name || "Tournament";
+        const currentHoleNumber = activeRound.holeNumber || 1;
+
         if (elapsedMs >= thirtyMinsMs) {
           setActiveRoundMinutesElapsed(elapsedMins);
           setHasInactivityWarning(true);
           const hasNotified = sessionStorage.getItem("openclub_inactivity_notified");
           if (!hasNotified) {
             sessionStorage.setItem("openclub_inactivity_notified", "true");
-            showToast("Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.", "alert", "INACTIVE FOR 30 MINUTES");
+            showToast(`${currentTournName}: Inactivity alert on Hole ${currentHoleNumber}. Tap Resume Play to record your score.`, "alert", "INACTIVE FOR 30 MINUTES");
 
-            // Dispatch real-time Pace of Play alert for Samuel Obadina to Organizer & Super Admin TopNav
-            const playerEmail = authenticatedPlayer?.email || (storedPlayer ? JSON.parse(storedPlayer).email : "samuel.obadina@gmail.com");
-            const playerName = authenticatedPlayer?.name || (storedPlayer ? JSON.parse(storedPlayer).name : "Samuel Obadina");
+            // Dispatch real-time Pace of Play alert to Organizer & Super Admin TopNav
+            const playerEmail = authenticatedPlayer?.email || (storedPlayer ? JSON.parse(storedPlayer).email : "player@golfclub.com");
+            const playerName = authenticatedPlayer?.name || (storedPlayer ? JSON.parse(storedPlayer).name : "Tournament Player");
             const alertNotification = {
-              id: "inact-alert-samuel-14",
+              id: `inact-alert-${Date.now()}`,
               userId: "admin",
               title: "Pace of Play Alert (30m Inactivity)",
-              body: `${playerName} (${playerEmail}) is yet to enter a score on Hole 14 in Oakwood Championship (30 mins elapsed).`,
+              body: `${playerName} (${playerEmail}) is yet to enter a score on Hole ${currentHoleNumber} in ${currentTournName} (30 mins elapsed).`,
               type: "TOURNAMENT_ALERT",
               isRead: false,
               createdAt: new Date().toISOString(),
               data: {
-                tournamentId: activeRound?.tournamentId || "tourn-oakwood-championship",
-                tournamentName: activeRound?.tournamentName || "Oakwood Championship",
+                tournamentId: activeRound?.tournamentId || activeTournament?.id || "",
+                tournamentName: currentTournName,
                 playerName,
                 playerEmail,
-                holeNumber: 14,
+                holeNumber: currentHoleNumber,
                 minutesInactive: elapsedMins >= 30 ? elapsedMins : 30,
                 category: "PACE_OF_PLAY",
               },
@@ -995,27 +1014,49 @@ export default function MobilePreviewPage() {
         setActiveRound(null);
         setActiveRoundMinutesElapsed(0);
         setHasInactivityWarning(false);
-        showToast("Oakwood Championship match forfeited by Tournament Committee.", "error", "ADMIN FORFEIT (WD)");
+        const forfeitedTournName = activeRound?.tournamentName || activeTournament?.name || "Tournament";
+        showToast(`${forfeitedTournName} match forfeited by Tournament Committee.`, "error", "ADMIN FORFEIT (WD)");
       }
     });
     return () => {
       clearInterval(interval);
       unsubscribeEvents();
     };
-  }, [authenticatedPlayer, activeScreen]);
-  const filteredFriends = friendsSearchQuery.trim()
-    ? ALL_GOLF_COMPETITORS.filter((p) => {
-        const q = friendsSearchQuery.trim().toLowerCase();
-        return (
-          p.name.toLowerCase().includes(q) ||
-          p.club.toLowerCase().includes(q) ||
-          p.hcp.toLowerCase().includes(q) ||
-          p.email.toLowerCase().includes(q)
-        );
-      })
-    : ALL_GOLF_COMPETITORS.slice(0, 4);
+  }, [authenticatedPlayer, activeScreen, activeRound, activeTournament]);
 
-  const filteredActivePlayers = ACTIVE_COMPETITORS_DATA.filter((p) => {
+  const filteredFriends = useMemo(() => {
+    const combined = [...golfCompetitors];
+    const existingIds = new Set(combined.map((c) => c.id));
+    const existingNames = new Set(combined.map((c) => c.name.toLowerCase()));
+
+    for (const rp of registeredPlayers) {
+      if (!existingIds.has(rp.id) && !existingNames.has(rp.name.toLowerCase())) {
+        combined.push({
+          id: rp.id,
+          name: rp.name,
+          email: "",
+          club: rp.club || "Tournament Player",
+          hcp: String(rp.handicap ?? "0.0"),
+          initial: rp.initials?.[0] || rp.name.charAt(0).toUpperCase() || "P",
+        });
+      }
+    }
+
+    if (!friendsSearchQuery.trim()) {
+      return combined.slice(0, 5);
+    }
+    const q = friendsSearchQuery.trim().toLowerCase();
+    return combined.filter((p) => {
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.club.toLowerCase().includes(q) ||
+        p.hcp.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q)
+      );
+    });
+  }, [golfCompetitors, registeredPlayers, friendsSearchQuery]);
+
+  const filteredActivePlayers = activeCompetitorsData.filter((p: any) => {
     if (!activePlayersSearchQuery.trim()) return true;
     const q = activePlayersSearchQuery.toLowerCase().trim();
     return (
@@ -1028,8 +1069,8 @@ export default function MobilePreviewPage() {
   });
 
   // --- Verify Email (6-Digit OTP) State ---
-  const [verifyEmailTarget, setVerifyEmailTarget] = useState("alex.wright@example.com");
-  const [activeOtpCode, setActiveOtpCode] = useState<string | null>("849201");
+  const [verifyEmailTarget, setVerifyEmailTarget] = useState("");
+  const [activeOtpCode, setActiveOtpCode] = useState<string | null>(null);
   const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [resendCooldown, setResendCooldown] = useState(59);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -1129,7 +1170,7 @@ export default function MobilePreviewPage() {
     try {
       setResendCooldown(59);
       setVerifyError(null);
-      const targetEmail = verifyEmailTarget || regEmail || "alex.wright@example.com";
+      const targetEmail = verifyEmailTarget || regEmail || "";
       const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
       const res = await fetch(`${backendBase}/auth/resend-verification`, {
         method: "POST",
@@ -1155,9 +1196,9 @@ export default function MobilePreviewPage() {
   const [isSubmittingReset, setIsSubmittingReset] = useState(false);
 
   // --- Forgot Password & Check Inbox State ---
-  const [forgotEmail, setForgotEmail] = useState("alex.wright@golf.com");
+  const [forgotEmail, setForgotEmail] = useState("");
   const [isSubmittingForgot, setIsSubmittingForgot] = useState(false);
-  const [checkInboxEmail, setCheckInboxEmail] = useState<string>("alex.wright@example.com");
+  const [checkInboxEmail, setCheckInboxEmail] = useState<string>("");
   const [checkInboxCountdown, setCheckInboxCountdown] = useState<number>(48);
 
   useEffect(() => {
@@ -1325,8 +1366,8 @@ export default function MobilePreviewPage() {
   const [regShowPassword, setRegShowPassword] = useState(false);
   const [regShowConfirm, setRegShowConfirm] = useState(false);
 
-  const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Samuel Obadina");
-  const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "SO");
+  const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Tournament Player");
+  const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "TP");
 
   // Step 2
   const [regClassification, setRegClassification] = useState<"BEGINNER" | "AMATEUR" | "PROFESSIONAL" | null>(null);
@@ -1392,58 +1433,25 @@ export default function MobilePreviewPage() {
     coverImage?: string | null;
     logo?: string | null;
     logoUrl?: string | null;
-  }[]>([
-    {
-      id: "seed_ikoyi",
-      name: "Ikoyi Golf Club",
-      city: "Eti Osa",
-      state: "Lagos",
-      country: "NG",
-      type: "Parkland",
-      holes: 18,
-    },
-    { id: "seed_1", name: "Oakwood Country Club Course", city: "", state: "", country: "NG", type: "Parkland", holes: 18 },
-    { id: "seed_achimota", name: "Achimota Golf Club", city: "Accra", state: "Greater Accra", country: "GH", type: "Parkland", holes: 18 },
-    { id: "seed_2", name: "Augusta National Golf Club", city: "Augusta", state: "GA", country: "US", type: "Parkland", holes: 18 },
-    { id: "seed_3", name: "Pinehurst Resort No. 2", city: "Pinehurst", state: "NC", country: "US", type: "Sandhills", holes: 18 },
-    { id: "seed_4", name: "St Andrews Old Course", city: "St Andrews", state: "Fife", country: "GB", type: "Links", holes: 18 },
-    { id: "seed_5", name: "Pebble Beach Golf Links", city: "Pebble Beach", state: "CA", country: "US", type: "Links", holes: 18 },
-    ...Array.from({ length: 19 }, (_, i) => ({
-      id: `openclub_seed_${i + 2}`,
-      name: `OpenClub Golf Club ${i + 2} Course`,
-      city: "",
-      state: "",
-      country: "NG",
-      type: "Parkland",
-      holes: 18,
-    })),
-  ]);
+  }[]>([]);
 
-  // Fetch courses from backend to sync dynamically with registered golf courses
+  // Fetch courses from backend database to sync dynamically with registered golf courses
   useEffect(() => {
-    fetch("/api/courses")
+    let isMounted = true;
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    fetch(`${backendBase}/courses`)
       .then((res) => {
         if (!res.ok) return [];
         return res.json();
       })
       .then((data) => {
         const fetched = Array.isArray(data) ? data : data?.items || [];
-        if (fetched.length > 0) {
-          setCoursesList((prev) => {
-            const map = new Map<string, any>();
-            fetched.forEach((c: any) => {
-              if (c?.name) map.set(c.name.trim().toLowerCase(), c);
-            });
-            prev.forEach((c) => {
-              if (!map.has(c.name.trim().toLowerCase())) {
-                map.set(c.name.trim().toLowerCase(), c);
-              }
-            });
-            return Array.from(map.values());
-          });
+        if (isMounted && Array.isArray(fetched)) {
+          setCoursesList(fetched);
         }
       })
       .catch(() => { });
+    return () => { isMounted = false; };
   }, []);
 
   // Close suggestions / modals on outside click
@@ -1903,7 +1911,7 @@ export default function MobilePreviewPage() {
                 id: t.id || `tournament_${idx}`,
                 name: t.name || "Championship Tournament",
                 status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
-                organizerClub: t.club?.name || "OpenClub Golf Club",
+                organizerClub: t.club?.name || t.venue || "Tournament Club",
                 organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
                 courseName: t.course?.name || "Championship Course",
                 coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
@@ -2081,6 +2089,12 @@ export default function MobilePreviewPage() {
       }
 
       // Successful player login directly from database
+      if (data.accessToken) {
+        try {
+          localStorage.setItem("openclub_access_token", data.accessToken);
+          localStorage.setItem("openclub_mobile_token", data.accessToken);
+        } catch {}
+      }
       const user = data.user || data;
       const rawName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
       const name = rawName || (user.name ? user.name : user.email ? (user.email.split("@")[0].toLowerCase() === "admin" ? "Tournament Administrator" : user.email.split("@")[0]) : "Tournament Player");
@@ -2503,7 +2517,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'alex.wright@golf.com');
+  final _emailController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '••••••••');
   bool _obscurePassword = true;
   bool _rememberMe = false;
@@ -2549,7 +2563,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               
               // 4. Email Address Input (soft-mint container #f5faf6)
               _buildFieldLabel('EMAIL ADDRESS'),
-              _buildTextInput(controller: _emailController, icon: Icons.mail_outline, hint: 'alex.wright@golf.com'),
+              _buildTextInput(controller: _emailController, icon: Icons.mail_outline, hint: 'player@golfclub.com'),
               const SizedBox(height: 16),
               
               // 5. Password Input with FORGOT? Link
@@ -2628,7 +2642,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String email;
-  const VerifyEmailScreen({super.key, this.email = 'alex.wright@example.com'});
+  const VerifyEmailScreen({super.key, this.email = ''});
   @override
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
@@ -2764,7 +2778,7 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  final _emailController = TextEditingController(text: 'alex.wright@golf.com');
+  final _emailController = TextEditingController(text: '');
   bool _isLoading = false;
 
   static const Color kGreenInputBg = Color(0xFFF5FAF6);
@@ -3204,18 +3218,18 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
   // Reusable Screen Content Renderer for any phone slot
   const renderScreenContent = (targetScreen: ScreenId, phoneIdx: number) => {
-    const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Samuel Obadina");
+    const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Tournament Player");
     const currentFirstName = (() => {
       if (authenticatedPlayer?.firstName?.trim()) return authenticatedPlayer.firstName.trim();
       if (regFirstName?.trim()) return regFirstName.trim();
       if (currentDisplayName.trim()) return currentDisplayName.trim().split(" ")[0];
-      return "Samuel";
+      return "Player";
     })();
-    const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "SO");
+    const currentInitials = (currentDisplayName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "TP");
     const currentIsPro = Boolean(authenticatedPlayer?.isPro || authenticatedPlayer?.classification === "PROFESSIONAL" || regClassification === "PROFESSIONAL");
     const currentClub = (authenticatedPlayer?.club && !authenticatedPlayer.club.toLowerCase().includes("openclub") && !authenticatedPlayer.club.toLowerCase().includes("open club")
       ? authenticatedPlayer.club
-      : (regHomeClub.trim() ? regHomeClub.trim() : (authenticatedPlayer?.club && !authenticatedPlayer.club.toLowerCase().includes("openclub") ? authenticatedPlayer.club : "Ikoyi Golf Club"))).trim();
+      : (regHomeClub.trim() ? regHomeClub.trim() : "Home Golf Club")).trim();
     const currentCity = (authenticatedPlayer?.city || regCity || "").trim();
     const currentState = (authenticatedPlayer?.state || regState || "").trim();
     const currentLocation = currentClub
@@ -4060,13 +4074,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 {/* Row 4: Flight Avatars & Inactivity Status (Only visible when 30+ mins reached) */}
                                 <div className="flex items-center gap-2 mt-1.5">
                                   <div className="flex items-center -space-x-1.5">
-                                    {(activeRound.groupPlayers && activeRound.groupPlayers.length > 0
-                                      ? activeRound.groupPlayers
-                                      : [
-                                          { id: "gp1", name: "Sarah Jenkins", initials: "SJ", avatar: "/images/landing/onboarding1.jpg" },
-                                          { id: "gp2", name: "David Miller", initials: "DM", avatar: "/images/competitor/alex_avatar.jpg" },
-                                        ]
-                                    ).map((player) => (
+                                    {(activeRound.groupPlayers || []).map((player) => (
                                       <GroupPlayerAvatarItem key={player.id} player={player} />
                                     ))}
                                   </div>
@@ -4214,10 +4222,12 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                         playingNowCarouselRef.current.dataset.moved = "false";
                                         return;
                                       }
-                                      const competitor = ACTIVE_COMPETITORS_DATA.find((c) => c.name.toLowerCase() === friend.name.toLowerCase()) || ACTIVE_COMPETITORS_DATA[0];
-                                      setSelectedPlayerForScorecard(competitor);
-                                      setScorecardViewSection("all");
-                                      switchScreen("player-scorecard");
+                                      const competitor = activeCompetitorsData.find((c: any) => c.name.toLowerCase() === friend.name.toLowerCase()) || activeCompetitorsData[0];
+                                      if (competitor) {
+                                        setSelectedPlayerForScorecard(competitor);
+                                        setScorecardViewSection("all");
+                                        switchScreen("player-scorecard");
+                                      }
                                     }}
                                     className="w-[54px] h-[54px] rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-gradient-to-b from-slate-300 to-slate-400 text-white flex items-center justify-center shrink-0 font-bold text-[14px] relative hover:scale-105 transition-all cursor-pointer active:scale-95"
                                     title={`${friend.name} (${friend.score}) - Tap to view scorecard`}
@@ -5032,7 +5042,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                   setLoginEmail(e.target.value);
                                   if (loginError) setLoginError(null);
                                 }}
-                                placeholder="alex.wright@golf.com"
+                                placeholder="player@golfclub.com"
                                 className={`w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-3.5 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all ${
                                   isLoggingIn ? "opacity-60 cursor-not-allowed bg-slate-100/80" : ""
                                 }`}
@@ -6171,8 +6181,8 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 </div>
                                 <div className="flex items-center justify-between text-xs pt-1 border-t border-[#e1efe5]">
                                   <span className="text-[#8CA0BA] font-normal shrink-0">Home Club</span>
-                                  <span className="text-[#0F172A] font-medium text-[13px] text-right truncate flex-1 ml-4" title={regHomeClub.trim() ? regHomeClub.trim() : "Oakwood National GC"}>
-                                    {regHomeClub.trim() ? regHomeClub.trim() : "Oakwood National GC"}
+                                  <span className="text-[#0F172A] font-medium text-[13px] text-right truncate flex-1 ml-4" title={regHomeClub.trim() ? regHomeClub.trim() : "Not specified"}>
+                                    {regHomeClub.trim() ? regHomeClub.trim() : "Not specified"}
                                   </span>
                                 </div>
                               </div>
@@ -7385,7 +7395,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                     });
                                   }}
                                   onChange={(e) => setForgotEmail(e.target.value)}
-                                  placeholder="alex.wright@golf.com"
+                                  placeholder="player@golfclub.com"
                                   className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl pl-10 pr-3.5 text-[13.5px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden transition-all"
                                 />
                               </div>
@@ -7483,7 +7493,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           {/* Description with dynamic recipient email */}
                           <p className="text-[13.5px] text-[#64748B] leading-relaxed max-w-[285px] mb-7 font-normal">
                             We&apos;ve sent password reset instructions to{" "}
-                            <span className="font-bold text-[#0F172A]">{checkInboxEmail || "alex.wright@example.com"}</span>.
+                            <span className="font-bold text-[#0F172A]">{checkInboxEmail || "your email address"}</span>.
                           </p>
 
                           {/* Action Button: "Open Email App" */}
@@ -7718,8 +7728,16 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                   {/* SCREEN: PLAYER SCORECARD & ON-COURSE TELEMETRY */}
                   {targetScreen === "player-scorecard" && (() => {
-                    const competitor = selectedPlayerForScorecard || ACTIVE_COMPETITORS_DATA[0];
-                    const holes = competitor.holes || [];
+                    const competitor = selectedPlayerForScorecard || activeCompetitorsData[0];
+                    if (!competitor) {
+                      return (
+                        <div className="p-8 text-center text-slate-400">
+                          <p className="text-sm font-bold text-slate-700">No Competitor Selected</p>
+                          <p className="text-xs text-slate-400 mt-1">Select an active player from the leaderboard or carousel.</p>
+                        </div>
+                      );
+                    }
+                    const holes: Array<{ hole: number; par: number; yards: number; strokes: number | null }> = competitor.holes || [];
                     const front9Holes = holes.slice(0, 9);
                     const back9Holes = holes.slice(9, 18);
 
@@ -7732,11 +7750,11 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                     // Compute Out / In / Total stats
                     const calcSubtotal = (slice: typeof holes) => {
-                      const parTotal = slice.reduce((sum, h) => sum + h.par, 0);
-                      const yardsTotal = slice.reduce((sum, h) => sum + h.yards, 0);
-                      const played = slice.filter((h) => h.strokes !== null);
-                      const grossTotal = played.reduce((sum, h) => sum + (h.strokes || 0), 0);
-                      const parOfPlayed = played.reduce((sum, h) => sum + h.par, 0);
+                      const parTotal = slice.reduce((sum: number, h: { par: number }) => sum + h.par, 0);
+                      const yardsTotal = slice.reduce((sum: number, h: { yards: number }) => sum + h.yards, 0);
+                      const played = slice.filter((h: { strokes: number | null }) => h.strokes !== null);
+                      const grossTotal = played.reduce((sum: number, h: { strokes: number | null }) => sum + (h.strokes || 0), 0);
+                      const parOfPlayed = played.reduce((sum: number, h: { par: number }) => sum + h.par, 0);
                       const diffTotal = played.length > 0 ? grossTotal - parOfPlayed : 0;
                       return { parTotal, yardsTotal, grossTotal, diffTotal, playedCount: played.length };
                     };
@@ -7903,18 +7921,52 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               </div>
                             </div>
 
-                            {/* 2. Official Scorecard Table */}
-                            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-xs">
-                              {/* View Toggle (All 18 / Front 9 / Back 9) */}
-                              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                                <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                                  Scorecard
-                                </h4>
+                            {/* 2. Official Scorecard Card (Matching Reference Design Pattern) */}
+                            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 border border-slate-100 shadow-xs">
+                              {/* Header: FINAL SCORECARD • ROUND 1   and   Total: 71 (-1) */}
+                              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                                <div>
+                                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                    FINAL SCORECARD • {activeRound?.dayText || "ROUND 1"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[14px]">
+                                  <span className="font-bold text-[#0F172A]">Total:</span>
+                                  <span className="font-extrabold text-[#0F172A]">
+                                    {totalStats.playedCount > 0 ? totalStats.grossTotal : totalStats.parTotal}
+                                  </span>
+                                  <span
+                                    className={`font-extrabold text-[13.5px] ${
+                                      totalStats.diffTotal < 0
+                                        ? "text-[#009A60]"
+                                        : totalStats.diffTotal === 0
+                                        ? "text-slate-500"
+                                        : "text-[#D97706]"
+                                    }`}
+                                  >
+                                    ({formatDiff(totalStats.diffTotal, totalStats.playedCount)})
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Filter Tabs Row (All 18 / Out (1-9) / In (10-18)) */}
+                              <div className="flex items-center justify-between pt-2.5 pb-1">
+                                <div className="flex items-center gap-2 text-[10px] text-[#8CA0BA]">
+                                  <span className="flex items-center gap-1">
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-[#EAF7EE] border border-[#86EFAC] inline-block" /> Birdie
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-white border border-slate-200 inline-block" /> Par
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-[#FFFBEB] border border-[#FDE68A] inline-block" /> Bogey
+                                  </span>
+                                </div>
                                 <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-lg">
                                   <button
                                     type="button"
                                     onClick={() => setScorecardViewSection("all")}
-                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer ${
                                       scorecardViewSection === "all"
                                         ? "bg-white text-[#0F172A] shadow-xs"
                                         : "text-slate-500 hover:text-slate-900"
@@ -7925,140 +7977,171 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                   <button
                                     type="button"
                                     onClick={() => setScorecardViewSection("out")}
-                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer ${
                                       scorecardViewSection === "out"
                                         ? "bg-white text-[#0F172A] shadow-xs"
                                         : "text-slate-500 hover:text-slate-900"
                                     }`}
                                   >
-                                    Out (1-9)
+                                    Out
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setScorecardViewSection("in")}
-                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer ${
                                       scorecardViewSection === "in"
                                         ? "bg-white text-[#0F172A] shadow-xs"
                                         : "text-slate-500 hover:text-slate-900"
                                     }`}
                                   >
-                                    In (10-18)
+                                    In
                                   </button>
                                 </div>
                               </div>
 
-                              {/* Score Legend Key */}
-                              <div className="flex items-center justify-center gap-3 py-2 text-[10px] text-slate-500 border-b border-slate-100">
-                                <span className="flex items-center gap-1">
-                                  <span className="w-3.5 h-3.5 rounded-full bg-emerald-50 border border-[#009A60] inline-block" /> Birdie
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="w-3.5 h-3.5 rounded-full bg-amber-100 border border-amber-500 inline-block" /> Eagle
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="font-bold text-slate-700">#</span> Par
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="w-3.5 h-3.5 rounded-sm bg-slate-200 inline-block" /> Bogey
-                                </span>
-                              </div>
+                              {/* Front 9 (OUT: 1-9) */}
+                              {(scorecardViewSection === "all" || scorecardViewSection === "out") && (
+                                <div className="pt-2">
+                                  <div className="space-y-1.5">
+                                    {/* Hole Numbers (H) */}
+                                    <div className="flex items-center">
+                                      <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">H</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {front9Holes.map((h) => (
+                                          <span key={`h-${h.hole}`} className="text-[11px] font-semibold text-[#8CA0BA]">
+                                            {h.hole}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
 
-                              {/* Score Table */}
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs">
-                                  <thead>
-                                    <tr className="border-b border-slate-200/80 text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
-                                      <th className="py-2 px-2">Hole</th>
-                                      <th className="py-2 px-2 text-center">Par</th>
-                                      <th className="py-2 px-2 text-center">Yards</th>
-                                      <th className="py-2 px-2 text-center">Score</th>
-                                      <th className="py-2 px-2 text-right">Diff</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {displayedHoles.map((h) => {
-                                      const isCurrent = h.hole === competitor.currentHole;
-                                      const diff = h.strokes !== null ? h.strokes - h.par : null;
-                                      return (
-                                        <tr
-                                          key={h.hole}
-                                          className={`transition-colors ${
-                                            isCurrent ? "bg-emerald-50/60 font-semibold" : "hover:bg-slate-50/80"
-                                          }`}
-                                        >
-                                          <td className="py-2 px-2 font-bold text-[#0F172A] flex items-center gap-1.5">
-                                            <span>{h.hole}</span>
-                                            {isCurrent && (
-                                              <span className="text-[9px] font-black uppercase px-1 py-0.2 rounded bg-emerald-500 text-white leading-none">
-                                                Now
-                                              </span>
-                                            )}
-                                          </td>
-                                          <td className="py-2 px-2 text-center text-slate-600 font-medium">
+                                    {/* Pars (P) */}
+                                    <div className="flex items-center">
+                                      <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">P</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {front9Holes.map((h) => (
+                                          <span key={`p-${h.hole}`} className="text-[11px] font-semibold text-[#64748B]">
                                             {h.par}
-                                          </td>
-                                          <td className="py-2 px-2 text-center text-slate-400 text-[11px]">
-                                            {h.yards}
-                                          </td>
-                                          <td className="py-2 px-2 text-center">
-                                            {getStrokeBadge(h.strokes, h.par)}
-                                          </td>
-                                          <td className="py-2 px-2 text-right font-bold text-[11px]">
-                                            {diff === null ? (
-                                              <span className="text-slate-300">-</span>
-                                            ) : diff === 0 ? (
-                                              <span className="text-slate-400">E</span>
-                                            ) : diff > 0 ? (
-                                              <span className="text-rose-600">+{diff}</span>
-                                            ) : (
-                                              <span className="text-[#009A60]">{diff}</span>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
 
-                                    {/* Front 9 Subtotal (Out) */}
-                                    {(scorecardViewSection === "all" || scorecardViewSection === "out") && (
-                                      <tr className="bg-slate-50 font-bold border-t-2 border-slate-200 text-[#0F172A]">
-                                        <td className="py-2 px-2 text-[11px] uppercase">OUT (1-9)</td>
-                                        <td className="py-2 px-2 text-center text-[11px]">{outStats.parTotal}</td>
-                                        <td className="py-2 px-2 text-center text-slate-400 text-[10.5px]">{outStats.yardsTotal}</td>
-                                        <td className="py-2 px-2 text-center text-[12px]">{outStats.grossTotal || "-"}</td>
-                                        <td className="py-2 px-2 text-right text-[11px]">
-                                          {formatDiff(outStats.diffTotal, outStats.playedCount)}
-                                        </td>
-                                      </tr>
-                                    )}
+                                    {/* Scores (S) */}
+                                    <div className="flex items-center pt-0.5">
+                                      <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {front9Holes.map((h) => {
+                                          const strokes = h.strokes;
+                                          const par = h.par;
+                                          const isPlayed = strokes !== null;
+                                          const diff = isPlayed ? strokes - par : null;
+                                          let badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                                          if (isPlayed) {
+                                            if (diff! < 0) {
+                                              badgeStyle = "bg-[#EAF7EE] border-[#86EFAC] text-[#009A60]";
+                                            } else if (diff! > 0) {
+                                              badgeStyle = "bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]";
+                                            } else {
+                                              badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                                            }
+                                          } else {
+                                            badgeStyle = "bg-slate-50/40 border-slate-200/60 border-dashed text-slate-300";
+                                          }
 
-                                    {/* Back 9 Subtotal (In) */}
-                                    {(scorecardViewSection === "all" || scorecardViewSection === "in") && (
-                                      <tr className="bg-slate-50 font-bold border-t-2 border-slate-200 text-[#0F172A]">
-                                        <td className="py-2 px-2 text-[11px] uppercase">IN (10-18)</td>
-                                        <td className="py-2 px-2 text-center text-[11px]">{inStats.parTotal}</td>
-                                        <td className="py-2 px-2 text-center text-slate-400 text-[10.5px]">{inStats.yardsTotal}</td>
-                                        <td className="py-2 px-2 text-center text-[12px]">{inStats.grossTotal || "-"}</td>
-                                        <td className="py-2 px-2 text-right text-[11px]">
-                                          {formatDiff(inStats.diffTotal, inStats.playedCount)}
-                                        </td>
-                                      </tr>
-                                    )}
+                                          return (
+                                            <div
+                                              key={`s-${h.hole}`}
+                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold transition-all shadow-2xs ${badgeStyle}`}
+                                            >
+                                              {strokes !== null ? strokes : "-"}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
 
-                                    {/* Total 18 Holes Summary */}
-                                    {scorecardViewSection === "all" && (
-                                      <tr className="bg-[#EAF7EE] font-black border-t-2 border-[#009A60] text-[#009A60]">
-                                        <td className="py-2.5 px-2 text-xs uppercase">TOTAL</td>
-                                        <td className="py-2.5 px-2 text-center">{totalStats.parTotal}</td>
-                                        <td className="py-2.5 px-2 text-center text-[10.5px] text-emerald-800">{totalStats.yardsTotal}</td>
-                                        <td className="py-2.5 px-2 text-center text-sm">{totalStats.grossTotal || "-"}</td>
-                                        <td className="py-2.5 px-2 text-right text-xs">
-                                          {formatDiff(totalStats.diffTotal, totalStats.playedCount)}
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
+                                  {/* Subtotal OUT */}
+                                  <div className="text-right pt-2 pb-0.5">
+                                    <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                                      OUT: {outStats.playedCount > 0 ? outStats.grossTotal : outStats.parTotal}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Back 9 (IN: 10-18) */}
+                              {(scorecardViewSection === "all" || scorecardViewSection === "in") && (
+                                <div className={scorecardViewSection === "all" ? "pt-3.5 mt-2 border-t border-slate-100/80" : "pt-2"}>
+                                  <div className="space-y-1.5">
+                                    {/* Hole Numbers (H) */}
+                                    <div className="flex items-center">
+                                      <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">H</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {back9Holes.map((h) => (
+                                          <span key={`h-${h.hole}`} className="text-[11px] font-semibold text-[#8CA0BA]">
+                                            {h.hole}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Pars (P) */}
+                                    <div className="flex items-center">
+                                      <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">P</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {back9Holes.map((h) => (
+                                          <span key={`p-${h.hole}`} className="text-[11px] font-semibold text-[#64748B]">
+                                            {h.par}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Scores (S) */}
+                                    <div className="flex items-center pt-0.5">
+                                      <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                                      <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                                        {back9Holes.map((h) => {
+                                          const strokes = h.strokes;
+                                          const par = h.par;
+                                          const isPlayed = strokes !== null;
+                                          const diff = isPlayed ? strokes - par : null;
+                                          let badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                                          if (isPlayed) {
+                                            if (diff! < 0) {
+                                              badgeStyle = "bg-[#EAF7EE] border-[#86EFAC] text-[#009A60]";
+                                            } else if (diff! > 0) {
+                                              badgeStyle = "bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]";
+                                            } else {
+                                              badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                                            }
+                                          } else {
+                                            badgeStyle = "bg-slate-50/40 border-slate-200/60 border-dashed text-slate-300";
+                                          }
+
+                                          return (
+                                            <div
+                                              key={`s-${h.hole}`}
+                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold transition-all shadow-2xs ${badgeStyle}`}
+                                            >
+                                              {strokes !== null ? strokes : "-"}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Subtotal IN */}
+                                  <div className="text-right pt-2 pb-0.5">
+                                    <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                                      IN: {inStats.playedCount > 0 ? inStats.grossTotal : inStats.parTotal}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {/* 3. Attestation & Marker Verification Card */}
@@ -8689,7 +8772,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                   <p className="text-[13.5px] text-[#64748B] text-center leading-relaxed max-w-[280px] mx-auto mb-7 font-normal">
                     Forfeiting now will disqualify your score from the{" "}
                     <strong className="font-bold text-[#0F172A]">
-                      {activeRound?.tournamentName || "Oakwood Championship"}
+                      {activeRound?.tournamentName || "the tournament"}
                     </strong>
                     . This action cannot be undone.
                   </p>
@@ -8994,7 +9077,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     </div>
 
                     <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-0.5 flex items-center justify-between">
-                      <span>{activePlayersSearchQuery.trim() ? `Search Results (${filteredActivePlayers.length})` : `On-Course Competitors (${ACTIVE_COMPETITORS_DATA.length})`}</span>
+                      <span>{activePlayersSearchQuery.trim() ? `Search Results (${filteredActivePlayers.length})` : `On-Course Competitors (${activeCompetitorsData.length})`}</span>
                       <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
                       </span>
@@ -9003,7 +9086,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     {/* Competitor Cards */}
                     <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-hide min-h-0">
                       {filteredActivePlayers.length > 0 ? (
-                        filteredActivePlayers.map((player) => (
+                        filteredActivePlayers.map((player: any) => (
                           <div
                             key={player.id}
                             className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition-colors"
@@ -9122,42 +9205,33 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     </button>
                   </div>
 
-                  <div className="py-3 space-y-2.5">
-                    {/* Tee Time Confirmed */}
-                    <div className="p-3 rounded-xl bg-[#F0FDF4] border border-[#C6F0DB] flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#EAF7EE] flex items-center justify-center shrink-0 mt-0.5">
-                        <Flag className="h-4 w-4 text-[#009A60]" />
+                  <div className="py-3 space-y-2.5 max-h-[280px] overflow-y-auto">
+                    {mobileNotifications.length > 0 ? (
+                      mobileNotifications.map((notif: any) => (
+                        <div key={notif.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                            <Bell className="h-4 w-4 text-[#009A60]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold text-slate-900 block">{notif.title}</span>
+                            <span className="text-[11px] text-slate-600 block truncate">{notif.body}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                            {notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                          <Bell className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">No Notifications</p>
+                        <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto mt-0.5 font-normal">
+                          Official tournament announcements, score attestations, and committee alerts will appear here.
+                        </p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-slate-900 block">Tee Time Confirmed: 08:40 AM</span>
-                        <span className="text-[11px] text-slate-600 block truncate">Hole 1 • Flight 4 • Masters Invitational</span>
-                      </div>
-                      <span className="text-[10px] text-[#009A60] font-semibold shrink-0">10m ago</span>
-                    </div>
-
-                    {/* Attestation Request */}
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0 mt-0.5">
-                        <ShieldCheck className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-slate-900 block">Attestation Request</span>
-                        <span className="text-[11px] text-slate-600 block truncate">Marcus Thorne requested marker attestation</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-medium shrink-0">1h ago</span>
-                    </div>
-
-                    {/* Cut Line Movement */}
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                        <Trophy className="h-4 w-4 text-[#009A60]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-slate-900 block">Cut Line Movement: +3</span>
-                        <span className="text-[11px] text-slate-600 block truncate">Projected cut settled at +3 after morning flight</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-medium shrink-0">3h ago</span>
-                    </div>
+                    )}
                   </div>
 
                   <button
@@ -9211,28 +9285,14 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     </button>
                   </div>
 
-                  <div className="py-3 space-y-2">
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs flex items-center justify-center shrink-0">
-                        TC
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-slate-900">Tournament Committee</div>
-                        <p className="text-[11px] text-slate-600 truncate">Course conditions: Greens running at 12.5 stimp.</p>
-                      </div>
-                      <span className="text-[9px] text-slate-400">07:30 AM</span>
+                  <div className="py-8 text-center">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                      <Send className="w-5 h-5" />
                     </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        MT
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-slate-900">Marcus Thorne</div>
-                        <p className="text-[11px] text-slate-600 truncate">See you on the first tee box!</p>
-                      </div>
-                      <span className="text-[9px] text-slate-400">Yesterday</span>
-                    </div>
+                    <p className="text-xs font-bold text-slate-700">No Direct Messages</p>
+                    <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto mt-0.5 font-normal">
+                      Connect with playing partners or tournament officials to start a conversation.
+                    </p>
                   </div>
 
                   <button
@@ -9313,7 +9373,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       type="button"
                       onClick={() => {
                         setShowMenuDrawer(false);
-                        showToast("Home Club: Augusta National Golf Club", "success", "HOME CLUB");
+                        showToast(`Home Club: ${authenticatedPlayer?.club || "None selected"}`, "success", "HOME CLUB");
                       }}
                       className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                     >
@@ -9594,8 +9654,20 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                   <button
                     type="button"
                     onClick={() => {
-                      setFriendsOnCourse(sampleFriendsOnCourse);
-                      showToast("Active course players simulated.", "success", "5 PLAYERS ACTIVE");
+                      if (registeredPlayers.length > 0) {
+                        const mapped = registeredPlayers.map((p) => ({
+                          id: p.id,
+                          name: p.name,
+                          initials: p.initials,
+                          score: p.gross !== "--" ? `Gross ${p.gross}` : "On Course",
+                          bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white",
+                        }));
+                        setFriendsOnCourse(mapped);
+                        showToast("Active course players refreshed from database.", "success", `${mapped.length} PLAYERS ACTIVE`);
+                      } else {
+                        setFriendsOnCourse([]);
+                        showToast("No competitors registered for active tournament.", "alert", "COURSE QUIET");
+                      }
                     }}
                     className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
                       friendsOnCourse.length > 0
@@ -9603,7 +9675,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    Active (5)
+                    Active ({registeredPlayers.length > 0 ? registeredPlayers.length : 0})
                   </button>
                 </div>
               </div>
@@ -9625,8 +9697,29 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                   <button
                     type="button"
                     onClick={() => {
-                      if (!activeRound) {
-                        setActiveRound(sampleActiveRound);
+                      if (!activeRound && activeTournament) {
+                        const firstHolePar = courseHoles[0]?.par || 4;
+                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+                        setActiveRound({
+                          id: `ar-${activeTournament.id}`,
+                          tournamentId: activeTournament.id,
+                          tournamentName: activeTournament.name,
+                          holeNumber: 1,
+                          par: firstHolePar,
+                          yardage: firstHoleYards,
+                          holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
+                          isLive: true,
+                          dayText: "ROUND 1",
+                          score: "E",
+                          thru: "0",
+                          flightText: activeTournament.divisions || "Championship",
+                          groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
+                            id: p.id,
+                            name: p.name,
+                            initials: p.initials,
+                            avatar: "/images/competitor/alex_avatar.jpg",
+                          })),
+                        });
                       }
                       setActiveRoundMinutesElapsed(30);
                       setHasInactivityWarning(true);
@@ -9636,25 +9729,27 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           sessionStorage.setItem("openclub_inactivity_notified", "true");
                         } catch { }
                       }
-                      showToast("Oakwood Championship: Inactivity alert on Hole 14. Tap Resume Play to record your score.", "alert", "INACTIVE FOR 30 MINUTES");
+                      const activeTournTitle = activeRound?.tournamentName || activeTournament?.name || "Tournament";
+                      const activeHole = activeRound?.holeNumber || 1;
+                      showToast(`${activeTournTitle}: Inactivity alert on Hole ${activeHole}. Tap Resume Play to record your score.`, "alert", "INACTIVE FOR 30 MINUTES");
 
                       // Dispatch live pace-of-play alert to the admin dashboard & TopNav Bell icon
-                      const playerEmail = authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@gmail.com");
-                      const playerName = authenticatedPlayer?.name || currentDisplayName || "Samuel Obadina";
+                      const playerEmail = authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "player@golfclub.com");
+                      const playerName = authenticatedPlayer?.name || currentDisplayName || "Tournament Player";
                       const alertNotification = {
-                        id: "inact-alert-samuel-14",
+                        id: `inact-alert-${Date.now()}`,
                         userId: "admin",
                         title: "Pace of Play Alert (30m Inactivity)",
-                        body: `${playerName} (${playerEmail}) is yet to enter a score on Hole 14 in Oakwood Championship (30 mins elapsed).`,
+                        body: `${playerName} (${playerEmail}) is yet to enter a score on Hole ${activeHole} in ${activeTournTitle} (30 mins elapsed).`,
                         type: "TOURNAMENT_ALERT",
                         isRead: false,
                         createdAt: new Date().toISOString(),
                         data: {
-                          tournamentId: activeRound?.tournamentId || "tourn-oakwood-championship",
-                          tournamentName: activeRound?.tournamentName || "Oakwood Championship",
+                          tournamentId: activeRound?.tournamentId || activeTournament?.id || "",
+                          tournamentName: activeTournTitle,
                           playerName,
                           playerEmail,
-                          holeNumber: 14,
+                          holeNumber: activeHole,
                           minutesInactive: 30,
                           category: "PACE_OF_PLAY",
                         },
@@ -9693,7 +9788,8 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       setActiveRound(null);
                       setActiveRoundMinutesElapsed(0);
                       setHasInactivityWarning(false);
-                      showToast("Oakwood Championship match forfeited by player.", "error", "ROUND FORFEITED");
+                      const fTourn = activeRound?.tournamentName || activeTournament?.name || "Tournament";
+                      showToast(`${fTourn} match forfeited by player.`, "error", "ROUND FORFEITED");
                     }}
                     className={`px-1.5 py-1 rounded-md text-[9.5px] font-semibold transition-all cursor-pointer text-center truncate ${
                       !activeRound
@@ -9737,7 +9833,32 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           sessionStorage.removeItem("openclub_inactivity_notified");
                         } catch { }
                       }
-                      setActiveRound(sampleActiveRound);
+                      if (activeTournament) {
+                        const firstHolePar = courseHoles[0]?.par || 4;
+                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+                        setActiveRound({
+                          id: `ar-${activeTournament.id}`,
+                          tournamentId: activeTournament.id,
+                          tournamentName: activeTournament.name,
+                          holeNumber: 1,
+                          par: firstHolePar,
+                          yardage: firstHoleYards,
+                          holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
+                          isLive: true,
+                          dayText: "ROUND 1",
+                          score: "E",
+                          thru: "0",
+                          flightText: activeTournament.divisions || "Championship",
+                          groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
+                            id: p.id,
+                            name: p.name,
+                            initials: p.initials,
+                            avatar: "/images/competitor/alex_avatar.jpg",
+                          })),
+                        });
+                      } else {
+                        setActiveRound(null);
+                      }
                       setActiveRoundMinutesElapsed(0);
                       setHasInactivityWarning(false);
                       showToast("Active tournament match restored. Inactivity timer reset to 0m (warning hidden).", "success", "MATCH RESET");
@@ -10024,74 +10145,141 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
       {/* --- MODAL 1: 18-HOLE SCORECARD SUMMARY --- */}
       {showScorecardModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#0E1521] border border-slate-700/80 rounded-2xl max-w-md w-full p-5 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 shadow-2xl text-slate-900">
+            {/* Header: FINAL SCORECARD • ROUND 1  &  Total: ... */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-white">
-                  18-Hole Official Scorecard
-                </h3>
-                <p className="text-sm font-semibold text-emerald-400">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                  FINAL SCORECARD • {activeRound?.dayText || "ROUND 1"}
+                </span>
+                <p className="text-[12px] font-bold text-[#0F172A] mt-0.5">
                   {activeTournament?.courseName || "Championship Course"} • Par {activeTournament?.coursePar || 72}
                 </p>
               </div>
-              <button
-                onClick={() => setShowScorecardModal(false)}
-                className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-[14px]">
+                  <span className="font-bold text-[#0F172A]">Total:</span>
+                  <span className="font-extrabold text-[#0F172A]">
+                    {Object.values(holeScores).reduce((acc, h) => acc + h.strokes, 0) || activeTournament?.coursePar || 72}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowScorecardModal(false)}
+                  className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-[#0F172A] transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div className="py-4 space-y-3">
-              <div className="grid grid-cols-9 gap-1 text-center font-mono text-xs">
-                {courseHoles.slice(0, 9).map((h, i) => (
-                  <div
-                    key={h.number}
-                    className="bg-black/40 rounded p-1 border border-slate-800"
-                  >
-                    <span className="text-[10px] text-slate-400 block">
-                      H{h.number}
-                    </span>
-                    <span className="font-bold text-white">
-                      {holeScores[i]?.strokes || h.par}
-                    </span>
+            {/* Front 9 (OUT) */}
+            <div className="pt-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center">
+                  <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">H</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(0, 9).map((h) => (
+                      <span key={`mh-${h.number}`} className="text-[11px] font-semibold text-[#8CA0BA]">
+                        {h.number}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-9 gap-1 text-center font-mono text-xs">
-                {courseHoles.slice(9, 18).map((h, i) => (
-                  <div
-                    key={h.number}
-                    className="bg-black/40 rounded p-1 border border-slate-800"
-                  >
-                    <span className="text-[10px] text-slate-400 block">
-                      H{h.number}
-                    </span>
-                    <span className="font-bold text-white">
-                      {holeScores[i + 9]?.strokes || h.par}
-                    </span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">P</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(0, 9).map((h) => (
+                      <span key={`mp-${h.number}`} className="text-[11px] font-semibold text-[#64748B]">
+                        {h.par}
+                      </span>
+                    ))}
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center pt-0.5">
+                  <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(0, 9).map((h, i) => {
+                      const score = holeScores[i]?.strokes || h.par;
+                      const diff = score - h.par;
+                      let badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                      if (diff < 0) badgeStyle = "bg-[#EAF7EE] border-[#86EFAC] text-[#009A60]";
+                      else if (diff > 0) badgeStyle = "bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]";
+                      return (
+                        <div
+                          key={`ms-${h.number}`}
+                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold shadow-2xs ${badgeStyle}`}
+                        >
+                          {score}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-
-              <div className="p-3 bg-emerald-950/20 border border-emerald-800/40 rounded-xl flex items-center justify-between text-sm">
-                <span className="text-slate-300 font-semibold">Total Gross:</span>
-                <span className="text-lg font-bold text-emerald-400 font-mono">
-                  {Object.values(holeScores).reduce(
-                    (acc, h) => acc + h.strokes,
-                    0
-                  ) || 72}{" "}
-                  Strokes
+              <div className="text-right pt-2 pb-0.5">
+                <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                  OUT: {courseHoles.slice(0, 9).reduce((acc, h, i) => acc + (holeScores[i]?.strokes || h.par), 0)}
                 </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex justify-end">
+            {/* Back 9 (IN) */}
+            <div className="pt-3.5 mt-2 border-t border-slate-100/80">
+              <div className="space-y-1.5">
+                <div className="flex items-center">
+                  <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">H</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(9, 18).map((h) => (
+                      <span key={`mh-${h.number}`} className="text-[11px] font-semibold text-[#8CA0BA]">
+                        {h.number}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-4 shrink-0 text-left text-[11px] font-bold text-[#8CA0BA]">P</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(9, 18).map((h) => (
+                      <span key={`mp-${h.number}`} className="text-[11px] font-semibold text-[#64748B]">
+                        {h.par}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center pt-0.5">
+                  <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                  <div className="flex-1 grid grid-cols-9 gap-1 text-center">
+                    {courseHoles.slice(9, 18).map((h, i) => {
+                      const score = holeScores[i + 9]?.strokes || h.par;
+                      const diff = score - h.par;
+                      let badgeStyle = "bg-white border-slate-200/90 text-[#0F172A]";
+                      if (diff < 0) badgeStyle = "bg-[#EAF7EE] border-[#86EFAC] text-[#009A60]";
+                      else if (diff > 0) badgeStyle = "bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]";
+                      return (
+                        <div
+                          key={`ms-${h.number}`}
+                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold shadow-2xs ${badgeStyle}`}
+                        >
+                          {score}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right pt-2 pb-0.5">
+                <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                  IN: {courseHoles.slice(9, 18).reduce((acc, h, i) => acc + (holeScores[i + 9]?.strokes || h.par), 0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-3.5 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setShowScorecardModal(false)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-950"
+                className="px-5 py-2 rounded-xl bg-[#009A60] hover:bg-[#008753] text-white text-xs font-bold transition-all shadow-xs"
               >
-                Done
+                Close Scorecard
               </button>
             </div>
           </div>
@@ -10120,7 +10308,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
             <div className="py-4 space-y-3 text-sm">
               <p className="text-slate-300 leading-relaxed font-medium">
                 I hereby attest that I have verified the hole-by-hole scores of{" "}
-                <strong className="text-white font-bold">Marcus Thorne (Gross: 74)</strong>{" "}
+                <strong className="text-white font-bold">
+                  {selectedPlayerForScorecard?.name || (registeredPlayers[0]?.name || "Competitor")} (Gross: {selectedPlayerForScorecard?.gross || "--"})
+                </strong>{" "}
                 in accordance with USGA rules of golf and tournament standards.
               </p>
 
@@ -10129,7 +10319,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                   Digital Marker Signature
                 </span>
                 <span className="text-xl font-serif italic text-emerald-400 tracking-wider">
-                  Alexander Wright (Attested Marker)
+                  {authenticatedPlayer?.name || currentDisplayName || "Attested Marker"}
                 </span>
               </div>
             </div>

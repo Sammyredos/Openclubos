@@ -12,8 +12,8 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
 
   const VerifyEmailScreen({
     super.key,
-    this.email = 'alex.wright@example.com',
-    this.playerName = 'Alex Wright',
+    this.email = '',
+    this.playerName = '',
     this.registrationData,
   });
 
