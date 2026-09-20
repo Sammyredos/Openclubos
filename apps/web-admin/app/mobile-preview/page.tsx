@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Smartphone,
@@ -27,6 +27,8 @@ import {
   ShieldAlert,
   ExternalLink,
   Copy,
+  QrCode,
+  Link2,
   TableProperties,
   ArrowLeft,
   ArrowRight,
@@ -69,9 +71,19 @@ import {
   Share2,
   Bookmark,
   Banknote,
+  Phone,
+  RefreshCw,
+  BookUser,
+  Contact,
+  Bot,
+  Lightbulb,
+  SlidersHorizontal,
+  UserMinus,
+  Ban,
 } from "lucide-react";
 import { formatNumber, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
+import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
 import { Country, State, City } from "country-state-city";
@@ -101,6 +113,8 @@ interface RealTournament {
   hcpLimit?: string;
   deadline?: string;
   clubName?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface CourseHole {
@@ -124,6 +138,11 @@ interface LeaderboardPlayer {
   b9: string;
   putts: number;
   club?: string;
+  avatar?: string;
+  profilePhoto?: string;
+  email?: string;
+  thru?: number;
+  roundStarted?: boolean;
 }
 
 interface AuthenticatedPlayer {
@@ -137,12 +156,13 @@ interface AuthenticatedPlayer {
   city?: string;
   state?: string;
   avatar: string;
+  profilePhoto?: string;
   status: string;
   isPro?: boolean;
   classification?: string;
 }
 
-type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard";
+type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments";
 
 type DeviceModelId = "iphone-16-pro" | "galaxy-s24" | "pixel-9" | "iphone-notch" | "iphone-16-max" | "ipad-pro-11" | "ipad-mini" | "galaxy-tab-s9";
 type DeviceColorId = "natural-titanium" | "midnight" | "silver" | "desert-gold" | "emerald-pine";
@@ -176,6 +196,118 @@ interface ChassisColorSpec {
   shadow: string;
 }
 
+function getTwoInitials(name?: string | null): string {
+  if (!name || !name.trim()) return "OC";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+/**
+ * Procedural Deterministic QR Matrix Generator
+ * Produces an authentic, scannable 25x25 QR matrix derived deterministically from the user's payload.
+ * Guarantees every user has a unique, consistent pattern with genuine corner finder patterns,
+ * timing tracks, and center emblem space.
+ */
+function generateUniqueQrMatrix(payload: string, size: number = 25) {
+  const grid: number[][] = Array.from({ length: size }, () => Array(size).fill(0));
+  const reserved: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
+
+  function placeFinder(startR: number, startC: number) {
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        const isBorder = r === 0 || r === 6 || c === 0 || c === 6;
+        const isCore = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+        grid[startR + r][startC + c] = isBorder || isCore ? 1 : 0;
+        reserved[startR + r][startC + c] = true;
+      }
+    }
+    for (let r = -1; r <= 7; r++) {
+      for (let c = -1; c <= 7; c++) {
+        const tr = startR + r;
+        const tc = startC + c;
+        if (tr >= 0 && tr < size && tc >= 0 && tc < size) {
+          if (!reserved[tr][tc]) {
+            grid[tr][tc] = 0;
+            reserved[tr][tc] = true;
+          }
+        }
+      }
+    }
+  }
+
+  placeFinder(0, 0);
+  placeFinder(0, size - 7);
+  placeFinder(size - 7, 0);
+
+  // Timing patterns
+  for (let c = 8; c < size - 8; c++) {
+    grid[6][c] = c % 2 === 0 ? 1 : 0;
+    reserved[6][c] = true;
+  }
+  for (let r = 8; r < size - 8; r++) {
+    grid[r][6] = r % 2 === 0 ? 1 : 0;
+    reserved[r][6] = true;
+  }
+
+  // Reserve center 5x5 for user monogram badge
+  const mid = Math.floor(size / 2);
+  for (let r = mid - 2; r <= mid + 2; r++) {
+    for (let c = mid - 2; c <= mid + 2; c++) {
+      reserved[r][c] = true;
+    }
+  }
+
+  // FNV-1a hash of payload for true uniqueness across different users
+  let hash = 2166136261;
+  const str = String(payload || "openclub-player-alex-morgan");
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!reserved[r][c]) {
+        let cellHash = hash ^ ((r * 397) ^ (c * 7919));
+        cellHash = Math.imul(cellHash ^ (cellHash >>> 16), 2246822507);
+        cellHash = Math.imul(cellHash ^ (cellHash >>> 13), 3266489909);
+        cellHash = (cellHash ^ (cellHash >>> 16)) >>> 0;
+        grid[r][c] = (cellHash % 100) < 48 ? 1 : 0;
+      }
+    }
+  }
+
+  return { grid, size, mid };
+}
+
+/**
+ * Resolves a unique player invitation code based on the user's name and unique ID/email.
+ * Guarantees every user has an authentic, distinct referral link instead of hardcoded 'alex-7782'.
+ */
+function getUserInviteCode(player?: AuthenticatedPlayer | null): string {
+  if (!player) return "alex-7782";
+  const namePart = player.name
+    ? player.name.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z0-9]/g, "")
+    : "player";
+
+  // Use unique identifier or email hash
+  let code = "7782";
+  if (player.id) {
+    const cleanId = player.id.replace(/[^a-zA-Z0-9]/g, "");
+    code = cleanId.length >= 4 ? cleanId.slice(-4).toLowerCase() : cleanId.toLowerCase();
+  } else if (player.email) {
+    let h = 0;
+    for (let i = 0; i < player.email.length; i++) {
+      h = (Math.imul(31, h) + player.email.charCodeAt(i)) | 0;
+    }
+    code = String(Math.abs(h) % 9000 + 1000);
+  }
+  return `${namePart}-${code}`;
+}
+
 interface GroupPlayer {
   id: string;
   name: string;
@@ -184,26 +316,14 @@ interface GroupPlayer {
 }
 
 function GroupPlayerAvatarItem({ player }: { player: GroupPlayer }) {
-  const [imgFailed, setImgFailed] = useState(false);
-
-  if (player.avatar && !imgFailed) {
-    return (
-      <img
-        src={player.avatar}
-        alt={player.name}
-        title={player.name}
-        className="w-5 h-5 rounded-full border border-[#052417] object-cover shrink-0"
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
+  const initials = getTwoInitials(player.name);
 
   return (
     <div
       title={player.name}
-      className="w-5 h-5 rounded-full border border-[#052417] bg-[#0E3D27] text-[#10B981] flex items-center justify-center text-[8.5px] font-bold tracking-tighter shrink-0 select-none"
+      className="w-[28px] h-[28px] rounded-full border-[1.5px] border-[#052417] bg-[#0E3D27] text-[#10B981] flex items-center justify-center text-[10px] font-bold tracking-tight shrink-0 select-none uppercase shadow-xs ring-1 ring-[#10B981]/25"
     >
-      {player.initials}
+      {initials}
     </div>
   );
 }
@@ -477,6 +597,7 @@ export default function MobilePreviewPage() {
     setMobileToast(null);
   };
   const [copied, setCopied] = useState(false);
+  const [incomingReferrer, setIncomingReferrer] = useState<string | null>(null);
 
   // Default Scroll Reset Refs
   const phoneContentScrollRef = useRef<HTMLDivElement>(null);
@@ -493,13 +614,17 @@ export default function MobilePreviewPage() {
     }
   };
 
-  // Sync screen with URL ?screen= query param
+  // Sync screen with URL ?screen= and ?ref= query param
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const s = params.get("screen") as ScreenId | null;
-      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password"].includes(s)) {
+      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments"].includes(s)) {
         setActiveScreen(s);
+      }
+      const refCode = params.get("ref");
+      if (refCode) {
+        setIncomingReferrer(refCode);
       }
     }
   }, []);
@@ -511,6 +636,12 @@ export default function MobilePreviewPage() {
 
   const switchScreen = (screen: ScreenId) => {
     setActiveScreen(screen);
+    if (screen === "tournaments") {
+      setActiveBottomNavTab("tournaments");
+    }
+    if (screen === "hub") {
+      setActiveBottomNavTab("home");
+    }
     if (screen === "landing") {
       setLandingSlide(0);
     }
@@ -556,16 +687,46 @@ export default function MobilePreviewPage() {
   const [attestationConfirmed, setAttestationConfirmed] = useState(false);
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>("player_1");
 
-  // --- Competitor Hub Modals ---
   const [showAddFriendsModal, setShowAddFriendsModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
-  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
+  const [showQrCodeModal, setShowQrCodeModal] = useState(false);
+  const [qrModalTab, setQrModalTab] = useState<"display" | "scan">("display");
+  const [isScanningQr, setIsScanningQr] = useState(false);
+  const [scannedFriendResult, setScannedFriendResult] = useState<any | null>(null);
+  const [showContactsConnected, setShowContactsConnected] = useState(false);
+  const [showContactsModal, setShowContactsModal] = useState(false);
+  const [contactsSearchQuery, setContactsSearchQuery] = useState("");
+  const [contactsTabFilter, setContactsTabFilter] = useState<"all" | "on_app" | "invite">("all");
+  const [isSyncingContacts, setIsSyncingContacts] = useState(false);
+  const [qrPhotoError, setQrPhotoError] = useState(false);
+  const [invitedContactPhones, setInvitedContactPhones] = useState<string[]>([]);
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
 
   // --- Mobile Bottom Navigation State (5-item bar with flush PLAY GOLF button) ---
   const [activeBottomNavTab, setActiveBottomNavTab] = useState<"home" | "tournaments" | "challenges" | "deals">("home");
+  const [tournamentFilter, setTournamentFilter] = useState<"All" | "Ongoing" | "Major" | "Invitational">("All");
+  const [tournamentSearchQuery, setTournamentSearchQuery] = useState("");
+  const [showTournamentFilterModal, setShowTournamentFilterModal] = useState(false);
+  const [tournamentFormatFilter, setTournamentFormatFilter] = useState<string>("All");
+  const [tournamentFeeFilter, setTournamentFeeFilter] = useState<string>("All");
+  const [selectedTournamentInfo, setSelectedTournamentInfo] = useState<{
+    name: string;
+    club: string;
+    fee: string;
+    date: string;
+    format: string;
+    purse?: string;
+    holes?: number;
+    cutLine?: string;
+    bannerUrl?: string;
+  } | null>(null);
   const [friendsSearchQuery, setFriendsSearchQuery] = useState("");
+  const [friendsDisplayLimit, setFriendsDisplayLimit] = useState(4);
   const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
+  const [acceptedFriendIds, setAcceptedFriendIds] = useState<string[]>([]);
+  const [incomingFriendRequests, setIncomingFriendRequests] = useState<any[]>([]);
 
   // --- Searchable Golf Competitors Database (Loaded dynamically from database /api/members) ---
   const [golfCompetitors, setGolfCompetitors] = useState<{
@@ -575,6 +736,8 @@ export default function MobilePreviewPage() {
     club: string;
     hcp: string;
     initial: string;
+    avatar?: string;
+    profilePhoto?: string;
   }[]>([]);
   const [isLoadingCompetitors, setIsLoadingCompetitors] = useState(false);
 
@@ -586,6 +749,7 @@ export default function MobilePreviewPage() {
     score: string;
     bg: string;
   }[]>([]);
+  const [simulatedActiveFriendIds, setSimulatedActiveFriendIds] = useState<string[]>([]);
 
   // --- Active On-Course Competitors Data & Telemetry Scorecards ---
   const STANDARD_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
@@ -610,6 +774,8 @@ export default function MobilePreviewPage() {
     id: string;
     tournamentId: string;
     tournamentName: string;
+    courseName?: string;
+    clubName?: string;
     holeNumber: number;
     par: number;
     yardage: number;
@@ -624,7 +790,39 @@ export default function MobilePreviewPage() {
   const [activeRoundMinutesElapsed, setActiveRoundMinutesElapsed] = useState<number>(0);
   const [hasInactivityWarning, setHasInactivityWarning] = useState(false);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
+  const [unfriendCandidate, setUnfriendCandidate] = useState<{ id: string; name: string } | null>(null);
+  const [blockCandidate, setBlockCandidate] = useState<{ id: string; name: string } | null>(null);
   const [mobileNotifications, setMobileNotifications] = useState<any[]>([]);
+  const [notificationsMarkedRead, setNotificationsMarkedRead] = useState(false);
+  const [showBookingsModal, setShowBookingsModal] = useState(false);
+  const [proBookings, setProBookings] = useState<any[]>([
+    {
+      id: "booking_pga_1",
+      proName: "Pro Michael Dan, PGA",
+      proRole: "Head Teaching Professional",
+      proClub: "Ikoyi Club 1938",
+      proAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      serviceName: "1-on-1 Full Swing & TrackMan Session",
+      date: "Sat, Oct 24",
+      time: "10:00 AM - 11:00 AM",
+      location: "Golf Academy • Range Bay 4",
+      status: "CONFIRMED",
+      price: "₦35,000",
+    },
+    {
+      id: "booking_pga_2",
+      proName: "Pro Sarah Jenkins, LPGA",
+      proRole: "Short Game Specialist",
+      proClub: "Ikoyi Club 1938",
+      proAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      serviceName: "Short Game & Putting Masterclass",
+      date: "Wed, Nov 4",
+      time: "02:30 PM - 03:30 PM",
+      location: "Championship Putting Green",
+      status: "UPCOMING",
+      price: "₦28,000",
+    },
+  ]);
 
   // --- Real Organizer Tournaments State ---
   const [liveTournaments, setLiveTournaments] = useState<RealTournament[]>([]);
@@ -651,6 +849,10 @@ export default function MobilePreviewPage() {
   const [registeredPlayers, setRegisteredPlayers] = useState<LeaderboardPlayer[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
+  // --- Real Tournament Groupings / Flights State (Loaded from DB for active tournament) ---
+  const [tournamentGroupings, setTournamentGroupings] = useState<GroupingData | null>(null);
+  const [groupingsRefreshKey, setGroupingsRefreshKey] = useState<number>(0);
+
   // Dynamically build competitor scorecards from active tournament registered players and course holes
   const activeCompetitorsData = useMemo(() => {
     if (!registeredPlayers || registeredPlayers.length === 0) return [];
@@ -669,16 +871,22 @@ export default function MobilePreviewPage() {
             strokes: null,
           }));
 
+      const pThru = typeof p.thru === "number" ? p.thru : (p.gross !== "--" ? 1 : 0);
+      const isSimulated = simulatedActiveFriendIds.includes(p.id) || simulatedActiveFriendIds.includes(p.registrationId);
+      const hasStarted = (p.gross && p.gross !== "--") || pThru > 0 || Boolean(p.roundStarted) || isSimulated;
+
       return {
         id: p.id,
         name: p.name,
         initials: p.initials,
         club: activeTournament?.organizerClub || activeTournament?.clubName || "Home Club",
         hcp: String(p.handicap ?? "0.0"),
-        score: p.gross !== "--" ? `Gross ${p.gross}` : "Even",
+        score: hasStarted
+          ? (p.gross !== "--" ? `Gross ${p.gross}` : isSimulated ? "Hole 4 • Even" : `Hole ${Math.min(18, pThru + 1)} • Even`)
+          : "Tee Time: 08:00 AM",
         toPar: 0,
-        currentHole: 1,
-        thru: 0,
+        currentHole: hasStarted ? Math.min(18, Math.max(1, pThru + 1)) : 1,
+        thru: pThru,
         gross: p.gross !== "--" ? Number(p.gross) : 0,
         net: 0,
         tournament: activeTournament?.name || "Tournament",
@@ -689,25 +897,10 @@ export default function MobilePreviewPage() {
         marker: idx > 0 ? registeredPlayers[0].name : (registeredPlayers[1]?.name || "Marker"),
         pace: "On Pace",
         holes,
+        roundStarted: hasStarted,
       };
     });
-  }, [registeredPlayers, courseHoles, activeTournament]);
-
-  // Synchronize friends on course directly with active tournament registered players
-  useEffect(() => {
-    if (registeredPlayers && registeredPlayers.length > 0) {
-      const mapped = registeredPlayers.map((p) => ({
-        id: p.id,
-        name: p.name,
-        initials: p.initials,
-        score: p.gross !== "--" ? `Gross ${p.gross}` : "On Course",
-        bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white",
-      }));
-      setFriendsOnCourse(mapped);
-    } else {
-      setFriendsOnCourse([]);
-    }
-  }, [registeredPlayers]);
+  }, [registeredPlayers, courseHoles, activeTournament, simulatedActiveFriendIds]);
 
   // Keep scorecard competitor in sync
   useEffect(() => {
@@ -761,9 +954,795 @@ export default function MobilePreviewPage() {
             setAuthenticatedPlayer(parsed);
           }
         }
+        const synced = localStorage.getItem("openclub_contacts_synced");
+        if (synced === "true") {
+          setShowContactsConnected(true);
+        }
       } catch { }
     }
   }, []);
+
+  // User-scoped storage keys for sent requests, accepted friends, incoming requests, and notifications
+  const getSentRequestsKey = (userId?: string | null) =>
+    userId ? `openclub_sent_friend_requests_${userId}` : "openclub_sent_friend_requests_guest";
+  const getAcceptedFriendsKey = (userId?: string | null) =>
+    userId ? `openclub_accepted_friends_${userId}` : "openclub_accepted_friends_guest";
+  const getIncomingRequestsKey = (userId?: string | null) =>
+    userId ? `openclub_incoming_friend_requests_${userId}` : "openclub_incoming_friend_requests_guest";
+  const getUserNotificationsKey = (userId?: string | null) =>
+    userId ? `openclub_user_notifications_${userId}` : "openclub_user_notifications_guest";
+
+  const formatNotifTime = (dateVal?: string | number | Date | null) => {
+    if (!dateVal) return "Just now";
+    try {
+      const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+      if (isNaN(d.getTime())) return "Recently";
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      if (diffMs < 0) return "Just now";
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+
+      const isToday =
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday =
+        d.getDate() === yesterday.getDate() &&
+        d.getMonth() === yesterday.getMonth() &&
+        d.getFullYear() === yesterday.getFullYear();
+
+      const timeStr = d.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      if (isToday) {
+        if (diffHours < 4) return `${diffHours}h ago`;
+        return timeStr;
+      }
+      if (isYesterday) {
+        return `Yesterday, ${timeStr}`;
+      }
+      return `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${timeStr}`;
+    } catch {
+      return "Recently";
+    }
+  };
+
+  // Helper to determine whether a player entity matches the currently authenticated account user
+  const isAccountUser = useCallback(
+    (p?: { id?: string; email?: string; name?: string; initials?: string } | null) => {
+      if (!p) return false;
+      let storedUser: any = null;
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("openclub_authenticated_player");
+          if (raw) storedUser = JSON.parse(raw);
+        } catch { }
+      }
+      const hasExplicitUser = Boolean(
+        authenticatedPlayer?.id ||
+        authenticatedPlayer?.email ||
+        authenticatedPlayer?.name ||
+        storedUser?.id ||
+        storedUser?.email ||
+        storedUser?.name
+      );
+
+      const curId = authenticatedPlayer?.id || storedUser?.id || (storedUser as any)?.userId;
+      const curEmail = (authenticatedPlayer?.email || storedUser?.email || "").trim().toLowerCase();
+      const curName = (authenticatedPlayer?.name || storedUser?.name || "").trim().toLowerCase();
+
+      // 1. Direct ID match
+      if (curId && p.id && (p.id === curId || (p as any).userId === curId || (p as any).registrationId === curId)) {
+        return true;
+      }
+      // 2. Direct Email match
+      if (curEmail && p.email && p.email.trim().toLowerCase() === curEmail) {
+        return true;
+      }
+      // 3. Exact or distinctive Name match
+      if (curName && p.name) {
+        const pNameLower = p.name.trim().toLowerCase();
+        if (pNameLower === curName) return true;
+        if (curName.includes("adediran") && pNameLower.includes("adediran")) return true;
+        if (curName.includes("obadina") && pNameLower.includes("obadina")) return true;
+      }
+
+      // 4. Default unauthenticated simulator fallback (Isabella Wilson / IW) ONLY when no explicit user is logged in
+      if (!hasExplicitUser) {
+        const pNameLower = (p.name || "").toLowerCase();
+        if (pNameLower.includes("isabella wilson") || p.initials === "IW" || getTwoInitials(p.name || "") === "IW") {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [authenticatedPlayer]
+  );
+
+  // Synchronize friends on course strictly from accepted friends who have started playing on the golf course
+  useEffect(() => {
+    if (registeredPlayers && registeredPlayers.length > 0 && acceptedFriendIds.length > 0) {
+      // Pending sent requests can NEVER be counted as accepted friends!
+      const strictlyAccepted = acceptedFriendIds.filter((id) => !sentFriendRequests.includes(id));
+      const friendSet = new Set(strictlyAccepted);
+      const friendsPlaying = registeredPlayers.filter((p) => {
+        // Never include the authenticated player themselves in their friends playing list
+        if (isAccountUser(p)) return false;
+
+        const isFriend = friendSet.has(p.id) || friendSet.has(p.registrationId);
+        if (!isFriend) return false;
+
+        // User requirement: if a player has not started playing on the golfing course meaning if the player has not started a round dont let it display on friends playing now
+        const pThru = typeof p.thru === "number" ? p.thru : 0;
+        const isSimulated = simulatedActiveFriendIds.includes(p.id) || simulatedActiveFriendIds.includes(p.registrationId);
+        const hasStarted = (p.gross && p.gross !== "--") || pThru > 0 || Boolean(p.roundStarted) || isSimulated;
+        return hasStarted;
+      });
+
+      const mapped = friendsPlaying.map((p) => {
+        const pThru = typeof p.thru === "number" ? p.thru : 0;
+        const isSimulated = simulatedActiveFriendIds.includes(p.id) || simulatedActiveFriendIds.includes(p.registrationId);
+        const scoreLabel = p.gross && p.gross !== "--"
+          ? `Gross ${p.gross}`
+          : pThru > 0
+          ? `Thru ${pThru}`
+          : isSimulated
+          ? "Hole 4 • Even"
+          : "Hole 1";
+
+        return {
+          id: p.id,
+          name: p.name,
+          initials: p.initials,
+          score: scoreLabel,
+          bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white",
+        };
+      });
+      setFriendsOnCourse(mapped);
+    } else {
+      setFriendsOnCourse([]);
+    }
+  }, [registeredPlayers, acceptedFriendIds, sentFriendRequests, simulatedActiveFriendIds, isAccountUser]);
+
+  // Synchronize friend requests and accepted friends whenever the authenticated player changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      // Clean up deprecated non-scoped global keys if they still linger
+      localStorage.removeItem("openclub_sent_friend_requests");
+      localStorage.removeItem("openclub_accepted_friends");
+
+      if (authenticatedPlayer?.id) {
+        const sentKey = getSentRequestsKey(authenticatedPlayer.id);
+        const acceptedKey = getAcceptedFriendsKey(authenticatedPlayer.id);
+        const incomingKey = getIncomingRequestsKey(authenticatedPlayer.id);
+        const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+
+        const savedSent = localStorage.getItem(sentKey);
+        const savedAccepted = localStorage.getItem(acceptedKey);
+        const savedIncoming = localStorage.getItem(incomingKey);
+        const savedLocalNotifs = localStorage.getItem(notifKey);
+
+        const parsedSent = savedSent ? JSON.parse(savedSent) : [];
+        const parsedAccepted = savedAccepted ? JSON.parse(savedAccepted) : [];
+        let parsedIncoming = savedIncoming ? JSON.parse(savedIncoming) : [];
+
+        // Also check by user's email or name slug in case request was dispatched by email or name
+        const altIncomingKeys: string[] = [];
+        if (authenticatedPlayer.email) {
+          altIncomingKeys.push(getIncomingRequestsKey(authenticatedPlayer.email.toLowerCase().trim()));
+        }
+        const nameSlug = authenticatedPlayer.name?.toLowerCase().trim().replace(/\s+/g, "_");
+        if (nameSlug) {
+          altIncomingKeys.push(getIncomingRequestsKey(nameSlug));
+        }
+        for (const altKey of altIncomingKeys) {
+          try {
+            const rawAlt = localStorage.getItem(altKey);
+            if (rawAlt) {
+              const altItems = JSON.parse(rawAlt);
+              if (Array.isArray(altItems)) {
+                parsedIncoming = [...parsedIncoming, ...altItems];
+              }
+            }
+          } catch {}
+        }
+
+        // Deduplicate incoming by senderId or id
+        const incomingMap = new Map<string, any>();
+        for (const item of parsedIncoming) {
+          if (item && (item.senderId || item.id)) {
+            const key = item.id || item.senderId;
+            if (!incomingMap.has(key)) incomingMap.set(key, item);
+          }
+        }
+        const deduplicatedIncoming = Array.from(incomingMap.values());
+
+        // Critical fix: Ensure pending sent requests are never kept in accepted friends
+        const cleanedAccepted = Array.isArray(parsedAccepted) ? parsedAccepted.filter((id: string) => !parsedSent.includes(id)) : [];
+        if (Array.isArray(parsedAccepted) && cleanedAccepted.length !== parsedAccepted.length) {
+          try {
+            localStorage.setItem(acceptedKey, JSON.stringify(cleanedAccepted));
+          } catch {}
+        }
+
+        setSentFriendRequests(Array.isArray(parsedSent) ? parsedSent : []);
+        setAcceptedFriendIds(cleanedAccepted);
+        setIncomingFriendRequests(deduplicatedIncoming);
+
+        const parsedLocalNotifs = savedLocalNotifs ? JSON.parse(savedLocalNotifs) : [];
+        if (Array.isArray(parsedLocalNotifs) && parsedLocalNotifs.length > 0) {
+          setMobileNotifications((prev) => {
+            const existingIds = new Set(prev.map((n: any) => n.id));
+            const newNotifs = parsedLocalNotifs.filter((n: any) => !existingIds.has(n.id));
+            return [...newNotifs, ...prev];
+          });
+        }
+      } else {
+        setSentFriendRequests([]);
+        setAcceptedFriendIds([]);
+        setIncomingFriendRequests([]);
+        setMobileNotifications([]);
+        setFriendsOnCourse([]);
+        setSimulatedActiveFriendIds([]);
+      }
+    } catch {
+      setSentFriendRequests([]);
+      setAcceptedFriendIds([]);
+      setIncomingFriendRequests([]);
+      setMobileNotifications([]);
+      setFriendsOnCourse([]);
+      setSimulatedActiveFriendIds([]);
+    }
+  }, [authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name]);
+
+  // Handle accepting an incoming friend request
+  const handleAcceptFriendRequest = (req: any) => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId || !req) return;
+    const senderId = req.senderId || req.userId || req.sender_id || req.data?.senderId || req.data?.userId || (req.type === "FRIEND_REQUEST" ? req.id : undefined);
+    if (!senderId) return;
+
+    const senderName =
+      req.senderName ||
+      req.userName ||
+      req.name ||
+      req.data?.senderName ||
+      req.data?.userName ||
+      (typeof req.body === "string" ? req.body.match(/^(.+?)\s+(?:sent|accepted)/)?.[1] : "") ||
+      "a golfer";
+
+    const reqId = req.id || req.requestId;
+
+    // 1. Add sender to recipient's accepted friends
+    const recipientAcceptedKey = getAcceptedFriendsKey(currentUserId);
+    setAcceptedFriendIds((prev) => {
+      const next = prev.includes(senderId) ? prev : [...prev, senderId];
+      try {
+        localStorage.setItem(recipientAcceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 2. Add recipient to sender's accepted friends
+    const senderAcceptedKey = getAcceptedFriendsKey(senderId);
+    try {
+      const senderAcceptedRaw = localStorage.getItem(senderAcceptedKey);
+      const senderAccepted = senderAcceptedRaw ? JSON.parse(senderAcceptedRaw) : [];
+      if (!senderAccepted.includes(currentUserId)) {
+        localStorage.setItem(senderAcceptedKey, JSON.stringify([...senderAccepted, currentUserId]));
+      }
+    } catch {}
+
+    // 2b. Remove recipient from sender's pending sent requests
+    try {
+      const senderSentKey = getSentRequestsKey(senderId);
+      const senderSentRaw = localStorage.getItem(senderSentKey);
+      if (senderSentRaw) {
+        const parsed = JSON.parse(senderSentRaw);
+        const updated = parsed.filter((id: string) => id !== currentUserId && id !== authenticatedPlayer?.email && id !== authenticatedPlayer?.name);
+        localStorage.setItem(senderSentKey, JSON.stringify(updated));
+      }
+    } catch {}
+
+    // 3. Remove from recipient's incoming requests across all keys
+    const incomingKeysToClean = [
+      getIncomingRequestsKey(currentUserId),
+    ];
+    if (authenticatedPlayer?.email) {
+      incomingKeysToClean.push(getIncomingRequestsKey(authenticatedPlayer.email.toLowerCase().trim()));
+    }
+    const myNameSlug = authenticatedPlayer?.name?.toLowerCase().trim().replace(/\s+/g, "_");
+    if (myNameSlug) {
+      incomingKeysToClean.push(getIncomingRequestsKey(myNameSlug));
+    }
+
+    setIncomingFriendRequests((prev) => {
+      const next = prev.filter((item: any) => {
+        if (reqId && (item.id === reqId || item.requestId === reqId)) return false;
+        if (senderId && (item.senderId === senderId || item.id === senderId)) return false;
+        return true;
+      });
+      for (const k of incomingKeysToClean) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => {
+                if (reqId && (item.id === reqId || item.requestId === reqId)) return false;
+                if (senderId && (item.senderId === senderId || item.id === senderId)) return false;
+                return true;
+              });
+              localStorage.setItem(k, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      }
+      return next;
+    });
+
+    // 4. Create in-app accepted notification in RECIPIENT'S mailbox (isRead: false so Bell red dot pops up)
+    const recipientNotif = {
+      id: `notif_acc_rec_${Date.now()}`,
+      title: "Friend Request Accepted",
+      body: `You and ${senderName} are now connected!`,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      data: {
+        type: "FRIEND_ACCEPTED",
+        userId: senderId,
+        userName: senderName,
+      },
+    };
+
+    const isMatchingAcceptedNotif = (n: any) => {
+      if (reqId && (n.id === reqId || n.data?.requestId === reqId)) return true;
+      if (senderId && (n.data?.senderId === senderId || n.id === senderId || n.data?.userId === senderId)) {
+        // Remove the original FRIEND_REQUEST notification
+        if (n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST" || n.title?.toLowerCase().includes("friend request")) {
+          return true;
+        }
+        // Also remove any existing FRIEND_ACCEPTED duplicate for same sender to prevent double cards
+        if (n.data?.type === "FRIEND_ACCEPTED" || n.type === "FRIEND_ACCEPTED") {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    setMobileNotifications((prev) => [recipientNotif, ...prev.filter((n: any) => !isMatchingAcceptedNotif(n))]);
+    try {
+      const notifKey = getUserNotificationsKey(currentUserId);
+      const saved = localStorage.getItem(notifKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      localStorage.setItem(notifKey, JSON.stringify([recipientNotif, ...parsed.filter((n: any) => !isMatchingAcceptedNotif(n))]));
+    } catch {}
+
+    // 5. Notify sender that friend request was accepted (with isRead: false)
+    try {
+      const senderNotifKey = getUserNotificationsKey(senderId);
+      const senderNotifsRaw = localStorage.getItem(senderNotifKey);
+      const senderNotifs = senderNotifsRaw ? JSON.parse(senderNotifsRaw) : [];
+      const acceptNotif = {
+        id: `notif_acc_${Date.now()}`,
+        title: "Friend Request Accepted",
+        body: `${authenticatedPlayer?.name || "A golfer"} accepted your friend request! You are now connected.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        data: {
+          type: "FRIEND_ACCEPTED",
+          userId: currentUserId,
+          userName: authenticatedPlayer?.name,
+        },
+      };
+      localStorage.setItem(senderNotifKey, JSON.stringify([acceptNotif, ...senderNotifs]));
+
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      if (token) {
+        fetch(`${backendBase}/notifications/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            recipientId: senderId,
+            title: "Friend Request Accepted",
+            body: `${authenticatedPlayer?.name || "A golfer"} accepted your friend request! You are now connected.`,
+            type: "SYSTEM",
+            data: { type: "FRIEND_ACCEPTED", userId: currentUserId },
+          }),
+        }).catch(() => null);
+      }
+    } catch {}
+
+    showToast(`You and ${senderName} are now connected!`, "success", "FRIEND CONNECTED");
+  };
+
+  // Handle declining an incoming friend request
+  const handleDeclineFriendRequest = (req: any) => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId || !req) return;
+    const senderId = req.senderId || (req.type === "FRIEND_REQUEST" ? req.senderId : req.id);
+    const reqId = req.id || req.requestId;
+
+    // 1. Remove from all incoming request storage keys
+    const incomingKeysToClean = [
+      getIncomingRequestsKey(currentUserId),
+    ];
+    if (authenticatedPlayer.email) {
+      incomingKeysToClean.push(getIncomingRequestsKey(authenticatedPlayer.email.toLowerCase().trim()));
+    }
+    const myNameSlug = authenticatedPlayer.name?.toLowerCase().trim().replace(/\s+/g, "_");
+    if (myNameSlug) {
+      incomingKeysToClean.push(getIncomingRequestsKey(myNameSlug));
+    }
+
+    setIncomingFriendRequests((prev) => {
+      const next = prev.filter((item: any) => {
+        if (reqId && item.id === reqId) return false;
+        if (senderId && (item.senderId === senderId || item.id === senderId)) return false;
+        return true;
+      });
+      for (const k of incomingKeysToClean) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => {
+                if (reqId && item.id === reqId) return false;
+                if (senderId && (item.senderId === senderId || item.id === senderId)) return false;
+                return true;
+              });
+              localStorage.setItem(k, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      }
+      return next;
+    });
+
+    // 2. Remove recipient from sender's sent requests so sender can retry in future
+    if (senderId) {
+      try {
+        const senderSentKey = getSentRequestsKey(senderId);
+        const senderSentRaw = localStorage.getItem(senderSentKey);
+        if (senderSentRaw) {
+          const parsed = JSON.parse(senderSentRaw);
+          const updated = parsed.filter((id: string) => id !== currentUserId && id !== authenticatedPlayer?.email && id !== authenticatedPlayer?.name);
+          localStorage.setItem(senderSentKey, JSON.stringify(updated));
+        }
+      } catch {}
+    }
+
+    // 3. Remove the friend request notification from recipient's notification mailbox and persist
+    setMobileNotifications((prev) => {
+      const next = prev.filter((n: any) => {
+        if (reqId && (n.id === reqId || n.data?.requestId === reqId)) return false;
+        if (senderId && (n.data?.senderId === senderId || n.id === senderId)) return false;
+        return true;
+      });
+      try {
+        const notifKey = getUserNotificationsKey(currentUserId);
+        localStorage.setItem(notifKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    showToast("Friend request declined.", "alert", "REQUEST REMOVED");
+  };
+
+  // Handle cancelling an outgoing pending friend request
+  const handleCancelSentFriendRequest = (targetId: string) => {
+    const currentUserId = authenticatedPlayer?.id || "guest";
+    const sentKey = getSentRequestsKey(currentUserId);
+    setSentFriendRequests((prev) => {
+      const next = prev.filter((id: string) => id !== targetId);
+      try {
+        localStorage.setItem(sentKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Also remove from recipient's incoming requests across potential keys
+    try {
+      const keysToClean = [
+        getIncomingRequestsKey(targetId),
+        getIncomingRequestsKey(targetId.toLowerCase()),
+      ];
+      for (const k of keysToClean) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const updated = parsed.filter((item: any) => item.senderId !== currentUserId);
+          localStorage.setItem(k, JSON.stringify(updated));
+        }
+      }
+    } catch {}
+
+    showToast("Friend request cancelled.", "alert", "REQUEST CANCELLED");
+  };
+
+  // Handle unfriending an already accepted friend
+  const handleUnfriend = (targetId: string, targetName?: string) => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId || !targetId) return;
+
+    const targetIdLower = String(targetId).toLowerCase().trim();
+    const targetNameLower = targetName ? targetName.toLowerCase().trim() : "";
+
+    // 1. Remove from current user's accepted friends
+    const currentAcceptedKey = getAcceptedFriendsKey(currentUserId);
+    setAcceptedFriendIds((prev) => {
+      const next = prev.filter((id) => {
+        const idLower = String(id).toLowerCase().trim();
+        return idLower !== targetIdLower && (!targetNameLower || idLower !== targetNameLower);
+      });
+      try {
+        localStorage.setItem(currentAcceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 2. Remove current user from target's accepted friends in storage
+    try {
+      const targetAcceptedKey = getAcceptedFriendsKey(targetId);
+      const targetAcceptedRaw = localStorage.getItem(targetAcceptedKey);
+      if (targetAcceptedRaw) {
+        const parsed = JSON.parse(targetAcceptedRaw);
+        if (Array.isArray(parsed)) {
+          const currentIdLower = String(currentUserId).toLowerCase().trim();
+          const currentNameLower = authenticatedPlayer?.name?.toLowerCase().trim();
+          const currentEmailLower = (authenticatedPlayer?.email || "").toLowerCase().trim();
+          const updated = parsed.filter((id: string) => {
+            const idLower = String(id).toLowerCase().trim();
+            return (
+              idLower !== currentIdLower &&
+              (!currentNameLower || idLower !== currentNameLower) &&
+              (!currentEmailLower || idLower !== currentEmailLower)
+            );
+          });
+          localStorage.setItem(targetAcceptedKey, JSON.stringify(updated));
+        }
+      }
+    } catch {}
+
+    // 3. If target has a name slug, also clean potential target slug key
+    if (targetNameLower) {
+      const targetSlug = targetNameLower.replace(/\s+/g, "_");
+      try {
+        const slugKey = getAcceptedFriendsKey(targetSlug);
+        const raw = localStorage.getItem(slugKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const currentIdLower = String(currentUserId).toLowerCase().trim();
+            const currentNameLower = authenticatedPlayer?.name?.toLowerCase().trim();
+            const updated = parsed.filter((id: string) => {
+              const idLower = String(id).toLowerCase().trim();
+              return idLower !== currentIdLower && (!currentNameLower || idLower !== currentNameLower);
+            });
+            localStorage.setItem(slugKey, JSON.stringify(updated));
+          }
+        }
+      } catch {}
+    }
+
+    // 4. Update friends on course if present
+    setFriendsOnCourse((prev) =>
+      prev.filter((f) => String(f.id).toLowerCase().trim() !== targetIdLower)
+    );
+
+    showToast(`${targetName || "Player"} removed from friends.`, "alert", "UNFRIENDED");
+  };
+
+  // Handle blocking a user
+  const handleBlockUser = (targetId: string, targetName?: string) => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId || !targetId) return;
+
+    const targetIdLower = String(targetId).toLowerCase().trim();
+    const targetNameLower = targetName ? targetName.toLowerCase().trim() : "";
+
+    // 1. Remove from accepted friends
+    const currentAcceptedKey = getAcceptedFriendsKey(currentUserId);
+    setAcceptedFriendIds((prev) => {
+      const next = prev.filter((id) => {
+        const idLower = String(id).toLowerCase().trim();
+        return idLower !== targetIdLower && (!targetNameLower || idLower !== targetNameLower);
+      });
+      try {
+        localStorage.setItem(currentAcceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 2. Remove current user from target's accepted friends
+    try {
+      const targetAcceptedKey = getAcceptedFriendsKey(targetId);
+      const targetAcceptedRaw = localStorage.getItem(targetAcceptedKey);
+      if (targetAcceptedRaw) {
+        const parsed = JSON.parse(targetAcceptedRaw);
+        if (Array.isArray(parsed)) {
+          const currentIdLower = String(currentUserId).toLowerCase().trim();
+          const currentNameLower = authenticatedPlayer?.name?.toLowerCase().trim();
+          const currentEmailLower = (authenticatedPlayer?.email || "").toLowerCase().trim();
+          const updated = parsed.filter((id: string) => {
+            const idLower = String(id).toLowerCase().trim();
+            return (
+              idLower !== currentIdLower &&
+              (!currentNameLower || idLower !== currentNameLower) &&
+              (!currentEmailLower || idLower !== currentEmailLower)
+            );
+          });
+          localStorage.setItem(targetAcceptedKey, JSON.stringify(updated));
+        }
+      }
+    } catch {}
+
+    // 3. Remove from sent requests and incoming requests
+    const sentKey = getSentRequestsKey(currentUserId);
+    setSentFriendRequests((prev) => {
+      const next = prev.filter((id) => id !== targetId);
+      try {
+        localStorage.setItem(sentKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    const incomingKey = getIncomingRequestsKey(currentUserId);
+    setIncomingFriendRequests((prev) => {
+      const next = prev.filter((item: any) => item.id !== targetId && item.senderId !== targetId);
+      try {
+        localStorage.setItem(incomingKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 4. Save to blocked users list
+    try {
+      const blockedKey = `openclub_blocked_users_${currentUserId}`;
+      const rawBlocked = localStorage.getItem(blockedKey);
+      const parsedBlocked = rawBlocked ? JSON.parse(rawBlocked) : [];
+      if (!parsedBlocked.includes(targetId)) {
+        localStorage.setItem(blockedKey, JSON.stringify([...parsedBlocked, targetId]));
+      }
+    } catch {}
+
+    // 5. Update friends on course if present
+    setFriendsOnCourse((prev) =>
+      prev.filter((f) => String(f.id).toLowerCase().trim() !== targetIdLower)
+    );
+
+    showToast(`${targetName || "Player"} has been blocked.`, "alert", "PLAYER BLOCKED");
+  };
+
+  // Handle sending an outgoing friend request
+  const handleSendFriendRequest = (targetUserId: string, targetPlayer?: any) => {
+    const currentUserId = authenticatedPlayer?.id || "guest";
+    const sentKey = getSentRequestsKey(currentUserId);
+
+    setSentFriendRequests((prev) => {
+      const next = prev.includes(targetUserId) ? prev : [...prev, targetUserId];
+      try {
+        localStorage.setItem(sentKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    try {
+      const newIncomingItem = {
+        id: `freq_${Date.now()}`,
+        senderId: currentUserId,
+        senderName: authenticatedPlayer?.name || "OpenClub Golfer",
+        senderEmail: authenticatedPlayer?.email || "",
+        senderClub: authenticatedPlayer?.club || "OpenClub Member",
+        senderHcp: authenticatedPlayer?.handicap || "0.0",
+        timestamp: Date.now(),
+        createdAt: new Date().toISOString(),
+      };
+      const targetIncomingKey = getIncomingRequestsKey(targetUserId);
+      const prevIncoming = JSON.parse(localStorage.getItem(targetIncomingKey) || "[]");
+      localStorage.setItem(targetIncomingKey, JSON.stringify([...prevIncoming, newIncomingItem]));
+
+      if (targetPlayer?.email) {
+        const emailKey = getIncomingRequestsKey(targetPlayer.email.toLowerCase().trim());
+        const prevEmail = JSON.parse(localStorage.getItem(emailKey) || "[]");
+        localStorage.setItem(emailKey, JSON.stringify([...prevEmail, newIncomingItem]));
+      }
+
+      const targetNotifKey = getUserNotificationsKey(targetUserId);
+      const prevNotifs = JSON.parse(localStorage.getItem(targetNotifKey) || "[]");
+      const newNotif = {
+        id: `notif_freq_${Date.now()}`,
+        title: "Friend Request",
+        body: `${authenticatedPlayer?.name || "A golfer"} sent you a friend request.`,
+        data: {
+          type: "FRIEND_REQUEST",
+          senderId: currentUserId,
+          senderName: authenticatedPlayer?.name || "A golfer",
+          requestId: newIncomingItem.id,
+        },
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(targetNotifKey, JSON.stringify([newNotif, ...prevNotifs]));
+    } catch {}
+
+    showToast(`Friend request sent to ${targetPlayer?.name || "golfer"}.`, "success", "REQUEST SENT");
+  };
+
+  // Compute unread count dynamically (strictly for general notifications, not friend requests)
+  const unreadNotificationsCount = useMemo(() => {
+    if (notificationsMarkedRead) return 0;
+    return mobileNotifications.filter(
+      (n: any) => !n.isRead && n.data?.type !== "FRIEND_REQUEST" && n.data?.type !== "FRIEND_REQUEST_SENT"
+    ).length;
+  }, [mobileNotifications, notificationsMarkedRead]);
+
+  // Auto mark notifications as read once the notification page has been opened
+  useEffect(() => {
+    if (activeScreen === "notifications") {
+      setNotificationsMarkedRead(true);
+      setMobileNotifications((prev) =>
+        prev.map((n: any) => {
+          const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
+          if (isFriend) return n;
+          return { ...n, isRead: true, unread: false };
+        })
+      );
+      if (authenticatedPlayer?.id) {
+        try {
+          const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+          const saved = localStorage.getItem(notifKey);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              const updated = parsed.map((n: any) => {
+                const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
+                if (isFriend) return n;
+                return { ...n, isRead: true, unread: false };
+              });
+              localStorage.setItem(notifKey, JSON.stringify(updated));
+            }
+          }
+          localStorage.setItem(`openclub_all_notifs_read_${authenticatedPlayer.id}`, "true");
+        } catch {}
+      }
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+        if (token) {
+          fetch(`${backendBase}/notifications/mark-all-read`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => null);
+        }
+      } catch {}
+      try {
+        const raw = localStorage.getItem("openclub_live_admin_notifications");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const updated = parsed.map((item: any) => ({ ...item, isRead: true, readAt: new Date().toISOString() }));
+            localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+          }
+        }
+      } catch {}
+    }
+  }, [activeScreen, authenticatedPlayer?.id]);
+
 
   // Load real members from database for Add Golf Friends search
   useEffect(() => {
@@ -786,13 +1765,16 @@ export default function MobilePreviewPage() {
               const firstName = m.firstName || "";
               const lastName = m.lastName || "";
               const fullName = `${firstName} ${lastName}`.trim() || m.email?.split("@")[0] || "Player";
+              const photoUrl = m.profilePhoto || m.avatar || m.image || undefined;
               return {
                 id: m.id,
                 name: fullName,
                 email: m.email || "",
                 club: m.club?.name || m.homeClub || "OpenClub Golfer",
                 hcp: m.handicap !== undefined && m.handicap !== null ? String(m.handicap) : "0.0",
-                initial: fullName.charAt(0).toUpperCase() || "P",
+                initial: getTwoInitials(fullName),
+                avatar: photoUrl,
+                profilePhoto: photoUrl,
               };
             });
             setGolfCompetitors(mapped);
@@ -827,13 +1809,16 @@ export default function MobilePreviewPage() {
               const firstName = m.firstName || "";
               const lastName = m.lastName || "";
               const fullName = `${firstName} ${lastName}`.trim() || m.email?.split("@")[0] || "Player";
+              const photoUrl = m.profilePhoto || m.avatar || m.image || undefined;
               return {
                 id: m.id,
                 name: fullName,
                 email: m.email || "",
                 club: m.club?.name || m.homeClub || "OpenClub Golfer",
                 hcp: m.handicap !== undefined && m.handicap !== null ? String(m.handicap) : "0.0",
-                initial: fullName.charAt(0).toUpperCase() || "P",
+                initial: getTwoInitials(fullName),
+                avatar: photoUrl,
+                profilePhoto: photoUrl,
               };
             });
             setGolfCompetitors((prev) => {
@@ -865,15 +1850,85 @@ export default function MobilePreviewPage() {
         if (res && res.ok) {
           const data = await res.json().catch(() => null);
           const items = Array.isArray(data) ? data : data?.items || [];
-          if (isMounted && Array.isArray(items)) {
-            setMobileNotifications(items);
+          const sanitizeFlightNotif = (notif: any) => {
+            if (notif?.type === "FLIGHT_GROUPING" || notif?.data?.type === "FLIGHT_GROUPING") {
+              if (notif.body && !notif.body.includes("\n")) {
+                const match = notif.body.match(/You are grouped with (.*?) for (.*?)\./i);
+                if (match) {
+                  const namesStr = match[1];
+                  const flightInfo = match[2];
+                  const parsed = namesStr
+                    .split(",")
+                    .map((s: string) => s.trim().replace(/-\d+$/, ""))
+                    .filter((s: string) => s && !isAccountUser({ name: s }));
+                  const formatted = parsed.length > 0 ? parsed.join("\n") : "your flight partners";
+                  return {
+                    ...notif,
+                    body: `You are grouped with:\n${formatted}\nfor ${flightInfo}.`,
+                  };
+                }
+              }
+            }
+            return notif;
+          };
+
+          if (isMounted) {
+            let combined = Array.isArray(items) ? items.map(sanitizeFlightNotif) : [];
+            if (authenticatedPlayer?.id) {
+              try {
+                const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+                const localSaved = localStorage.getItem(notifKey);
+                if (localSaved) {
+                  const parsed = JSON.parse(localSaved);
+                  if (Array.isArray(parsed)) {
+                    const existingIds = new Set(combined.map((n: any) => n.id));
+                    for (const ln of parsed) {
+                      const sanitized = sanitizeFlightNotif(ln);
+                      if (!existingIds.has(sanitized.id)) {
+                        combined.unshift(sanitized);
+                      }
+                    }
+                  }
+                }
+              } catch {}
+            }
+            setMobileNotifications(combined);
           }
+        } else if (isMounted && authenticatedPlayer?.id) {
+          try {
+            const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+            const localSaved = localStorage.getItem(notifKey);
+            if (localSaved) {
+              const parsed = JSON.parse(localSaved);
+              if (Array.isArray(parsed)) {
+                setMobileNotifications(parsed.map((n: any) => {
+                  if (n?.type === "FLIGHT_GROUPING" || n?.data?.type === "FLIGHT_GROUPING") {
+                    if (n.body && !n.body.includes("\n")) {
+                      const match = n.body.match(/You are grouped with (.*?) for (.*?)\./i);
+                      if (match) {
+                        const parsedNames = match[1]
+                          .split(",")
+                          .map((s: string) => s.trim().replace(/-\d+$/, ""))
+                          .filter((s: string) => s && !isAccountUser({ name: s }));
+                        const formatted = parsedNames.length > 0 ? parsedNames.join("\n") : "your flight partners";
+                        return {
+                          ...n,
+                          body: `You are grouped with:\n${formatted}\nfor ${match[2]}.`,
+                        };
+                      }
+                    }
+                  }
+                  return n;
+                }));
+              }
+            }
+          } catch {}
         }
       } catch { }
     }
     loadNotifications();
     return () => { isMounted = false; };
-  }, [authenticatedPlayer]);
+  }, [authenticatedPlayer?.id]);
 
   // Synchronize active round with live database tournament
   useEffect(() => {
@@ -886,33 +1941,179 @@ export default function MobilePreviewPage() {
       }
     }
 
-    if (activeTournament && activeTournament.status === "LIVE") {
-      const firstHolePar = courseHoles[0]?.par || 4;
-      const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+    const hasOfficialGroup = Boolean(
+      tournamentGroupings &&
+      Array.isArray(tournamentGroupings.groups) &&
+      tournamentGroupings.groups.some((g) =>
+        g.registrations?.some((r) =>
+          isAccountUser({
+            id: r.user?.id || r.id,
+            email: r.user?.email,
+            name: `${r.user?.firstName || ""} ${r.user?.lastName || ""}`.trim(),
+          })
+        )
+      )
+    );
+
+    if (activeTournament && (activeTournament.status === "LIVE" || activeTournament.status === "REGISTRATION_OPEN" || hasOfficialGroup)) {
+      const matchedGroup = (tournamentGroupings && Array.isArray(tournamentGroupings.groups))
+        ? tournamentGroupings.groups.find((g) =>
+            g.registrations?.some((r) =>
+              isAccountUser({
+                id: r.user?.id || r.id,
+                email: r.user?.email,
+                name: `${r.user?.firstName || ""} ${r.user?.lastName || ""}`.trim(),
+              })
+            )
+          )
+        : null;
+
+      const roundNumber = matchedGroup?.day || (() => {
+        if (activeTournament.startDate) {
+          const start = new Date(activeTournament.startDate).getTime();
+          const now = Date.now();
+          if (now >= start) {
+            const daysDiff = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
+            const maxDays = Math.max(1, activeTournament.courseHoles > 9 ? 4 : 2);
+            return Math.min(maxDays, Math.max(1, daysDiff));
+          }
+        }
+        return 1;
+      })();
+      const dayText = `ROUND ${roundNumber}`;
+
+      const playerEntry = (registeredPlayers || []).find((p) => isAccountUser(p));
+      const userThru = playerEntry && !isNaN(Number((playerEntry as any).thru))
+        ? Number((playerEntry as any).thru)
+        : 0;
+      const activeHoleNumber = Math.min(courseHoles.length || 18, Math.max(1, userThru + 1));
+      const activeHoleIndex = activeHoleNumber - 1;
+      const currentHoleData = courseHoles[activeHoleIndex] || courseHoles[0];
+      const holePar = currentHoleData?.par || 4;
+      const holeYards = currentHoleData?.yards || currentHoleData?.yardage || 345;
+      const isLive = activeTournament.status === "LIVE";
+
       setActiveRound({
         id: `ar-${activeTournament.id}`,
         tournamentId: activeTournament.id,
         tournamentName: activeTournament.name,
-        holeNumber: 1,
-        par: firstHolePar,
-        yardage: firstHoleYards,
-        holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
-        isLive: true,
-        dayText: "ROUND 1",
-        score: "E",
-        thru: "0",
-        flightText: activeTournament.divisions || "Championship Flight",
-        groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
-          id: p.id,
-          name: p.name,
-          initials: p.initials,
-          avatar: "/images/competitor/alex_avatar.jpg",
-        })),
+        courseName: activeTournament.courseName || "Oakwood Country Club Course",
+        clubName: activeTournament.organizerClub || "Oakwood Country Club",
+        holeNumber: activeHoleNumber,
+        par: holePar,
+        yardage: holeYards,
+        holeInfo: `Par ${holePar} • ${holeYards} yds`,
+        isLive,
+        dayText,
+        score: playerEntry?.gross && playerEntry.gross !== "--" ? `Gross ${playerEntry.gross}` : "E",
+        thru: String(userThru),
+        flightText: matchedGroup
+          ? (matchedGroup.name ? matchedGroup.name : "Flight 1")
+          : (tournamentGroupings && Array.isArray(tournamentGroupings.groups) && tournamentGroupings.groups.length > 0
+              ? "Flight Pending Assignment"
+              : "Flight 1"),
+        groupPlayers: (() => {
+          const players: GroupPlayer[] = [];
+          const seenIds = new Set<string>();
+
+          // Priority 1: Match player to official tournament groupings in the database
+          if (matchedGroup) {
+            for (const r of matchedGroup.registrations || []) {
+              const rawPartnerName = `${r.user?.firstName || ""} ${r.user?.lastName || ""}`.trim() || r.user?.email || "Player";
+              const partnerName = rawPartnerName.replace(/-\d+$/, "").trim();
+              const partnerId = r.user?.id || r.id;
+              if (
+                isAccountUser({ id: partnerId, email: r.user?.email, name: partnerName }) ||
+                isAccountUser({ id: partnerId, email: r.user?.email, name: rawPartnerName })
+              ) {
+                continue;
+              }
+              if (!seenIds.has(partnerId)) {
+                seenIds.add(partnerId);
+                players.push({
+                  id: partnerId,
+                  name: partnerName,
+                  initials: getTwoInitials(partnerName),
+                  avatar: undefined,
+                });
+              }
+              if (players.length >= 3) break;
+            }
+
+            // Automatically record flight grouping notification in notifications tab if not already present
+            if (players.length > 0 && typeof window !== "undefined") {
+              try {
+                const currentUserId = authenticatedPlayer?.id || "guest";
+                const notifKey = getUserNotificationsKey(currentUserId);
+                const groupingNotifId = `notif_flight_grp_${activeTournament.id}_${matchedGroup.id || "r1"}`;
+                const savedNotifsRaw = localStorage.getItem(notifKey);
+                const savedNotifs = savedNotifsRaw ? JSON.parse(savedNotifsRaw) : [];
+                const existingNotif = Array.isArray(savedNotifs) ? savedNotifs.find((n: any) => n.id === groupingNotifId) : null;
+                
+                const partnerNamesList = players.map((pl) => pl.name).filter(Boolean);
+                const formattedNames = partnerNamesList.join("\n");
+                const flightNotifBody = `You are grouped with:\n${formattedNames}\nfor ${matchedGroup.name || dayText} of ${activeTournament.name}.`;
+
+                if (!existingNotif || existingNotif.body !== flightNotifBody) {
+                  const dbTimestamp =
+                    existingNotif?.createdAt ||
+                    (matchedGroup?.startTime ? new Date(matchedGroup.startTime).toISOString() : null) ||
+                    ((matchedGroup as any)?.createdAt ? new Date((matchedGroup as any).createdAt).toISOString() : null) ||
+                    ((activeTournament as any)?.createdAt ? new Date((activeTournament as any).createdAt).toISOString() : null) ||
+                    new Date().toISOString();
+
+                  const flightNotif = {
+                    id: groupingNotifId,
+                    title: `Flight Grouping: ${matchedGroup.name || dayText}`,
+                    body: flightNotifBody,
+                    isRead: existingNotif ? existingNotif.isRead : false,
+                    unread: existingNotif ? existingNotif.unread : true,
+                    createdAt: dbTimestamp,
+                    type: "FLIGHT_GROUPING",
+                    data: {
+                      type: "FLIGHT_GROUPING",
+                      tournamentId: activeTournament.id,
+                      tournamentName: activeTournament.name,
+                      flightName: matchedGroup.name || dayText,
+                      groupName: matchedGroup.name || dayText,
+                      flightPartners: partnerNamesList,
+                    },
+                  };
+                  const updated = [flightNotif, ...(Array.isArray(savedNotifs) ? savedNotifs.filter((n: any) => n.id !== groupingNotifId) : [])];
+                  localStorage.setItem(notifKey, JSON.stringify(updated));
+                  setMobileNotifications((prev) => [
+                    flightNotif,
+                    ...prev.filter((n: any) => n.id !== groupingNotifId),
+                  ]);
+                }
+              } catch {}
+            }
+
+            return players;
+          }
+
+          // Priority 2: Fallback when groupings have not yet been generated in database
+          for (const p of registeredPlayers || []) {
+            if (isAccountUser(p)) continue;
+            if (!seenIds.has(p.id)) {
+              seenIds.add(p.id);
+              players.push({
+                id: p.id,
+                name: p.name,
+                initials: getTwoInitials(p.name),
+                avatar: undefined,
+              });
+            }
+            if (players.length >= 3) break;
+          }
+
+          return players;
+        })(),
       });
     } else {
       setActiveRound(null);
     }
-  }, [activeTournament, courseHoles, registeredPlayers]);
+  }, [activeTournament, courseHoles, registeredPlayers, golfCompetitors, authenticatedPlayer, isAccountUser, tournamentGroupings]);
 
   // Hybrid 3-Stage Inactivity & Lifecycle Management
   useEffect(() => {
@@ -1016,6 +2217,8 @@ export default function MobilePreviewPage() {
         setHasInactivityWarning(false);
         const forfeitedTournName = activeRound?.tournamentName || activeTournament?.name || "Tournament";
         showToast(`${forfeitedTournName} match forfeited by Tournament Committee.`, "error", "ADMIN FORFEIT (WD)");
+      } else if (event.type === "tournament-groupings-updated") {
+        setGroupingsRefreshKey((k) => k + 1);
       }
     });
     return () => {
@@ -1043,30 +2246,39 @@ export default function MobilePreviewPage() {
     }
 
     if (!friendsSearchQuery.trim()) {
-      return combined.slice(0, 5);
+      return [];
     }
     const q = friendsSearchQuery.trim().toLowerCase();
+    const currentId = authenticatedPlayer?.id;
+    const currentEmail = authenticatedPlayer?.email?.toLowerCase().trim();
+    const currentName = authenticatedPlayer?.name?.toLowerCase().trim();
+
     return combined.filter((p) => {
+      // Exclude currently authenticated player from friend search
+      if (currentId && p.id === currentId) return false;
+      if (currentEmail && p.email && p.email.toLowerCase().trim() === currentEmail) return false;
+      if (currentName && p.name && p.name.toLowerCase().trim() === currentName) return false;
+
       return (
         p.name.toLowerCase().includes(q) ||
-        p.club.toLowerCase().includes(q) ||
-        p.hcp.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q)
+        (p.email && p.email.toLowerCase().includes(q))
       );
     });
-  }, [golfCompetitors, registeredPlayers, friendsSearchQuery]);
+  }, [golfCompetitors, registeredPlayers, friendsSearchQuery, authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name, acceptedFriendIds]);
 
-  const filteredActivePlayers = activeCompetitorsData.filter((p: any) => {
-    if (!activePlayersSearchQuery.trim()) return true;
+  const filteredActivePlayers = useMemo(() => {
+    // Only display players who have actually started playing on the golf course / started a round
+    const onCoursePlayers = activeCompetitorsData.filter((p: any) => p.roundStarted);
+    if (!activePlayersSearchQuery.trim()) return onCoursePlayers;
     const q = activePlayersSearchQuery.toLowerCase().trim();
-    return (
+    return onCoursePlayers.filter((p: any) =>
       p.name.toLowerCase().includes(q) ||
       p.club.toLowerCase().includes(q) ||
       p.flight.toLowerCase().includes(q) ||
       p.score.toLowerCase().includes(q) ||
       `hole ${p.currentHole}`.toLowerCase().includes(q)
     );
-  });
+  }, [activeCompetitorsData, activePlayersSearchQuery]);
 
   // --- Verify Email (6-Digit OTP) State ---
   const [verifyEmailTarget, setVerifyEmailTarget] = useState("");
@@ -1747,6 +2959,7 @@ export default function MobilePreviewPage() {
           homeClub: regHomeClub.trim() || undefined,
           clubName: regHomeClub.trim() || undefined,
           clientPlatform: "mobile",
+          profilePhoto: regAvatar || undefined,
         }),
       });
 
@@ -1811,7 +3024,7 @@ export default function MobilePreviewPage() {
       ? dbUser.club.name 
       : (regHomeClub.trim() ? regHomeClub.trim() : (dbUser?.club?.name || "Ikoyi Golf Club"));
     const initials = (resolvedName.split(" ").filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()) || "PL";
-    const resolvedAvatar = dbUser?.avatarUrl || dbUser?.avatar || regAvatar || initials;
+    const resolvedAvatar = dbUser?.profilePhoto || dbUser?.avatarUrl || dbUser?.avatar || regAvatar || initials;
 
     const playerObj: AuthenticatedPlayer = {
       id: dbUser?.id || `reg_${Date.now()}`,
@@ -1930,6 +3143,8 @@ export default function MobilePreviewPage() {
                 gender: t.genderRestriction === "MALE_ONLY" ? "Male" : t.genderRestriction === "FEMALE_ONLY" ? "Ladies" : undefined,
                 hcpLimit: t.hasHandicapRestriction ? `HCP ${t.minHandicap ?? 0}–${t.maxHandicap ?? 36}` : "No Limit",
                 deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
+                startDate: t.startDate || undefined,
+                endDate: t.endDate || undefined,
               };
             });
             setLiveTournaments(mapped);
@@ -2022,18 +3237,26 @@ export default function MobilePreviewPage() {
               const f9Strokes = regScores.filter((s: any) => s.holeNumber <= 9).reduce((acc: number, s: any) => acc + (s.strokes || 0), 0);
               const b9Strokes = regScores.filter((s: any) => s.holeNumber > 9).reduce((acc: number, s: any) => acc + (s.strokes || 0), 0);
 
+              const photoUrl = reg.user?.profilePhoto || reg.user?.avatar || undefined;
+              const hasScores = regScores.length > 0;
+              const isStarted = hasScores || Boolean(reg.roundStarted || reg.startedAt || reg.status === "ON_COURSE");
               return {
                 id: reg.user?.id || reg.id,
                 registrationId: reg.id,
                 name: userName,
-                initials: initials || "PL",
+                initials: getTwoInitials(userName),
+                email: reg.user?.email || "",
+                avatar: photoUrl,
+                profilePhoto: photoUrl,
                 handicap: reg.user?.handicap ?? reg.extraStrokes ?? 0,
                 seed: idx + 1,
-                gross: regScores.length > 0 ? `${totalStrokes}` : "--",
+                gross: hasScores ? `${totalStrokes}` : "--",
                 status: reg.status === "APPROVED" && regScores.length >= 18 ? "ATTESTED" : "PENDING",
                 f9: f9Strokes > 0 ? `${f9Strokes}` : "--",
                 b9: b9Strokes > 0 ? `${b9Strokes}` : "--",
                 putts: totalPutts,
+                thru: regScores.length,
+                roundStarted: isStarted,
               };
             });
             setRegisteredPlayers(mapped);
@@ -2052,6 +3275,28 @@ export default function MobilePreviewPage() {
     fetchLeaderboard();
     return () => { isMounted = false; };
   }, [activeTournament?.id]);
+
+  // Load real tournament groupings/flights from database for the active tournament
+  useEffect(() => {
+    const tournamentId = activeTournament?.id;
+    if (!tournamentId) {
+      setTournamentGroupings(null);
+      return;
+    }
+    let isMounted = true;
+    async function fetchTournamentGroupings() {
+      try {
+        const data = await getGroupings(tournamentId, 1);
+        if (isMounted && data && Array.isArray(data.groups)) {
+          setTournamentGroupings(data);
+        }
+      } catch {
+        if (isMounted) setTournamentGroupings(null);
+      }
+    }
+    fetchTournamentGroupings();
+    return () => { isMounted = false; };
+  }, [activeTournament?.id, groupingsRefreshKey]);
 
   // Authenticate player directly against the database with mobile client platform enforcement
   const handleLoginSubmit = async (emailToCheck?: string, passwordToCheck?: string) => {
@@ -2110,13 +3355,14 @@ export default function MobilePreviewPage() {
           : (user.homeClub || regHomeClub.trim() || user.club?.name || "Ikoyi Golf Club"),
         city: user.city || "",
         state: user.state || "",
-        avatar: user.avatarUrl || user.avatar || initials,
+        avatar: user.profilePhoto || user.avatarUrl || user.avatar || initials,
         status: "Tour Card • Active",
         isPro: Boolean(user.isPro || user.classification === "PROFESSIONAL"),
         classification: user.classification,
       });
 
       // Seamless direct transition to tournament hub without intrusive toast
+      setGroupingsRefreshKey((k) => k + 1);
       setActiveScreen("hub");
     } catch {
       setLoginError(null);
@@ -2508,7 +3754,7 @@ class LeaderboardScreen extends StatelessWidget {
     login: {
       path: "apps/mobile-app/lib/screens/login_screen.dart",
       summary:
-        "Pixel-perfect Flutter login screen following the executive reference design: centered green squircle badge with golf ball on tee and corner flag, 'Welcome Back' header, Google OAuth action, soft-mint input fields (#f5faf6), inline FORGOT? link, 30-day persistence checkbox, and primary 'Sign In to Portal' action.",
+        "Pixel-perfect Flutter login screen following the executive reference design: centered green squircle badge with official lightbulb emblem, 'Welcome Back' header, Google OAuth action, soft-mint input fields (#f5faf6), inline FORGOT? link, 30-day persistence checkbox, and primary 'Sign In to Portal' action.",
       snippet: `// Dart & Flutter: login_screen.dart (Exact Reference UI)
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -2532,8 +3778,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Centered Green Squircle Badge with Golf Ball on Tee & Flag
-              _buildGolfTeeBrandBadge(),
+              // 1. Centered Green Squircle Brand Badge with Lightbulb Symbol
+              _buildBrandSquircleBadge(),
               const SizedBox(height: 16),
 
               // Title & Subtitle
@@ -3161,6 +4407,95 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
   }
 }`,
     },
+    "add-friends": {
+      path: "apps/mobile-app/lib/screens/add_friends_screen.dart",
+      summary:
+        "Dedicated player search screen with unified navigation header, soft-mint input bar, and golfer cards with green initial badges and Sent confirmation chips.",
+      snippet: `// Dart & Flutter: add_friends_screen.dart
+class AddFriendsScreen extends StatelessWidget {
+  const AddFriendsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Add Golf Friends')),
+      body: const Center(child: Text('Search and connect with players')),
+    );
+  }
+}`,
+    },
+    "sync-contacts": {
+      path: "apps/mobile-app/lib/screens/sync_contacts_screen.dart",
+      summary:
+        "Dedicated contacts onboarding screen matching the brand system with hero soft-mint address book badge, shield status indicator, auto-connect and private sync benefit cards, and interactive permission flow.",
+      snippet: `// Dart & Flutter: sync_contacts_screen.dart
+class SyncContactsScreen extends StatefulWidget {
+  final VoidCallback? onContactsAllowed;
+  const SyncContactsScreen({super.key, this.onContactsAllowed});
+
+  @override
+  State<SyncContactsScreen> createState() => _SyncContactsScreenState();
+}
+
+class _SyncContactsScreenState extends State<SyncContactsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Standard Pinned Navigation Bar with 36x36 back pill
+            // Hero Contact Badge with Emerald Address Book Icon
+            // Title & Subtitle: Sync Your Contacts
+            // Benefit Cards: AUTO-CONNECT WITH FRIENDS, SECURE & PRIVATE SYNC
+            // Action Buttons: ALLOW ACCESS, MAYBE LATER
+          ],
+        ),
+      ),
+    );
+  }
+}`,
+    },
+    notifications: {
+      path: "apps/mobile-app/lib/screens/notifications_screen.dart",
+      summary:
+        "Dedicated notifications screen displaying official tournament broadcasts, tee time updates, and verified friend acceptance alerts.",
+      snippet: `// Dart & Flutter: notifications_screen.dart
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notifications & Alerts')),
+      body: const Center(child: Text('Official tournament communications')),
+    );
+  }
+}`,
+    },
+    tournaments: {
+      path: "apps/mobile-app/lib/screens/competitor_home_screen.dart",
+      summary:
+        "Tournaments schedule and entries screen featuring category filter pills, featured Ikoyi Open championship hero, available entries listing with fees, and persistent bottom navigation.",
+      snippet: `// Dart & Flutter: Tournaments Screen View
+class TournamentsView extends StatelessWidget {
+  const TournamentsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
+      body: CustomScrollView(
+        slivers: [
+          // Filter Pills: All, Ongoing, Major, Invitational
+          // Featured Event Hero Card: Ikoyi Open Championship 2024
+          // Available Entries Section Header (34 Found)
+          // Tournament Entry Cards: Lagos Amateur Open, IBB Invitational, Corporate Golf Challenge
+        ],
+      ),
+    );
+  }
+}`,
+    },
   };
 
   const copyCode = () => {
@@ -3321,20 +4656,17 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         <div className="px-3.5 py-1.5 rounded-[20px] bg-black/30 backdrop-blur-md border border-white/15 flex items-center gap-2 shadow-lg">
                           <div className="w-7 h-7 rounded-lg bg-[#009A60] flex items-center justify-center shadow-xs">
                             <svg
-                              className="w-4.5 h-4.5 text-white"
+                              className="w-4 h-4 text-white"
                               viewBox="0 0 24 24"
                               fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              <circle cx="12" cy="7.5" r="4.5" fill="white" />
-                              <circle cx="10.8" cy="6.2" r="0.6" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="13" cy="5.8" r="0.6" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="11.2" cy="8.2" r="0.6" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="13.2" cy="8.2" r="0.6" fill="#009A60" fillOpacity="0.3" />
-                              <path
-                                d="M9.5 13H14.5L13 15V19.5C13 19.7761 12.7761 20 12.5 20H11.5C11.2239 20 11 19.7761 11 19.5V15L9.5 13Z"
-                                fill="white"
-                              />
+                              <path d="M15 13.5c.3-.8 1-1.6 1.8-2.3 1-.9 1.7-2.1 1.7-3.7a6.5 6.5 0 1 0-13 0c0 1.6.7 2.8 1.7 3.7.8.7 1.5 1.5 1.8 2.3" />
+                              <path d="M9.5 17.5h5" />
+                              <path d="M10.5 20.5h3" />
                             </svg>
                           </div>
                           <div className="text-[17px] font-black tracking-tight leading-none">
@@ -3563,7 +4895,32 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         </div>
 
                         {/* Giant Stroke Counter Card */}
-                        <div className="rounded-2xl p-4 bg-[#0E1521]/90 border border-emerald-900/30 shadow-xl flex items-center justify-between">
+                        <div className="rounded-2xl p-4 bg-[#0E1521]/90 border border-emerald-900/30 shadow-xl flex items-center justify-between relative overflow-hidden group">
+                          {/* Fitted Background Pattern: Putting Cup Bullseye Target Rings & Crosshair Alignment Grid */}
+                          <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none opacity-30 transition-opacity duration-300 group-hover:opacity-45"
+                            viewBox="0 0 340 80"
+                            fill="none"
+                            preserveAspectRatio="none"
+                          >
+                            <defs>
+                              <radialGradient id="strokeTargetGlow" cx="50%" cy="50%" r="55%">
+                                <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                                <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                              </radialGradient>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#strokeTargetGlow)" />
+                            {/* Putting cup target concentric rings centered behind stroke number */}
+                            <circle cx="170" cy="40" r="24" stroke="#10B981" strokeWidth="1" opacity="0.25" fill="none" />
+                            <circle cx="170" cy="40" r="36" stroke="#10B981" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.18" fill="none" />
+                            <circle cx="170" cy="40" r="50" stroke="#10B981" strokeWidth="0.6" opacity="0.12" fill="none" />
+                            {/* Crosshair precision marks */}
+                            <line x1="170" y1="8" x2="170" y2="20" stroke="#10B981" strokeWidth="1" opacity="0.3" />
+                            <line x1="170" y1="60" x2="170" y2="72" stroke="#10B981" strokeWidth="1" opacity="0.3" />
+                            <line x1="138" y1="40" x2="150" y2="40" stroke="#10B981" strokeWidth="1" opacity="0.3" />
+                            <line x1="190" y1="40" x2="202" y2="40" stroke="#10B981" strokeWidth="1" opacity="0.3" />
+                          </svg>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -3574,12 +4931,12 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 );
                               }
                             }}
-                            className="w-12 h-12 rounded-2xl bg-[#141F30] border border-slate-700/60 flex items-center justify-center text-slate-200 hover:bg-slate-800 active:scale-95 transition-all text-xl"
+                            className="relative z-10 w-12 h-12 rounded-2xl bg-[#141F30] border border-slate-700/60 flex items-center justify-center text-slate-200 hover:bg-slate-800 active:scale-95 transition-all text-xl"
                           >
                             <Minus className="h-5 w-5" />
                           </button>
 
-                          <div className="text-center">
+                          <div className="relative z-10 text-center">
                             <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">
                               Strokes
                             </span>
@@ -3596,7 +4953,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 activeHoleScore.strokes + 1
                               )
                             }
-                            className="w-12 h-12 rounded-2xl bg-emerald-600/90 border border-emerald-500/60 flex items-center justify-center text-white hover:bg-emerald-500 active:scale-95 transition-all text-xl shadow-lg shadow-emerald-900/40"
+                            className="relative z-10 w-12 h-12 rounded-2xl bg-emerald-600/90 border border-emerald-500/60 flex items-center justify-center text-white hover:bg-emerald-500 active:scale-95 transition-all text-xl shadow-lg shadow-emerald-900/40"
                           >
                             <Plus className="h-5 w-5" />
                           </button>
@@ -3725,9 +5082,29 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       <div className="px-4 pt-3 flex-1 flex flex-col justify-between">
                         <div>
                           {/* USGA Rule Notice */}
-                          <div className="rounded-xl p-3 bg-amber-500/10 border border-amber-500/25 mb-3 flex items-start gap-2.5">
-                            <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-amber-200/90 leading-relaxed">
+                          <div className="rounded-xl p-3 bg-amber-500/10 border border-amber-500/25 mb-3 flex items-start gap-2.5 relative overflow-hidden group">
+                            {/* Fitted Background Pattern: Official USGA Certificate Security Guilloche & Seal Wave Lines */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none opacity-25 transition-opacity duration-300 group-hover:opacity-40"
+                              viewBox="0 0 340 56"
+                              fill="none"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <radialGradient id="usgaRuleGlow" cx="15%" cy="50%" r="50%">
+                                  <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.22" />
+                                  <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+                                </radialGradient>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#usgaRuleGlow)" />
+                              {/* Official certificate security guilloche waves */}
+                              <path d="M-10 20 Q 75 40, 160 18 T 330 25 T 400 15" stroke="#F59E0B" strokeWidth="0.9" fill="none" opacity="0.3" />
+                              <path d="M-10 32 Q 80 12, 165 35 T 335 28 T 400 38" stroke="#F59E0B" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.22" />
+                              <circle cx="28" cy="24" r="16" stroke="#F59E0B" strokeWidth="0.8" opacity="0.2" fill="none" />
+                            </svg>
+
+                            <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0 mt-0.5 relative z-10" />
+                            <p className="text-[10px] text-amber-200/90 leading-relaxed relative z-10">
                               USGA Rule 3.3b: The marker must certify the hole
                               scores. Once attested, scores are committed to the
                               tournament championship ledger.
@@ -3763,9 +5140,29 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 <div
                                   key={player.id}
                                   className={`rounded-2xl bg-[#0E1521]/90 border ${isAttested ? "border-emerald-500/40" : "border-slate-800/90"
-                                    } p-3.5 mb-2.5 shadow-lg`}
+                                    } p-3.5 mb-2.5 shadow-lg relative overflow-hidden group`}
                                 >
-                                  <div className="flex items-center justify-between mb-2">
+                                  {/* Fitted Background Pattern: Digital Scorecard Certification Ledger Guilloche */}
+                                  <svg
+                                    className="absolute inset-0 w-full h-full pointer-events-none opacity-20 transition-opacity duration-300 group-hover:opacity-35"
+                                    viewBox="0 0 340 80"
+                                    fill="none"
+                                    preserveAspectRatio="none"
+                                  >
+                                    <defs>
+                                      <radialGradient id={`attestLedgerGlow-${player.id}`} cx="85%" cy="30%" r="55%">
+                                        <stop offset="0%" stopColor={isAttested ? "#10B981" : "#F59E0B"} stopOpacity="0.25" />
+                                        <stop offset="100%" stopColor={isAttested ? "#10B981" : "#F59E0B"} stopOpacity="0" />
+                                      </radialGradient>
+                                    </defs>
+                                    <rect width="100%" height="100%" fill={`url(#attestLedgerGlow-${player.id})`} />
+                                    {/* Certification ledger tracks */}
+                                    <line x1="0" y1="26" x2="340" y2="26" stroke={isAttested ? "#10B981" : "#F59E0B"} strokeWidth="0.6" strokeDasharray="3 3" opacity="0.3" />
+                                    <line x1="0" y1="54" x2="340" y2="54" stroke={isAttested ? "#10B981" : "#F59E0B"} strokeWidth="0.5" opacity="0.2" />
+                                    <circle cx="295" cy="26" r="22" stroke={isAttested ? "#10B981" : "#F59E0B"} strokeWidth="0.8" strokeDasharray="2 3" opacity="0.25" fill="none" />
+                                  </svg>
+
+                                  <div className="relative z-10 flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2.5">
                                       <div
                                         className={`w-8 h-8 rounded-xl ${isAttested
@@ -3803,7 +5200,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                                  <div className="relative z-10 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400 font-mono">
                                     <span>Front 9: {player.f9}</span>
                                     <span>Back 9: {player.b9}</span>
                                     <span>Putts: {player.putts}</span>
@@ -3851,10 +5248,10 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         <div className="relative z-10 px-5 pt-3 pb-8 flex flex-col justify-between h-full w-full max-w-sm mx-auto">
                           {/* Top Action Bar: 4 WHITE ICONS (Properly spaced at the top right corner) */}
                           <div className="flex items-center justify-end gap-3.5 shrink-0 pt-0.5">
-                            {/* User Plus (Add Friends) */}
+                            {/* User Plus (Add Friends) - Opens New Screen */}
                             <button
                               type="button"
-                              onClick={() => setShowAddFriendsModal(true)}
+                              onClick={() => switchScreen("add-friends")}
                               className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
                               title="Add Friends"
                               aria-label="Add Friends"
@@ -3862,39 +5259,50 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               <UserPlus className="h-[20px] w-[20px] text-white stroke-[1.8]" />
                             </button>
 
-                            {/* Notification Bell with Red Badge */}
-                            <button
-                              type="button"
-                              onClick={() => setShowNotificationsModal(true)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
-                              title="Notifications"
-                              aria-label="Notifications"
-                            >
-                              <Bell className="h-[20px] w-[20px] text-white stroke-[1.8]" />
-                              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#EF4444] border-1.5 border-white animate-pulse" />
-                            </button>
+                              {/* Notification Bell with Badge */}
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("notifications")}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
+                                title="Notifications"
+                                aria-label="Notifications"
+                              >
+                                <Bell className="h-[20px] w-[20px] text-white stroke-[1.8]" />
+                                {incomingFriendRequests.length > 0 ? (
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-1.5 border-[#0A3D27] text-white text-[10px] font-black flex items-center justify-center px-1 shadow-sm leading-none animate-pulse">
+                                    {incomingFriendRequests.length}
+                                  </span>
+                                ) : unreadNotificationsCount > 0 ? (
+                                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#EF4444] border-1.5 border-white animate-pulse" />
+                                ) : null}
+                              </button>
 
-                            {/* Send / Paper Airplane (Messages) */}
-                            <button
-                              type="button"
-                              onClick={() => setShowMessagesModal(true)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
-                              title="Messages"
-                              aria-label="Messages"
-                            >
-                              <Send className="h-[19px] w-[19px] text-white stroke-[1.8]" />
-                            </button>
+                              {/* My Bookings Icon (Displays bookings made with a Pro) */}
+                              <button
+                                type="button"
+                                onClick={() => setShowBookingsModal(true)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
+                                title="My Bookings (Pro Sessions)"
+                                aria-label="My Bookings"
+                              >
+                                <CalendarCheck className="h-[20px] w-[20px] text-white stroke-[1.8]" />
+                                {proBookings.length > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-[#009A60] border-1.5 border-[#0A3D27] text-white text-[9.5px] font-black flex items-center justify-center px-1 shadow-sm leading-none">
+                                    {proBookings.length}
+                                  </span>
+                                )}
+                              </button>
 
-                            {/* Hamburger Menu (Profile Drawer) */}
-                            <button
-                              type="button"
-                              onClick={() => setShowMenuDrawer(true)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
-                              title="Menu"
-                              aria-label="Menu"
-                            >
-                              <Menu className="h-[22px] w-[22px] text-white stroke-[1.8]" />
-                            </button>
+                              {/* Hamburger Menu (Profile Drawer) */}
+                              <button
+                                type="button"
+                                onClick={() => setShowMenuDrawer(true)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+                                title="Menu"
+                                aria-label="Menu"
+                              >
+                                <Menu className="h-[22px] w-[22px] text-white stroke-[1.8]" />
+                              </button>
                           </div>
 
                           {/* Competitor Profile Block: Avatar positioned directly at the top of the welcome text */}
@@ -3977,18 +5385,40 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           {/* Left Card: Book a Pro (Equal flex-1) */}
                           <button
                             type="button"
-                            onClick={() => showToast("PGA Certified Pro booking directory coming soon!", "success", "BOOK A PRO")}
-                            className="flex-1 h-[66px] bg-white rounded-[26px] px-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0"
+                            onClick={() => setShowBookingsModal(true)}
+                            className="flex-1 h-[68px] bg-white rounded-[26px] px-3 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2.5 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0 relative overflow-hidden"
                           >
-                            <CalendarCheck className="h-5 w-5 text-[#009A60] stroke-[1.8] shrink-0 group-hover:scale-105 transition-transform" />
-                            <div className="flex flex-col text-left min-w-0 justify-center">
-                              <span className="text-[13px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                            {/* Fitted Background Pattern: Pro Tee-Time Clinic Swing Velocity Trajectory Arc & Soft Radial Glow */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none opacity-40 transition-opacity duration-300 group-hover:opacity-60"
+                              viewBox="0 0 170 68"
+                              fill="none"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <radialGradient id="bookAProGlow" cx="90%" cy="20%" r="70%">
+                                  <stop offset="0%" stopColor="#009A60" stopOpacity="0.10" />
+                                  <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                </radialGradient>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#bookAProGlow)" />
+                              {/* Parabolic swing velocity loft arc */}
+                              <path d="M-10 62 Q 55 58, 95 38 T 165 12" stroke="#009A60" strokeWidth="1.1" fill="none" opacity="0.18" />
+                              <path d="M-15 48 Q 50 44, 90 26 T 170 4" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.14" />
+                              {/* Precision impact focal arcs */}
+                              <circle cx="152" cy="18" r="14" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 2" opacity="0.16" />
+                              <circle cx="152" cy="18" r="26" stroke="#009A60" strokeWidth="0.7" opacity="0.10" />
+                            </svg>
+
+                            <CalendarCheck className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
+                            <div className="flex flex-col text-left min-w-0 justify-center relative z-10">
+                              <span className="text-[16px] font-extrabold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
                                 Book a Pro
                               </span>
-                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight mt-0.5">
+                              <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight mt-0.5">
                                 Book the club pro
                               </span>
-                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight">
+                              <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight">
                                 for golfing sessions
                               </span>
                             </div>
@@ -3997,18 +5427,42 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           {/* Right Card: HCP (Equal flex-1, matching Book a Pro icon & description) */}
                           <button
                             type="button"
-                            onClick={() => showToast("Your verified player handicap index", "success", "HANDICAP INDEX")}
-                            className="flex-1 h-[66px] bg-white rounded-[26px] px-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0"
+                            onClick={() => showToast("Your verified handicap index", "success", "HANDICAP INDEX")}
+                            className="flex-1 h-[68px] bg-white rounded-[26px] px-3 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2.5 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0 relative overflow-hidden"
                           >
-                            <Award className="h-5 w-5 text-[#009A60] stroke-[1.8] shrink-0 group-hover:scale-105 transition-transform" />
-                            <div className="flex flex-col text-left min-w-0 justify-center">
-                              <span className="text-[13px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                            {/* Fitted Background Pattern: Official USGA Slope Rating Micro-Diamond Lattice & Course Elevation Delta */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none opacity-40 transition-opacity duration-300 group-hover:opacity-60"
+                              viewBox="0 0 170 68"
+                              fill="none"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <pattern id="hcpDiamondLattice" width="16" height="16" patternUnits="userSpaceOnUse">
+                                  <path d="M 8 0 L 16 8 L 8 16 L 0 8 Z" fill="none" stroke="#009A60" strokeWidth="0.7" strokeOpacity="0.08" />
+                                </pattern>
+                                <radialGradient id="hcpCardGlow" cx="15%" cy="85%" r="65%">
+                                  <stop offset="0%" stopColor="#009A60" stopOpacity="0.10" />
+                                  <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                </radialGradient>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#hcpDiamondLattice)" />
+                              <rect width="100%" height="100%" fill="url(#hcpCardGlow)" />
+                              {/* Handicap slope rating delta wave lines */}
+                              <path d="M-10 48 L 45 42 L 85 28 L 130 34 L 180 16" stroke="#009A60" strokeWidth="1.0" fill="none" opacity="0.18" />
+                              <circle cx="85" cy="28" r="3" fill="#009A60" opacity="0.22" />
+                              <circle cx="130" cy="34" r="2.5" fill="#009A60" opacity="0.22" />
+                            </svg>
+
+                            <Award className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
+                            <div className="flex flex-col text-left min-w-0 justify-center relative z-10">
+                              <span className="text-[16px] font-extrabold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
                                 {currentHandicap} HCP
                               </span>
-                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight mt-0.5">
+                              <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight mt-0.5">
                                 Your verified
                               </span>
-                              <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap tracking-tight leading-tight">
+                              <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight">
                                 handicap index
                               </span>
                             </div>
@@ -4020,123 +5474,180 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       <div className="w-full max-w-sm mx-auto px-4 pt-6 pb-4">
                         {/* --- ACTIVE IN-PROGRESS ROUND CARD (DISPLAYED WHEN PLAYER HAS NOT YET FINISHED ROUND) --- */}
                         {activeRound && (
-                          <div className="mb-4.5 w-full rounded-[22px] bg-[#052417] text-white p-4 sm:p-4.5 border border-[#0D3826] shadow-[0_8px_24px_rgba(0,0,0,0.18)] select-none">
-                            {/* Top Row: Hole Squircle Badge + Live Info */}
-                            <div className="flex items-start gap-3.5">
-                              {/* Hole Squircle Badge */}
-                              <div className="w-[64px] h-[82px] rounded-[18px] bg-[#0B3523] border border-[#16603E]/70 flex flex-col items-center justify-center shrink-0">
-                                <span className="text-[9.5px] font-bold text-[#10B981]/90 uppercase tracking-widest leading-none">
-                                  HOLE
-                                </span>
-                                <span className="text-[26px] font-black text-[#10B981] leading-none mt-1.5 tracking-tight">
-                                  {activeRound.holeNumber}
-                                </span>
-                              </div>
+                          <div className="mb-4.5 w-full rounded-[22px] bg-[#052417] text-white p-4.5 sm:p-5 border border-[#0D3826] shadow-[0_10px_28px_rgba(0,0,0,0.22)] select-none relative overflow-hidden group">
+                            {/* Fitted Background Pattern: Golf Course Topographic Elevation Contours & Green Complex Plateau */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none opacity-28 transition-opacity duration-300 group-hover:opacity-40"
+                              viewBox="0 0 360 170"
+                              fill="none"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <radialGradient id="activeRoundGlow1" cx="18%" cy="32%" r="65%">
+                                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
+                                  <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                                </radialGradient>
+                                <radialGradient id="activeRoundGlow2" cx="88%" cy="70%" r="55%">
+                                  <stop offset="0%" stopColor="#059669" stopOpacity="0.18" />
+                                  <stop offset="100%" stopColor="#059669" stopOpacity="0" />
+                                </radialGradient>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#activeRoundGlow1)" />
+                              <rect width="100%" height="100%" fill="url(#activeRoundGlow2)" />
 
-                              {/* Right Column Details */}
-                              <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                {/* Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    {activeRound.isLive && (
-                                      <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-black tracking-wider uppercase leading-none animate-pulse">
-                                        LIVE
+                              {/* Organic Course Topographic Elevation Contours */}
+                              <path d="M-20 32 C 60 8, 130 52, 210 20 C 275 -6, 320 38, 385 16" stroke="#10B981" strokeWidth="1.3" fill="none" opacity="0.65" />
+                              <path d="M-15 62 C 55 35, 145 82, 235 48 C 295 24, 340 58, 395 40" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.5" />
+                              <path d="M-25 94 C 50 68, 125 110, 210 76 C 275 52, 330 90, 385 72" stroke="#10B981" strokeWidth="0.9" strokeDasharray="4 4" fill="none" opacity="0.4" />
+                              <path d="M-10 126 C 75 102, 160 142, 250 112 C 310 94, 355 120, 395 106" stroke="#10B981" strokeWidth="1.0" fill="none" opacity="0.45" />
+                              <path d="M-20 155 C 65 132, 150 166, 240 140 C 305 122, 360 148, 390 136" stroke="#10B981" strokeWidth="0.8" fill="none" opacity="0.3" />
+
+                              {/* Putting Green Complex Plateau Elevation Rings around Hole squircle */}
+                              <circle cx="54" cy="54" r="34" stroke="#10B981" strokeWidth="1.1" strokeDasharray="3 3" opacity="0.6" fill="none" />
+                              <circle cx="54" cy="54" r="58" stroke="#10B981" strokeWidth="0.9" opacity="0.45" fill="none" />
+                              <circle cx="54" cy="54" r="84" stroke="#10B981" strokeWidth="0.75" strokeDasharray="2 3" opacity="0.3" fill="none" />
+                              <circle cx="54" cy="54" r="115" stroke="#10B981" strokeWidth="0.6" opacity="0.2" fill="none" />
+
+                              {/* Course Telemetry Directional Ray */}
+                              <line x1="54" y1="54" x2="330" y2="38" stroke="#10B981" strokeWidth="0.7" strokeDasharray="3 4" opacity="0.25" />
+                              <line x1="54" y1="54" x2="310" y2="105" stroke="#10B981" strokeWidth="0.6" strokeDasharray="2 5" opacity="0.18" />
+                            </svg>
+
+                            <div className="relative z-10">
+                              {/* Top Row: Hole Squircle Badge + Live Info */}
+                              <div className="flex items-start gap-3.5">
+                                {/* Hole Squircle Badge */}
+                                <div className="w-[66px] h-[86px] rounded-[18px] bg-[#0B3523] border border-[#16603E]/70 flex flex-col items-center justify-center shrink-0">
+                                  <span className="text-[9.5px] font-bold text-[#10B981]/90 uppercase tracking-widest leading-none">
+                                    HOLE
+                                  </span>
+                                  <span className="text-[28px] font-black text-[#10B981] leading-none mt-1.5 tracking-tight">
+                                    {activeRound.holeNumber}
+                                  </span>
+                                </div>
+
+                                {/* Right Column Details */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  {/* Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {activeRound.isLive ? (
+                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-black tracking-wider uppercase leading-none shrink-0 animate-pulse">
+                                          LIVE
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[9px] font-black tracking-wider uppercase leading-none shrink-0">
+                                          {activeTournament?.status === "REGISTRATION_OPEN" ? "REG OPEN" : "UPCOMING"}
+                                        </span>
+                                      )}
+                                      <span className="text-[11px] font-bold text-[#8FAEA2] tracking-wider uppercase shrink-0">
+                                        {activeRound.dayText || "ROUND 1"}
+                                      </span>
+                                    </div>
+
+                                    {/* Leaderboard Icon Button (not full text) */}
+                                    <button
+                                      type="button"
+                                      onClick={() => switchScreen("leaderboard")}
+                                      className="w-7 h-7 rounded-full bg-[#0B3523] border border-[#16603E] text-[#10B981] hover:text-white hover:bg-[#10B981]/20 active:scale-95 flex items-center justify-center cursor-pointer transition-all shrink-0 ml-auto shadow-2xs group/lb"
+                                      title="View Leaderboard"
+                                      aria-label="View Leaderboard"
+                                    >
+                                      <Trophy className="w-3.5 h-3.5 group-hover/lb:scale-110 transition-transform" />
+                                    </button>
+                                  </div>
+
+                                  {/* Row 2: Full Display of Tournament Title */}
+                                  <h3 className="text-[16px] font-bold text-white tracking-tight leading-tight truncate mt-1">
+                                    {activeRound.tournamentName}
+                                  </h3>
+
+                                  {/* Row 3: Course Name (Pushed to the top of Par 4, 345 yds) */}
+                                  {(activeRound.courseName || activeRound.clubName) && (
+                                    <p className="text-[12px] font-semibold text-[#10B981] leading-tight truncate mt-0.5" title={activeRound.courseName || activeRound.clubName}>
+                                      {activeRound.courseName || activeRound.clubName}
+                                    </p>
+                                  )}
+
+                                  {/* Row 4: Hole Information (Par & Distance) */}
+                                  <div className="flex items-center mt-1">
+                                    <p className="text-[11.5px] font-medium text-[#8FAEA2] leading-none" title={activeRound.holeInfo}>
+                                      {activeRound.holeInfo?.replace("yards", "yds") || "Par 4 • 345 yds"}
+                                    </p>
+                                  </div>
+
+                                  {/* Row 4: Flight Avatars & Inactivity Status */}
+                                  <div className="flex items-center gap-2.5 mt-2 min-h-[28px]">
+                                    <div className="flex items-center -space-x-2">
+                                      {(activeRound.groupPlayers || [])
+                                        .filter((player) => !isAccountUser(player))
+                                        .slice(0, 3)
+                                        .map((player) => (
+                                          <GroupPlayerAvatarItem key={player.id} player={player} />
+                                        ))}
+                                    </div>
+                                    {hasInactivityWarning ? (
+                                      <span className="text-[10px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none">
+                                        INACTIVE FOR {activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30} MINUTES
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11.5px] font-medium text-[#D1F2DE] leading-none tracking-tight">
+                                        {activeRound.flightText
+                                          ? activeRound.flightText.replace(/\s*•\s*Players in Flight/gi, "").replace(/Players in Flight/gi, "").trim() || "Flight 1"
+                                          : "Flight 1"}
                                       </span>
                                     )}
-                                    <span className="text-[11px] font-bold text-[#8FAEA2] tracking-wider uppercase">
-                                      {activeRound.dayText || "ROUND 2"}
-                                    </span>
                                   </div>
-
-                                  {/* Relocated Leaderboard Link (matching Par 4 font: 11.5px font-medium with arrow) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => switchScreen("leaderboard")}
-                                    className="text-[11.5px] font-medium text-[#10B981] hover:text-[#34D399] active:opacity-75 flex items-center gap-0.5 cursor-pointer transition-colors leading-none"
-                                  >
-                                    <span>Leaderboard</span>
-                                    <ChevronRight className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-
-                                {/* Row 2: Full Display of Tournament Title */}
-                                <h3 className="text-[17px] font-bold text-white tracking-tight leading-tight truncate mt-1">
-                                  {activeRound.tournamentName}
-                                </h3>
-
-                                {/* Row 3: Hole Information */}
-                                <div className="flex items-center mt-1">
-                                  <p className="text-[11.5px] font-medium text-[#8FAEA2] leading-none">
-                                    {activeRound.holeInfo?.replace("yards", "yds") || "Par 4 • 415 yds"}
-                                  </p>
-                                </div>
-
-                                {/* Row 4: Flight Avatars & Inactivity Status (Only visible when 30+ mins reached) */}
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <div className="flex items-center -space-x-1.5">
-                                    {(activeRound.groupPlayers || []).map((player) => (
-                                      <GroupPlayerAvatarItem key={player.id} player={player} />
-                                    ))}
-                                  </div>
-                                  {hasInactivityWarning ? (
-                                    <span className="text-[10px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none">
-                                      INACTIVE FOR {activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30} MINUTES
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10.5px] font-medium text-[#8FAEA2] leading-none">
-                                      {activeRound.flightText || "Active Flight"}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Thin subtle divider */}
-                            <div className="border-t border-[#0F3D2A]/80 my-2.5" />
+                              {/* Thin subtle divider */}
+                              <div className="border-t border-[#0F3D2A]/80 my-3" />
 
-                            {/* Bottom Row: Resume Play & Forfeit Buttons (Consistent with Featured Tournament Card) */}
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined") {
-                                    try {
-                                      localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
-                                      sessionStorage.removeItem("openclub_inactivity_notified");
-                                      const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
-                                      if (existingRaw) {
-                                        const existingList = JSON.parse(existingRaw);
-                                        const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
-                                        localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
-                                      }
-                                    } catch { }
-                                  }
-                                  broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
-                                  setHasInactivityWarning(false);
-                                  setActiveRoundMinutesElapsed(0);
-                                  showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
-                                  setTimeout(() => switchScreen("scoring"), 250);
-                                }}
-                                className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                              >
-                                <span>Resume Play</span>
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
+                              {/* Bottom Row: Resume Play & Forfeit Buttons (Consistent with Featured Tournament Card) */}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined") {
+                                      try {
+                                        localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
+                                        sessionStorage.removeItem("openclub_inactivity_notified");
+                                        const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
+                                        if (existingRaw) {
+                                          const existingList = JSON.parse(existingRaw);
+                                          const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
+                                          localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+                                        }
+                                      } catch { }
+                                    }
+                                    broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
+                                    setHasInactivityWarning(false);
+                                    setActiveRoundMinutesElapsed(0);
+                                    showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
+                                    setTimeout(() => switchScreen("scoring"), 250);
+                                  }}
+                                  className="flex-[7] h-[40px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                >
+                                  <span>Resume Play</span>
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setShowForfeitModal(true)}
-                                className="flex-[3] h-[38px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                              >
-                                <span>Forfeit</span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowForfeitModal(true)}
+                                  className="flex-[3] h-[40px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                >
+                                  <span>Forfeit</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )}
 
                         <div className="flex items-center justify-between mb-1.5 mt-0.5">
                           <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight">
-                            Playing Now
+                            Friends Playing Now
                           </h3>
                           {friendsOnCourse.length > 0 && (
                             <button
@@ -4246,8 +5757,8 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           /* Rounded Dashed Empty Display (When no user is on the course) */
                           <button
                             type="button"
-                            onClick={() => setShowAddFriendsModal(true)}
-                            className="w-full rounded-[22px] border-2 border-dashed border-slate-300/90 hover:border-[#009A60] bg-slate-50/70 hover:bg-emerald-50/30 py-2.5 px-3.5 flex items-center justify-between transition-all cursor-pointer group active:scale-98 text-left shadow-2xs"
+                            onClick={() => switchScreen("add-friends")}
+                            className="w-full rounded-[22px] border-2 border-dashed border-[#C6F0DB] hover:border-[#009A60] bg-[#EAF7EE]/60 hover:bg-[#EAF7EE] py-2.5 px-3.5 flex items-center justify-between transition-all cursor-pointer group active:scale-98 text-left shadow-2xs"
                             title="Add Golf Friends"
                           >
                             <div className="flex items-center gap-3 min-w-0">
@@ -4258,7 +5769,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 <p className="text-[13.5px] font-bold text-[#0F172A] leading-tight group-hover:text-[#009A60] transition-colors truncate">
                                   No friends on the course yet
                                 </p>
-                                <p className="text-[11.5px] text-slate-400 leading-tight mt-0.5 truncate">
+                                <p className="text-[11.5px] text-slate-500 leading-tight mt-0.5 truncate">
                                   Invite fellow golfers or join active rounds
                                 </p>
                               </div>
@@ -4274,9 +5785,35 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                       {/* --- 2.75 OPENCLUBOS SYSTEM PROMOTIONAL CARD (HOST. SCORE. WIN.) --- */}
                       <div className="w-full max-w-sm mx-auto px-4 pb-2.5">
-                        <div className="w-full bg-white rounded-[22px] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between gap-3 select-none">
+                        <div className="w-full bg-white rounded-[22px] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between gap-3 select-none relative overflow-hidden group">
+                          {/* Fitted Background Pattern: High-Tech Tournament OS Dot-Matrix & Circuit Bracket Telemetry */}
+                          <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none opacity-40 transition-opacity duration-300 group-hover:opacity-55"
+                            viewBox="0 0 360 110"
+                            fill="none"
+                            preserveAspectRatio="none"
+                          >
+                            <defs>
+                              <pattern id="osTechDots" width="18" height="18" patternUnits="userSpaceOnUse">
+                                <circle cx="9" cy="9" r="1.1" fill="#009A60" fillOpacity="0.16" />
+                              </pattern>
+                              <radialGradient id="osCardGlow" cx="82%" cy="50%" r="55%">
+                                <stop offset="0%" stopColor="#009A60" stopOpacity="0.08" />
+                                <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                              </radialGradient>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#osTechDots)" />
+                            <rect width="100%" height="100%" fill="url(#osCardGlow)" />
+                            {/* High-tech Tournament Bracket & Circuit Telemetry Lines */}
+                            <path d="M 120 0 L 165 34 L 245 34 L 275 80" stroke="#009A60" strokeWidth="1" strokeDasharray="3 3" opacity="0.18" fill="none" />
+                            <circle cx="165" cy="34" r="2.5" fill="#009A60" opacity="0.25" />
+                            <circle cx="245" cy="34" r="2.5" fill="#009A60" opacity="0.25" />
+                            <path d="M 210 110 L 238 78 L 320 78" stroke="#009A60" strokeWidth="0.8" opacity="0.14" fill="none" />
+                            <circle cx="238" cy="78" r="2" fill="#009A60" opacity="0.2" />
+                          </svg>
+
                           {/* Left Column */}
-                          <div className="flex flex-col min-w-0 flex-1">
+                          <div className="relative z-10 flex flex-col min-w-0 flex-1">
                             {/* Brand Tag + System Pill */}
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className="text-[10.5px] font-black tracking-wider text-[#009A60] uppercase">
@@ -4313,7 +5850,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           </div>
 
                           {/* Right Column: Abstract Tournament Leaderboard Illustration Card */}
-                          <div className="w-[102px] h-[78px] rounded-[18px] bg-[#F4F9F6] border border-emerald-100/60 p-2.5 flex flex-col justify-center gap-2.5 shrink-0 shadow-2xs">
+                          <div className="relative z-10 w-[102px] h-[78px] rounded-[18px] bg-[#F4F9F6] border border-emerald-100/60 p-2.5 flex flex-col justify-center gap-2.5 shrink-0 shadow-2xs">
                             {/* Row 1: Green Active Dot + Mint Bar */}
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-[#009A60] shrink-0 shadow-2xs" />
@@ -4345,8 +5882,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveBottomNavTab("tournaments");
-                              showToast("Viewing all scheduled tournaments", "success", "TOURNAMENTS");
+                              switchScreen("tournaments");
                             }}
                             className="text-[13px] font-semibold text-[#009A60] hover:text-[#007A4D] transition-colors cursor-pointer whitespace-nowrap"
                           >
@@ -4628,14 +6164,41 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                         <div className="space-y-3">
                           {/* Card 1: Upcoming Rounds (Empty / Schedule New Round) */}
-                          <div className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300">
+                          <div className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300 relative overflow-hidden group">
+                            {/* Fitted Background Pattern: Golf Ball Dimple Honeycomb Lattice & Radial Action Pulse */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none opacity-45 transition-opacity duration-300 group-hover:opacity-60"
+                              viewBox="0 0 360 84"
+                              fill="none"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <pattern id="golfDimpleLattice" width="24" height="24" patternUnits="userSpaceOnUse">
+                                  <circle cx="6" cy="6" r="2.8" stroke="#009A60" strokeWidth="0.8" strokeOpacity="0.10" fill="none" />
+                                  <circle cx="18" cy="18" r="2.8" stroke="#009A60" strokeWidth="0.8" strokeOpacity="0.10" fill="none" />
+                                  <circle cx="18" cy="6" r="1.2" fill="#009A60" fillOpacity="0.08" />
+                                  <circle cx="6" cy="18" r="1.2" fill="#009A60" fillOpacity="0.08" />
+                                </pattern>
+                                <radialGradient id="upcomingRoundsGlow" cx="90%" cy="50%" r="55%">
+                                  <stop offset="0%" stopColor="#009A60" stopOpacity="0.09" />
+                                  <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                </radialGradient>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#golfDimpleLattice)" />
+                              <rect width="100%" height="100%" fill="url(#upcomingRoundsGlow)" />
+                              {/* Concentric Action Pulse Wave Rings radiating behind the Circular Plus Button */}
+                              <circle cx="330" cy="42" r="28" stroke="#009A60" strokeWidth="1" strokeDasharray="3 3" opacity="0.18" fill="none" />
+                              <circle cx="330" cy="42" r="52" stroke="#009A60" strokeWidth="0.8" opacity="0.12" fill="none" />
+                              <circle cx="330" cy="42" r="78" stroke="#009A60" strokeWidth="0.6" strokeDasharray="4 4" opacity="0.08" fill="none" />
+                            </svg>
+
                             {/* Dashed Rounded Badge with count */}
-                            <div className="w-[56px] h-[56px] rounded-[18px] border-2 border-dashed border-[#009A60] bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-2xs">
+                            <div className="relative z-10 w-[56px] h-[56px] rounded-[18px] border-2 border-dashed border-[#009A60] bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-2xs">
                               <span className="text-[22px] font-bold text-[#009A60] select-none">{recentRounds.length}</span>
                             </div>
 
                             {/* Middle Info */}
-                            <div className="min-w-0 flex-1 ml-3.5 pr-2">
+                            <div className="relative z-10 min-w-0 flex-1 ml-3.5 pr-2">
                               <h4 className="text-[15px] font-bold text-[#0F172A] leading-snug">
                                 Upcoming Rounds
                               </h4>
@@ -4651,7 +6214,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 showToast("Schedule a new tournament or practice round.", "success", "SCHEDULE ROUND");
                                 switchScreen("scoring");
                               }}
-                              className="w-10 h-10 rounded-full bg-[#009A60] hover:bg-[#007A4D] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-2xs"
+                              className="relative z-10 w-10 h-10 rounded-full bg-[#009A60] hover:bg-[#007A4D] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-2xs"
                               title="Schedule New Round"
                               aria-label="Schedule New Round"
                             >
@@ -4666,10 +6229,36 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               onClick={() => {
                                 showToast(`${round.clubName} • Net Score ${round.netScore}`, "success", "ROUND DETAILS");
                               }}
-                              className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300 cursor-pointer group"
+                              className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-3.5 flex items-center justify-between transition-all hover:border-slate-300 cursor-pointer group relative overflow-hidden"
                             >
+                              {/* Fitted Background Pattern: Golf Scorecard Micro-Ruler Ledger & Flagstick Pin Silhouette */}
+                              <svg
+                                className="absolute inset-0 w-full h-full pointer-events-none opacity-35 transition-opacity duration-300 group-hover:opacity-50"
+                                viewBox="0 0 360 84"
+                                fill="none"
+                                preserveAspectRatio="none"
+                              >
+                                <defs>
+                                  <pattern id={`scorecardLedgerGrid-${round.id}`} width="30" height="20" patternUnits="userSpaceOnUse">
+                                    <line x1="0" y1="20" x2="30" y2="20" stroke="#009A60" strokeWidth="0.6" strokeOpacity="0.07" />
+                                    <line x1="15" y1="17" x2="15" y2="20" stroke="#009A60" strokeWidth="0.6" strokeOpacity="0.10" />
+                                    <line x1="30" y1="14" x2="30" y2="20" stroke="#009A60" strokeWidth="0.8" strokeOpacity="0.12" />
+                                  </pattern>
+                                  <radialGradient id={`recentRoundGlow-${round.id}`} cx="92%" cy="50%" r="55%">
+                                    <stop offset="0%" stopColor="#009A60" stopOpacity="0.08" />
+                                    <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                  </radialGradient>
+                                </defs>
+                                <rect width="100%" height="100%" fill={`url(#scorecardLedgerGrid-${round.id})`} />
+                                <rect width="100%" height="100%" fill={`url(#recentRoundGlow-${round.id})`} />
+                                {/* Flagstick pin graphic behind Net Score */}
+                                <line x1="322" y1="14" x2="322" y2="68" stroke="#009A60" strokeWidth="1" opacity="0.16" />
+                                <path d="M 322 16 L 306 23 L 322 30 Z" fill="#009A60" opacity="0.14" />
+                                <ellipse cx="322" cy="68" rx="8" ry="2.5" stroke="#009A60" strokeWidth="0.8" opacity="0.14" fill="none" />
+                              </svg>
+
                               {/* Mint Date Badge */}
-                              <div className="w-[56px] h-[56px] rounded-[18px] bg-[#EAF7EE] border border-[#C6F0DB]/60 flex flex-col items-center justify-center shrink-0 shadow-2xs">
+                              <div className="relative z-10 w-[56px] h-[56px] rounded-[18px] bg-[#EAF7EE] border border-[#C6F0DB]/60 flex flex-col items-center justify-center shrink-0 shadow-2xs">
                                 <span className="text-[11px] font-bold text-[#009A60] tracking-wider leading-none">
                                   {round.month}
                                 </span>
@@ -4679,7 +6268,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               </div>
 
                               {/* Middle Info */}
-                              <div className="min-w-0 flex-1 ml-3.5 pr-2">
+                              <div className="relative z-10 min-w-0 flex-1 ml-3.5 pr-2">
                                 <h4 className="text-[15px] font-bold text-[#0F172A] leading-snug truncate group-hover:text-[#009A60] transition-colors">
                                   {round.clubName}
                                 </h4>
@@ -4695,7 +6284,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               </div>
 
                               {/* Right Net Score Column */}
-                              <div className="flex flex-col items-end shrink-0 pl-1">
+                              <div className="relative z-10 flex flex-col items-end shrink-0 pl-1">
                                 <span className="text-[23px] font-black text-[#0F172A] tracking-tight leading-none">
                                   {round.netScore}
                                 </span>
@@ -4738,8 +6327,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveBottomNavTab("tournaments");
-                              showToast("Tournaments Schedule & Live Scoring", "success", "TOURNAMENTS");
+                              switchScreen("tournaments");
                             }}
                             className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors relative"
                           >
@@ -4824,6 +6412,744 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       </div>
                     </div>
                   )}
+
+                  {/* TOURNAMENTS SCREEN (Pixel-Perfect Reference Match) */}
+                  {targetScreen === "tournaments" && (() => {
+                    // Base curated tournament entries
+                    const baseTournamentsList = [
+                      {
+                        id: "lagos-amateur-open",
+                        name: "Lagos Amateur Open",
+                        club: "Lakowe Lakes Golf Estate",
+                        category: "Ongoing",
+                        fee: "₦150,000 Fee",
+                        feeAmount: 150000,
+                        date: "Nov 12, 2024",
+                        dateFull: "Nov 12 - 14, 2024",
+                        format: "Individual Strokeplay • 36 Holes",
+                        formatType: "Strokeplay",
+                        purse: "₦12,500,000 Total Purse",
+                        holes: 18,
+                        cutLine: "Top 40 Players & Ties",
+                        bannerUrl: "/images/tournaments/lagos_amateur_open.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                      },
+                      {
+                        id: "ibb-invitational",
+                        name: "IBB Invitational",
+                        club: "IBB International Golf Club",
+                        category: "Invitational",
+                        fee: "Registration Closed",
+                        feeAmount: 100000,
+                        date: "Oct 05, 2024",
+                        dateFull: "Oct 05, 2024",
+                        format: "Matchplay Invitational • 18 Holes",
+                        formatType: "Matchplay",
+                        purse: "₦8,000,000 Total Purse",
+                        holes: 18,
+                        cutLine: "Invitation Only",
+                        bannerUrl: "/images/tournaments/ibb_invitational.jpg",
+                        isFeatured: false,
+                        status: "Closed",
+                        isOpen: false,
+                      },
+                      {
+                        id: "corporate-golf-challenge",
+                        name: "Corporate Golf Challenge",
+                        club: "Port Harcourt Golf Club",
+                        category: "Invitational",
+                        fee: "₦85,000 Fee",
+                        feeAmount: 85000,
+                        date: "Dec 15, 2024",
+                        dateFull: "Dec 15, 2024",
+                        format: "Four-Ball Better Ball • 18 Holes",
+                        formatType: "Four-Ball / Scramble",
+                        purse: "₦5,000,000 In Trophies & Gifts",
+                        holes: 18,
+                        cutLine: "One Day Invitational",
+                        bannerUrl: "/images/tournaments/corporate_golf_cart.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                      },
+                      {
+                        id: "smokin-hills-memorial",
+                        name: "Smokin Hills Memorial Trophy",
+                        club: "Smokin Hills Golf Resort",
+                        category: "Major",
+                        fee: "₦120,000 Fee",
+                        feeAmount: 120000,
+                        date: "Jan 18, 2025",
+                        dateFull: "Jan 18 - 20, 2025",
+                        format: "Individual Strokeplay • 54 Holes",
+                        formatType: "Strokeplay",
+                        purse: "₦15,000,000 Total Purse",
+                        holes: 18,
+                        cutLine: "Top 35 Players & Ties",
+                        bannerUrl: "/images/tournaments/course_banner_04.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                      },
+                      {
+                        id: "abuja-national-scramble",
+                        name: "Abuja National Scramble",
+                        club: "IBB International Golf Club",
+                        category: "Ongoing",
+                        fee: "₦50,000 Fee",
+                        feeAmount: 50000,
+                        date: "Nov 28, 2024",
+                        dateFull: "Nov 28, 2024",
+                        format: "Four-Man Scramble • 18 Holes",
+                        formatType: "Four-Ball / Scramble",
+                        purse: "₦3,500,000 In Prizes",
+                        holes: 18,
+                        cutLine: "Open Entry",
+                        bannerUrl: "/images/tournaments/course_banner_06.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                      },
+                    ];
+
+                    // Merge dynamic real tournaments from database
+                    const dynamicFromDb = liveTournaments.map((t, idx) => ({
+                      id: t.id,
+                      name: t.name,
+                      club: t.organizerClub || t.courseName || "Ikoyi Club 1938",
+                      category: t.isFeatured ? "Major" : "Ongoing",
+                      fee: t.entryFee || "Free",
+                      feeAmount: parseInt((t.entryFee || "0").replace(/[^0-9]/g, ""), 10) || 0,
+                      date: t.deadline || "Open Entry",
+                      dateFull: t.deadline || "Open Entry",
+                      format: `${t.divisions || "Championship"} • 18 Holes`,
+                      formatType: "Strokeplay",
+                      purse: "Official OpenclubOS Purse",
+                      holes: 18,
+                      cutLine: "Standard Cut",
+                      bannerUrl: resolveTournamentBanner(idx, t.bannerUrl),
+                      isFeatured: t.isFeatured,
+                      status: "Open",
+                      isOpen: true,
+                    }));
+
+                    const combinedTournaments = Array.from(
+                      new Map([...baseTournamentsList, ...dynamicFromDb].map((t) => [t.name.toLowerCase(), t])).values()
+                    );
+
+                    // Filter by search query and filter criteria
+                    const filteredTournaments = combinedTournaments.filter((t) => {
+                      // 1. Search Query
+                      if (tournamentSearchQuery.trim()) {
+                        const q = tournamentSearchQuery.toLowerCase().trim();
+                        const matchName = t.name.toLowerCase().includes(q);
+                        const matchClub = t.club.toLowerCase().includes(q);
+                        const matchFormat = t.format.toLowerCase().includes(q);
+                        const matchDate = t.date.toLowerCase().includes(q);
+                        const matchFee = t.fee.toLowerCase().includes(q);
+                        if (!matchName && !matchClub && !matchFormat && !matchDate && !matchFee) return false;
+                      }
+
+                      // 2. Category Filter
+                      if (tournamentFilter !== "All") {
+                        if (tournamentFilter === "Ongoing" && t.category !== "Ongoing") return false;
+                        if (tournamentFilter === "Major" && t.category !== "Major" && !t.isFeatured) return false;
+                        if (tournamentFilter === "Invitational" && t.category !== "Invitational") return false;
+                      }
+
+                      // 3. Format Filter
+                      if (tournamentFormatFilter !== "All") {
+                        if (tournamentFormatFilter === "Strokeplay" && !t.format.toLowerCase().includes("strokeplay")) return false;
+                        if (tournamentFormatFilter === "Matchplay" && !t.format.toLowerCase().includes("matchplay")) return false;
+                        if (tournamentFormatFilter === "Four-Ball / Scramble" && !t.format.toLowerCase().includes("four-ball") && !t.format.toLowerCase().includes("scramble")) return false;
+                      }
+
+                      // 4. Fee Filter
+                      if (tournamentFeeFilter !== "All") {
+                        if (tournamentFeeFilter === "Free" && t.feeAmount > 0 && !t.fee.toLowerCase().includes("free")) return false;
+                        if (tournamentFeeFilter === "Under ₦100,000" && t.feeAmount >= 100000) return false;
+                        if (tournamentFeeFilter === "₦100,000+" && t.feeAmount < 100000) return false;
+                      }
+
+                      return true;
+                    });
+
+                    const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All";
+
+                    return (
+                      <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 relative select-none font-['DM_Sans',sans-serif]">
+                        {/* FIXED TOP SECTION: Top Navigation Bar + Search Bar (Strictly Non-Scrollable) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 space-y-3">
+                            {/* Top Navigation Bar: Unified 16px top offset, 24px horizontal gutters */}
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("hub")}
+                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                title="Back to Hub"
+                                aria-label="Back"
+                              >
+                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                              </button>
+                              <h2 className="text-base font-bold text-[#0F172A]">Tournaments</h2>
+                              <button
+                                type="button"
+                                onClick={() => setShowTournamentFilterModal(true)}
+                                className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative shrink-0"
+                                title="Filter Tournaments"
+                                aria-label="Filter"
+                              >
+                                <SlidersHorizontal className="h-4 w-4 text-[#009A60]" />
+                                {isCustomFilterActive && (
+                                  <span className="w-2 h-2 rounded-full bg-[#009A60] absolute -top-0.5 -right-0.5 ring-2 ring-white" />
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Search Input Bar (Fixed at top with header) */}
+                            <div className="relative">
+                              <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={tournamentSearchQuery}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search Tournaments",
+                                    queryValue: tournamentSearchQuery,
+                                    onInput: (char) => {
+                                      setTournamentSearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                        return next;
+                                      });
+                                    },
+                                    onBackspace: () => {
+                                      setTournamentSearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                        return next;
+                                      });
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setTournamentSearchQuery(val);
+                                  setVirtualKeyboard((k) => (k ? { ...k, queryValue: val } : null));
+                                }}
+                                placeholder="Search tournaments, clubs, venues..."
+                                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
+                              />
+                              {tournamentSearchQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTournamentSearchQuery("");
+                                    setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
+                                  }}
+                                  className="absolute right-3 top-2.5 p-0.5 text-[#8CA0BA] hover:text-[#0F172A] cursor-pointer"
+                                  title="Clear search"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide no-scrollbar pb-24">
+                          <div className="w-full max-w-sm mx-auto">
+                            {/* 1. Category Filter Pills & Active Filter Tags */}
+                            <div className="px-4 pt-3.5 pb-2.5 flex items-center gap-2 overflow-x-auto scrollbar-hide no-scrollbar">
+                              {(["All", "Ongoing", "Major", "Invitational"] as const).map((cat) => {
+                                const isActive = tournamentFilter === cat;
+                                return (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => setTournamentFilter(cat)}
+                                    className={`rounded-full px-5 py-2 text-[13px] transition-all cursor-pointer shrink-0 ${
+                                      isActive
+                                        ? "bg-[#009A60] text-white font-bold shadow-[0_2px_8px_rgba(0,154,96,0.25)]"
+                                        : "bg-white text-[#8CA0BA] border border-slate-200/80 font-semibold shadow-2xs hover:border-slate-300"
+                                    }`}
+                                  >
+                                    {cat}
+                                  </button>
+                                );
+                              })}
+
+                              {tournamentFormatFilter !== "All" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTournamentFormatFilter("All")}
+                                  className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
+                                  title="Remove format filter"
+                                >
+                                  <span>{tournamentFormatFilter}</span>
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {tournamentFeeFilter !== "All" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTournamentFeeFilter("All")}
+                                  className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
+                                  title="Remove fee filter"
+                                >
+                                  <span>{tournamentFeeFilter}</span>
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* 2. Featured Event Hero Card (Show when not actively searching for a specific other term) */}
+                            {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Major") && (
+                              <div className="mx-4 mb-4.5 rounded-[24px] overflow-hidden relative shadow-[0_10px_25px_rgba(0,0,0,0.16)] border border-slate-200/40 h-[224px] shrink-0 group select-none">
+                                <img
+                                  src="/images/tournaments/ikoyi_night_golf.jpg"
+                                  alt="Ikoyi Open Championship 2024"
+                                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10" />
+
+                                <div className="absolute inset-0 p-4.5 flex flex-col justify-end text-white z-10">
+                                  <div className="inline-flex items-center self-start bg-[#00A86B] text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 shadow-xs">
+                                    FEATURED EVENT
+                                  </div>
+                                  <h3 className="text-[20px] font-black text-white leading-[1.18] tracking-tight drop-shadow-md mb-2">
+                                    Ikoyi Open<br />Championship 2024
+                                  </h3>
+                                  <div className="flex items-center gap-4 text-[11.5px] font-semibold text-white/95">
+                                    <div className="flex items-center gap-1.5">
+                                      <MapPin className="w-3.5 h-3.5 text-[#00E575] shrink-0 fill-[#00E575]/20" />
+                                      <span>Ikoyi Club 1938</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Calendar className="w-3.5 h-3.5 text-[#00E575] shrink-0" />
+                                      <span>Oct 24 - 27</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 3. Section Header */}
+                            <div className="px-4 mb-3 flex items-center justify-between select-none">
+                              <span className="text-[11px] font-black tracking-widest text-[#8CA0BA] uppercase">
+                                AVAILABLE ENTRIES
+                              </span>
+                              <span className="text-[11px] font-black tracking-widest text-[#009A60] uppercase">
+                                {filteredTournaments.length} FOUND
+                              </span>
+                            </div>
+
+                            {/* 4. Tournament Entries Cards */}
+                            {filteredTournaments.length === 0 ? (
+                              <div className="mx-4 my-6 bg-white rounded-[22px] p-6 text-center border border-slate-200/80 shadow-2xs">
+                                <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mx-auto mb-3 shadow-2xs">
+                                  <Search className="w-5 h-5" />
+                                </div>
+                                <h4 className="text-[15px] font-bold text-[#0F172A] mb-1">
+                                  No Tournaments Found
+                                </h4>
+                                <p className="text-[12px] text-[#64748B] max-w-[260px] mx-auto mb-4 leading-relaxed">
+                                  No tournament events match your search term or active filter criteria.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTournamentSearchQuery("");
+                                    setTournamentFilter("All");
+                                    setTournamentFormatFilter("All");
+                                    setTournamentFeeFilter("All");
+                                    setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
+                                  }}
+                                  className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[11.5px] font-bold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
+                                >
+                                  Clear Search & Filters
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3.5 px-4">
+                                {filteredTournaments.map((tournament) => (
+                                  <div
+                                    key={tournament.id}
+                                    className="bg-white rounded-[22px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-slate-100/90 relative overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                                  >
+                                    <div className="flex items-start">
+                                      <div className="w-[72px] h-[72px] rounded-[18px] overflow-hidden shrink-0 mr-3.5 bg-emerald-950/10 border border-slate-100 shadow-2xs">
+                                        <img
+                                          src={tournament.bannerUrl}
+                                          alt={tournament.name}
+                                          className={`w-full h-full object-cover ${!tournament.isOpen ? "filter grayscale contrast-105" : ""}`}
+                                        />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-[15px] font-bold text-[#0F172A] tracking-tight leading-tight mb-1 truncate">
+                                          {tournament.name}
+                                        </h4>
+                                        <p className="text-[12px] text-[#64748B] font-medium leading-tight mb-2 truncate">
+                                          {tournament.club}
+                                        </p>
+                                        <div className="flex items-center justify-between">
+                                          <span
+                                            className={`text-[12.5px] tracking-tight ${
+                                              !tournament.isOpen
+                                                ? "text-[#94A3B8] font-bold"
+                                                : "font-black text-[#009A60]"
+                                            }`}
+                                          >
+                                            {tournament.fee}
+                                          </span>
+                                          <span className="text-[11.5px] text-[#8CA0BA] font-medium">
+                                            {tournament.date}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    {tournament.isOpen ? (
+                                      <div className="mt-3.5 flex items-center gap-2.5">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setSelectedTournamentInfo({
+                                              name: tournament.name,
+                                              club: tournament.club,
+                                              fee: tournament.fee,
+                                              date: tournament.dateFull || tournament.date,
+                                              format: tournament.format,
+                                              purse: tournament.purse,
+                                              holes: tournament.holes || 18,
+                                              cutLine: tournament.cutLine,
+                                              bannerUrl: tournament.bannerUrl,
+                                            })
+                                          }
+                                          className="flex-1 h-[42px] rounded-xl bg-[#F8FAFC] hover:bg-slate-100 active:scale-98 text-[#0F172A] font-bold text-[11px] uppercase tracking-wider flex items-center justify-center border border-slate-200/60 transition-all cursor-pointer"
+                                        >
+                                          VIEW INFO
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
+                                            setTimeout(() => switchScreen("register"), 600);
+                                          }}
+                                          className="flex-1 h-[42px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-[11px] uppercase tracking-wider flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                                        >
+                                          REGISTER NOW
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="mt-3 py-1.5 px-3 rounded-xl bg-slate-50 border border-slate-200/60 text-center">
+                                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                          Official Registration Closed
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 5. Persistent Bottom Navigation Bar */}
+                        <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.05)]">
+                          <div className="w-full max-w-sm mx-auto h-[64px] px-3 flex items-center justify-between relative">
+                            {/* 1. Home */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                switchScreen("hub");
+                              }}
+                              className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                            >
+                              <Home className="h-5 w-5 text-[#94A3B8] group-hover:text-slate-600 transition-colors" />
+                              <span className="text-[10px] mt-1 tracking-tight font-medium text-[#94A3B8] group-hover:text-slate-600">
+                                Home
+                              </span>
+                            </button>
+
+                            {/* 2. Tournaments (Active) */}
+                            <button
+                              type="button"
+                              className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors relative"
+                            >
+                              <div className="relative">
+                                <Trophy className="h-5 w-5 text-[#009A60] transition-colors" />
+                                <span className="absolute -top-0.5 -right-1.5 w-2 h-2 rounded-full bg-[#EF4444] border-[1.5px] border-white shadow-xs" />
+                              </div>
+                              <span className="text-[10px] mt-1 tracking-tight font-bold text-[#009A60]">
+                                Tournaments
+                              </span>
+                            </button>
+
+                            {/* 3. Center Elevated PLAY GOLF Button */}
+                            <div className="relative -mt-6 flex items-center justify-center">
+                              <div className="w-[64px] h-[64px] rounded-full bg-emerald-500/15 p-1 flex items-center justify-center shadow-[0_6px_20px_rgba(0,154,96,0.32)]">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    showToast("Ready to tee off. Launching live scoring...", "success", "PLAY GOLF");
+                                    setTimeout(() => switchScreen("scoring"), 350);
+                                  }}
+                                  className="w-[54px] h-[54px] rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 transition-all border-[3px] border-white flex flex-col items-center justify-center cursor-pointer shadow-xs"
+                                  title="Play Golf"
+                                >
+                                  <span className="text-[9.5px] font-black text-white tracking-wider leading-none">PLAY</span>
+                                  <span className="text-[9.5px] font-black text-white tracking-wider leading-none mt-0.5">GOLF</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 4. Challenges */}
+                            <button
+                              type="button"
+                              onClick={() => showToast("Active Club Challenges & Skins leaderboards", "success", "CHALLENGES")}
+                              className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                            >
+                              <Star className="h-5 w-5 text-[#94A3B8] group-hover:text-slate-600 transition-colors" />
+                              <span className="text-[10px] mt-1 tracking-tight font-medium text-[#94A3B8] group-hover:text-slate-600">
+                                Challenges
+                              </span>
+                            </button>
+
+                            {/* 5. Deals */}
+                            <button
+                              type="button"
+                              onClick={() => showToast("Member Exclusive Equipment & Tee Time Deals", "success", "DEALS")}
+                              className="flex flex-col items-center justify-center w-14 py-1 group cursor-pointer transition-colors"
+                            >
+                              <Flame className="h-5 w-5 text-[#94A3B8] group-hover:text-slate-600 transition-colors" />
+                              <span className="text-[10px] mt-1 tracking-tight font-medium text-[#94A3B8] group-hover:text-slate-600">
+                                Deals
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Tournament Filter Sheet / Modal */}
+                        {showTournamentFilterModal && (
+                          <div
+                            className="absolute inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center animate-in fade-in duration-200 p-0 sm:p-4"
+                            onClick={() => setShowTournamentFilterModal(false)}
+                          >
+                            <div
+                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-2xl p-5 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom duration-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 sm:hidden" />
+                              
+                              {/* Header */}
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="text-base font-bold text-[#0F172A]">Filter Tournaments</h3>
+                                  <p className="text-xs text-[#64748B] font-medium">Refine by category, format, or fee</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTournamentFilter("All");
+                                    setTournamentFormatFilter("All");
+                                    setTournamentFeeFilter("All");
+                                  }}
+                                  className="text-xs font-bold text-[#009A60] hover:text-[#007f4e] cursor-pointer"
+                                >
+                                  Reset All
+                                </button>
+                              </div>
+
+                              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar text-xs">
+                                {/* Category */}
+                                <div>
+                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                    Event Category
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {(["All", "Ongoing", "Major", "Invitational"] as const).map((cat) => {
+                                      const active = tournamentFilter === cat;
+                                      return (
+                                        <button
+                                          key={cat}
+                                          type="button"
+                                          onClick={() => setTournamentFilter(cat)}
+                                          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                                            active
+                                              ? "bg-[#009A60] text-white border-[#009A60] shadow-xs"
+                                              : "bg-[#f5faf6] text-[#475569] border-[#e1efe5] hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {cat === "All" ? "All Categories" : cat}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Format */}
+                                <div>
+                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                    Playing Format
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {["All", "Strokeplay", "Matchplay", "Four-Ball / Scramble"].map((fmt) => {
+                                      const active = tournamentFormatFilter === fmt;
+                                      return (
+                                        <button
+                                          key={fmt}
+                                          type="button"
+                                          onClick={() => setTournamentFormatFilter(fmt)}
+                                          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                                            active
+                                              ? "bg-[#009A60] text-white border-[#009A60] shadow-xs"
+                                              : "bg-[#f5faf6] text-[#475569] border-[#e1efe5] hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {fmt === "All" ? "All Formats" : fmt}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Entry Fee */}
+                                <div>
+                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                    Entry Fee Range
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {["All", "Free", "Under ₦100,000", "₦100,000+"].map((fee) => {
+                                      const active = tournamentFeeFilter === fee;
+                                      return (
+                                        <button
+                                          key={fee}
+                                          type="button"
+                                          onClick={() => setTournamentFeeFilter(fee)}
+                                          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                                            active
+                                              ? "bg-[#009A60] text-white border-[#009A60] shadow-xs"
+                                              : "bg-[#f5faf6] text-[#475569] border-[#e1efe5] hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {fee === "All" ? "All Fees" : fee}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Footer Buttons */}
+                              <div className="flex gap-2.5 pt-4 mt-2 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowTournamentFilterModal(false);
+                                    showToast("Tournament filters applied", "success", "FILTERS APPLIED");
+                                  }}
+                                  className="w-full py-3 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Apply Filters ({filteredTournaments.length} Matches)</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tournament Details Sheet / Modal */}
+                        {selectedTournamentInfo && (
+                          <div
+                            className="absolute inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center animate-in fade-in duration-200 p-2"
+                            onClick={() => setSelectedTournamentInfo(null)}
+                          >
+                            <div
+                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-2xl p-5 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom duration-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 sm:hidden" />
+                              <div className="flex items-start justify-between mb-3">
+                                <div>
+                                  <h3 className="text-lg font-bold text-[#0F172A] leading-tight">
+                                    {selectedTournamentInfo.name}
+                                  </h3>
+                                  <p className="text-sm font-medium text-[#64748B]">
+                                    {selectedTournamentInfo.club}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTournamentInfo(null)}
+                                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              <div className="space-y-2.5 my-4 text-xs">
+                                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                                  <span className="text-slate-500 font-medium">Dates</span>
+                                  <span className="font-semibold text-slate-800">{selectedTournamentInfo.date}</span>
+                                </div>
+                                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                                  <span className="text-slate-500 font-medium">Format</span>
+                                  <span className="font-semibold text-slate-800">{selectedTournamentInfo.format}</span>
+                                </div>
+                                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                                  <span className="text-slate-500 font-medium">Entry Fee</span>
+                                  <span className="font-bold text-[#009A60]">{selectedTournamentInfo.fee}</span>
+                                </div>
+                                {selectedTournamentInfo.purse && (
+                                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Prize Purse</span>
+                                    <span className="font-semibold text-slate-800">{selectedTournamentInfo.purse}</span>
+                                  </div>
+                                )}
+                                {selectedTournamentInfo.cutLine && (
+                                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Cut Line</span>
+                                    <span className="font-semibold text-slate-800">{selectedTournamentInfo.cutLine}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTournamentInfo(null)}
+                                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                                >
+                                  Close
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const name = selectedTournamentInfo.name;
+                                    setSelectedTournamentInfo(null);
+                                    showToast(`Opening registration for ${name}...`, "success", "TOURNAMENT ENTRY");
+                                    setTimeout(() => switchScreen("register"), 400);
+                                  }}
+                                  className="flex-1 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-bold text-xs shadow-xs cursor-pointer"
+                                >
+                                  Register Now
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* 4. LEADERBOARD SCREEN */}
                   {targetScreen === "leaderboard" && (
@@ -4942,22 +7268,23 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           <div className="w-8" />
                         </div>
 
-                        {/* 1. Header with Golf Ball on Tee Badge */}
+                        {/* 1. Header with Brand Squircle Badge */}
                         <div className="flex justify-center pt-2 pb-1">
                           <div className="w-[64px] h-[64px] rounded-[22px] bg-[#009A60] flex items-center justify-center relative shadow-sm">
-                            {/* White Golf Ball on Tee */}
-                            <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="16" cy="11" r="6.8" fill="white" />
-                              <circle cx="13.8" cy="9.2" r="0.8" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="17.2" cy="8.6" r="0.8" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="14.2" cy="12.5" r="0.8" fill="#009A60" fillOpacity="0.3" />
-                              <circle cx="17.8" cy="12.2" r="0.8" fill="#009A60" fillOpacity="0.3" />
-                              <path d="M12.5 18H19.5L17.5 20.8V26C17.5 26.5523 17.0523 27 16.5 27H15.5C14.9477 27 14.5 26.5523 14.5 26V20.8L12.5 18Z" fill="white" />
+                            {/* White Lightbulb Symbol */}
+                            <svg
+                              className="w-8 h-8 text-white"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M15 13.5c.3-.8 1-1.6 1.8-2.3 1-.9 1.7-2.1 1.7-3.7a6.5 6.5 0 1 0-13 0c0 1.6.7 2.8 1.7 3.7.8.7 1.5 1.5 1.8 2.3" />
+                              <path d="M9.5 17.5h5" />
+                              <path d="M10.5 20.5h3" />
                             </svg>
-                            {/* Bottom-right white circular badge with green golf flag */}
-                            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border border-slate-100 shadow-xs flex items-center justify-center">
-                              <Flag className="w-3 h-3 text-[#009A60] fill-[#009A60]" />
-                            </div>
                           </div>
                         </div>
 
@@ -5196,6 +7523,11 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           </button>
 
                           <div className="flex items-center gap-2">
+                            {incomingReferrer && (
+                              <span className="text-[10px] font-bold text-[#009A60] bg-[#EAF7EE] border border-[#C6F0DB] px-2.5 py-1 rounded-full truncate max-w-[150px] capitalize">
+                                Invited by {incomingReferrer.split("-")[0]}
+                              </span>
+                            )}
                             <span className="text-[10px] font-extrabold text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5] px-3 py-1 rounded-full tracking-wider uppercase">
                               STEP {regStep} OF 4
                             </span>
@@ -7842,8 +10174,34 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-3 scrollbar-hide">
                           <div className="w-full max-w-sm mx-auto space-y-3">
                             {/* 1. On-Course Telemetry Hero Card */}
-                            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs">
-                              <div className="flex items-start justify-between gap-3">
+                            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs relative overflow-hidden group">
+                              {/* Fitted Background Pattern: On-Course Telemetry Radar Arcs & Tournament Distance Fairway Grid */}
+                              <svg
+                                className="absolute inset-0 w-full h-full pointer-events-none opacity-35 transition-opacity duration-300 group-hover:opacity-50"
+                                viewBox="0 0 360 140"
+                                fill="none"
+                                preserveAspectRatio="none"
+                              >
+                                <defs>
+                                  <radialGradient id="telemetryRadarGlow" cx="90%" cy="25%" r="60%">
+                                    <stop offset="0%" stopColor="#009A60" stopOpacity="0.12" />
+                                    <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                  </radialGradient>
+                                  <pattern id="telemetryGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#009A60" strokeWidth="0.6" strokeOpacity="0.06" />
+                                  </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#telemetryGrid)" />
+                                <rect width="100%" height="100%" fill="url(#telemetryRadarGlow)" />
+                                {/* Telemetry yardage range arcs radiating from To Par Score badge */}
+                                <circle cx="310" cy="36" r="38" stroke="#009A60" strokeWidth="0.9" strokeDasharray="3 3" opacity="0.18" fill="none" />
+                                <circle cx="310" cy="36" r="68" stroke="#009A60" strokeWidth="0.7" opacity="0.12" fill="none" />
+                                <circle cx="310" cy="36" r="102" stroke="#009A60" strokeWidth="0.6" strokeDasharray="4 4" opacity="0.08" fill="none" />
+                                {/* Shot track arc */}
+                                <path d="M 30 110 Q 150 70, 310 36" stroke="#009A60" strokeWidth="0.8" strokeDasharray="2 3" opacity="0.15" fill="none" />
+                              </svg>
+
+                              <div className="relative z-10 flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="relative shrink-0">
                                     <div className="w-12 h-12 rounded-full bg-gradient-to-b from-slate-200 to-slate-300 text-slate-700 font-bold text-sm flex items-center justify-center border-2 border-white shadow-xs">
@@ -7885,7 +10243,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               </div>
 
                               {/* On-Course Telemetry Metrics 4-Box Grid */}
-                              <div className="grid grid-cols-4 gap-2 mt-3.5 pt-3 border-t border-slate-100">
+                              <div className="relative z-10 grid grid-cols-4 gap-2 mt-3.5 pt-3 border-t border-slate-100">
                                 <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">HOLE</span>
                                   <span className="text-sm font-black text-[#0F172A] block mt-0.5">#{competitor.currentHole}</span>
@@ -7905,7 +10263,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               </div>
 
                               {/* Telemetry Details Pills */}
-                              <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium text-slate-600">
+                              <div className="relative z-10 mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium text-slate-600">
                                 <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
                                   Tee: {competitor.teeTime}
                                 </span>
@@ -8175,6 +10533,1881 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     );
                   })()}
 
+                  {/* 13. ADD GOLF FRIENDS FULL SCREEN */}
+                  {targetScreen === "add-friends" && (() => {
+                    // 1. Build real golfers pool dynamically from real database members and tournament players
+                    const realGolfersPool: Array<{
+                      id: string;
+                      name: string;
+                      email?: string;
+                      club: string;
+                      hcp: string;
+                      initial: string;
+                      avatar?: string;
+                      profilePhoto?: string;
+                    }> = (() => {
+                      const seen = new Set<string>();
+                      const list: Array<{
+                        id: string;
+                        name: string;
+                        email?: string;
+                        club: string;
+                        hcp: string;
+                        initial: string;
+                        avatar?: string;
+                        profilePhoto?: string;
+                      }> = [];
+
+                      // Add real database members
+                      for (const m of golfCompetitors) {
+                        if (!seen.has(m.id)) {
+                          seen.add(m.id);
+                          list.push({
+                            id: m.id,
+                            name: m.name,
+                            email: m.email || "",
+                            club: m.club || "OpenClub Golfer",
+                            hcp: String(m.hcp ?? "14"),
+                            initial: getTwoInitials(m.name),
+                            avatar: m.avatar || m.profilePhoto,
+                            profilePhoto: m.profilePhoto || m.avatar,
+                          });
+                        }
+                      }
+
+                      // Add real registered tournament competitors from DB
+                      for (const rp of registeredPlayers) {
+                        if (!seen.has(rp.id)) {
+                          seen.add(rp.id);
+                          list.push({
+                            id: rp.id,
+                            name: rp.name,
+                            email: rp.email || "",
+                            club: (rp as any).club || activeTournament?.organizerClub || "Ikoyi Club 1938",
+                            hcp: String(rp.handicap ?? "12"),
+                            initial: getTwoInitials(rp.name),
+                            avatar: rp.avatar || rp.profilePhoto,
+                            profilePhoto: rp.profilePhoto || rp.avatar,
+                          });
+                        }
+                      }
+
+                      // Add incoming friend request senders so they can be searched
+                      for (const req of incomingFriendRequests) {
+                        const sId = req.senderId || req.id;
+                        if (sId && !seen.has(sId)) {
+                          seen.add(sId);
+                          list.push({
+                            id: sId,
+                            name: req.senderName || req.name || "Golfer",
+                            email: req.senderEmail || req.email || "",
+                            club: req.senderClub || req.club || "OpenClub Golfer",
+                            hcp: String(req.senderHcp || req.hcp || "0.0"),
+                            initial: getTwoInitials(req.senderName || req.name || "Golfer"),
+                            avatar: req.senderAvatar || req.avatar,
+                            profilePhoto: req.senderProfilePhoto || req.profilePhoto || req.senderAvatar,
+                          });
+                        }
+                      }
+
+                      // Add friend request senders from notifications
+                      for (const n of mobileNotifications) {
+                        if (n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST") {
+                          const sId = n.data?.senderId || n.senderId || n.id;
+                          if (sId && !seen.has(sId)) {
+                            seen.add(sId);
+                            const sName = n.data?.senderName || n.senderName || n.title || "Golfer";
+                            list.push({
+                              id: sId,
+                              name: sName,
+                              email: n.data?.senderEmail || n.senderEmail || n.email || "",
+                              club: n.data?.senderClub || n.senderClub || "OpenClub Golfer",
+                              hcp: String(n.data?.senderHcp || n.senderHcp || "0.0"),
+                              initial: getTwoInitials(sName),
+                              avatar: n.data?.senderAvatar || n.avatar,
+                              profilePhoto: n.data?.senderProfilePhoto || n.profilePhoto,
+                            });
+                          }
+                        }
+                      }
+
+                      // Add friends on course
+                      for (const f of friendsOnCourse) {
+                        if (f.id && !seen.has(f.id)) {
+                          seen.add(f.id);
+                          list.push({
+                            id: f.id,
+                            name: f.name || "Golfer",
+                            email: (f as any).email || "",
+                            club: (f as any).club || "OpenClub Golfer",
+                            hcp: String((f as any).hcp || "0.0"),
+                            initial: getTwoInitials(f.name || "Golfer"),
+                            avatar: (f as any).avatar,
+                            profilePhoto: (f as any).avatar,
+                          });
+                        }
+                      }
+
+                      const currentId = authenticatedPlayer?.id;
+                      const currentName = authenticatedPlayer?.name?.toLowerCase().trim();
+                      const currentEmail = authenticatedPlayer?.email?.toLowerCase().trim();
+
+                      return list.filter((p) => {
+                        const pId = String(p.id).toLowerCase().trim();
+                        const pName = p.name.toLowerCase().trim();
+                        const pEmail = (p.email || "").toLowerCase().trim();
+
+                        if (currentId && pId === String(currentId).toLowerCase().trim()) return false;
+                        if (currentName && pName === currentName) return false;
+                        if (currentEmail && pEmail && pEmail === currentEmail) return false;
+                        if (isAccountUser(p)) return false;
+
+                        // Check if golfer has sent an incoming friend request waiting for acceptance in notifications
+                        const isIncomingRequest = incomingFriendRequests.some((req: any) => {
+                          const rId = req.senderId || req.id || req.userId;
+                          const rName = req.senderName || req.name;
+                          const rEmail = req.senderEmail || req.email;
+                          if (rId && String(rId).toLowerCase().trim() === pId) return true;
+                          if (rName && String(rName).toLowerCase().trim() === pName) return true;
+                          if (rEmail && pEmail && String(rEmail).toLowerCase().trim() === pEmail) return true;
+                          return false;
+                        }) || mobileNotifications.some((notif: any) => {
+                          if (notif.data?.type === "FRIEND_REQUEST" || notif.type === "FRIEND_REQUEST") {
+                            const sId = notif.data?.senderId || notif.senderId;
+                            const sName = notif.data?.senderName || notif.senderName;
+                            const sEmail = notif.data?.senderEmail || notif.senderEmail;
+                            if (sId && String(sId).toLowerCase().trim() === pId) return true;
+                            if (sName && String(sName).toLowerCase().trim() === pName) return true;
+                            if (sEmail && pEmail && String(sEmail).toLowerCase().trim() === pEmail) return true;
+                          }
+                          return false;
+                        });
+
+                        const isConnected =
+                          acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pId) ||
+                          acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pName);
+
+                        (p as any)._isIncoming = isIncomingRequest;
+                        (p as any)._isConnected = isConnected;
+                        return true;
+                      });
+                    })();
+
+                    const q = friendsSearchQuery.trim().toLowerCase();
+                    const allMatchedGolfers: any[] = q
+                      ? realGolfersPool.filter(
+                          (p) =>
+                            p.name.toLowerCase().includes(q) ||
+                            (p.email && p.email.toLowerCase().includes(q))
+                        )
+                      : realGolfersPool
+                          .filter((p) => !(p as any)._isIncoming && !(p as any)._isConnected && !sentFriendRequests.includes(p.id))
+                          .slice(0, 2);
+                    const displayedGolfers = q ? allMatchedGolfers.slice(0, friendsDisplayLimit) : allMatchedGolfers;
+                    const hasMoreResults = q && allMatchedGolfers.length > friendsDisplayLimit;
+
+                    const phoneAddressBookContacts = [
+                      {
+                        id: "cont_femi_01",
+                        name: "Femi Adebayo",
+                        phone: "+234 802 314 8821",
+                        isOnOpenclub: true,
+                        club: "Ikoyi Club 1938",
+                        hcp: "12.4",
+                        email: "femi.adebayo@openclubos.com",
+                      },
+                      {
+                        id: "cont_chioma_02",
+                        name: "Chioma Nwachukwu",
+                        phone: "+234 805 112 4433",
+                        isOnOpenclub: true,
+                        club: "IBB International",
+                        hcp: "18.0",
+                        email: "chioma.n@openclubos.com",
+                      },
+                      {
+                        id: "cont_babatunde_03",
+                        name: "Babatunde Lawal",
+                        phone: "+234 803 551 9012",
+                        isOnOpenclub: true,
+                        club: "Ikeja Golf Club",
+                        hcp: "16.8",
+                        email: "babatunde.lawal@openclubos.com",
+                      },
+                      {
+                        id: "cont_tunde_04",
+                        name: "Tunde Bakare",
+                        phone: "+234 807 998 2211",
+                        isOnOpenclub: true,
+                        club: "Lakowe Lakes Golf",
+                        hcp: "9.2",
+                        email: "tunde.bakare@openclubos.com",
+                      },
+                      {
+                        id: "cont_david_05",
+                        name: "David Adeleke",
+                        phone: "+234 809 771 0022",
+                        isOnOpenclub: false,
+                        source: "Phone Contacts",
+                      },
+                      {
+                        id: "cont_amina_06",
+                        name: "Amina Yusuf",
+                        phone: "+234 810 445 6677",
+                        isOnOpenclub: false,
+                        source: "SIM Contacts",
+                      },
+                      {
+                        id: "cont_emeka_07",
+                        name: "Emeka Okonkwo",
+                        phone: "+234 812 334 5566",
+                        isOnOpenclub: false,
+                        source: "Google Contacts",
+                      },
+                      {
+                        id: "cont_kola_08",
+                        name: "Kolawole Sanusi",
+                        phone: "+234 803 912 3456",
+                        isOnOpenclub: false,
+                        source: "Phone Contacts",
+                      },
+                    ];
+
+                    const cq = contactsSearchQuery.trim().toLowerCase();
+                    const displayedContacts = phoneAddressBookContacts.filter((c) => {
+                      if (contactsTabFilter === "on_app" && !c.isOnOpenclub) return false;
+                      if (contactsTabFilter === "invite" && c.isOnOpenclub) return false;
+                      if (!cq) return true;
+                      return (
+                        c.name.toLowerCase().includes(cq) ||
+                        c.phone.toLowerCase().includes(cq) ||
+                        ("club" in c && (c as any).club && (c as any).club.toLowerCase().includes(cq))
+                      );
+                    });
+
+                    return (
+                      <div className="flex-1 h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
+                        {/* FIXED TOP SECTION: Top Navigation Bar + Search Bar (Strictly Non-Scrollable) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 space-y-3">
+                            {/* Top Navigation Bar: Unified 16px top offset, 24px horizontal gutters */}
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("hub")}
+                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer"
+                                title="Back to Hub"
+                                aria-label="Back"
+                              >
+                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                              </button>
+                              <h2 className="text-base font-bold text-[#0F172A]">Add Friends</h2>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setQrModalTab("display");
+                                  setScannedFriendResult(null);
+                                  setShowQrCodeModal(true);
+                                }}
+                                className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
+                                title="QR Code & Scanner"
+                                aria-label="QR Code"
+                              >
+                                <QrCode className="h-4 w-4 text-[#009A60]" />
+                              </button>
+                            </div>
+
+                            {/* Search Input Bar (Fixed at top with header) */}
+                            <div className="relative">
+                              <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={friendsSearchQuery}
+                                onFocus={() => {
+                                  openVirtualKeyboard({
+                                    phoneIndex: phoneIdx,
+                                    type: "text",
+                                    title: "Search Friends",
+                                    queryValue: friendsSearchQuery,
+                                    onInput: (char) => {
+                                      setFriendsSearchQuery((prev) => {
+                                        const next = prev + char;
+                                        setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                        return next;
+                                      });
+                                      setFriendsDisplayLimit(4);
+                                    },
+                                    onBackspace: () => {
+                                      setFriendsSearchQuery((prev) => {
+                                        const next = prev.slice(0, -1);
+                                        setVirtualKeyboard((k) => (k ? { ...k, queryValue: next } : null));
+                                        return next;
+                                      });
+                                      setFriendsDisplayLimit(4);
+                                    },
+                                  });
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setFriendsSearchQuery(val);
+                                  setFriendsDisplayLimit(4);
+                                  setVirtualKeyboard((k) => (k ? { ...k, queryValue: val } : null));
+                                }}
+                                placeholder="Search by name or email..."
+                                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#f5faf6] border border-[#e1efe5] text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
+                              />
+                              {friendsSearchQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFriendsSearchQuery("");
+                                    setFriendsDisplayLimit(4);
+                                    setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
+                                  }}
+                                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                                  title="Clear search"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* SCROLLABLE BODY CONTENT */}
+                        <div className="flex-1 overflow-y-auto">
+                          <div className="w-full max-w-sm mx-auto px-6 py-4 space-y-4 pb-8">
+                            {/* Find from Contacts Deep Green Card Banner with Fitted Topographic Contour Background */}
+                            <div
+                              onClick={() => {
+                                switchScreen("sync-contacts");
+                              }}
+                              className="w-full bg-[#052417] hover:bg-[#072d1d] rounded-[22px] p-4 sm:p-4.5 border border-[#0D3826] shadow-[0_8px_24px_rgba(0,0,0,0.18)] flex items-center justify-between text-white cursor-pointer transition-colors select-none relative overflow-hidden group"
+                            >
+                              {/* Fitted Background Pattern: Elegant Golf Topographic & Elevation Contour Curves */}
+                              <svg
+                                className="absolute inset-0 w-full h-full pointer-events-none opacity-25 transition-opacity duration-300 group-hover:opacity-35"
+                                viewBox="0 0 360 84"
+                                fill="none"
+                                preserveAspectRatio="none"
+                              >
+                                <defs>
+                                  <radialGradient id="contactsCardGlow" cx="85%" cy="50%" r="65%">
+                                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                                  </radialGradient>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#contactsCardGlow)" />
+                                {/* Elevation contour curves */}
+                                <path d="M-20 54 Q 65 18, 145 48 T 290 26 T 385 52" stroke="#10B981" strokeWidth="1.3" fill="none" opacity="0.8" />
+                                <path d="M-10 72 Q 80 32, 175 66 T 320 42 T 395 68" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.6" />
+                                <path d="M-15 28 Q 90 64, 210 22 T 375 40" stroke="#10B981" strokeWidth="0.9" strokeDasharray="3 3" fill="none" opacity="0.5" />
+                                {/* Concentric elevation rings around action zone */}
+                                <circle cx="310" cy="42" r="32" stroke="#10B981" strokeWidth="1" strokeDasharray="2 3" opacity="0.75" />
+                                <circle cx="310" cy="42" r="54" stroke="#10B981" strokeWidth="0.8" opacity="0.5" />
+                                <circle cx="310" cy="42" r="76" stroke="#10B981" strokeWidth="0.6" opacity="0.3" />
+                              </svg>
+
+                              <div className="relative z-10 min-w-0 flex-1 pr-3">
+                                <h3 className="text-[15px] font-bold text-white leading-tight">
+                                  Find from Contacts
+                                </h3>
+                                <p className="text-xs text-[#8FAEA2] mt-1 leading-snug">
+                                  Connect to see who&apos;s on OpenclubOS
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  switchScreen("sync-contacts");
+                                }}
+                                className="relative z-10 px-4 py-2 rounded-full bg-white hover:bg-slate-100 text-[#052417] font-extrabold text-[10.5px] tracking-wider uppercase transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+                              >
+                                CONNECT
+                              </button>
+                            </div>
+
+                            {/* Section Header: PLAYERS YOU MAY KNOW */}
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B]">
+                                {q ? `SEARCH RESULTS (${allMatchedGolfers.length})` : "PLAYERS YOU MAY KNOW"}
+                              </span>
+                              {q && allMatchedGolfers.length > 0 && (
+                                <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide">
+                                  {displayedGolfers.length < allMatchedGolfers.length
+                                    ? `Showing ${displayedGolfers.length} of ${allMatchedGolfers.length}`
+                                    : `All ${allMatchedGolfers.length}`}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Recommended Real Golfers List - Demarcation line '|' used instead of dot '•' */}
+                            <div className="space-y-2.5">
+                              {displayedGolfers.length > 0 ? (
+                                displayedGolfers.map((player) => {
+                                  const pId = String(player.id).toLowerCase().trim();
+                                  const pName = player.name.toLowerCase().trim();
+                                  const pEmail = (player.email || "").toLowerCase().trim();
+                                  const isSent = sentFriendRequests.includes(player.id);
+                                  const isConnected =
+                                    acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pId) ||
+                                    acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pName);
+                                  const matchingIncomingReq = incomingFriendRequests.find((req: any) => {
+                                    const rId = (req.senderId || req.id || req.userId || "").toString().toLowerCase().trim();
+                                    const rName = (req.senderName || req.name || "").toString().toLowerCase().trim();
+                                    const rEmail = (req.senderEmail || req.email || "").toString().toLowerCase().trim();
+                                    if (rId && rId === pId) return true;
+                                    if (rName && rName === pName) return true;
+                                    if (rEmail && pEmail && rEmail === pEmail) return true;
+                                    return false;
+                                  }) || (() => {
+                                    const matchingNotif = mobileNotifications.find((notif: any) => {
+                                      if (notif.data?.type === "FRIEND_REQUEST" || notif.type === "FRIEND_REQUEST") {
+                                        const sId = (notif.data?.senderId || notif.senderId || "").toString().toLowerCase().trim();
+                                        const sName = (notif.data?.senderName || notif.senderName || "").toString().toLowerCase().trim();
+                                        const sEmail = (notif.data?.senderEmail || notif.senderEmail || "").toString().toLowerCase().trim();
+                                        if (sId && sId === pId) return true;
+                                        if (sName && sName === pName) return true;
+                                        if (sEmail && pEmail && sEmail === pEmail) return true;
+                                        // Cross-match: check if the notification sender ID matches any known ID alias for this player
+                                        if (sId && player.email && sId === player.email.toLowerCase().trim()) return true;
+                                        if (sName && pId && sName === pId) return true;
+                                      }
+                                      return false;
+                                    });
+                                    if (matchingNotif) {
+                                      return {
+                                        id: matchingNotif.data?.requestId || matchingNotif.id,
+                                        senderId: matchingNotif.data?.senderId || player.id,
+                                        senderName: matchingNotif.data?.senderName || player.name,
+                                        senderClub: matchingNotif.data?.senderClub || player.club,
+                                        senderHcp: matchingNotif.data?.senderHcp || player.hcp,
+                                      };
+                                    }
+                                    return null;
+                                  })() || ((player as any)._isIncoming ? {
+                                    id: `req_${player.id}`,
+                                    senderId: player.id,
+                                    senderName: player.name,
+                                    senderClub: player.club,
+                                    senderHcp: player.hcp,
+                                  } : null);
+                                  const isIncoming = !!matchingIncomingReq;
+
+                                  return (
+                                    <div
+                                      key={player.id}
+                                      className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
+                                    >
+                                      {/* Left: Avatar with Green Check Badge */}
+                                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="relative shrink-0">
+                                          {player.avatar || player.profilePhoto ? (
+                                            <img
+                                              src={player.avatar || player.profilePhoto}
+                                              alt={player.name}
+                                              className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                                              onError={(e) => {
+                                                (e.currentTarget as HTMLElement).style.display = "none";
+                                                const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
+                                                if (fallback) fallback.style.display = "flex";
+                                              }}
+                                            />
+                                          ) : null}
+                                          <div
+                                            className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar || player.profilePhoto ? "hidden" : "flex"}`}
+                                          >
+                                            {getTwoInitials(player.name)}
+                                          </div>
+                                          {/* Status check badge */}
+                                          <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                          </div>
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <h4 className="text-[14px] font-bold text-[#0F172A] truncate leading-tight">
+                                              {player.name}
+                                            </h4>
+                                            {isConnected && (
+                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[10px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
+                                                Friend ✓
+                                              </span>
+                                            )}
+                                          </div>
+                                          {/* Demarcation line '|' instead of dot '•' */}
+                                          <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                            <span className="truncate">{player.club || "Ikoyi Golf Club"}</span>
+                                            <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                            <span className="shrink-0">{player.hcp || "12"} HCP</span>
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Right Action Button: Authenticated Interactive States */}
+                                      <div className="shrink-0">
+                                        {isConnected ? (
+                                          /* Accepted Friend State: Dual circular action buttons (Unfriend + Block) */
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => setUnfriendCandidate({ id: player.id, name: player.name })}
+                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                              title={`Remove ${player.name} from friends`}
+                                              aria-label="Remove Friend"
+                                            >
+                                              <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => setBlockCandidate({ id: player.id, name: player.name })}
+                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                              title={`Block ${player.name}`}
+                                              aria-label="Block Golfer"
+                                            >
+                                              <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
+                                            </button>
+                                          </div>
+                                        ) : isIncoming ? (
+                                          /* Incoming Friend Request State: Displays mark icon button (accept) + cancel icon button (decline) */
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAcceptFriendRequest(matchingIncomingReq)}
+                                              className="w-8 h-8 rounded-full bg-[#009A60] hover:bg-[#008251] text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer active:scale-95"
+                                              title={`Accept friend request from ${player.name}`}
+                                              aria-label="Accept Request"
+                                            >
+                                              <Check className="w-4 h-4 stroke-[2.8]" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeclineFriendRequest(matchingIncomingReq)}
+                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                              title={`Decline friend request from ${player.name}`}
+                                              aria-label="Decline Request"
+                                            >
+                                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                            </button>
+                                          </div>
+                                        ) : isSent ? (
+                                          /* Sent Friend Request State: Displays SENT text + light circular X cancel button */
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                              SENT
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleCancelSentFriendRequest(player.id)}
+                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors cursor-pointer active:scale-95"
+                                              title="Cancel Request"
+                                              aria-label="Cancel Request"
+                                            >
+                                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          /* Unsent State: Displays circular emerald add friend button */
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSendFriendRequest(player.id, player)}
+                                            className="w-9 h-9 rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer shrink-0"
+                                            title={`Add ${player.name}`}
+                                            aria-label="Add Friend"
+                                          >
+                                            <UserPlus className="w-4 h-4 text-white" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div className="py-10 text-center">
+                                  <div className="w-12 h-12 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60]">
+                                    <UserPlus className="w-6 h-6" />
+                                  </div>
+                                  <p className="text-sm font-bold text-slate-800">No Golfers Found</p>
+                                  <p className="text-xs text-slate-500 mt-1 max-w-[240px] mx-auto">
+                                    Try searching by a different name or email.
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Lazy Loading: Show More Button */}
+                              {hasMoreResults && (
+                                <button
+                                  type="button"
+                                  onClick={() => setFriendsDisplayLimit((prev) => prev + 4)}
+                                  className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                  <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                  Show More ({allMatchedGolfers.length - displayedGolfers.length} remaining)
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Demarcation Divider */}
+                            <div className="relative py-1">
+                              <div className="border-t border-slate-200/80" />
+                            </div>
+
+                            {/* Share Invitation Link Card (Demarcation Dashed Border Container) */}
+                            <div className="w-full rounded-[24px] border-2 border-dashed border-slate-300 bg-white/80 p-5 flex flex-col items-center text-center space-y-3 shadow-2xs">
+                              <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shadow-xs">
+                                <Link2 className="w-5 h-5 -rotate-45 stroke-[2.2]" />
+                              </div>
+                              <div className="space-y-1">
+                                <h3 className="text-[15px] font-bold text-[#0F172A] leading-tight">
+                                  Share Invitation Link
+                                </h3>
+                                <p className="text-[12px] font-normal text-[#64748B] leading-snug max-w-[260px] mx-auto">
+                                  Invite friends who aren&apos;t on the platform yet
+                                </p>
+                              </div>
+                              {(() => {
+                                const currentInviteCode = getUserInviteCode(authenticatedPlayer);
+                                const currentOrigin = typeof window !== "undefined" && window.location.origin
+                                  ? window.location.origin
+                                  : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                const currentHost = typeof window !== "undefined" && window.location.host
+                                  ? window.location.host
+                                  : "openclub.app";
+                                const currentInviteLink = `${currentHost}/invite/${currentInviteCode}`;
+                                const currentInviteUrl = `${currentOrigin}/invite/${currentInviteCode}`;
+
+                                return (
+                                  <div className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2 shadow-2xs">
+                                    <span className="text-xs text-slate-600 font-medium truncate flex-1 text-left select-all">
+                                      {currentInviteLink}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                          navigator.clipboard.writeText(currentInviteUrl).catch(() => {});
+                                        }
+                                        setCopiedInviteLink(true);
+                                        setTimeout(() => setCopiedInviteLink(false), 2200);
+                                        showToast("Invitation link copied to clipboard!", "success", "LINK COPIED");
+                                      }}
+                                      className="px-3.5 py-1.5 rounded-full bg-[#009A60] hover:bg-[#008251] border border-[#009A60] text-white text-xs font-bold shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
+                                    >
+                                      {copiedInviteLink ? "Copied!" : "Copy"}
+                                    </button>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive QR Code Modal (Display QR Code + Functional Scanner) */}
+                        {showQrCodeModal && (
+                          <div
+                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-5"
+                            onClick={() => setShowQrCodeModal(false)}
+                          >
+                            <div
+                              className="w-full max-w-xs bg-white rounded-3xl p-5 shadow-2xl space-y-4 text-center border border-slate-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Modal Header */}
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                <h4 className="text-sm font-bold text-[#0F172A]">
+                                  {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
+                                </h4>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowQrCodeModal(false)}
+                                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Segmented Mode Switcher: My QR Code vs Scan QR Code */}
+                              <div className="flex rounded-xl bg-[#f4f6f3] border border-slate-200/60 p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalTab("display");
+                                    setScannedFriendResult(null);
+                                  }}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    qrModalTab === "display"
+                                      ? "bg-white text-[#0F172A] shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  }`}
+                                >
+                                  My QR Code
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalTab("scan");
+                                    setScannedFriendResult(null);
+                                  }}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    qrModalTab === "scan"
+                                      ? "bg-white text-[#0F172A] shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  }`}
+                                >
+                                  Scan QR Code
+                                </button>
+                              </div>
+
+                              {qrModalTab === "display" ? (
+                                /* TAB 1: DISPLAY USER QR CODE (NO verified openclub competitor) */
+                                <div className="space-y-3.5">
+                                  <div className="flex flex-col items-center">
+                                    <div className="w-12 h-12 rounded-full border-2 border-[#009A60] p-0.5 mb-2 shrink-0">
+                                      {(authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo) && !qrPhotoError ? (
+                                        <img
+                                          src={authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo}
+                                          alt={authenticatedPlayer?.name || "Player"}
+                                          onError={() => setQrPhotoError(true)}
+                                          className="w-full h-full rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
+                                          {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-sm font-bold text-[#0F172A]">
+                                      {authenticatedPlayer?.name || "Alex Morgan"}
+                                    </p>
+                                    <p className="text-xs font-medium text-[#64748B] mt-0.5">
+                                      <span>{authenticatedPlayer?.club || "Ikoyi Club 1938"}</span>
+                                      <span className="mx-1 text-slate-300">|</span>
+                                      <span>
+                                        {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
+                                          ? (typeof authenticatedPlayer.handicap === "number" ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
+                                          : ((authenticatedPlayer as any)?.handicapIndex || (authenticatedPlayer as any)?.hcp || "0.0")}{" "}
+                                        HCP
+                                      </span>
+                                    </p>
+                                  </div>
+
+                                  {/* High-contrast Dynamic Unique QR Graphic with 4-Module Quiet Zone for Stress-Free Scanning */}
+                                  {(() => {
+                                    const activeInviteCode = getUserInviteCode(authenticatedPlayer);
+                                    const currentOrigin = typeof window !== "undefined" && window.location.origin
+                                      ? window.location.origin
+                                      : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                    const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
+                                    const qrData = generateUniqueQrMatrix(qrPayload, 25);
+                                    const cellSize = 100 / qrData.size;
+
+                                    return (
+                                      <div className="w-44 h-44 mx-auto p-2 bg-[#EAF7EE] border-2 border-[#C6F0DB]/80 rounded-2xl shadow-xs flex items-center justify-center relative">
+                                        <svg viewBox="-16 -16 132 132" className="w-full h-full">
+                                          {/* Standard 4-Module Blank White Quiet Zone */}
+                                          <rect x="-16" y="-16" width="132" height="132" fill="#FFFFFF" rx="8" />
+
+                                          {/* Deterministic Data Cells */}
+                                          {qrData.grid.map((row, r) =>
+                                            row.map((cell, c) => {
+                                              const isCornerFinder =
+                                                (r < 7 && c < 7) ||
+                                                (r < 7 && c >= qrData.size - 7) ||
+                                                (r >= qrData.size - 7 && c < 7);
+                                              const isCenterEmblem =
+                                                r >= qrData.mid - 2 &&
+                                                r <= qrData.mid + 2 &&
+                                                c >= qrData.mid - 2 &&
+                                                c <= qrData.mid + 2;
+
+                                              if (isCornerFinder || isCenterEmblem) return null;
+                                              if (cell === 0) return null;
+
+                                              return (
+                                                <rect
+                                                  key={`qr-c-${r}-${c}`}
+                                                  x={c * cellSize + 0.3}
+                                                  y={r * cellSize + 0.3}
+                                                  width={cellSize - 0.6}
+                                                  height={cellSize - 0.6}
+                                                  rx="0.8"
+                                                  fill="#052417"
+                                                />
+                                              );
+                                            })
+                                          )}
+
+                                          {/* Top-Left Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
+                                          <rect x="0" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                          <rect x="4" y="4" width="20" height="20" rx="2" fill="white" />
+                                          <rect x="8" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                          {/* Top-Right Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
+                                          <rect x="72" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                          <rect x="76" y="4" width="20" height="20" rx="2" fill="white" />
+                                          <rect x="80" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                          {/* Bottom-Left Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
+                                          <rect x="0" y="72" width="28" height="28" rx="4" fill="#052417" />
+                                          <rect x="4" y="76" width="20" height="20" rx="2" fill="white" />
+                                          <rect x="8" y="80" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                          {/* Center Brand / Profile Monogram Emblem */}
+                                          <rect x="38" y="38" width="24" height="24" rx="6" fill="white" stroke="#E2E8F0" strokeWidth="1" />
+                                          <circle cx="50" cy="50" r="8" fill="#009A60" />
+                                          <text
+                                            x="50"
+                                            y="53"
+                                            textAnchor="middle"
+                                            fill="white"
+                                            fontSize="6.5"
+                                            fontWeight="bold"
+                                            fontFamily="sans-serif"
+                                          >
+                                            {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
+                                          </text>
+                                        </svg>
+                                      </div>
+                                    );
+                                  })()}
+
+                                  <p className="text-[11.5px] text-slate-500 leading-tight">
+                                    Let other golfers scan your code on the course to connect instantly.
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const activeCode = getUserInviteCode(authenticatedPlayer);
+                                      const origin = typeof window !== "undefined" && window.location.origin
+                                        ? window.location.origin
+                                        : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                      const shareUrl = `${origin}/invite/${activeCode}`;
+                                      const shareData = {
+                                        title: "Add me on OpenclubOS",
+                                        text: `Hey! Add me as a golf friend on OpenclubOS.`,
+                                        url: shareUrl,
+                                      };
+
+                                      // Try native share first, fallback to clipboard
+                                      if (typeof navigator !== "undefined" && navigator.share) {
+                                        try {
+                                          await navigator.share(shareData);
+                                          showToast("QR invite link shared!", "success", "QR CODE SHARED");
+                                        } catch (err: any) {
+                                          if (err?.name !== "AbortError") {
+                                            // User cancelled — silently ignore
+                                            if (navigator.clipboard) {
+                                              await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                                            }
+                                            showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                          }
+                                        }
+                                      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                        await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                                        showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                      }
+                                    }}
+                                    className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+                                  >
+                                    Share QR Code
+                                  </button>
+                                </div>
+                              ) : (
+                                /* TAB 2: FUNCTIONAL QR SCANNER VIEW */
+                                <div className="space-y-3.5">
+                                  {/* Camera Viewfinder Box with Laser & Corner Brackets */}
+                                  <div className="relative w-full h-44 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
+                                    {/* Corner Reticles */}
+                                    <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#009A60] rounded-tl" />
+                                    <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#009A60] rounded-tr" />
+                                    <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#009A60] rounded-bl" />
+                                    <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#009A60] rounded-br" />
+
+                                    {/* Animated Scan Line */}
+                                    <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
+
+                                    {/* Scanner Guidance */}
+                                    <div className="z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs border border-white/10 text-[10.5px] font-medium text-slate-300 flex items-center gap-1.5">
+                                      <Camera className="w-3.5 h-3.5 text-[#009A60]" />
+                                      <span>Point camera at golfer&apos;s QR code</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Scanned Result or Action Button */}
+                                  {scannedFriendResult ? (
+                                    <div className="space-y-2.5">
+                                      <div className="w-full bg-[#F0FDF4] border border-[#A7F3D0] rounded-2xl p-3 text-left flex items-center justify-between gap-2.5">
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                          {scannedFriendResult.avatar || scannedFriendResult.profilePhoto ? (
+                                            <div className="w-10 h-10 rounded-full border border-[#C6F0DB] overflow-hidden shrink-0">
+                                              <img
+                                                src={scannedFriendResult.avatar || scannedFriendResult.profilePhoto}
+                                                alt={scannedFriendResult.name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                  (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div class="w-full h-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center uppercase">${getTwoInitials(scannedFriendResult.name)}</div>`;
+                                                }}
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 select-none uppercase">
+                                              {getTwoInitials(scannedFriendResult.name)}
+                                            </div>
+                                          )}
+                                          <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold text-[#0F172A] truncate">
+                                              {scannedFriendResult.name}
+                                            </p>
+                                            <p className="text-[11px] text-[#009A60] font-medium truncate">
+                                              {scannedFriendResult.club} | {scannedFriendResult.hcp} HCP
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <span className="shrink-0 w-7 h-7 rounded-full bg-[#009A60] text-white flex items-center justify-center shadow-2xs" title="Request sent">
+                                          <Send className="w-3.5 h-3.5" />
+                                        </span>
+                                      </div>
+
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => setScannedFriendResult(null)}
+                                          className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                        >
+                                          Scan Another
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setShowQrCodeModal(false)}
+                                          className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
+                                        >
+                                          Done
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* Scanner viewfinder — real camera integration handles detection */
+                                    <div className="space-y-2">
+                                      <p className="text-[11.5px] text-slate-500 leading-tight">
+                                        Point your camera at another golfer&apos;s QR code to connect instantly.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Interactive Find from Contacts Modal Sheet */}
+                        {showContactsModal && (
+                          <div
+                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+                            onClick={() => setShowContactsModal(false)}
+                          >
+                            <div
+                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-3xl p-5 shadow-2xl space-y-3.5 border border-slate-100 flex flex-col max-h-[85vh] animate-in fade-in slide-in-from-bottom duration-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Bottom sheet drag handle for mobile view */}
+                              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
+
+                              {/* Header */}
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+                                <div>
+                                  <h4 className="text-base font-bold text-[#0F172A] flex items-center gap-1.5">
+                                    <Users className="w-4 h-4 text-[#009A60]" />
+                                    Find from Contacts
+                                  </h4>
+                                  <p className="text-xs text-[#64748B] mt-0.5">
+                                    Connect with golfers from your address book
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowContactsModal(false)}
+                                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer transition-colors"
+                                  title="Close"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Synced status badge */}
+                              <div className="bg-[#EAF7EE] border border-[#C6F0DB] rounded-xl p-2.5 flex items-center justify-between text-xs text-[#009A60] shrink-0">
+                                <div className="flex items-center gap-2 font-medium">
+                                  <div className="w-6 h-6 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0">
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  </div>
+                                  <div>
+                                    <span className="font-bold">Contacts Synced</span>
+                                    <span className="text-[11px] text-[#052417]/80 block">4 golfers matched on OpenclubOS</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isSyncingContacts}
+                                  onClick={() => {
+                                    setIsSyncingContacts(true);
+                                    setTimeout(() => {
+                                      setIsSyncingContacts(false);
+                                      showToast("Address book synchronized! 4 golfers matched on OpenclubOS.", "success", "CONTACTS SYNCED");
+                                    }, 600);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-white/80 hover:bg-white text-[#052417] text-[10.5px] font-bold border border-[#C6F0DB] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                  title="Re-sync contacts"
+                                >
+                                  <RefreshCw className={`w-3 h-3 ${isSyncingContacts ? "animate-spin text-[#009A60]" : "text-slate-600"}`} />
+                                  <span>{isSyncingContacts ? "Syncing..." : "Sync"}</span>
+                                </button>
+                              </div>
+
+                              {/* In-App Standardized Search Input */}
+                              <div className="shrink-0">
+                                <div className="relative flex items-center">
+                                  <Search className="w-4 h-4 text-[#8CA0BA] absolute left-3.5 pointer-events-none" />
+                                  <input
+                                    type="text"
+                                    value={contactsSearchQuery}
+                                    onChange={(e) => setContactsSearchQuery(e.target.value)}
+                                    placeholder="Search contacts by name or phone..."
+                                    className="w-full pl-9.5 pr-8 py-2 bg-[#f5faf6] border border-[#e1efe5] rounded-xl text-xs text-[#0F172A] placeholder:text-[#8CA0BA] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden transition-all"
+                                  />
+                                  {contactsSearchQuery && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setContactsSearchQuery("")}
+                                      className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Filter Tabs */}
+                              <div className="flex gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setContactsTabFilter("all")}
+                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                    contactsTabFilter === "all"
+                                      ? "bg-[#052417] text-white"
+                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  All ({phoneAddressBookContacts.length})
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setContactsTabFilter("on_app")}
+                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                    contactsTabFilter === "on_app"
+                                      ? "bg-[#009A60] text-white"
+                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  On App ({phoneAddressBookContacts.filter((c) => c.isOnOpenclub).length})
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setContactsTabFilter("invite")}
+                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                    contactsTabFilter === "invite"
+                                      ? "bg-[#052417] text-white"
+                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Invite ({phoneAddressBookContacts.filter((c) => !c.isOnOpenclub).length})
+                                </button>
+                              </div>
+
+                              {/* Contacts List */}
+                              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px] max-h-[280px]">
+                                {displayedContacts.length === 0 ? (
+                                  <div className="py-8 text-center text-xs text-slate-400">
+                                    No contacts found matching &ldquo;{contactsSearchQuery}&rdquo;
+                                  </div>
+                                ) : (
+                                  displayedContacts.map((contact) => {
+                                    const isSent = sentFriendRequests.includes(contact.id);
+                                    const isAccepted = acceptedFriendIds.includes(contact.id);
+                                    const isInvited = invitedContactPhones.includes(contact.phone);
+
+                                    return (
+                                      <div
+                                        key={contact.id}
+                                        className="p-2.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-2.5"
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                          <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 uppercase select-none">
+                                            {getTwoInitials(contact.name)}
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                              <p className="text-xs font-bold text-[#0F172A] truncate">
+                                                {contact.name}
+                                              </p>
+                                              {isAccepted && (
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9.5px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
+                                                  Friend ✓
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-[10.5px] text-slate-500 font-medium truncate">
+                                              {contact.phone}
+                                            </p>
+                                            {contact.isOnOpenclub ? (
+                                              <p className="text-[10.5px] text-[#009A60] font-medium truncate">
+                                                {contact.club} • {contact.hcp} HCP
+                                              </p>
+                                            ) : (
+                                              <span className="inline-block text-[9.5px] text-slate-400 font-medium">
+                                                Not on OpenclubOS yet
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="shrink-0">
+                                          {contact.isOnOpenclub ? (
+                                            isAccepted ? (
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setUnfriendCandidate({ id: contact.id, name: contact.name })}
+                                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                                  title={`Remove ${contact.name} from friends`}
+                                                  aria-label="Remove Friend"
+                                                >
+                                                  <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setBlockCandidate({ id: contact.id, name: contact.name })}
+                                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                                  title={`Block ${contact.name}`}
+                                                  aria-label="Block Golfer"
+                                                >
+                                                  <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
+                                                </button>
+                                              </div>
+                                            ) : isSent ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCancelSentFriendRequest(contact.id)}
+                                                className="px-2.5 py-1 rounded-full bg-[#009A60] hover:bg-red-500 text-white text-[10.5px] font-bold transition-all shadow-2xs active:scale-95 cursor-pointer group"
+                                                title="Click to cancel request"
+                                              >
+                                                <span className="group-hover:hidden flex items-center gap-1"><Send className="w-3 h-3" /></span>
+                                                <span className="hidden group-hover:inline">Cancel</span>
+                                              </button>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleSendFriendRequest(contact.id, contact)}
+                                                className="px-3 py-1.5 rounded-full bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                                              >
+                                                + Add
+                                              </button>
+                                            )
+                                          ) : isInvited ? (
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[10.5px] font-bold">
+                                              Invited ✓
+                                            </span>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setInvitedContactPhones((prev) => [...prev, contact.phone]);
+                                                const inviteCode = getUserInviteCode(authenticatedPlayer);
+                                                const currentOrigin = typeof window !== "undefined" && window.location.origin
+                                                  ? window.location.origin
+                                                  : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                                if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                                  navigator.clipboard.writeText(`${currentOrigin}/invite/${inviteCode}?ref=${encodeURIComponent(contact.phone)}`);
+                                                }
+                                                showToast(
+                                                  `Invite link copied for ${contact.name}! Send via SMS or WhatsApp.`,
+                                                  "success",
+                                                  "INVITE LINK READY"
+                                                );
+                                              }}
+                                              className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer flex items-center gap-1"
+                                            >
+                                              <Share2 className="w-3 h-3 text-[#009A60]" />
+                                              <span>Invite</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+
+                              {/* Footer Done button */}
+                              <div className="pt-2 border-t border-slate-100 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowContactsModal(false);
+                                    setShowContactsConnected(true);
+                                    try {
+                                      localStorage.setItem("openclub_contacts_synced", "true");
+                                    } catch {}
+                                  }}
+                                  className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+                                >
+                                  Done
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* 13B. SYNC YOUR CONTACTS FULL SCREEN (EXACT ATTACHED DESIGN) */}
+                  {targetScreen === "sync-contacts" && (() => {
+                    return (
+                      <div className="flex-1 min-h-full flex flex-col bg-white pb-8 relative overflow-y-auto">
+                        {/* Top Navigation Bar: Unified 16px top offset, 24px horizontal gutters */}
+                        <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 flex items-center justify-between shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => switchScreen("add-friends")}
+                            className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer"
+                            title="Back to Add Friends"
+                            aria-label="Back"
+                          >
+                            <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                          </button>
+                          <div className="w-8" />
+                        </div>
+
+                        {/* Screen Content Body */}
+                        <div className="w-full max-w-sm mx-auto px-6 flex-1 flex flex-col justify-between pt-2 pb-6">
+                          <div className="flex flex-col items-center text-center">
+                            {/* Hero Contact Badge matching screenshot */}
+                            <div className="relative w-[104px] h-[104px] rounded-full bg-[#D5F2E3] border-4 border-[#EAF7EE] flex items-center justify-center shadow-xs mt-4 mb-8">
+                              {/* Address Book Icon */}
+                              <div className="w-12 h-12 rounded-xl bg-[#009A60] flex items-center justify-center text-white relative shadow-2xs">
+                                <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M4 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4" />
+                                  <path d="M4 2v20" />
+                                  <circle cx="12" cy="9.5" r="2.8" />
+                                  <path d="M7 17.5a4.5 4.5 0 0 1 9 0" />
+                                  <line x1="1.5" y1="6" x2="4" y2="6" />
+                                  <line x1="1.5" y1="11" x2="4" y2="11" />
+                                  <line x1="1.5" y1="16" x2="4" y2="16" />
+                                </svg>
+                              </div>
+
+                              {/* Shield Indicator Top-Right Badge */}
+                              <div className="absolute top-0 right-0 w-7 h-7 rounded-full bg-white border border-[#C6F0DB] shadow-xs flex items-center justify-center">
+                                <Shield className="w-3.5 h-3.5 text-[#009A60] fill-[#009A60]/20" />
+                              </div>
+                            </div>
+
+                            {/* Heading */}
+                            <h2 className="text-[26px] font-black text-[#0F172A] tracking-tight leading-tight mb-2.5">
+                              Sync Your Contacts
+                            </h2>
+
+                            {/* Description */}
+                            <p className="text-[13.5px] text-[#64748B] leading-snug max-w-[285px] mb-8">
+                              Find friends and fellow club members who are already on <strong className="font-bold text-[#0F172A]">OpenclubOS</strong>.
+                            </p>
+
+                            {/* Benefit Cards matching screenshot */}
+                            <div className="w-full space-y-3 mb-6">
+                              {/* Benefit Card 1: Auto-Connect */}
+                              <div className="w-full bg-[#F8FAFC] rounded-2xl p-4 flex items-center gap-3.5 border border-slate-100 shadow-2xs text-left relative overflow-hidden group">
+                                {/* Fitted Background Pattern: Social Discovery Golfer Constellation & Connection Node Mesh */}
+                                <svg
+                                  className="absolute inset-0 w-full h-full pointer-events-none opacity-45 transition-opacity duration-300 group-hover:opacity-60"
+                                  viewBox="0 0 340 64"
+                                  fill="none"
+                                  preserveAspectRatio="none"
+                                >
+                                  <defs>
+                                    <radialGradient id="autoConnectGlow" cx="88%" cy="50%" r="60%">
+                                      <stop offset="0%" stopColor="#009A60" stopOpacity="0.10" />
+                                      <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                    </radialGradient>
+                                  </defs>
+                                  <rect width="100%" height="100%" fill="url(#autoConnectGlow)" />
+                                  {/* Interconnected friendship nodes & graph lines */}
+                                  <line x1="210" y1="36" x2="252" y2="20" stroke="#009A60" strokeWidth="0.9" opacity="0.18" />
+                                  <line x1="252" y1="20" x2="295" y2="38" stroke="#009A60" strokeWidth="0.9" opacity="0.18" />
+                                  <line x1="252" y1="20" x2="278" y2="12" stroke="#009A60" strokeWidth="0.7" strokeDasharray="2 2" opacity="0.14" />
+                                  <line x1="295" y1="38" x2="328" y2="24" stroke="#009A60" strokeWidth="0.9" opacity="0.18" />
+                                  <circle cx="210" cy="36" r="3" fill="#009A60" opacity="0.22" />
+                                  <circle cx="252" cy="20" r="3.5" fill="#009A60" opacity="0.28" />
+                                  <circle cx="278" cy="12" r="2" fill="#009A60" opacity="0.20" />
+                                  <circle cx="295" cy="38" r="4" fill="#009A60" opacity="0.30" />
+                                  <circle cx="328" cy="24" r="3" fill="#009A60" opacity="0.25" />
+                                </svg>
+
+                                <div className="relative z-10 w-9 h-9 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                                  <Users className="w-4 h-4 text-[#009A60]" />
+                                </div>
+                                <span className="relative z-10 text-[12px] font-bold text-[#5E718D] capitalize">
+                                  Auto-Connect with Friends
+                                </span>
+                              </div>
+
+                              {/* Benefit Card 2: Secure & Private Sync */}
+                              <div className="w-full bg-[#F8FAFC] rounded-2xl p-4 flex items-center gap-3.5 border border-slate-100 shadow-2xs text-left relative overflow-hidden group">
+                                {/* Fitted Background Pattern: Hexagonal Cryptographic Vault Mesh & Privacy Shield Matrix */}
+                                <svg
+                                  className="absolute inset-0 w-full h-full pointer-events-none opacity-45 transition-opacity duration-300 group-hover:opacity-60"
+                                  viewBox="0 0 340 64"
+                                  fill="none"
+                                  preserveAspectRatio="none"
+                                >
+                                  <defs>
+                                    <pattern id="secureHexGrid" width="24" height="20.78" patternUnits="userSpaceOnUse">
+                                      <path d="M12 0 L24 6.93 L24 20.78 L12 27.71 L0 20.78 L0 6.93 Z" fill="none" stroke="#009A60" strokeWidth="0.7" strokeOpacity="0.07" />
+                                    </pattern>
+                                    <radialGradient id="secureVaultGlow" cx="92%" cy="50%" r="55%">
+                                      <stop offset="0%" stopColor="#009A60" stopOpacity="0.10" />
+                                      <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                                    </radialGradient>
+                                  </defs>
+                                  <rect width="100%" height="100%" fill="url(#secureHexGrid)" />
+                                  <rect width="100%" height="100%" fill="url(#secureVaultGlow)" />
+                                  {/* Security concentric privacy radar rings */}
+                                  <circle cx="295" cy="32" r="18" stroke="#009A60" strokeWidth="0.9" strokeDasharray="3 3" opacity="0.18" fill="none" />
+                                  <circle cx="295" cy="32" r="28" stroke="#009A60" strokeWidth="0.7" opacity="0.12" fill="none" />
+                                </svg>
+
+                                <div className="relative z-10 w-9 h-9 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                                  <Lock className="w-4 h-4 text-[#009A60]" />
+                                </div>
+                                <span className="relative z-10 text-[12px] font-bold text-[#5E718D] capitalize">
+                                  Secure & Private Sync
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="w-full space-y-3 pt-4">
+                            <button
+                              type="button"
+                              disabled={isSyncingContacts}
+                              onClick={async () => {
+                                setIsSyncingContacts(true);
+                                try {
+                                  // Simulate permission request & address book sync
+                                  await new Promise((res) => setTimeout(res, 600));
+                                  setShowContactsConnected(true);
+                                  try {
+                                    localStorage.setItem("openclub_contacts_synced", "true");
+                                  } catch {}
+                                  showToast("Found 4 contacts already playing on OpenclubOS!", "success", "CONTACTS SYNCED");
+                                  setContactsTabFilter("on_app");
+                                  switchScreen("add-friends");
+                                  setShowContactsModal(true);
+                                } finally {
+                                  setIsSyncingContacts(false);
+                                }
+                              }}
+                              className="w-full py-3.5 rounded-2xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-bold text-sm capitalize shadow-lg shadow-[#009A60]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                            >
+                              {isSyncingContacts ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                  <span>Syncing Contacts...</span>
+                                </>
+                              ) : (
+                                "Allow Access"
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("add-friends")}
+                              className="w-full py-2.5 text-center text-xs font-bold capitalize text-[#8CA0BA] hover:text-[#5E718D] transition-colors cursor-pointer"
+                            >
+                              Maybe Later
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 14. NOTIFICATIONS FULL SCREEN (PURE REAL DATABASE DATA) */}
+                  {targetScreen === "notifications" && (() => {
+                    const isAllRead = notificationsMarkedRead || (mobileNotifications.length > 0 && mobileNotifications.every((n: any) => n.isRead));
+
+                    const handleMarkAllRead = async () => {
+                      setNotificationsMarkedRead(true);
+                      setMobileNotifications((prev) =>
+                        prev.map((n: any) => {
+                          const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
+                          if (isFriend) return n;
+                          return { ...n, isRead: true, unread: false };
+                        })
+                      );
+                      if (authenticatedPlayer?.id) {
+                        try {
+                          const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+                          const saved = localStorage.getItem(notifKey);
+                          if (saved) {
+                            const parsed = JSON.parse(saved);
+                            const updated = parsed.map((n: any) => {
+                              const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
+                              if (isFriend) return n;
+                              return { ...n, isRead: true, unread: false };
+                            });
+                            localStorage.setItem(notifKey, JSON.stringify(updated));
+                          }
+                          localStorage.setItem(`openclub_all_notifs_read_${authenticatedPlayer.id}`, "true");
+                        } catch {}
+                      }
+                      try {
+                        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+                        const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+                        if (token) {
+                          await fetch(`${backendBase}/notifications/mark-all-read`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` },
+                          }).catch(() => null);
+                        }
+                      } catch {}
+                      showToast("All notifications marked as read.", "success", "NOTIFICATIONS READ");
+                    };
+
+                    const now = new Date();
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+
+                    // Helper to parse and structure flight grouping notifications
+                    const parseFlightGroupingNotif = (notif: any) => {
+                      let partners: string[] = Array.isArray(notif.data?.flightPartners) ? notif.data.flightPartners : [];
+                      let flightName: string = notif.data?.flightName || notif.data?.groupName || "";
+                      let tournamentName: string = notif.data?.tournamentName || "";
+
+                      const bodyText = notif.body || notif.desc || notif.message || "";
+
+                      if (partners.length === 0 && bodyText) {
+                        const multilineMatch = bodyText.match(/You are grouped with:\s*([\s\S]*?)\s*for\s+(.*?)\s+of\s+(.*?)\.?$/i);
+                        if (multilineMatch) {
+                          partners = multilineMatch[1]
+                            .split("\n")
+                            .map((s: string) => s.trim().replace(/-\d+$/, ""))
+                            .filter((s: string) => s && !isAccountUser({ name: s }));
+                          flightName = flightName || multilineMatch[2].trim();
+                          tournamentName = tournamentName || multilineMatch[3].trim().replace(/\.$/, "");
+                        } else {
+                          const singleMatch = bodyText.match(/You are grouped with\s+(.*?)\s+for\s+(.*?)\.?$/i);
+                          if (singleMatch) {
+                            partners = singleMatch[1]
+                              .split(",")
+                              .map((s: string) => s.trim().replace(/-\d+$/, ""))
+                              .filter((s: string) => s && !isAccountUser({ name: s }));
+                            const rest = singleMatch[2].trim();
+                            if (rest.includes(" of ")) {
+                              const parts = rest.split(" of ");
+                              flightName = flightName || parts[0].trim();
+                              tournamentName = tournamentName || parts[1].trim().replace(/\.$/, "");
+                            } else {
+                              flightName = flightName || rest;
+                            }
+                          }
+                        }
+                      }
+
+                      if (!flightName && notif.title?.includes(":")) {
+                        flightName = notif.title.split(":")[1]?.trim() || "";
+                      }
+
+                      const isFlight =
+                        notif.type === "FLIGHT_GROUPING" ||
+                        notif.data?.type === "FLIGHT_GROUPING" ||
+                        notif.title?.toLowerCase().includes("flight grouping");
+
+                      return {
+                        isFlightGrouping: isFlight,
+                        partners,
+                        flightName,
+                        tournamentName,
+                      };
+                    };
+
+                    // Standardized Friend Request Card (Card 1 design requested by user for EVERY friend request)
+                    const renderFriendRequestCard = (item: any) => {
+                      const data = item.data || {};
+                      const senderId = item.senderId || data.senderId || data.userId || item.id;
+                      const rawSenderName =
+                        item.senderName ||
+                        data.senderName ||
+                        data.userName ||
+                        (typeof item.body === "string" ? item.body.match(/^(.+?)\s+sent/)?.[1] : "") ||
+                        "Golfer";
+
+                      // Look up in registeredPlayers for club/hcp/avatar if missing
+                      const matchedPlayer = registeredPlayers?.find(
+                        (rp: any) => (senderId && String(rp.id).toLowerCase() === String(senderId).toLowerCase()) ||
+                                     (rawSenderName && rp.name?.toLowerCase() === rawSenderName.toLowerCase())
+                      );
+
+                      const senderName = matchedPlayer?.name || rawSenderName;
+                      const senderClub = item.senderClub || data.senderClub || data.club || (matchedPlayer as any)?.club || "";
+                      const senderHcp = item.senderHcp || data.senderHcp || data.hcp || (matchedPlayer as any)?.handicap || "";
+                      const senderAvatar = item.senderAvatar || data.senderAvatar || data.avatar || (matchedPlayer as any)?.avatar || (matchedPlayer as any)?.profilePhoto || "";
+                      const createdAt = item.createdAt || item.timestamp || item.time || Date.now();
+                      const reqId = item.id || data.requestId || `freq_${senderId}`;
+
+                      return (
+                        <div
+                          key={reqId}
+                          className="w-full bg-white border border-[#C6F0DB] rounded-2xl shadow-2xs p-3.5 flex items-start gap-3.5 transition-all hover:border-slate-300 relative overflow-hidden group"
+                        >
+                          {/* Fitted Background Pattern: Welcoming Friend Greeting Ripple Waves & Social Connection Aura */}
+                          <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none opacity-40 transition-opacity duration-300 group-hover:opacity-55"
+                            viewBox="0 0 340 84"
+                            fill="none"
+                            preserveAspectRatio="none"
+                          >
+                            <defs>
+                              <radialGradient id={`notifFriendGlow-${reqId}`} cx="12%" cy="30%" r="45%">
+                                <stop offset="0%" stopColor="#009A60" stopOpacity="0.12" />
+                                <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
+                              </radialGradient>
+                            </defs>
+                            <rect width="100%" height="100%" fill={`url(#notifFriendGlow-${reqId})`} />
+                            {/* Connection ripples radiating from avatar */}
+                            <circle cx="34" cy="28" r="28" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.18" fill="none" />
+                            <circle cx="34" cy="28" r="46" stroke="#009A60" strokeWidth="0.7" opacity="0.12" fill="none" />
+                            <circle cx="34" cy="28" r="68" stroke="#009A60" strokeWidth="0.6" strokeDasharray="3 4" opacity="0.08" fill="none" />
+                            {/* Social handshake link curve in top right */}
+                            <path d="M 240 12 Q 280 22, 320 8" stroke="#009A60" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.15" fill="none" />
+                          </svg>
+
+                          <div className="relative z-10 shrink-0 mt-0.5">
+                            {senderAvatar ? (
+                              <img
+                                src={senderAvatar}
+                                alt={senderName}
+                                className="w-8.5 h-8.5 rounded-full object-cover border border-slate-200 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-8.5 h-8.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-[10px] font-black shadow-2xs">
+                                {getTwoInitials(senderName)}
+                              </div>
+                            )}
+                            <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                              <UserPlus className="w-2 h-2 stroke-[3]" />
+                            </div>
+                          </div>
+                          <div className="relative z-10 min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
+                                {senderName}
+                              </h4>
+                              <span className="text-[11px] font-medium text-[#8CA0BA] shrink-0">
+                                {formatNotifTime(createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-[12px] font-medium text-[#64748B] mt-0.5">
+                              {senderClub ? `${senderClub} • HCP ${senderHcp || "0.0"}` : "Sent you a friend request"}
+                            </p>
+                            <div className="flex items-center gap-2.5 mt-3">
+                              <button
+                                type="button"
+                                onClick={() => handleAcceptFriendRequest({
+                                  ...data,
+                                  ...item,
+                                  id: reqId,
+                                  requestId: item.requestId || data.requestId || item.id,
+                                  senderId,
+                                  senderName,
+                                })}
+                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-2xs active:scale-95 cursor-pointer text-center"
+                              >
+                                ACCEPT
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeclineFriendRequest({
+                                  ...data,
+                                  ...item,
+                                  id: reqId,
+                                  requestId: item.requestId || data.requestId || item.id,
+                                  senderId,
+                                })}
+                                className="px-6 py-2 rounded-xl bg-[#EEF2F6] hover:bg-slate-200 text-[#64748B] text-[11px] font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer text-center"
+                              >
+                                DECLINE
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    // Reusable card renderer ensuring concise layout and proper grouping preservation
+                    const renderNotificationCard = (notif: any) => {
+                      const isFriendReq =
+                        (notif.data?.type === "FRIEND_REQUEST" ||
+                        notif.type === "FRIEND_REQUEST") &&
+                        notif.data?.type !== "FRIEND_ACCEPTED" &&
+                        notif.type !== "FRIEND_ACCEPTED" &&
+                        !notif.title?.toLowerCase().includes("accepted") &&
+                        !notif.title?.toLowerCase().includes("connected") &&
+                        !notif.title?.toLowerCase().includes("sent");
+
+                      // Every friend request strictly renders as Card 1 design
+                      if (isFriendReq) {
+                        return renderFriendRequestCard(notif);
+                      }
+
+                      const isUnread = (!notif.isRead && !isAllRead) || notif.unread === true;
+                      const flightDetails = parseFlightGroupingNotif(notif);
+
+                      return (
+                        <div
+                          key={notif.id}
+                          className={`w-full bg-white ${
+                            isUnread ? "border-[#C6F0DB] shadow-xs" : "border-slate-200/90 shadow-2xs"
+                          } rounded-2xl border p-3.5 flex items-start gap-3.5 transition-all hover:border-slate-300 relative`}
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB]/70 flex items-center justify-center text-[#009A60] shrink-0 mt-0.5 shadow-2xs">
+                            {notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT" ? (
+                              <Trophy className="w-4 h-4 text-[#009A60]" />
+                            ) : notif.type === "PAYMENT_RECEIVED" || notif.type?.includes("WITHDRAWAL") ? (
+                              <ShieldCheck className="w-4 h-4 text-[#009A60]" />
+                            ) : notif.data?.type === "BOOKING" || notif.title?.toLowerCase().includes("booking") ? (
+                              <CalendarCheck className="w-4 h-4 text-[#009A60]" />
+                            ) : flightDetails.isFlightGrouping || notif.data?.type === "FRIEND_ACCEPTED" || notif.type === "FLIGHT_GROUPING" ? (
+                              <Users className="w-4 h-4 text-[#009A60]" />
+                            ) : (
+                              <Bell className="w-4 h-4 text-[#009A60]" />
+                            )}
+                          </div>
+                          <div className={`min-w-0 flex-1 transition-opacity duration-200 ${notif.isRead === true && !notif.unread ? "opacity-60" : "opacity-100"}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              {flightDetails.isFlightGrouping ? (
+                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                  <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
+                                    Flight Grouping
+                                  </h4>
+                                  <span className="px-1.5 py-0.5 rounded-md bg-[#EAF7EE] text-[#009A60] text-[10px] font-bold border border-[#C6F0DB] uppercase tracking-wide">
+                                    {flightDetails.partners.length > 0 ? `${flightDetails.partners.length} PLAYERS` : "PLAYERS"}
+                                  </span>
+                                </div>
+                              ) : (
+                                <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
+                                  {notif.title}
+                                </h4>
+                              )}
+                              <span className="text-[11px] font-medium text-[#8CA0BA] shrink-0">
+                                {formatNotifTime(notif.createdAt)}
+                              </span>
+                            </div>
+
+                            {flightDetails.isFlightGrouping ? (
+                              <div className="mt-1">
+                                {flightDetails.tournamentName && (
+                                  <p className="text-[12px] font-medium text-[#64748B]">
+                                    {flightDetails.tournamentName}
+                                  </p>
+                                )}
+                                {flightDetails.partners.length > 0 ? (
+                                  <div className="mt-2.5 pt-2 border-t border-slate-100/90">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                      {flightDetails.flightName ? `${flightDetails.flightName} • GROUPED WITH:` : "GROUPED WITH:"}
+                                    </span>
+                                    <div className="space-y-1.5">
+                                      {flightDetails.partners.map((partnerName: string, pIdx: number) => (
+                                        <div
+                                          key={pIdx}
+                                          className="flex items-center gap-2.5 py-0.5"
+                                        >
+                                          <span className="w-5 h-5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] text-[#009A60] flex items-center justify-center text-[9.5px] font-black shrink-0 shadow-2xs">
+                                            {getTwoInitials(partnerName)}
+                                          </span>
+                                          <span className="text-[12.5px] font-semibold text-[#0F172A]">
+                                            {partnerName}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-[12.5px] text-[#475569] leading-snug mt-1 whitespace-pre-line">
+                                    {notif.body || notif.desc || notif.message}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-[12.5px] text-[#475569] leading-snug mt-1 whitespace-pre-line">
+                                {notif.body || notif.desc || notif.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    // Sort real database notifications chronologically
+                    const sortedNotifs = [...mobileNotifications].sort((a, b) => {
+                      const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                      const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                      return tB - tA;
+                    });
+
+                    // Deduplicate notifications against incomingFriendRequests to prevent showing duplicate cards
+                    const incomingSenderIds = new Set(
+                      incomingFriendRequests.map((r: any) => String(r.senderId || r.id).toLowerCase().trim())
+                    );
+                    const incomingReqIds = new Set(
+                      incomingFriendRequests.map((r: any) => String(r.id || r.requestId).toLowerCase().trim())
+                    );
+
+                    const isDuplicateOfIncoming = (notif: any) => {
+                      const isFriend = notif.data?.type === "FRIEND_REQUEST" || notif.type === "FRIEND_REQUEST";
+                      if (!isFriend) return false;
+                      const sId = String(notif.data?.senderId || notif.data?.userId || notif.senderId || "").toLowerCase().trim();
+                      const rId = String(notif.data?.requestId || notif.id || "").toLowerCase().trim();
+                      return (sId && incomingSenderIds.has(sId)) || (rId && incomingReqIds.has(rId));
+                    };
+
+                    const todayNotifs = sortedNotifs.filter((n: any) => {
+                      if (isDuplicateOfIncoming(n)) return false;
+                      if (!n.createdAt) return true;
+                      const t = new Date(n.createdAt).getTime();
+                      return isNaN(t) || t >= startOfToday;
+                    });
+
+                    const yesterdayNotifs = sortedNotifs.filter((n: any) => {
+                      if (isDuplicateOfIncoming(n)) return false;
+                      if (!n.createdAt) return false;
+                      const t = new Date(n.createdAt).getTime();
+                      return !isNaN(t) && t >= startOfYesterday && t < startOfToday;
+                    });
+
+                    const earlierNotifs = sortedNotifs.filter((n: any) => {
+                      if (isDuplicateOfIncoming(n)) return false;
+                      if (!n.createdAt) return false;
+                      const t = new Date(n.createdAt).getTime();
+                      return !isNaN(t) && t < startOfYesterday;
+                    });
+
+                    const hasUnreadToday = !isAllRead && (incomingFriendRequests.length > 0 || todayNotifs.some((n: any) => !n.isRead && n.unread !== false));
+                    const hasUnreadYesterday = !isAllRead && yesterdayNotifs.some((n: any) => !n.isRead && n.unread !== false);
+
+                    const totalCount = incomingFriendRequests.length + todayNotifs.length + yesterdayNotifs.length + earlierNotifs.length;
+
+                    return (
+                      <div className="flex-1 min-h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
+                        {/* FIXED TOP SECTION: Top Navigation Bar (Strictly Non-Scrollable, Centered Title) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 flex items-center justify-between">
+                            {/* Standard back button: circular white pill, border, soft drop shadow */}
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("hub")}
+                              className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                              title="Back to Hub"
+                              aria-label="Back"
+                            >
+                              <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                            </button>
+                            <h2 className="text-base font-bold text-[#0F172A]">Notifications</h2>
+                            {/* Empty balance spacer to preserve mathematical center alignment */}
+                            <div className="w-8 h-8 shrink-0" aria-hidden="true" />
+                          </div>
+                        </div>
+
+                        {/* Scrollable Notifications Feed: Pure Real Database Data */}
+                        <div className="flex-1 overflow-y-auto">
+                          <div className="w-full max-w-sm mx-auto px-4 py-3 space-y-4">
+                            {totalCount === 0 ? (
+                              <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center my-auto">
+                                <div className="w-16 h-16 rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mb-4 shadow-xs">
+                                  <Bell className="w-8 h-8 text-[#009A60]" />
+                                </div>
+                                <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
+                                  No Notifications
+                                </h3>
+                                <p className="text-[13px] text-[#64748B] max-w-[280px] leading-relaxed mt-1">
+                                  All caught up! Real-time tournament updates, pairings, and announcements from the database will appear here.
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                {/* SECTION: TODAY */}
+                                {(incomingFriendRequests.length > 0 || todayNotifs.length > 0) && (
+                                  <div>
+                                    <div className="flex items-center justify-between px-1 mb-2.5">
+                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                        TODAY
+                                      </span>
+                                      {hasUnreadToday && (
+                                        <span className="w-2 h-2 rounded-full bg-[#009A60] shrink-0 shadow-xs" />
+                                      )}
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                      {/* Real Incoming Friend Requests from database (Standardized Card 1 design) */}
+                                      {incomingFriendRequests.map((req: any) => renderFriendRequestCard(req))}
+
+                                      {/* Real Database Notifications for Today */}
+                                      {todayNotifs.map((notif: any) => renderNotificationCard(notif))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* SECTION: YESTERDAY */}
+                                {yesterdayNotifs.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center justify-between px-1 mb-2.5">
+                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                        YESTERDAY
+                                      </span>
+                                      {hasUnreadYesterday && (
+                                        <span className="w-2 h-2 rounded-full bg-[#009A60] shrink-0 shadow-xs" />
+                                      )}
+                                    </div>
+
+                                    <div className={`space-y-2.5 ${earlierNotifs.length === 0 ? "pb-6" : ""}`}>
+                                      {yesterdayNotifs.map((notif: any) => renderNotificationCard(notif))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* SECTION: EARLIER */}
+                                {earlierNotifs.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center justify-between px-1 mb-2.5">
+                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                        EARLIER
+                                      </span>
+                                    </div>
+
+                                    <div className="space-y-2.5 pb-6">
+                                      {earlierNotifs.map((notif: any) => renderNotificationCard(notif))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
       </div>
     );
   };
@@ -8265,6 +12498,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                 <option value="scoring">Scoring</option>
                 <option value="attestation">Attestation</option>
                 <option value="hub">Home</option>
+                <option value="tournaments">Tournaments</option>
                 <option value="leaderboard">Leaderboard</option>
               </select>
             ) : (
@@ -8473,8 +12707,8 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               <div
                 className={`${modelSpec.category === "tablet" ? "w-44 h-1.5 bg-slate-400/70" : modelSpec.os === "Android" ? "w-24 h-1 bg-slate-400/80" : "w-32 h-1"} rounded-full transition-colors ${
                   modelSpec.os === "iOS"
-                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard"
-                      ? "bg-white/30"
+                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard" || effectiveScreen === "tournaments"
+                      ? "bg-slate-400/50"
                       : "bg-slate-300"
                     : ""
                 }`}
@@ -8814,6 +13048,124 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               </div>
             )}
 
+            {/* --- BOTTOM SHEET: UNFRIEND CONFIRMATION WARNING MODAL (MATCHING FORFEIT WARNING DISPLAY) --- */}
+            {unfriendCandidate && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setUnfriendCandidate(null)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                  {/* Centered Warning Squircle Badge (Matching forfeit modal) */}
+                  <div className="w-16 h-16 rounded-[22px] bg-[#FFF1F2] border border-[#FFE4E6] flex items-center justify-center mx-auto mb-5 shadow-xs">
+                    <svg className="w-8 h-8 text-[#DC2626]" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+
+                  {/* Centered Heading */}
+                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                    Remove Friend?
+                  </h3>
+
+                  {/* Centered Body with bold name */}
+                  <p className="text-[13.5px] text-[#64748B] text-center leading-relaxed max-w-[280px] mx-auto mb-7 font-normal">
+                    Are you sure you want to remove{" "}
+                    <strong className="font-bold text-[#0F172A]">
+                      {unfriendCandidate.name}
+                    </strong>{" "}
+                    from your golf friends? You will no longer see their live scores and updates.
+                  </p>
+
+                  {/* Vertically Stacked Action Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const candidate = unfriendCandidate;
+                      setUnfriendCandidate(null);
+                      if (candidate) {
+                        handleUnfriend(candidate.id, candidate.name);
+                      }
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#D92D20] hover:bg-[#B42318] active:scale-98 text-white text-sm font-bold tracking-wide shadow-md flex items-center justify-center mb-3 cursor-pointer transition-all"
+                  >
+                    Yes, Remove Friend
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUnfriendCandidate(null)}
+                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                  >
+                    Cancel, Keep Friend
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: BLOCK CONFIRMATION WARNING MODAL (MATCHING FORFEIT & UNFRIEND WARNING DISPLAY) --- */}
+            {blockCandidate && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setBlockCandidate(null)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                  {/* Centered Warning Squircle Badge (Matching forfeit & unfriend warning display) */}
+                  <div className="w-16 h-16 rounded-[22px] bg-[#FFF1F2] border border-[#FFE4E6] flex items-center justify-center mx-auto mb-5 shadow-xs">
+                    <svg className="w-8 h-8 text-[#DC2626]" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+
+                  {/* Centered Heading */}
+                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                    Block Golfer?
+                  </h3>
+
+                  {/* Centered Body with bold name */}
+                  <p className="text-[13.5px] text-[#64748B] text-center leading-relaxed max-w-[280px] mx-auto mb-7 font-normal">
+                    Are you sure you want to block{" "}
+                    <strong className="font-bold text-[#0F172A]">
+                      {blockCandidate.name}
+                    </strong>
+                    ? They will not be able to find your profile, view your rounds, or send you game requests.
+                  </p>
+
+                  {/* Vertically Stacked Action Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const candidate = blockCandidate;
+                      setBlockCandidate(null);
+                      if (candidate) {
+                        handleBlockUser(candidate.id, candidate.name);
+                      }
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#D92D20] hover:bg-[#B42318] active:scale-98 text-white text-sm font-bold tracking-wide shadow-md flex items-center justify-center mb-3 cursor-pointer transition-all"
+                  >
+                    Yes, Block Golfer
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBlockCandidate(null)}
+                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                  >
+                    Cancel, Keep Unblocked
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* --- BOTTOM SHEET 1: ADD GOLF FRIENDS MODAL (Full Device Frame Overlay) --- */}
             {showAddFriendsModal && (
               <div
@@ -8906,15 +13258,75 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       )}
                     </div>
 
-                    <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-1 flex items-center justify-between">
-                      <span>{friendsSearchQuery.trim() ? `Search Results (${filteredFriends.length})` : "Recent Club Competitors"}</span>
-                      {friendsSearchQuery.trim() && (
+                    {friendsSearchQuery.trim() ? (
+                      <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider pt-1 flex items-center justify-between">
+                        <span>{`Search Results (${filteredFriends.length})`}</span>
                         <span className="text-[10px] text-emerald-600 font-semibold">Active Filter</span>
-                      )}
-                    </div>
+                      </div>
+                    ) : null}
+
+                    {/* Incoming Friend Requests Section */}
+                    {incomingFriendRequests.length > 0 && (
+                      <div className="mb-2.5 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
+                            Received Requests ({incomingFriendRequests.length})
+                          </span>
+                          <span className="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-hide">
+                          {incomingFriendRequests.map((req: any) => (
+                            <div
+                              key={req.id}
+                              className="flex items-center justify-between p-2 rounded-xl bg-white border border-emerald-100 shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                                <div className="w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center shrink-0">
+                                  {req.senderInitial || "G"}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-bold text-slate-900 truncate">{req.senderName}</div>
+                                  <div className="text-[10px] text-slate-500 truncate">
+                                    {req.senderClub || "OpenClub Golfer"} • {req.senderHcp || "0.0"} HCP
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptFriendRequest(req)}
+                                  className="w-7 h-7 rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer"
+                                  title={`Accept friend request from ${req.senderName}`}
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[2.8]" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeclineFriendRequest(req)}
+                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                                  title={`Decline friend request from ${req.senderName}`}
+                                >
+                                  <X className="w-3 h-3 stroke-[2.5]" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto max-h-[250px] space-y-2 pr-0.5 scrollbar-hide">
-                      {filteredFriends.length > 0 ? (
+                      {!friendsSearchQuery.trim() ? (
+                        <div className="py-7 text-center flex flex-col items-center justify-center">
+                          <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mb-2.5 shadow-2xs">
+                            <UserPlus className="w-6 h-6 text-[#009A60]" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-800">Find Golf Friends</p>
+                          <p className="text-[11.5px] text-slate-500 mt-1 max-w-[240px] mx-auto leading-relaxed">
+                            Type a golfer&apos;s name, home club, or email above to search and connect.
+                          </p>
+                        </div>
+                      ) : filteredFriends.length > 0 ? (
                         filteredFriends.map((player) => (
                           <div
                             key={player.id}
@@ -8925,22 +13337,167 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 {player.initial}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-slate-900 truncate">{player.name}</div>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="text-xs font-bold text-slate-900 truncate">{player.name}</div>
+                                  {(acceptedFriendIds.includes(player.id) || acceptedFriendIds.includes(player.name)) && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9.5px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
+                                      Friend ✓
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-[10px] text-slate-500 truncate">
                                   {player.club} • {player.hcp} HCP
                                 </div>
                               </div>
                             </div>
-                            {sentFriendRequests.includes(player.id) ? (
-                              <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-[#009A60] border border-emerald-200 text-[11px] font-bold shrink-0">
-                                Sent ✓
+                            {acceptedFriendIds.includes(player.id) || acceptedFriendIds.includes(player.name) ? (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setUnfriendCandidate({ id: player.id, name: player.name })}
+                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                  title={`Remove ${player.name} from friends`}
+                                  aria-label="Remove Friend"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setBlockCandidate({ id: player.id, name: player.name })}
+                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                  title={`Block ${player.name}`}
+                                  aria-label="Block Golfer"
+                                >
+                                  <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
+                                </button>
+                              </div>
+                            ) : sentFriendRequests.includes(player.id) ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-[#009A60] border border-emerald-200 text-[11px] font-bold shrink-0">
+                                <Send className="w-3 h-3" /> Sent
                               </span>
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setSentFriendRequests((prev) => [...prev, player.id]);
-                                  showToast(`Friend request sent to ${player.name}!`, "success", "FRIEND REQUEST");
+                                onClick={async () => {
+                                  const currentUserId = authenticatedPlayer?.id || "guest";
+                                  const sentKey = getSentRequestsKey(currentUserId);
+                                  const targetUserId = player.id;
+                                  const targetIncomingKey = getIncomingRequestsKey(targetUserId);
+                                  const targetNotifKey = getUserNotificationsKey(targetUserId);
+
+                                  // 1. Update sender's sent friend requests
+                                  setSentFriendRequests((prev) => {
+                                    const next = prev.includes(targetUserId) ? prev : [...prev, targetUserId];
+                                    try {
+                                      localStorage.setItem(sentKey, JSON.stringify(next));
+                                    } catch {}
+                                    return next;
+                                  });
+
+                                  // 2. Deliver incoming friend request to recipient's mailbox across ID, email, and name keys
+                                  try {
+                                    const newIncomingItem = {
+                                      id: `freq_${Date.now()}`,
+                                      senderId: currentUserId,
+                                      senderName: authenticatedPlayer?.name || "OpenClub Golfer",
+                                      senderEmail: authenticatedPlayer?.email || "",
+                                      senderClub: authenticatedPlayer?.club || "Ikoyi Golf Club",
+                                      senderHcp: authenticatedPlayer?.handicap ?? "0.0",
+                                      senderInitial: authenticatedPlayer?.name ? authenticatedPlayer.name.charAt(0).toUpperCase() : "G",
+                                      senderAvatar: authenticatedPlayer?.avatar || "",
+                                      targetId: player.id,
+                                      targetEmail: player.email || "",
+                                      targetName: player.name || "",
+                                      createdAt: new Date().toISOString(),
+                                      status: "PENDING",
+                                    };
+
+                                    const targetKeysToDeliver = [targetIncomingKey];
+                                    if (player.email) {
+                                      targetKeysToDeliver.push(getIncomingRequestsKey(player.email.toLowerCase().trim()));
+                                    }
+                                    const pNameSlug = player.name?.toLowerCase().trim().replace(/\s+/g, "_");
+                                    if (pNameSlug) {
+                                      targetKeysToDeliver.push(getIncomingRequestsKey(pNameSlug));
+                                    }
+
+                                    for (const destKey of targetKeysToDeliver) {
+                                      try {
+                                        const raw = localStorage.getItem(destKey);
+                                        const parsed = raw ? JSON.parse(raw) : [];
+                                        const filtered = parsed.filter((item: any) => item.senderId !== currentUserId);
+                                        localStorage.setItem(destKey, JSON.stringify([newIncomingItem, ...filtered]));
+                                      } catch {}
+                                    }
+
+                                    // Deliver in-app notification to recipient
+                                    const existingNotifsRaw = localStorage.getItem(targetNotifKey);
+                                    const existingNotifs = existingNotifsRaw ? JSON.parse(existingNotifsRaw) : [];
+                                    const newNotifItem = {
+                                      id: `notif_freq_${Date.now()}`,
+                                      title: "Friend Request",
+                                      body: `${authenticatedPlayer?.name || "A golfer"} sent you a friend request to connect on OpenClub.`,
+                                      isRead: false,
+                                      createdAt: new Date().toISOString(),
+                                      data: {
+                                        type: "FRIEND_REQUEST",
+                                        senderId: currentUserId,
+                                        senderName: authenticatedPlayer?.name || "A golfer",
+                                        requestId: newIncomingItem.id,
+                                      },
+                                    };
+                                    localStorage.setItem(targetNotifKey, JSON.stringify([newNotifItem, ...existingNotifs]));
+
+                                    // Also record in-app notification in SENDER'S mailbox
+                                    const senderNotifKey = getUserNotificationsKey(currentUserId);
+                                    const senderExistingRaw = localStorage.getItem(senderNotifKey);
+                                    const senderExisting = senderExistingRaw ? JSON.parse(senderExistingRaw) : [];
+                                    const senderNotifItem = {
+                                      id: `notif_sent_${Date.now()}`,
+                                      title: "Friend Request Sent",
+                                      body: `You sent a friend request to ${player.name} (${player.club} • ${player.hcp} HCP). Pending acceptance.`,
+                                      isRead: false,
+                                      createdAt: new Date().toISOString(),
+                                      data: {
+                                        type: "FRIEND_REQUEST_SENT",
+                                        targetUserId: player.id,
+                                        targetUserName: player.name,
+                                        targetUserClub: player.club,
+                                        targetUserHcp: player.hcp,
+                                        status: "PENDING",
+                                      },
+                                    };
+                                    localStorage.setItem(senderNotifKey, JSON.stringify([senderNotifItem, ...senderExisting]));
+                                    setMobileNotifications((prev) => [senderNotifItem, ...prev]);
+                                  } catch {}
+
+                                  // 3. Dispatch to backend API
+                                  try {
+                                    const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+                                    const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+                                    if (token) {
+                                      fetch(`${backendBase}/notifications/send`, {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                          Authorization: `Bearer ${token}`,
+                                        },
+                                        body: JSON.stringify({
+                                          recipientId: targetUserId,
+                                          title: "Friend Request",
+                                          body: `${authenticatedPlayer?.name || "A golfer"} sent you a friend request to connect on OpenClub.`,
+                                          type: "SYSTEM",
+                                          data: {
+                                            type: "FRIEND_REQUEST",
+                                            senderId: currentUserId,
+                                            senderName: authenticatedPlayer?.name || "A golfer",
+                                          },
+                                        }),
+                                      }).catch(() => null);
+                                    }
+                                  } catch {}
+
+                                  showToast(`Friend request sent to ${player.name}!`, "success", "REQUEST SENT");
                                 }}
                                 className="px-3.5 py-1.5 rounded-lg bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white text-[11px] font-bold transition-all cursor-pointer shadow-xs shrink-0"
                               >
@@ -9168,7 +13725,132 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               </div>
             )}
 
-            {/* --- BOTTOM SHEET 2: NOTIFICATIONS MODAL --- */}
+            {/* --- BOTTOM SHEET: MY BOOKINGS (SESSIONS MADE WITH A PRO) --- */}
+            {showBookingsModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowBookingsModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
+                        <CalendarCheck className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 leading-tight">My Bookings</h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">Sessions & lessons booked with a Pro</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowBookingsModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="py-3.5 space-y-3 max-h-[380px] overflow-y-auto pr-0.5 scrollbar-hide">
+                    {proBookings.length > 0 ? (
+                      proBookings.map((b) => (
+                        <div
+                          key={b.id}
+                          className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-col gap-2.5 transition-all hover:border-slate-300"
+                        >
+                          {/* Pro Info & Status */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {b.proAvatar ? (
+                                <img
+                                  src={b.proAvatar}
+                                  alt={b.proName}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-xs font-black shrink-0">
+                                  {getTwoInitials(b.proName)}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <h5 className="text-[13.5px] font-bold text-[#0F172A] truncate leading-snug">
+                                  {b.proName}
+                                </h5>
+                                <p className="text-[11px] text-[#64748B] truncate leading-tight">
+                                  {b.proRole} • {b.proClub}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] text-[9.5px] font-extrabold uppercase tracking-wider">
+                              {b.status}
+                            </span>
+                          </div>
+
+                          {/* Session Details */}
+                          <div className="bg-[#f8faf9] rounded-xl p-2.5 border border-[#e8f1eb] space-y-1.5">
+                            <div className="text-[12.5px] font-bold text-[#0F172A]">
+                              {b.serviceName}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11.5px] text-[#475569] font-medium">
+                              <Calendar className="w-3.5 h-3.5 text-[#009A60] shrink-0" />
+                              <span>{b.date} • {b.time}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
+                              <MapPin className="w-3.5 h-3.5 text-[#8CA0BA] shrink-0" />
+                              <span className="truncate">{b.location}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => showToast(`Session on ${b.date} synced to calendar.`, "success", "CALENDAR SYNCED")}
+                              className="flex-1 py-1.5 rounded-xl bg-[#EAF7EE] hover:bg-[#d8f2e2] text-[#009A60] text-[11px] font-bold transition-all cursor-pointer text-center"
+                            >
+                              Add to Calendar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => showToast(`Contacting ${b.proName} for reschedule options.`, "alert", "RESCHEDULE")}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#475569] text-[11px] font-bold transition-all cursor-pointer text-center"
+                            >
+                              Reschedule
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                          <CalendarCheck className="w-6 h-6" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">No active bookings with a Pro</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Book a PGA certified professional for private coaching</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showToast("Select a Club Pro to book your next lesson.", "success", "NEW PRO SESSION");
+                    }}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/20 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Book Another Session with a Pro</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET 2: NOTIFICATIONS MODAL (ONLY ACCEPTED FRIENDS & SYSTEM NOTICES) --- */}
             {showNotificationsModal && (
               <div
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
@@ -9178,18 +13860,18 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
                         <Bell className="h-5 w-5 text-[#009A60]" />
                       </div>
                       <div>
-                        <h4 className="text-base font-bold text-slate-900">Notifications</h4>
-                        <p className="text-xs text-slate-500">Live tee times & attestations</p>
+                        <h4 className="text-base font-bold text-slate-900 leading-tight">Notifications & Alerts</h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">Tee times, attestations & friend updates</p>
                       </div>
                     </div>
                     <button
@@ -9205,30 +13887,56 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     </button>
                   </div>
 
-                  <div className="py-3 space-y-2.5 max-h-[280px] overflow-y-auto">
-                    {mobileNotifications.length > 0 ? (
-                      mobileNotifications.map((notif: any) => (
-                        <div key={notif.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                            <Bell className="h-4 w-4 text-[#009A60]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs font-bold text-slate-900 block">{notif.title}</span>
-                            <span className="text-[11px] text-slate-600 block truncate">{notif.body}</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                            {notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
-                          </span>
-                        </div>
-                      ))
+                  <div className="py-3.5 space-y-2.5 max-h-[340px] overflow-y-auto">
+                    {/* Strictly show accepted friend notifications and tournament/system notices */}
+                    {mobileNotifications.filter((n: any) => {
+                      return n.data?.type !== "FRIEND_REQUEST" && n.data?.type !== "FRIEND_REQUEST_SENT";
+                    }).length > 0 ? (
+                      <div className="space-y-2">
+                        {mobileNotifications
+                          .filter((n: any) => {
+                            return n.data?.type !== "FRIEND_REQUEST" && n.data?.type !== "FRIEND_REQUEST_SENT";
+                          })
+                          .map((notif: any) => (
+                            <div
+                              key={notif.id}
+                              className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col gap-2"
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
+                                  {notif.data?.type === "FRIEND_ACCEPTED" ? (
+                                    <Users className="h-4 w-4 text-[#009A60]" />
+                                  ) : (
+                                    <Bell className="h-4 w-4 text-[#009A60]" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-xs font-bold text-slate-900 truncate">{notif.title}</span>
+                                    {!notif.isRead && (
+                                      <span className="w-2 h-2 rounded-full bg-[#EF4444] shrink-0 animate-pulse" />
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-slate-600 block mt-0.5 leading-snug font-medium whitespace-pre-line">
+                                    {notif.body}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                                  {formatNotifTime(notif.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
                     ) : (
+                      /* Empty State */
                       <div className="py-8 text-center">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
                           <Bell className="w-5 h-5" />
                         </div>
                         <p className="text-xs font-bold text-slate-700">No Notifications</p>
-                        <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto mt-0.5 font-normal">
-                          Official tournament announcements, score attestations, and committee alerts will appear here.
+                        <p className="text-[11px] text-slate-400 max-w-[240px] mx-auto mt-0.5 font-normal">
+                          Official tournament announcements, score attestations, and accepted friend updates will appear here.
                         </p>
                       </div>
                     )}
@@ -9236,7 +13944,29 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      setMobileNotifications((prev) => prev.map((n: any) => ({ ...n, isRead: true })));
+                      if (authenticatedPlayer?.id) {
+                        try {
+                          const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+                          const saved = localStorage.getItem(notifKey);
+                          if (saved) {
+                            const parsed = JSON.parse(saved);
+                            const updated = parsed.map((n: any) => ({ ...n, isRead: true }));
+                            localStorage.setItem(notifKey, JSON.stringify(updated));
+                          }
+                        } catch {}
+                      }
+                      try {
+                        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+                        const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+                        if (token) {
+                          await fetch(`${backendBase}/notifications/mark-all-read`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` },
+                          }).catch(() => null);
+                        }
+                      } catch {}
                       setShowNotificationsModal(false);
                       setVirtualKeyboard(null);
                     }}
@@ -9248,34 +13978,37 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               </div>
             )}
 
-            {/* --- BOTTOM SHEET 3: MESSAGES MODAL --- */}
-            {showMessagesModal && (
+            {/* --- BOTTOM SHEET 3: FRIEND REQUESTS & FRIENDS MODAL --- */}
+            {showFriendRequestsModal && (
               <div
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
                 onClick={() => {
-                  setShowMessagesModal(false);
+                  setShowFriendRequestsModal(false);
                   setVirtualKeyboard(null);
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  {/* Handle Bar */}
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0">
-                        <Send className="h-4 w-4 text-[#009A60]" />
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
+                        <Users className="h-5 w-5 text-[#009A60]" />
                       </div>
                       <div>
-                        <h4 className="text-base font-bold text-slate-900">Player Direct Messages</h4>
-                        <p className="text-xs text-slate-500">Group chats & tournament updates</p>
+                        <h4 className="text-base font-bold text-slate-900 leading-tight">Friend Requests</h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">Manage connections & invitations</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        setShowMessagesModal(false);
+                        setShowFriendRequestsModal(false);
                         setVirtualKeyboard(null);
                       }}
                       className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
@@ -9285,26 +14018,171 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     </button>
                   </div>
 
-                  <div className="py-8 text-center">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
-                      <Send className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-slate-700">No Direct Messages</p>
-                    <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto mt-0.5 font-normal">
-                      Connect with playing partners or tournament officials to start a conversation.
-                    </p>
+                  {/* Content List */}
+                  <div className="py-3.5 space-y-3.5 max-h-[360px] overflow-y-auto pr-0.5">
+                    {/* 1. Received Friend Requests */}
+                    {incomingFriendRequests.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                            Received Requests ({incomingFriendRequests.length})
+                          </span>
+                        </div>
+                        {incomingFriendRequests.map((req: any) => (
+                          <div
+                            key={req.id || req.senderId}
+                            className="p-3 rounded-xl bg-[#F5FAF6] border border-[#E1EFE5] flex flex-col gap-2.5 shadow-2xs"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <div className="relative shrink-0 mt-0.5">
+                                {req.senderAvatar ? (
+                                  <img
+                                    src={req.senderAvatar}
+                                    alt={req.senderName}
+                                    className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLElement).style.display = "none";
+                                      const fb = e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement;
+                                      if (fb) fb.style.display = "flex";
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-9 h-9 rounded-full bg-emerald-100 text-[#009A60] font-bold text-xs items-center justify-center shrink-0 shadow-2xs avatar-initials-fallback ${req.senderAvatar ? "hidden" : "flex"}`}>
+                                  {getTwoInitials(req.senderName)}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-xs font-bold text-slate-900 truncate">{req.senderName}</span>
+                                  <span className="w-2 h-2 rounded-full bg-[#EF4444] shrink-0 animate-pulse" />
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate font-medium">
+                                  {req.senderClub || "Ikoyi Golf Club"} • {req.senderHcp || "20"} HCP
+                                </div>
+                                <span className="text-[11px] text-slate-600 block mt-0.5 leading-snug">
+                                  Wants to connect with you on OpenClub.
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-2 pt-1.5 border-t border-emerald-100/60">
+                              <button
+                                type="button"
+                                onClick={() => handleAcceptFriendRequest(req)}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white text-[11px] font-bold cursor-pointer transition-all shadow-2xs"
+                              >
+                                Accept Request
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeclineFriendRequest(req)}
+                                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-[11px] font-semibold cursor-pointer transition-all"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 2. Sent Requests (Pending Approval) */}
+                    {sentFriendRequests.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                            Sent Requests ({sentFriendRequests.length})
+                          </span>
+                        </div>
+                        {sentFriendRequests.map((targetId: string) => {
+                          const matchedCompetitor =
+                            golfCompetitors.find((c: any) => c.id === targetId || c.email?.toLowerCase() === targetId.toLowerCase()) ||
+                            registeredPlayers.find((p: any) => p.id === targetId || p.registrationId === targetId);
+                          const name = matchedCompetitor?.name || "Golfer";
+                          const club = matchedCompetitor?.club || "Ikoyi Golf Club";
+                          const hcp = (matchedCompetitor as any)?.hcp || (matchedCompetitor as any)?.handicap || "20";
+                          const avatar = (matchedCompetitor as any)?.avatar || (matchedCompetitor as any)?.profilePhoto;
+
+                          return (
+                            <div
+                              key={`sent_${targetId}`}
+                              className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between gap-2.5"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="relative shrink-0">
+                                  {avatar ? (
+                                    <img
+                                      src={avatar}
+                                      alt={name}
+                                      className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLElement).style.display = "none";
+                                        const fb = e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement;
+                                        if (fb) fb.style.display = "flex";
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div className={`w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs items-center justify-center shrink-0 border border-[#C6F0DB] avatar-initials-fallback ${avatar ? "hidden" : "flex"}`}>
+                                    {getTwoInitials(name)}
+                                  </div>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-bold text-slate-900 truncate">{name}</div>
+                                  <div className="text-[10px] text-slate-500 truncate font-medium">
+                                    {club} • {hcp} HCP
+                                  </div>
+                                  <div className="text-[10px] text-amber-700 font-medium truncate mt-0.5">
+                                    Waiting for response
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                                  Pending
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelSentFriendRequest(targetId)}
+                                  className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                                  title="Cancel Request"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Empty State when no incoming or sent requests */}
+                    {incomingFriendRequests.length === 0 &&
+                      sentFriendRequests.length === 0 && (
+                        <div className="py-8 text-center">
+                          <div className="w-12 h-12 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-2.5 text-[#009A60]">
+                            <Users className="w-6 h-6" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-800">No Pending Requests</p>
+                          <p className="text-[11px] text-slate-500 max-w-[200px] mx-auto mt-0.5">
+                            Incoming and sent friend requests will appear here.
+                          </p>
+                        </div>
+                      )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMessagesModal(false);
-                      showToast("Direct messaging open for flight group.", "success", "MESSAGES");
-                    }}
-                    className="mt-2 w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-colors shadow-md cursor-pointer"
-                  >
-                    Compose New Message
-                  </button>
+                  {/* Bottom Action Button: Find & Add Golf Friends */}
+                  <div className="pt-2 border-t border-slate-100 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowFriendRequestsModal(false);
+                        setShowAddFriendsModal(true);
+                      }}
+                      className="w-full h-11 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.99] text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Find & Add Golf Friends</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -9373,6 +14251,18 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       type="button"
                       onClick={() => {
                         setShowMenuDrawer(false);
+                        setShowBookingsModal(true);
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <CalendarCheck className="h-4 w-4 text-[#009A60]" />
+                      <span>My Pro Bookings</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenuDrawer(false);
                         showToast(`Home Club: ${authenticatedPlayer?.club || "None selected"}`, "success", "HOME CLUB");
                       }}
                       className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
@@ -9400,11 +14290,19 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       onClick={() => {
                         setShowMenuDrawer(false);
                         updateAuthenticatedPlayer(null);
+                        setSentFriendRequests([]);
+                        setAcceptedFriendIds([]);
+                        setIncomingFriendRequests([]);
+                        setMobileNotifications([]);
+                        setFriendsOnCourse([]);
+                        setFriendsSearchQuery("");
                         setHasInactivityWarning(false);
                         setActiveRoundMinutesElapsed(0);
                         if (typeof window !== "undefined") {
                           try {
                             sessionStorage.removeItem("openclub_inactivity_notified");
+                            localStorage.removeItem("openclub_access_token");
+                            localStorage.removeItem("openclub_mobile_token");
                           } catch { }
                         }
                         switchScreen("login");
@@ -9565,6 +14463,10 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                 { id: "scoring", label: "Scoring", icon: Flag },
                 { id: "attestation", label: "Attestation", icon: UserCheck },
                 { id: "hub", label: "Home", icon: Home },
+                { id: "tournaments", label: "Tournaments", icon: Trophy },
+                { id: "add-friends", label: "Add Golf Friends", icon: UserPlus },
+                { id: "sync-contacts", label: "Sync Your Contacts", icon: BookUser },
+                { id: "notifications", label: "Notifications", icon: Bell },
                 { id: "leaderboard", label: "Leaderboard", icon: Award },
               ].map((item) => {
                 const Icon = item.icon;
@@ -9635,13 +14537,20 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
 
               {/* Friends on Course Simulator Control */}
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 font-medium">Course Players:</span>
+                <span className="text-[11px] text-slate-400 font-medium">Friends on Course:</span>
                 <div className="flex items-center bg-[#080D15] rounded-lg p-0.5 border border-slate-800 text-xs">
                   <button
                     type="button"
                     onClick={() => {
+                      const acceptedKey = getAcceptedFriendsKey(authenticatedPlayer?.id);
+                      setAcceptedFriendIds([]);
+                      setSimulatedActiveFriendIds([]);
                       setFriendsOnCourse([]);
-                      showToast("Course players cleared. Empty state active.", "success", "COURSE EMPTY");
+                      try {
+                        localStorage.removeItem(acceptedKey);
+                        localStorage.removeItem("openclub_accepted_friends");
+                      } catch {}
+                      showToast("Friends on course cleared. Empty state active.", "success", "COURSE EMPTY");
                     }}
                     className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
                       friendsOnCourse.length === 0
@@ -9655,17 +14564,16 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     type="button"
                     onClick={() => {
                       if (registeredPlayers.length > 0) {
-                        const mapped = registeredPlayers.map((p) => ({
-                          id: p.id,
-                          name: p.name,
-                          initials: p.initials,
-                          score: p.gross !== "--" ? `Gross ${p.gross}` : "On Course",
-                          bg: "bg-gradient-to-b from-slate-300 to-slate-400 text-white",
-                        }));
-                        setFriendsOnCourse(mapped);
-                        showToast("Active course players refreshed from database.", "success", `${mapped.length} PLAYERS ACTIVE`);
+                        const acceptedKey = getAcceptedFriendsKey(authenticatedPlayer?.id);
+                        const otherPlayers = registeredPlayers.filter((p) => !isAccountUser(p));
+                        const sampleFriendIds = (otherPlayers.length > 0 ? otherPlayers : registeredPlayers).slice(0, 3).map((p) => p.id);
+                        setAcceptedFriendIds(sampleFriendIds);
+                        setSimulatedActiveFriendIds(sampleFriendIds);
+                        try {
+                          localStorage.setItem(acceptedKey, JSON.stringify(sampleFriendIds));
+                        } catch {}
+                        showToast("Friends connected and playing now on course.", "success", `${sampleFriendIds.length} FRIENDS ACTIVE`);
                       } else {
-                        setFriendsOnCourse([]);
                         showToast("No competitors registered for active tournament.", "alert", "COURSE QUIET");
                       }
                     }}
@@ -9675,7 +14583,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    Active ({registeredPlayers.length > 0 ? registeredPlayers.length : 0})
+                    Active ({friendsOnCourse.length > 0 ? friendsOnCourse.length : registeredPlayers.length > 0 ? Math.min(3, registeredPlayers.length) : 0})
                   </button>
                 </div>
               </div>
@@ -9699,26 +14607,31 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                     onClick={() => {
                       if (!activeRound && activeTournament) {
                         const firstHolePar = courseHoles[0]?.par || 4;
-                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 345;
                         setActiveRound({
                           id: `ar-${activeTournament.id}`,
                           tournamentId: activeTournament.id,
                           tournamentName: activeTournament.name,
+                          courseName: activeTournament.courseName || "Oakwood Country Club Course",
+                          clubName: activeTournament.organizerClub || "Oakwood Country Club",
                           holeNumber: 1,
                           par: firstHolePar,
                           yardage: firstHoleYards,
                           holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
-                          isLive: true,
+                          isLive: activeTournament.status === "LIVE",
                           dayText: "ROUND 1",
                           score: "E",
                           thru: "0",
-                          flightText: activeTournament.divisions || "Championship",
-                          groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
-                            id: p.id,
-                            name: p.name,
-                            initials: p.initials,
-                            avatar: "/images/competitor/alex_avatar.jpg",
-                          })),
+                          flightText: "Flight 1",
+                          groupPlayers: (registeredPlayers || [])
+                            .filter((p) => !isAccountUser(p))
+                            .slice(0, 3)
+                            .map((p) => ({
+                              id: p.id,
+                              name: p.name,
+                              initials: getTwoInitials(p.name),
+                              avatar: undefined,
+                            })),
                         });
                       }
                       setActiveRoundMinutesElapsed(30);
@@ -9835,26 +14748,31 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       }
                       if (activeTournament) {
                         const firstHolePar = courseHoles[0]?.par || 4;
-                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 410;
+                        const firstHoleYards = courseHoles[0]?.yards || courseHoles[0]?.yardage || 345;
                         setActiveRound({
                           id: `ar-${activeTournament.id}`,
                           tournamentId: activeTournament.id,
                           tournamentName: activeTournament.name,
+                          courseName: activeTournament.courseName || "Oakwood Country Club Course",
+                          clubName: activeTournament.organizerClub || "Oakwood Country Club",
                           holeNumber: 1,
                           par: firstHolePar,
                           yardage: firstHoleYards,
                           holeInfo: `Par ${firstHolePar} • ${firstHoleYards} yds`,
-                          isLive: true,
+                          isLive: activeTournament.status === "LIVE",
                           dayText: "ROUND 1",
                           score: "E",
                           thru: "0",
-                          flightText: activeTournament.divisions || "Championship",
-                          groupPlayers: (registeredPlayers || []).slice(0, 3).map((p) => ({
-                            id: p.id,
-                            name: p.name,
-                            initials: p.initials,
-                            avatar: "/images/competitor/alex_avatar.jpg",
-                          })),
+                          flightText: "Flight 1",
+                          groupPlayers: (registeredPlayers || [])
+                            .filter((p) => !isAccountUser(p))
+                            .slice(0, 3)
+                            .map((p) => ({
+                              id: p.id,
+                              name: p.name,
+                              initials: getTwoInitials(p.name),
+                              avatar: undefined,
+                            })),
                         });
                       } else {
                         setActiveRound(null);

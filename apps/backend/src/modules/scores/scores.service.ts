@@ -471,7 +471,7 @@ export class ScoresService implements OnModuleInit, OnModuleDestroy {
         points: true,
         userId: true,
         holeId: true,
-        hole: { select: { par: true } }
+        hole: { select: { par: true, number: true, distance: true } }
       }
     });
 

@@ -70,4 +70,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   clientPlatform?: string;
+
+  @IsOptional()
+  @IsString()
+  profilePhoto?: string;
 }

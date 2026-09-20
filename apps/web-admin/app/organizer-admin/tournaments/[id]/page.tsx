@@ -658,6 +658,7 @@ function ViewTournamentPageInner() {
       setGroupingsData(data);
       setGroupingsSubTab("grouped");
       setJustGrouped(true);
+      broadcastAdminEvent("tournament-groupings-updated", { tournamentId, day: selectedDay });
       toast.success(rule === "MANUAL_EMPTY" ? "Manual grouping initialized." : "Groupings generated. Click 'Publish via Email' to notify players.");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to generate groupings");
@@ -685,6 +686,7 @@ function ViewTournamentPageInner() {
     try {
       const data = await movePlayerInGroupings(tournamentId, registrationId, targetGroupId, selectedDay);
       setGroupingsData(data);
+      broadcastAdminEvent("tournament-groupings-updated", { tournamentId, day: selectedDay });
       if (targetGroupId === null) {
         toast.success("Player has been removed from flight");
       } else {
@@ -706,6 +708,7 @@ function ViewTournamentPageInner() {
       setGroupingsData(data);
       setEditingGroupTimeId(null);
       setEditingGroupNameId(null);
+      broadcastAdminEvent("tournament-groupings-updated", { tournamentId, day: selectedDay });
       toast.success("Flight updated successfully");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to update group");
@@ -728,6 +731,7 @@ function ViewTournamentPageInner() {
       setPublishClickCount(0);
       setJustGrouped(false);
       setIsResetGroupingsModalOpen(false);
+      broadcastAdminEvent("tournament-groupings-updated", { tournamentId, day: selectedDay });
       toast.success("Groupings reset successfully");
     } catch (err) {
       toast.error((err instanceof Error ? err.message : null) || "Failed to reset groupings");

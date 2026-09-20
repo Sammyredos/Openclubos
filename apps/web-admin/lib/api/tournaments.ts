@@ -228,6 +228,7 @@ export interface GroupingPlayer {
 export interface GroupingItem {
   id: string;
   name: string;
+  day?: number;
   startTime: string | null;
   registrations: GroupingPlayer[];
 }

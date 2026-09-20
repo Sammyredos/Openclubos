@@ -98,3 +98,10 @@ Always ensure that every page has a distinct title shown in the browser tab.
 - Input focus states must apply `focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20` and remove default browser outlines with `focus:outline-hidden`.
 - Input text must use dark slate `text-[#0F172A]` and placeholder text must use `placeholder:text-[#8CA0BA]`.
 - Never use generic gray `bg-slate-50` or `border-slate-200` for in-app inputs.
+
+## Mobile Screen Background Color Standardization
+- All mobile screens across the mobile application (in both the Web Admin Mobile Preview Simulator and the Flutter native app) must strictly use the unified daylight background color established by the Competitor Profile & Tournament Hub home screen:
+  - **Color Value**: `#F4F6F3` (`bg-[#f4f6f3]` in Tailwind CSS / `const Color(0xFFF4F6F3)` in Flutter).
+  - **Application**: Must be applied to the primary screen outer container / `Scaffold(backgroundColor: const Color(0xFFF4F6F3))` as well as background wrappers across all mobile screens (including Notifications, Add Friends, Leaderboard, Tournament Details, etc.).
+  - **Top Navigation Bars**: Pinned/fixed top navigation header bars retain their former crisp white background (`bg-white` in Tailwind CSS / `Colors.white` in Flutter) with subtle bottom borders (`border-b border-slate-100` / `border-slate-200/60` / `Color(0xFFF1F5F9)`), providing clear optical anchoring above the daylight scrollable body.
+  - **Contrast Separation**: Distinct from the soft-mint input background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)`) and pure white cards (`bg-white` / `Colors.white`), ensuring a clean, elevated daylight appearance throughout the mobile experience. Never use pure white (`bg-white` / `Colors.white`) or blue-tinted grays (`bg-[#F8FAFC]` / `Color(0xFFF8FAFC)`) for overall screen backgrounds.

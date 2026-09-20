@@ -18,16 +18,14 @@ export const Icons = {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.5"
+      strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M12 22V12" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-      <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.2" />
+      <path d="M15 13.5c.3-.8 1-1.6 1.8-2.3 1-.9 1.7-2.1 1.7-3.7a6.5 6.5 0 1 0-13 0c0 1.6.7 2.8 1.7 3.7.8.7 1.5 1.5 1.8 2.3" />
+      <path d="M9.5 17.5h5" />
+      <path d="M10.5 20.5h3" />
     </svg>
   ),
 }

@@ -432,7 +432,9 @@ export function NotificationDropdown() {
                   </p>
                 </div>
               ) : (
-                notifications.map((notif) => (
+                notifications.map((notif) => {
+                  const isFriend = (notif.type as string) === "FRIEND_REQUEST" || (notif as any).data?.type === "FRIEND_REQUEST";
+                  return (
                   <div
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
@@ -442,7 +444,7 @@ export function NotificationDropdown() {
                     )}
                   >
                     {getNotificationIcon(notif.type)}
-                    <div className="flex-1 min-w-0">
+                    <div className={cn("flex-1 min-w-0 transition-opacity duration-200", notif.isRead && !isFriend && "opacity-60")}>
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <p
                           className={cn(
@@ -464,7 +466,8 @@ export function NotificationDropdown() {
                       <span className="w-2 h-2 rounded-full bg-[#15803D] shrink-0 mt-1.5" />
                     )}
                   </div>
-                ))
+                );
+              })
               )}
             </div>
 

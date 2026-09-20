@@ -34,6 +34,7 @@ interface PendingRegistrationData {
   role: UserRole;
   otpCode: string;
   expiresAt: string;
+  profilePhoto?: string | null;
 }
 
 @Injectable()
@@ -149,6 +150,7 @@ export class AuthService {
       role: UserRole.PLAYER,
       otpCode,
       expiresAt,
+      profilePhoto: registerDto.profilePhoto || null,
     };
 
     // Store in-memory and CacheService (Redis) with 24-hour TTL - NOT in PostgreSQL User table yet!
@@ -225,6 +227,7 @@ export class AuthService {
           gender: pending.gender,
           clubId: pending.clubId,
           role: pending.role,
+          profilePhoto: pending.profilePhoto || null,
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null,

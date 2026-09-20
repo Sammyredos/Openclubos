@@ -184,7 +184,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                       children: [
                         // Card A: On-Course Telemetry Hero Card
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
@@ -197,7 +197,17 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               ),
                             ],
                           ),
-                          child: Column(
+                          child: Stack(
+                            children: [
+                              // Bespoke Telemetry Radar Arcs Pattern
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _TelemetryRadarPatternPainter(),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
                             children: [
                               Row(
                                 children: [
@@ -375,6 +385,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                             ],
                           ),
                         ),
+                      ],
+                    ),
+                  ),
 
                         const SizedBox(height: 16),
 
@@ -871,4 +884,46 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
       ],
     );
   }
+}
+
+/// Custom painter for On-Course Telemetry Hero Card
+/// Features concentric radar sweep arcs radiating from the top-right score badge and a subtle telemetry distance grid
+class _TelemetryRadarPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 1. Telemetry distance grid lines
+    final gridPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75;
+
+    for (double y = 20; y < size.height; y += 36) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+    for (double x = 30; x < size.width; x += 60) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+
+    // 2. Concentric radar sweep arcs centered near top-right (around the TO PAR badge)
+    final radarCenter = Offset(size.width - 32, 28);
+    final radarPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.07)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    for (double r = 24; r <= 140; r += 28) {
+      canvas.drawCircle(radarCenter, r, radarPaint);
+    }
+
+    // Crosshairs on the radar center
+    final crosshairPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.09)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9;
+    canvas.drawLine(Offset(radarCenter.dx - 16, radarCenter.dy), Offset(radarCenter.dx + 16, radarCenter.dy), crosshairPaint);
+    canvas.drawLine(Offset(radarCenter.dy, radarCenter.dx - 16), Offset(radarCenter.dy, radarCenter.dx + 16), crosshairPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

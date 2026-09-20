@@ -291,8 +291,8 @@ export function Sidebar() {
                     <img src={fetchedClub?.logo || user?.profilePhoto} alt="Club Logo" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="bg-[#15803D] p-3 rounded-full shadow-lg shadow-openclub-700/20">
-                    <Layers className="h-8 w-8 text-white" />
+                  <div className="w-14 h-14 rounded-[18px] bg-[#009A60] flex items-center justify-center shadow-lg shadow-[#009A60]/20 shrink-0">
+                    <Icons.logo className="h-7 w-7 text-white" />
                   </div>
                 )}
                 <div className="flex items-center justify-center w-full px-2">
@@ -304,11 +304,13 @@ export function Sidebar() {
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            <div className="bg-[#15803D] p-2.5 rounded-full shadow-lg shadow-openclub-700/20">
-              <Icons.logo className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-[#009A60] flex items-center justify-center shadow-md shadow-[#009A60]/20 shrink-0">
+              <Icons.logo className="h-5 w-5 text-white" />
             </div>
-            <span className="text-[16px] font-medium tracking-tight text-gray-900">OpenClub</span>
+            <span className="text-[17px] font-extrabold tracking-tight text-gray-900">
+              Openclub<span className="text-[#009A60]">OS</span>
+            </span>
           </div>
         )}
       </div>

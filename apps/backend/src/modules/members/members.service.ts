@@ -304,6 +304,7 @@ export class MembersService {
             status: true,
             handicap: true,
             phone: true,
+            profilePhoto: true,
             createdAt: true,
             clubId: true,
             managerScope: true,

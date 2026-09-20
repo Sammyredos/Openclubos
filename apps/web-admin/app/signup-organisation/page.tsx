@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
+import { BrandLogo } from "@/components/ui/brand-logo"
 import {
   Eye, EyeOff, Upload, X, ArrowRight, ArrowLeft, ChevronDown
 } from "lucide-react"
@@ -271,13 +272,17 @@ export default function SignupOrganisationPage() {
             ) : (
               <>
                 <div className="mb-8">
-                  {step > 1 && (
+                  {step > 1 ? (
                     <button
                       onClick={handleBack}
                       className="mb-4 w-10 h-10 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 flex items-center justify-center transition-all"
                     >
                       <ArrowLeft className="w-5 h-5 text-zinc-700" />
                     </button>
+                  ) : (
+                    <div className="mb-6">
+                      <BrandLogo size="md" variant="full" />
+                    </div>
                   )}
                   <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create an Organizer Account</h2>
                   <p className="text-zinc-500 font-medium tracking-tight">Step {step} of 5</p>

@@ -1,121 +1,153 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Trophy, Activity, Map, Users, BarChart3, Smartphone } from "lucide-react";
-
-const features = [
-  {
-    title: "Tournament Management",
-    description: "Create, schedule, and manage tournaments with ease. Integrated leaderboards and automated payments.",
-    icon: Trophy,
-    color: "from-blue-50 to-indigo-50",
-    hoverColor: "group-hover:from-blue-100/50 group-hover:to-indigo-100/50",
-    iconColor: "text-blue-600 bg-blue-100",
-    colSpan: "md:col-span-2 md:row-span-2",
-  },
-  {
-    title: "Live Scoring",
-    description: "Real-time score tracking with group-based inputs, instant leaderboards for fans and participants.",
-    icon: Activity,
-    color: "from-purple-50 to-pink-50",
-    hoverColor: "group-hover:from-purple-100/50 group-hover:to-pink-100/50",
-    iconColor: "text-purple-600 bg-purple-100",
-    colSpan: "md:col-span-1",
-  },
-  {
-    title: "Course Management",
-    description: "Manage golf courses, tees, and pars. Support for multiple courses and custom course ratings.",
-    icon: Map,
-    color: "from-emerald-50 to-teal-50",
-    hoverColor: "group-hover:from-emerald-100/50 group-hover:to-teal-100/50",
-    iconColor: "text-emerald-600 bg-emerald-100",
-    colSpan: "md:col-span-1",
-  },
-  {
-    title: "Player Registration",
-    description: "Streamlined registration with capacity management, waitlists, and automated email notifications.",
-    icon: Users,
-    color: "from-orange-50 to-red-50",
-    hoverColor: "group-hover:from-orange-100/50 group-hover:to-red-100/50",
-    iconColor: "text-orange-600 bg-orange-100",
-    colSpan: "md:col-span-1",
-  },
-  {
-    title: "Powerful Analytics",
-    description: "Revenue trends, club growth, and performance insights. Export detailed reports instantly.",
-    icon: BarChart3,
-    color: "from-blue-50 to-cyan-50",
-    hoverColor: "group-hover:from-blue-100/50 group-hover:to-cyan-100/50",
-    iconColor: "text-cyan-600 bg-cyan-100",
-    colSpan: "md:col-span-2",
-  },
-];
+import Link from "next/link";
+import {
+  Sparkles,
+  Smartphone,
+  Tv,
+  CalendarDays,
+  Wallet,
+  UserCheck,
+  ShieldCheck,
+  ListChecks,
+} from "lucide-react";
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-32 bg-[#fafafa] text-zinc-900 relative border-t border-zinc-200">
-      {/* Background Glow */}
-      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-white to-transparent pointer-events-none" />
-      
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-20 flex flex-col items-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="inline-flex items-center px-3 py-1 rounded-full bg-white border border-zinc-200 text-sm font-medium text-emerald-600 mb-6 shadow-sm"
-          >
-            Powerful Features
-          </motion.div>
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-tight text-zinc-900"
-          >
-            Professional Tools for <br className="hidden sm:block" /> Modern Clubs
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="text-lg text-zinc-500 max-w-2xl"
-          >
-            Everything you need to manage your golf club, tournaments, and members in one unified, seamlessly integrated platform.
-          </motion.p>
+    <section id="features" className="py-24 bg-[#F5FAF6]/20 relative overflow-hidden">
+      <div className="absolute right-0 top-0 w-1/2 h-full pattern-grid opacity-20 -z-10 transform rotate-12 pointer-events-none" />
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-black text-[#0F172A] mb-4 tracking-tight">
+            One Platform, Endless Precision
+          </h2>
+          <p className="text-[#5B6B7F] font-medium max-w-2xl mx-auto">
+            The unified ecosystem that replaces your fragmented spreadsheets and outdated software.
+          </p>
         </div>
 
-        {/* 21st.dev inspired Bento Grid (Light Mode) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[280px]">
-          {features.map((feature, idx) => (
-            <motion.div 
-              key={idx} 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              viewport={{ once: true, margin: "-50px" }}
-              className={`group relative rounded-3xl overflow-hidden border border-zinc-200 bg-white p-8 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 cursor-default ${feature.colSpan}`}
-            >
-              {/* Subtle Gradient Background that intensifies on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} ${feature.hoverColor} opacity-50 transition-colors duration-500`} />
-              
-              <div className="relative z-10 h-full flex flex-col">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-auto group-hover:scale-110 transition-all duration-500 shadow-sm ${feature.iconColor}`}>
-                  <feature.icon className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-12 grid-rows-2 gap-6 h-auto md:h-[800px]">
+          {/* Pillar 1: Tournament Builder */}
+          <Link
+            href="/signup-organisation"
+            className="md:col-span-8 bg-white rounded-[32px] border border-[#E1EFE5] p-10 bento-card relative overflow-hidden no-underline block text-left group"
+          >
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-[#009A60]/10 text-[#009A60] rounded-xl flex items-center justify-center mb-6">
+                <Sparkles className="w-6 h-6 text-[#009A60]" />
+              </div>
+              <h3 className="text-2xl font-black text-[#0F172A] mb-4 group-hover:text-[#009A60] transition-colors">
+                10-Step Tournament Builder
+              </h3>
+              <p className="text-[#5B6B7F] font-medium max-w-md mb-8">
+                Visual workflow configuring dates, stroke/match play, cut rules, waitlists, and divisions in minutes.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                    Configurability
+                  </span>
+                  <p className="text-xs text-[#0F172A] font-bold">
+                    Stableford, Scramble, Best Ball, Match Play
+                  </p>
                 </div>
-                
-                <div className="mt-6">
-                  <h3 className="text-xl font-semibold text-zinc-900 mb-2">{feature.title}</h3>
-                  <p className="text-zinc-500 leading-relaxed text-sm">
-                    {feature.description}
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                    Flights & Cuts
+                  </span>
+                  <p className="text-xs text-[#0F172A] font-bold">
+                    Strict handicap maximums and gender restrictions
                   </p>
                 </div>
               </div>
-            </motion.div>
-          ))}
+            </div>
+            <div className="absolute right-0 bottom-0 w-1/3 h-full bg-[#009A60]/5 flex items-end justify-end pointer-events-none">
+              <ListChecks className="w-48 h-48 text-[#009A60]/10 -mb-10 -mr-10" />
+            </div>
+          </Link>
+
+          {/* Pillar 2: Live Scoring */}
+          <Link
+            href="/mobile-preview"
+            className="md:col-span-4 bg-[#009A60] text-white rounded-[32px] p-10 bento-card relative overflow-hidden no-underline block text-left group"
+          >
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
+                <Smartphone className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-2xl font-black mb-4 leading-tight">
+                Real-Time Digital Scorecard
+              </h3>
+              <p className="text-white/80 font-medium mb-8 text-sm">
+                Peer-attested mobile scoring with auto-calculated net/gross Stableford differentials.
+              </p>
+              <div className="flex items-center gap-3 py-3 px-4 bg-white/10 rounded-2xl border border-white/10">
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Cryptographic Attestation
+                </span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Pillar 3: TV Broadcast */}
+          <Link
+            href="/tv"
+            className="md:col-span-4 bg-[#0F172A] text-white rounded-[32px] p-10 bento-card relative overflow-hidden no-underline block text-left group"
+          >
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
+                <Tv className="w-6 h-6 text-[#009A60]" />
+              </div>
+              <h3 className="text-2xl font-black mb-4 leading-tight">
+                Clubhouse TV Broadcast Mode
+              </h3>
+              <p className="text-white/60 font-medium mb-8 text-sm">
+                Full-screen, spectator-ready broadcast feed for clubhouse screens with WebSocket live sync.
+              </p>
+            </div>
+          </Link>
+
+          {/* Pillar 4, 5, 6: Tee Sheet, Wallet, Mobile */}
+          <div className="md:col-span-8 bg-white rounded-[32px] border border-[#E1EFE5] p-10 bento-card">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
+              <Link href="/login" className="flex flex-col h-full no-underline group text-left">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
+                  <CalendarDays className="w-7 h-7 text-[#009A60]" />
+                </div>
+                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                  Smart Tee Sheet
+                </h4>
+                <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
+                  Algorithmic pairings by handicap index or shotgun starts.
+                </p>
+              </Link>
+
+              <Link href="/login" className="flex flex-col h-full no-underline group text-left">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
+                  <Wallet className="w-7 h-7 text-[#009A60]" />
+                </div>
+                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                  Integrated Wallet
+                </h4>
+                <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
+                  Automated fee collection, refunds, and bank withdrawals.
+                </p>
+              </Link>
+
+              <Link href="/mobile-preview" className="flex flex-col h-full no-underline group text-left">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
+                  <UserCheck className="w-7 h-7 text-[#009A60]" />
+                </div>
+                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                  Player Experience
+                </h4>
+                <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
+                  Seamless registration, classification, and flight rankings.
+                </p>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>

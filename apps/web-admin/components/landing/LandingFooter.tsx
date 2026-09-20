@@ -1,92 +1,268 @@
+"use client";
+
 import Link from "next/link";
-import { Icons } from "@/components/ui/icons";
-
-const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
-);
-
-const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-);
-
-const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-);
-
-const LinkedinIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-);
+import { ShieldCheck, Lock } from "lucide-react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 export function LandingFooter() {
   return (
-    <footer className="bg-white pt-20 pb-10 border-t border-zinc-200 text-zinc-900">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
-          <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-200">
-                <Icons.logo className="w-5 h-5 text-emerald-600" />
-              </div>
-              <span className="font-bold text-xl tracking-tight text-zinc-900">
-                OpenClub<span className="text-emerald-600">OS</span>
-              </span>
-            </div>
-            <p className="text-zinc-500 max-w-sm leading-relaxed text-sm">
-              Building the future of golf tournament management, one club at a time.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-zinc-900 mb-6">Product</h4>
-            <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Features</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Solutions</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Pricing</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Mobile App</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-zinc-900 mb-6">Company</h4>
-            <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">About Us</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Careers</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Blog</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Contact</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-zinc-900 mb-6">Support</h4>
-            <ul className="space-y-4 text-sm">
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Documentation</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">API Status</Link></li>
-              <li><Link href="#" className="text-zinc-500 hover:text-zinc-900 transition-colors">Security</Link></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-zinc-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex gap-4">
-            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-              <TwitterIcon className="w-5 h-5" />
+    <>
+      {/* 12. Bottom Conversion Hero */}
+      <section className="py-32 bg-[#009A60] relative overflow-hidden">
+        <div className="absolute inset-0 pattern-grid opacity-10 pointer-events-none"></div>
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{ backgroundImage: "url('/images/landing/carbon-fibre.png')" }}
+        ></div>
+        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight leading-tight">
+            Ready to Run Your Best Tournament Ever?
+          </h2>
+          <p className="text-[#F5FAF6] text-xl font-medium mb-12 opacity-90 max-w-2xl mx-auto">
+            Join hundreds of premier golf clubs who manage their events, players, and leaderboards with OpenclubOS.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/signup-organisation"
+              className="w-full sm:w-auto bg-white text-[#009A60] px-12 py-6 rounded-2xl font-black text-xl hover:bg-[#F5FAF6] transition-all shadow-2xl shadow-black/10 no-underline block text-center"
+            >
+              Start Free Trial
             </Link>
-            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-              <FacebookIcon className="w-5 h-5" />
-            </Link>
-            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-              <InstagramIcon className="w-5 h-5" />
-            </Link>
-            <Link href="#" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-              <LinkedinIcon className="w-5 h-5" />
+            <Link
+              href="/mobile-preview"
+              className="w-full sm:w-auto bg-[#008754] text-white px-12 py-6 rounded-2xl font-black text-xl hover:bg-[#008754]/80 transition-all no-underline block text-center"
+            >
+              Book a Live Demo
             </Link>
           </div>
-          <p className="text-zinc-500 text-sm">
-            © {new Date().getFullYear()} OpenClubOS. All rights reserved.
+          <p className="mt-8 text-white/60 text-sm font-bold uppercase tracking-widest">
+            No credit card required • Instant setup
           </p>
         </div>
-      </div>
-    </footer>
+      </section>
+
+      {/* 13. Comprehensive Footer */}
+      <footer className="bg-white pt-24 pb-12 border-t border-[#E1EFE5]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-12 mb-20">
+            {/* Brand Column */}
+            <div className="col-span-2">
+              <Link href="/" className="inline-block mb-6 no-underline group">
+                <BrandLogo size="md" variant="full" className="group-hover:scale-105 transition-transform" />
+              </Link>
+              <p className="text-[#5B6B7F] text-sm font-medium leading-relaxed mb-8 max-w-xs">
+                The industry-grade tournament management and club operations operating system for elite golf venues.
+              </p>
+              <div className="flex gap-4">
+                <a
+                  href="https://twitter.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
+                  aria-label="X Twitter"
+                >
+                  <span className="font-black text-sm">𝕏</span>
+                </a>
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
+                  aria-label="LinkedIn"
+                >
+                  <span className="font-black text-xs">in</span>
+                </a>
+                <a
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
+                  aria-label="Instagram"
+                >
+                  <span className="font-black text-xs">ig</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Column 1: Features */}
+            <div>
+              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+                Features
+              </h5>
+              <ul className="space-y-4">
+                <li>
+                  <Link
+                    href="#features"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Tournament Engine
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/mobile-preview"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Live Scoring
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/tv"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Clubhouse TV
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Club Wallet
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 2: Solutions */}
+            <div>
+              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+                Solutions
+              </h5>
+              <ul className="space-y-4">
+                <li>
+                  <Link
+                    href="#how-it-works"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Private Clubs
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/signup-organisation"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Organizers
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="mailto:sales@openclubos.com"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    State Associations
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Resources */}
+            <div>
+              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+                Resources
+              </h5>
+              <ul className="space-y-4">
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Help Center
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    API Docs
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#features"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Changelog
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/mobile-preview"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Community
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Company */}
+            <div>
+              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+                Company
+              </h5>
+              <ul className="space-y-4">
+                <li>
+                  <Link
+                    href="#how-it-works"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="text-[#5B6B7F] text-sm font-medium hover:text-[#009A60] transition-colors no-underline"
+                  >
+                    Security
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Compliance Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8 pt-12 border-t border-gray-100">
+            <p className="text-[#5B6B7F] text-xs font-bold uppercase tracking-widest">
+              © 2024 Openclub OS. All rights reserved.
+            </p>
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="text-[#009A60] w-4 h-4" />
+                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                  SOC2 TYPE II COMPLIANT
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Lock className="text-[#009A60] w-4 h-4" />
+                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                  GDPR READY
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

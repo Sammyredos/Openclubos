@@ -1301,6 +1301,7 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
       groups: groups.map(g => ({
         id: g.id,
         name: g.name,
+        day: g.day,
         startTime: g.startTime ? g.startTime.toISOString() : null,
         registrations: g.players.map(p => ({
           id: p.registration.id,

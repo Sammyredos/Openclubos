@@ -1,59 +1,71 @@
 "use client";
 
-import { motion, useInView, useSpring, useTransform } from "framer-motion";
-import { useEffect, useRef } from "react";
-
-function AnimatedCounter({ value, duration = 2 }: { value: number, duration?: number }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
-  const spring = useSpring(0, { duration: duration * 1000, bounce: 0 });
-  const display = useTransform(spring, (current) => Math.round(current).toLocaleString());
-
-  useEffect(() => {
-    if (inView) {
-      spring.set(value);
-    }
-  }, [inView, spring, value]);
-
-  return <motion.span ref={ref}>{display}</motion.span>;
-}
+import { Shield, Crown, Trophy, Landmark } from "lucide-react";
 
 export function StatsSection() {
-  const stats = [
-    { label: "Organizers", value: 2000, suffix: "+" },
-    { label: "Tournaments", value: 10000, suffix: "+" },
-    { label: "Players", value: 50000, suffix: "+" },
-    { label: "Golf Clubs", value: 500, suffix: "+" }
-  ];
-
   return (
-    <section className="py-24 bg-white text-zinc-900 relative overflow-hidden border-t border-zinc-200">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-zinc-100 via-white to-white pointer-events-none" />
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y divide-zinc-100 md:divide-y-0 md:divide-x md:divide-zinc-200">
-          {stats.map((stat, idx) => (
-            <motion.div 
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              viewport={{ once: true, margin: "-50px" }}
-              className="flex flex-col items-center justify-center p-6 md:p-4"
-            >
-              <h3 className="text-4xl md:text-5xl font-bold text-zinc-900 mb-2 tracking-tight flex items-center">
-                <AnimatedCounter value={stat.value} />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 ml-1">
-                  {stat.suffix}
-                </span>
-              </h3>
-              <p className="text-sm font-medium text-zinc-500 uppercase tracking-widest mt-2">
-                {stat.label}
-              </p>
-            </motion.div>
-          ))}
+    <>
+      {/* 3. Social Proof & Trust Bar */}
+      <section className="py-12 border-y border-[#E1EFE5] bg-[#F5FAF6]/30">
+        <div className="max-w-7xl mx-auto px-6">
+          <p className="text-center text-[10px] font-black text-[#5B6B7F] uppercase tracking-[0.3em] mb-10">
+            Trusted by Premier Clubs & Regional Tours
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all">
+            <div className="flex items-center gap-3">
+              <Shield className="w-6 h-6 text-[#009A60]" />
+              <span className="font-black text-xl tracking-tighter text-[#0F172A]">OAKWOOD CC</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Crown className="w-6 h-6 text-[#009A60]" />
+              <span className="font-black text-xl tracking-tighter text-[#0F172A]">PGA REGIONAL</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Trophy className="w-6 h-6 text-[#009A60]" />
+              <span className="font-black text-xl tracking-tighter text-[#0F172A]">MASTERS SERIES</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Landmark className="w-6 h-6 text-[#009A60]" />
+              <span className="font-black text-xl tracking-tighter text-[#0F172A]">STATE ASSOC.</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* 4. Metrics & Impact Stats */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
+              <h3 className="text-4xl font-black text-[#009A60] mb-2">90%</h3>
+              <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
+                Less time spent on manual pairings & data entry
+              </p>
+            </div>
+
+            <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
+              <h3 className="text-4xl font-black text-[#009A60] mb-2">&lt; 1 sec</h3>
+              <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
+                Live score broadcast latency to clubhouse TVs
+              </p>
+            </div>
+
+            <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
+              <h3 className="text-4xl font-black text-[#009A60] mb-2">100%</h3>
+              <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
+                Tamper-evident verification on all scorecards
+              </p>
+            </div>
+
+            <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
+              <h3 className="text-4xl font-black text-[#009A60] mb-2">$0</h3>
+              <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
+                Revenue leakage with automated fee tracking
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

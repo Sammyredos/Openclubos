@@ -14,6 +14,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { AuditLog } from '../../common/decorators/audit-log.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { SkipClubGuard } from '../../common/guards/club.guard';
@@ -163,7 +164,8 @@ export class TournamentsController {
   }
 
   @Get(':id/groupings')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @SkipClubGuard()
+  @UseGuards(OptionalJwtAuthGuard)
   async getGroupings(
     @Param('id') id: string,
     @Query('day') day?: string,

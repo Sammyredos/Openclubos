@@ -122,8 +122,27 @@ export default function OrganizerNotificationsPage() {
       const allItems = Array.from(combinedMap.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-      setNotifications(allItems);
-      setUnreadCount(allItems.filter((n) => !n.isRead).length);
+      // Auto mark as read once notification page has been opened
+      const hasUnread = allItems.some((n) => !n.isRead);
+      if (hasUnread) {
+        markAllNotificationsAsRead().catch(() => {});
+        try {
+          const raw = localStorage.getItem("openclub_live_admin_notifications");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const updated = parsed.map((item) => ({ ...item, isRead: true, readAt: new Date().toISOString() }));
+              localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+            }
+          }
+        } catch {}
+        const markedReadItems = allItems.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }));
+        setNotifications(markedReadItems);
+        setUnreadCount(0);
+      } else {
+        setNotifications(allItems);
+        setUnreadCount(0);
+      }
     } catch {
       setError("Failed to load notifications. Please try again.");
       toast.error("Failed to load notifications");
@@ -444,6 +463,7 @@ export default function OrganizerNotificationsPage() {
                         paginatedNotifications.map((notif) => {
                           const meta = TYPE_META[notif.type] || TYPE_META.SYSTEM;
                           const Icon = meta.icon;
+                          const isFriend = (notif.type as string) === "FRIEND_REQUEST" || (notif as any).data?.type === "FRIEND_REQUEST";
                           return (
                             <tr
                               key={notif.id}
@@ -457,14 +477,14 @@ export default function OrganizerNotificationsPage() {
                               <td className="px-6 py-5">
                                 <div className="flex items-center gap-3 min-w-[280px]">
                                   <div className="relative">
-                                    <div className="w-10 h-10 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
-                                      <Icon className="w-4 h-4 text-[#15803D]" />
+                                    <div className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]">
+                                      <Icon className="w-3.5 h-3.5 text-[#15803D]" />
                                     </div>
                                     {!notif.isRead && (
-                                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#15803D] ring-2 ring-white" />
+                                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#15803D] ring-2 ring-white" />
                                     )}
                                   </div>
-                                  <div className="flex flex-col min-w-0 gap-0.5">
+                                  <div className={cn("flex flex-col min-w-0 gap-0.5 transition-opacity duration-200", notif.isRead && !isFriend && "opacity-60")}>
                                     <span
                                       className={cn(
                                         "text-[14px] truncate leading-tight",

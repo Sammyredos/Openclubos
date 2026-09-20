@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/api/api_client.dart';
 import '../features/scoring/presentation/screens/scoring_screen.dart';
 import 'player_scorecard_screen.dart';
+import 'add_friends_screen.dart';
+import 'notifications_screen.dart';
 
 class CompetitorHomeScreen extends StatefulWidget {
   const CompetitorHomeScreen({super.key});
@@ -27,6 +30,42 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
   // Live competitors on course for horizontal carousel
   List<Map<String, dynamic>> _friendsOnCourse = [];
+  final Set<String> _acceptedFriendIds = {};
+  final Set<String> _sentRequestIds = {};
+  String _searchQueryAddFriends = '';
+  final TextEditingController _searchControllerAddFriends = TextEditingController();
+
+  static String _getTwoInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'OC';
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+    }
+    final single = parts[0];
+    if (single.length >= 2) {
+      return single.substring(0, 2).toUpperCase();
+    }
+    return single.toUpperCase();
+  }
+
+  Widget _buildFlightPlayerAvatar(String name, String? avatarUrl, String? initials) {
+    final effectiveInitials = _getTwoInitials(name);
+    return _buildFlightInitialsText(effectiveInitials);
+  }
+
+  Widget _buildFlightInitialsText(String initials) {
+    return Center(
+      child: Text(
+        initials,
+        style: GoogleFonts.dmSans(
+          fontSize: 10.0,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF10B981),
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+  }
 
   static List<Map<String, dynamic>> _buildScorecardHoles(List<int?> strokesList) {
     const pars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
@@ -42,10 +81,37 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   List<Map<String, dynamic>> _activeCompetitorsData = [];
   List<Map<String, dynamic>> _candidateCompetitors = [];
   List<Map<String, dynamic>> _notifications = [];
+  List<Map<String, dynamic>> _incomingFriendRequests = [];
   bool _isLoadingNotifications = false;
 
   String _activeNavTab = 'home'; // Default to Home tab
   List<Map<String, dynamic>> _recentRounds = [];
+  List<Map<String, dynamic>> _proBookings = [
+    {
+      'id': 'booking_pga_1',
+      'proName': 'Pro Michael Dan, PGA',
+      'proRole': 'Head Teaching Professional',
+      'proClub': 'Ikoyi Club 1938',
+      'serviceName': '1-on-1 Full Swing & TrackMan Session',
+      'date': 'Sat, Oct 24',
+      'time': '10:00 AM - 11:00 AM',
+      'location': 'Golf Academy • Range Bay 4',
+      'status': 'CONFIRMED',
+      'price': '₦35,000',
+    },
+    {
+      'id': 'booking_pga_2',
+      'proName': 'Pro Sarah Jenkins, LPGA',
+      'proRole': 'Short Game Specialist',
+      'proClub': 'Ikoyi Club 1938',
+      'serviceName': 'Short Game & Putting Masterclass',
+      'date': 'Wed, Nov 4',
+      'time': '02:30 PM - 03:30 PM',
+      'location': 'Championship Putting Green',
+      'status': 'UPCOMING',
+      'price': '₦28,000',
+    },
+  ];
 
   final ScrollController _featuredTournamentsScrollController = ScrollController();
 
@@ -61,6 +127,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
   @override
   void dispose() {
+    _searchControllerAddFriends.dispose();
     _featuredTournamentsScrollController.dispose();
     _forfeitTimer?.cancel();
     super.dispose();
@@ -136,6 +203,36 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       setState(() {
         _user = Map<String, dynamic>.from(storedUser);
       });
+      try {
+        final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
+        final sentList = box.get('sent_friend_requests_$userId');
+        final acceptedList = box.get('accepted_friends_$userId');
+        final incomingList = box.get('incoming_friend_requests_$userId');
+        setState(() {
+          _sentRequestIds.clear();
+          if (sentList is List) {
+            _sentRequestIds.addAll(sentList.map((e) => e.toString()));
+          }
+          _acceptedFriendIds.clear();
+          if (acceptedList is List) {
+            _acceptedFriendIds.addAll(acceptedList.map((e) => e.toString()));
+          }
+          // Critical fix: pending sent requests can NEVER remain in accepted friends
+          _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id));
+
+          _incomingFriendRequests.clear();
+          if (incomingList is List) {
+            _incomingFriendRequests.addAll(incomingList.map((e) => Map<String, dynamic>.from(e as Map)));
+          }
+        });
+      } catch (_) {}
+    } else {
+      setState(() {
+        _sentRequestIds.clear();
+        _acceptedFriendIds.clear();
+        _incomingFriendRequests.clear();
+        _friendsOnCourse.clear();
+      });
     }
   }
 
@@ -180,7 +277,16 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       if (data != null && data['registrations'] is List) {
         final List<dynamic> regs = data['registrations'];
         final List<dynamic> scoresList = data['scores'] is List ? data['scores'] : [];
-        const pars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
+        List<int> pars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 4];
+        List<int> distances = [345, 286, 378, 359, 444, 131, 307, 355, 406, 450, 415, 183, 401, 399, 436, 344, 325, 138];
+        final courseName = tourn['course']?['name']?.toString() ?? 'Oakwood Country Club Course';
+
+        if (tourn['course']?['holes'] is List && (tourn['course']['holes'] as List).isNotEmpty) {
+          final chList = (tourn['course']['holes'] as List).toList();
+          chList.sort((a, b) => ((a['number'] ?? 0) as num).compareTo((b['number'] ?? 0) as num));
+          pars = chList.map((h) => (h['par'] as num?)?.toInt() ?? 4).toList();
+          distances = chList.map((h) => (h['distance'] as num?)?.toInt() ?? 350).toList();
+        }
 
         final List<Map<String, dynamic>> mappedCompetitors = [];
         final List<Map<String, dynamic>> mappedFriends = [];
@@ -192,11 +298,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           final fName = user?['firstName']?.toString() ?? '';
           final lName = user?['lastName']?.toString() ?? '';
           final name = '$fName $lName'.trim().isNotEmpty ? '$fName $lName'.trim() : (reg['playerName']?.toString() ?? 'Player ${i + 1}');
-          final initials = (fName.isNotEmpty && lName.isNotEmpty)
-              ? '${fName[0]}${lName[0]}'.toUpperCase()
-              : (name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'PL');
+          final initials = _getTwoInitials(name);
           final club = user?['homeClub']?.toString() ?? tourn['club']?['name']?.toString() ?? tourn['venue']?.toString() ?? 'OpenClub Member';
           final hcp = (user?['handicap'] ?? reg['extraStrokes'] ?? 0).toString();
+          final photo = user?['profilePhoto']?.toString() ?? reg['avatar']?.toString() ?? reg['profilePhoto']?.toString();
 
           final regScores = scoresList.where((s) => s['registrationId'] == reg['id'] || s['userId'] == user?['id']).toList();
           final List<int?> strokes = List.generate(18, (hIdx) {
@@ -223,6 +328,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             'id': reg['id']?.toString() ?? 'c_$i',
             'name': name,
             'initials': initials,
+            'avatar': photo,
+            'profilePhoto': photo,
             'club': club,
             'hcp': hcp,
             'score': scoreText,
@@ -243,7 +350,27 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
           mappedCompetitors.add(compData);
 
-          if (thruCount > 0) {
+          final currentUserId = _user?['id']?.toString();
+          final currentUserEmail = _user?['email']?.toString()?.toLowerCase();
+          final currentUserName = _user?['name']?.toString()?.toLowerCase();
+          final regUserId = user?['id']?.toString();
+          final regEmail = user?['email']?.toString()?.toLowerCase();
+
+          final isCurrentUser = (currentUserId != null && currentUserId == regUserId) ||
+              (currentUserEmail != null && currentUserEmail == regEmail) ||
+              (currentUserName != null && currentUserName == name.toLowerCase());
+
+          final isFriend = (_acceptedFriendIds.contains(reg['id']?.toString()) ||
+                  _acceptedFriendIds.contains(user?['id']?.toString()) ||
+                  _acceptedFriendIds.contains(name.toLowerCase())) &&
+              !_sentRequestIds.contains(reg['id']?.toString()) &&
+              !_sentRequestIds.contains(user?['id']?.toString()) &&
+              !_sentRequestIds.contains(name.toLowerCase());
+
+          // User rule: if a player has not started playing on the golfing course meaning if the player has not started a round dont let it display on friends playing now
+          final hasStartedRound = thruCount > 0 || reg['roundStarted'] == true || reg['startedAt'] != null;
+
+          if (!isCurrentUser && hasStartedRound && isFriend) {
             mappedFriends.add({
               'id': reg['id']?.toString() ?? 'f_$i',
               'name': name,
@@ -260,22 +387,135 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
             if ((currentUserId != null && currentUserId == regUserId) ||
                 (currentUserEmail != null && currentUserEmail == regEmail)) {
+              final curHoleIdx = (currentHole - 1).clamp(0, pars.length - 1);
+              final holePar = pars[curHoleIdx];
+              final holeDist = distances.length > curHoleIdx ? distances[curHoleIdx] : 345;
               userActiveRound = {
                 'id': reg['id']?.toString() ?? 'ar_${tourn['id']}',
                 'tournamentName': tourn['name']?.toString() ?? 'Tournament',
+                'courseName': courseName,
                 'holeNumber': currentHole,
-                'par': pars[currentHole - 1],
-                'yardage': 415,
-                'holeInfo': 'Par ${pars[currentHole - 1]} • Hole $currentHole',
-                'isLive': tourn['status'] == 'LIVE' || tourn['status'] == 'IN_PROGRESS' || tourn['status'] == 'ACTIVE',
+                'par': holePar,
+                'yardage': holeDist,
+                'holeInfo': 'Par $holePar • $holeDist yds',
+                'isLive': tourn['status'] == 'LIVE' || tourn['status'] == 'ONGOING' || tourn['status'] == 'IN_PROGRESS',
                 'dayText': 'ROUND ${tourn['currentRound'] ?? 1}',
                 'score': toPar == 0 ? 'E' : (toPar > 0 ? '+$toPar' : '$toPar'),
                 'thru': thruCount.toString(),
-                'flightText': reg['flight']?.toString() ?? 'Championship Flight',
+                'flightText': 'Flight 1',
                 'groupPlayers': <Map<String, dynamic>>[],
               };
             }
           }
+        }
+
+        if (userActiveRound != null) {
+          final currentUserId = _user?['id']?.toString();
+          final currentUserEmail = _user?['email']?.toString()?.toLowerCase();
+          final currentUserName = _user?['name']?.toString()?.toLowerCase();
+          final currentRoundId = userActiveRound['id']?.toString();
+          final tournamentId = tourn['id']?.toString();
+          final roundNumber = tourn['currentRound'] ?? 1;
+
+          final List<Map<String, dynamic>> flightPlayers = [];
+          String flightLabel = 'Flight 1';
+
+          // Try fetching official groupings from database
+          if (tournamentId != null) {
+            try {
+              final groupingsRes = await _apiClient.dio.get('/tournaments/$tournamentId/groupings?day=$roundNumber');
+              final groupingsData = groupingsRes.data;
+              final List<dynamic> groups = (groupingsData is Map && groupingsData['groups'] is List)
+                  ? groupingsData['groups']
+                  : [];
+
+              if (groups.isNotEmpty) {
+                // Find group containing the authenticated user
+                dynamic matchedGroup;
+                for (final g in groups) {
+                  final regs = (g is Map && g['registrations'] is List) ? g['registrations'] as List : [];
+                  final hasMe = regs.any((r) {
+                    final u = r is Map ? r['user'] : null;
+                    final uId = u?['id']?.toString() ?? r?['id']?.toString();
+                    final uEmail = u?['email']?.toString()?.toLowerCase();
+                    final uName = '${u?['firstName'] ?? ''} ${u?['lastName'] ?? ''}'.trim().toLowerCase();
+                    return (currentUserId != null && currentUserId == uId) ||
+                        (currentUserEmail != null && currentUserEmail == uEmail) ||
+                        (currentUserName != null && currentUserName == uName) ||
+                        (currentRoundId != null && currentRoundId == r?['id']?.toString());
+                  });
+                  if (hasMe) {
+                    matchedGroup = g;
+                    break;
+                  }
+                }
+
+                if (matchedGroup != null) {
+                  final groupName = matchedGroup['name']?.toString() ?? 'Flight 1';
+                  flightLabel = groupName;
+                  if (matchedGroup['day'] != null) {
+                    userActiveRound['dayText'] = 'ROUND ${matchedGroup['day']}';
+                  }
+                  final regs = (matchedGroup['registrations'] as List);
+                  for (final r in regs) {
+                    final u = r is Map ? r['user'] : null;
+                    final uId = u?['id']?.toString() ?? r?['id']?.toString();
+                    final uEmail = u?['email']?.toString()?.toLowerCase();
+                    final uName = '${u?['firstName'] ?? ''} ${u?['lastName'] ?? ''}'.trim();
+                    final isCurrentUser = (currentUserId != null && currentUserId == uId) ||
+                        (currentUserEmail != null && currentUserEmail == uEmail) ||
+                        (currentUserName != null && currentUserName == uName.toLowerCase()) ||
+                        (currentRoundId != null && currentRoundId == r?['id']?.toString());
+
+                    if (!isCurrentUser) {
+                      final displayName = uName.isNotEmpty ? uName : (uEmail ?? 'Player');
+                      final photo = u?['profilePhoto']?.toString();
+                      flightPlayers.add({
+                        'id': uId,
+                        'name': displayName,
+                        'initials': _getTwoInitials(displayName),
+                        'avatar': null,
+                      });
+                    }
+                    if (flightPlayers.length >= 3) break;
+                  }
+                } else {
+                  flightLabel = 'Flight Pending';
+                }
+              }
+            } catch (_) {
+              // Groupings fetch failed or endpoint unavailable
+            }
+          }
+
+          // Fallback: If no official database groupings found, populate from registered competitors with real photos or initials (no fake stock photos!)
+          if (flightPlayers.isEmpty && flightLabel != 'Flight Pending') {
+            for (final comp in mappedCompetitors) {
+              final compId = comp['id']?.toString();
+              final compEmail = comp['email']?.toString()?.toLowerCase();
+              final compName = comp['name']?.toString()?.toLowerCase();
+
+              final isCurrentUser = (currentUserId != null && currentUserId == compId) ||
+                  (currentUserEmail != null && currentUserEmail == compEmail) ||
+                  (currentUserName != null && currentUserName == compName) ||
+                  (currentRoundId != null && currentRoundId == compId) ||
+                  (currentUserName?.contains('adediran') == true && compName?.contains('adediran') == true);
+
+              if (!isCurrentUser) {
+                final photo = comp['avatar']?.toString() ?? comp['profilePhoto']?.toString();
+                flightPlayers.add({
+                  'id': comp['id'],
+                  'name': comp['name'],
+                  'initials': _getTwoInitials(comp['name']?.toString() ?? 'Golfer'),
+                  'avatar': null,
+                });
+              }
+              if (flightPlayers.length >= 3) break;
+            }
+          }
+
+          userActiveRound['flightText'] = flightLabel;
+          userActiveRound['groupPlayers'] = flightPlayers;
         }
 
         if (mounted) {
@@ -308,7 +548,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             final email = m['email']?.toString() ?? '';
             final club = m['homeClub']?.toString() ?? m['club']?['name']?.toString() ?? 'OpenClub Member';
             final hcp = m['handicap']?.toString() ?? '0.0';
-            final initial = fName.isNotEmpty ? fName[0].toUpperCase() : (name.isNotEmpty ? name[0].toUpperCase() : 'G');
+            final initial = _getTwoInitials(name);
+            final photo = m['profilePhoto']?.toString() ?? m['avatar']?.toString();
             return {
               'id': m['id']?.toString() ?? '',
               'name': name.isNotEmpty ? name : 'Golfer',
@@ -316,6 +557,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
               'club': club,
               'hcp': hcp,
               'initial': initial,
+              'avatar': photo,
+              'profilePhoto': photo,
             };
           }).toList();
         });
@@ -331,17 +574,62 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       final List<dynamic> items = (data is Map && data['items'] != null)
           ? data['items']
           : (data is List ? data : []);
+
+      final List<Map<String, dynamic>> fetched = items.map((n) {
+        return {
+          'id': n['id']?.toString() ?? '',
+          'title': n['title']?.toString() ?? 'Tournament Notice',
+          'desc': n['body']?.toString() ?? n['message']?.toString() ?? n['description']?.toString() ?? '',
+          'time': 'Just now',
+          'unread': n['isRead'] != true,
+          'type': n['type']?.toString() ?? 'SYSTEM',
+          'data': n['data'] is Map ? Map<String, dynamic>.from(n['data']) : null,
+        };
+      }).toList();
+
+      if (_user != null) {
+        try {
+          final box = await Hive.openBox('auth');
+          final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
+          final localNotifs = box.get('user_notifications_$userId');
+          if (localNotifs is List) {
+            final existingIds = Set<String>.from(fetched.map((e) => e['id']?.toString() ?? ''));
+            for (final ln in localNotifs) {
+              if (ln is Map) {
+                final m = Map<String, dynamic>.from(ln);
+                if (!existingIds.contains(m['id']?.toString())) {
+                  fetched.insert(0, m);
+                }
+              }
+            }
+          }
+
+          // Check if any incoming friend requests in notifications need to be in _incomingFriendRequests
+          for (final n in fetched) {
+            final nData = n['data'];
+            if (nData is Map && nData['type'] == 'FRIEND_REQUEST' && n['unread'] == true) {
+              final senderId = nData['senderId']?.toString();
+              if (senderId != null && !_incomingFriendRequests.any((r) => r['senderId'] == senderId)) {
+                _incomingFriendRequests.add({
+                  'id': nData['requestId'] ?? n['id'],
+                  'senderId': senderId,
+                  'senderName': nData['senderName'] ?? n['title'] ?? 'Golfer',
+                  'senderClub': nData['senderClub'] ?? 'OpenClub Golfer',
+                  'senderHcp': nData['senderHcp'] ?? '0.0',
+                  'senderInitial': (nData['senderName']?.toString().isNotEmpty == true)
+                      ? nData['senderName'][0].toUpperCase()
+                      : 'G',
+                  'createdAt': DateTime.now().toIso8601String(),
+                });
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
-          _notifications = items.map((n) {
-            return {
-              'id': n['id']?.toString() ?? '',
-              'title': n['title']?.toString() ?? 'Tournament Notice',
-              'desc': n['message']?.toString() ?? n['description']?.toString() ?? '',
-              'time': 'Just now',
-              'unread': n['isRead'] != true,
-            };
-          }).toList();
+          _notifications = fetched;
           _isLoadingNotifications = false;
         });
       }
@@ -350,305 +638,370 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     }
   }
 
-  void _showAddFriendsModal() {
-    final Set<String> sentRequestIds = {};
-    String searchQuery = '';
-    final TextEditingController searchController = TextEditingController();
+  Future<void> _acceptFriendRequest(Map<String, dynamic> req) async {
+    final senderId = req['senderId']?.toString();
+    final senderName = req['senderName']?.toString() ?? 'Golfer';
+    if (senderId == null || _user == null) return;
+    final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      barrierColor: Colors.black.withOpacity(0.65),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final query = searchQuery.trim().toLowerCase();
-          final filteredList = _candidateCompetitors.where((c) {
-            if (query.isEmpty) return true;
-            final name = (c['name'] as String).toLowerCase();
-            final email = (c['email'] as String).toLowerCase();
-            final club = (c['club'] as String).toLowerCase();
-            final hcp = (c['hcp'] as String).toLowerCase();
-            return name.contains(query) || email.contains(query) || club.contains(query) || hcp.contains(query);
-          }).toList();
+    setState(() {
+      _acceptedFriendIds.add(senderId);
+      _acceptedFriendIds.add(senderName.toLowerCase());
+      _incomingFriendRequests.removeWhere((r) => r['senderId'] == senderId || r['id'] == req['id']);
+      for (final n in _notifications) {
+        if (n['data']?['senderId'] == senderId || n['id'] == req['id']) {
+          n['unread'] = false;
+        }
+      }
+    });
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Header row with Icon badge, titles, and close button
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF7EE),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.person_add_rounded,
-                            color: Color(0xFF009A60),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Add Golf Friends',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                'Connect with competitors and markers',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 12.5,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(ctx),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Search by Name or Golf Club (GHIN removed)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5FAF6),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE1EFE5)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search_rounded, color: Color(0xFF8CA0BA), size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: searchController,
-                              onChanged: (val) {
-                                setModalState(() {
-                                  searchQuery = val;
-                                });
-                              },
-                              style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500),
-                              decoration: InputDecoration(
-                                hintText: 'Search by player name or golf club...',
-                                hintStyle: GoogleFonts.dmSans(
-                                  fontSize: 13,
-                                  color: const Color(0xFF8CA0BA),
-                                ),
-                                border: InputBorder.none,
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          if (searchQuery.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                setModalState(() {
-                                  searchController.clear();
-                                  searchQuery = '';
-                                });
-                              },
-                              child: const Icon(Icons.cancel_rounded, size: 18, color: Color(0xFF94A3B8)),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      searchQuery.trim().isEmpty ? 'RECENT CLUB COMPETITORS' : 'MATCHING COMPETITORS (${filteredList.length})',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (filteredList.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: Text(
-                            'No players found matching "$searchQuery"',
-                            style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-                          ),
-                        ),
-                      )
-                    else
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 220),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: filteredList.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final comp = filteredList[index];
-                            final compId = comp['id'] as String;
-                            final isSent = sentRequestIds.contains(compId);
+    try {
+      final box = await Hive.openBox('auth');
+      await box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+      await box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
 
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF4F6F3),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFF1F5F9)),
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: const Color(0xFFD1FAE5),
-                                    child: Text(
-                                      comp['initial'] as String,
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF009A60),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          comp['name'] as String,
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                        Text(
-                                          '${comp['club']} • ${comp['hcp']} HCP',
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 11.5,
-                                            color: const Color(0xFF64748B),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setModalState(() {
-                                        if (isSent) {
-                                          sentRequestIds.remove(compId);
-                                        } else {
-                                          sentRequestIds.add(compId);
-                                        }
-                                      });
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        color: isSent ? const Color(0xFFE2E8F0) : const Color(0xFF009A60),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        isSent ? 'Sent ✓' : 'Add',
-                                        style: GoogleFonts.dmSans(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: isSent ? const Color(0xFF475569) : Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: const Color(0xFF009A60),
-                              content: Text(
-                                sentRequestIds.isEmpty
-                                    ? 'Invitation link copied to clipboard!'
-                                    : '${sentRequestIds.length} friend request(s) sent successfully!',
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF009A60),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Share Invite Link or QR',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+      // Add to sender's accepted friends
+      final senderAcceptedRaw = box.get('accepted_friends_$senderId');
+      final senderAccepted = (senderAcceptedRaw is List)
+          ? List<String>.from(senderAcceptedRaw.map((e) => e.toString()))
+          : <String>[];
+      if (!senderAccepted.contains(userId)) {
+        senderAccepted.add(userId);
+        final currentUserName = (_user!['fullName'] ?? _user!['name'] ?? '').toString();
+        if (currentUserName.isNotEmpty) senderAccepted.add(currentUserName.toLowerCase());
+        await box.put('accepted_friends_$senderId', senderAccepted);
+      }
+
+      // Remove from sender's sent requests
+      final senderSentRaw = box.get('sent_friend_requests_$senderId');
+      if (senderSentRaw is List) {
+        final senderSent = List<String>.from(senderSentRaw.map((e) => e.toString()));
+        senderSent.remove(userId);
+        await box.put('sent_friend_requests_$senderId', senderSent);
+      }
+
+      // Add acceptance notification to sender's mailbox
+      final senderNotifs = box.get('user_notifications_$senderId');
+      final senderNotifList = (senderNotifs is List) ? List<Map<String, dynamic>>.from(senderNotifs) : <Map<String, dynamic>>[];
+      final myName = (_user!['fullName'] ?? _user!['name'] ?? 'A golfer').toString();
+      senderNotifList.insert(0, {
+        'id': 'notif_acc_${DateTime.now().millisecondsSinceEpoch}',
+        'title': 'Friend Request Accepted',
+        'desc': '$myName accepted your friend request! You can now follow their scores live.',
+        'time': 'Just now',
+        'unread': true,
+        'data': {'type': 'FRIEND_ACCEPTED', 'userId': userId, 'userName': myName},
+      });
+      await box.put('user_notifications_$senderId', senderNotifList);
+
+      // Notify backend
+      _apiClient.dio.post('/notifications/send', data: {
+        'recipientId': senderId,
+        'title': 'Friend Request Accepted',
+        'body': '$myName accepted your friend request! You are now connected.',
+        'type': 'SYSTEM',
+        'data': {'type': 'FRIEND_ACCEPTED', 'userId': userId},
+      }).catchError((_) => null);
+    } catch (_) {}
+
+    // Refresh live tournament data to immediately update "Friends Playing Now"
+    if (_tournaments.isNotEmpty) {
+      final liveTourn = _tournaments.firstWhere(
+        (t) => (t['status'] == 'LIVE' || t['status'] == 'IN_PROGRESS' || t['status'] == 'ACTIVE'),
+        orElse: () => _tournaments.first,
+      );
+      if (liveTourn != null && liveTourn['id'] != null) {
+        _fetchLiveTournamentData(liveTourn);
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You and $senderName are now connected!'),
+          backgroundColor: const Color(0xFF009A60),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _declineFriendRequest(Map<String, dynamic> req) async {
+    final senderId = req['senderId']?.toString();
+    if (senderId == null || _user == null) return;
+    final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
+    final reqId = req['id']?.toString() ?? req['requestId']?.toString();
+
+    setState(() {
+      _incomingFriendRequests.removeWhere((r) => (senderId.isNotEmpty && r['senderId'] == senderId) || (reqId != null && r['id'] == reqId));
+      _notifications.removeWhere((n) {
+        final nData = n['data'] is Map ? n['data'] as Map : {};
+        if (reqId != null && (n['id'] == reqId || nData['requestId'] == reqId)) return true;
+        if (senderId.isNotEmpty && (nData['senderId'] == senderId || n['senderId'] == senderId)) return true;
+        return false;
+      });
+    });
+
+    try {
+      final box = await Hive.openBox('auth');
+      await box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
+      await box.put('user_notifications_$userId', _notifications);
+
+      // Clean sender's sent requests so sender can retry
+      final senderSentRaw = box.get('sent_friend_requests_$senderId');
+      if (senderSentRaw is List) {
+        final updatedSent = List.from(senderSentRaw)
+          ..removeWhere((id) => id.toString() == userId || id.toString() == _user!['email']?.toString());
+        await box.put('sent_friend_requests_$senderId', updatedSent);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Friend request declined.'),
+          backgroundColor: Color(0xFF64748B),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _cancelSentFriendRequest(String targetId) async {
+    final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
+    setState(() {
+      _sentRequestIds.remove(targetId);
+    });
+    try {
+      final box = await Hive.openBox('auth');
+      await box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+      final targetIncoming = box.get('incoming_friend_requests_$targetId');
+      if (targetIncoming is List) {
+        final updated = List<Map<String, dynamic>>.from(targetIncoming)
+          ..removeWhere((r) => r['senderId']?.toString() == userId);
+        await box.put('incoming_friend_requests_$targetId', updated);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Friend request cancelled.'),
+          backgroundColor: Color(0xFF64748B),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _openAddFriendsScreen() {
+    final Map<String, Map<String, dynamic>> combined = {};
+    for (final c in _candidateCompetitors) {
+      final id = c['id']?.toString() ?? '';
+      if (id.isNotEmpty) combined[id] = c;
+    }
+    for (final ac in _activeCompetitorsData) {
+      final id = ac['id']?.toString() ?? '';
+      if (id.isNotEmpty && !combined.containsKey(id)) {
+        combined[id] = ac;
+      }
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddFriendsScreen(
+          user: _user,
+          candidateCompetitors: combined.values.toList(),
+          sentRequestIds: _sentRequestIds,
+          acceptedFriendIds: _acceptedFriendIds,
+          incomingRequests: _incomingFriendRequests,
+          onRequestToggled: _handleToggleFriendRequest,
+          onAcceptIncoming: _acceptFriendRequest,
+          onDeclineIncoming: _declineFriendRequest,
+          onUnfriend: _handleUnfriend,
+          onBlock: _handleBlock,
+        ),
       ),
-    );
+    ).then((_) => setState(() {}));
+  }
+
+  Future<void> _handleBlock(Map<String, dynamic> comp) async {
+    final compId = comp['id']?.toString() ?? '';
+    if (compId.isEmpty || _user == null) return;
+    final compName = (comp['name'] as String? ?? 'Golfer').toLowerCase();
+    final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
+
+    setState(() {
+      _acceptedFriendIds.remove(compId);
+      _acceptedFriendIds.remove(compName);
+      _sentRequestIds.remove(compId);
+      _friendsOnCourse.removeWhere((f) => f['id']?.toString() == compId);
+    });
+
+    try {
+      final box = await Hive.openBox('auth');
+      await box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+      await box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+
+      // Save to blocked users
+      final blockedRaw = box.get('blocked_users_$userId');
+      final List blockedList = (blockedRaw is List) ? List.from(blockedRaw) : [];
+      if (!blockedList.contains(compId)) {
+        blockedList.add(compId);
+        await box.put('blocked_users_$userId', blockedList);
+      }
+
+      // Also clean in target person's accepted friends
+      final targetAcceptedRaw = box.get('accepted_friends_$compId');
+      if (targetAcceptedRaw is List) {
+        final updated = List.from(targetAcceptedRaw)
+          ..removeWhere((id) =>
+              id.toString() == userId ||
+              id.toString().toLowerCase() == (_user!['fullName'] ?? _user!['name'] ?? '').toString().toLowerCase() ||
+              id.toString().toLowerCase() == (_user!['email'] ?? '').toString().toLowerCase());
+        await box.put('accepted_friends_$compId', updated);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${comp['name'] ?? 'Player'} has been blocked.'),
+          backgroundColor: const Color(0xFF64748B),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleUnfriend(Map<String, dynamic> comp) async {
+    final compId = comp['id']?.toString() ?? '';
+    if (compId.isEmpty || _user == null) return;
+    final compName = (comp['name'] as String? ?? 'Golfer').toLowerCase();
+    final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
+
+    setState(() {
+      _acceptedFriendIds.remove(compId);
+      _acceptedFriendIds.remove(compName);
+    });
+
+    try {
+      final box = await Hive.openBox('auth');
+      await box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+
+      // Also clean in target person's accepted friends
+      final targetAcceptedRaw = box.get('accepted_friends_$compId');
+      if (targetAcceptedRaw is List) {
+        final updated = List.from(targetAcceptedRaw)
+          ..removeWhere((id) =>
+              id.toString() == userId ||
+              id.toString().toLowerCase() == (_user!['fullName'] ?? _user!['name'] ?? '').toString().toLowerCase() ||
+              id.toString().toLowerCase() == (_user!['email'] ?? '').toString().toLowerCase());
+        await box.put('accepted_friends_$compId', updated);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${comp['name'] ?? 'Player'} removed from friends.'),
+          backgroundColor: const Color(0xFF64748B),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showAddFriendsModal() => _openAddFriendsScreen();
+
+  Future<void> _handleToggleFriendRequest(Map<String, dynamic> comp) async {
+    final compId = comp['id']?.toString() ?? '';
+    if (compId.isEmpty) return;
+    final compName = (comp['name'] as String? ?? 'Golfer').toLowerCase();
+    final isSent = _sentRequestIds.contains(compId);
+
+    setState(() {
+      if (isSent) {
+        _sentRequestIds.remove(compId);
+        _acceptedFriendIds.remove(compId);
+        _acceptedFriendIds.remove(compName);
+      } else {
+        _sentRequestIds.add(compId);
+        _acceptedFriendIds.remove(compId);
+        _acceptedFriendIds.remove(compName);
+      }
+    });
+
+    try {
+      final box = await Hive.openBox('auth');
+      final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
+      final userName = (_user?['fullName'] ?? _user?['name'] ?? 'Tournament Player').toString();
+      await box.put('sent_friend_requests_' + userId, _sentRequestIds.toList());
+      await box.put('accepted_friends_' + userId, _acceptedFriendIds.toList());
+
+      if (!isSent) {
+        final existingIncoming = box.get('incoming_friend_requests_' + compId);
+        final incomingList = (existingIncoming is List) ? List<Map<String, dynamic>>.from(existingIncoming) : <Map<String, dynamic>>[];
+        incomingList.removeWhere((item) => item['senderId'] == userId);
+        incomingList.insert(0, {
+          'id': 'freq_' + DateTime.now().millisecondsSinceEpoch.toString(),
+          'senderId': userId,
+          'senderName': userName,
+          'senderClub': _user?['club']?['name'] ?? _user?['homeClub'] ?? 'OpenClub Golfer',
+          'senderHcp': _user?['handicap']?.toString() ?? '0.0',
+          'senderInitial': userName.isNotEmpty ? userName[0].toUpperCase() : 'G',
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        await box.put('incoming_friend_requests_' + compId, incomingList);
+
+        final existingNotifs = box.get('user_notifications_' + compId);
+        final notifList = (existingNotifs is List) ? List<Map<String, dynamic>>.from(existingNotifs) : <Map<String, dynamic>>[];
+        notifList.insert(0, {
+          'id': 'notif_freq_' + DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': 'Friend Request',
+          'desc': userName + ' sent you a friend request to connect on OpenClub.',
+          'time': 'Just now',
+          'unread': true,
+          'data': {'type': 'FRIEND_REQUEST', 'senderId': userId, 'senderName': userName},
+        });
+        await box.put('user_notifications_' + compId, notifList);
+
+        final senderNotifs = box.get('user_notifications_' + userId);
+        final senderNotifList = (senderNotifs is List) ? List<Map<String, dynamic>>.from(senderNotifs) : <Map<String, dynamic>>[];
+        final senderNotifItem = {
+          'id': 'notif_sent_' + DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': 'Friend Request Sent',
+          'desc': 'You sent a friend request to ' + (comp['name'] ?? '') + ' (' + (comp['club'] ?? '') + ' • HCP ' + (comp['hcp'] ?? '') + '). Pending acceptance.',
+          'time': 'Just now',
+          'unread': false,
+          'data': {
+            'type': 'FRIEND_REQUEST_SENT',
+            'targetId': compId,
+            'targetName': comp['name'],
+            'targetClub': comp['club'],
+            'targetHcp': comp['hcp'],
+            'status': 'PENDING',
+          },
+        };
+        senderNotifList.insert(0, senderNotifItem);
+        await box.put('user_notifications_' + userId, senderNotifList);
+        if (mounted) {
+          setState(() {
+            _notifications.insert(0, senderNotifItem);
+          });
+        }
+
+        _apiClient.dio.post('/notifications/send', data: {
+          'recipientId': compId,
+          'title': 'Friend Request',
+          'body': userName + ' sent you a friend request to connect on OpenClub.',
+          'type': 'SYSTEM',
+          'data': {'type': 'FRIEND_REQUEST', 'senderId': userId, 'senderName': userName},
+        }).catchError((_) => null);
+      }
+    } catch (_) {}
   }
 
   void _showActivePlayersModal() {
@@ -663,7 +1016,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           final query = searchQuery.trim().toLowerCase();
-          final filteredList = _activeCompetitorsData.where((c) {
+          final onCourseCompetitors = _activeCompetitorsData.where((c) {
+            final thru = (c['thru'] as num?)?.toInt() ?? 0;
+            final isStarted = thru > 0 || c['score']?.toString()?.startsWith('Hole') == true;
+            return isStarted;
+          }).toList();
+          final filteredList = onCourseCompetitors.where((c) {
             if (query.isEmpty) return true;
             final name = (c['name'] as String).toLowerCase();
             final club = (c['club'] as String).toLowerCase();
@@ -796,7 +1154,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          searchQuery.isEmpty ? 'ON-COURSE COMPETITORS (${_activeCompetitorsData.length})' : 'RESULTS (${filteredList.length})',
+                          searchQuery.isEmpty ? 'ON-COURSE COMPETITORS (${onCourseCompetitors.length})' : 'RESULTS (${filteredList.length})',
                           style: GoogleFonts.dmSans(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
@@ -1021,308 +1379,415 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     );
   }
 
-  void _showNotificationsModal() {
+  void _openNotificationsScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => NotificationsScreen(
+          user: _user,
+          initialNotifications: _notifications,
+          onDismissAll: () {
+            setState(() {
+              for (final n in _notifications) {
+                final nType = (n['type'] ?? '').toString().toLowerCase();
+                final nData = n['data'] is Map ? n['data'] as Map : {};
+                final isFriend = nType.contains('friend') || nData['type'] == 'FRIEND_REQUEST';
+                if (!isFriend) {
+                  n['unread'] = false;
+                }
+              }
+            });
+          },
+          onAcceptFriendRequest: (req) => _acceptFriendRequest(req),
+          onDeclineFriendRequest: (req) => _declineFriendRequest(req),
+        ),
+      ),
+    ).then((_) => setState(() {}));
+  }
+
+  void _showNotificationsModal() => _openNotificationsScreen();
+  void _openFriendRequestsScreen() => _openNotificationsScreen();
+  void _showFriendRequestsModal() => _openNotificationsScreen();
+
+  void _showMyBookingsModal() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                const SizedBox(height: 18),
-                Row(
+                padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF7EE),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_active_rounded,
-                        color: Color(0xFF009A60),
-                        size: 20,
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Notifications & Alerts',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            'Official tournament tee-times and attestations',
-                            style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (_notifications.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5FAF6),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFE1EFE5)),
-                            ),
-                            child: const Icon(Icons.notifications_none_rounded, size: 24, color: Color(0xFF8CA0BA)),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'No Notifications',
-                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'All caught up. No new tournament notifications or marker alerts.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  ..._notifications.map((n) => _buildNotificationTile(
-                    icon: Icons.notifications_active_rounded,
-                    title: (n['title'] ?? 'Notice').toString(),
-                    desc: (n['desc'] ?? '').toString(),
-                    time: (n['time'] ?? 'Just now').toString(),
-                    unread: n['unread'] == true,
-                  )),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Close',
-                      style: GoogleFonts.dmSans(color: const Color(0xFF475569), fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+                    const SizedBox(height: 16),
 
-  Widget _buildNotificationTile({
-    required IconData icon,
-    required String title,
-    required String desc,
-    required String time,
-    required bool unread,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: unread ? const Color(0xFFF0FDF4) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: unread ? const Color(0xFFC6F0DB) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFF009A60), size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            time,
-            style: GoogleFonts.dmSans(fontSize: 10, color: const Color(0xFF94A3B8)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMessagesModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF7EE),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Color(0xFF009A60),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Player Messaging',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            'Chat with group members & tournament staff',
-                            style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Column(
+                    // Header Row with Icon badge, titles, and close button
+                    Row(
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5FAF6),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE1EFE5)),
+                            color: const Color(0xFFEAF7EE),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFC6F0DB)),
                           ),
-                          child: const Icon(Icons.chat_bubble_outline_rounded, size: 24, color: Color(0xFF8CA0BA)),
+                          child: const Icon(
+                            Icons.calendar_month_outlined,
+                            color: Color(0xFF009A60),
+                            size: 20,
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'No Active Messages',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'My Bookings',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                'Sessions & lessons booked with a Pro',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12.5,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Group chat and marker communications will appear here.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF1F5F9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF009A60),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 16),
+
+                    // Bookings List
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.55,
+                      ),
+                      child: _proBookings.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: const Icon(Icons.calendar_month_outlined, color: Color(0xFF64748B), size: 24),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'No active bookings with a Pro',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Book a PGA certified professional for private coaching',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 12,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: _proBookings.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (context, idx) {
+                                final b = _proBookings[idx];
+                                return Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.02),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Top row: Pro name and status
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 38,
+                                            height: 38,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEAF7EE),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: const Color(0xFFC6F0DB)),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              'MD',
+                                              style: GoogleFonts.dmSans(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF009A60),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  b['proName'] ?? 'Club Pro',
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${b['proRole'] ?? 'Teaching Pro'} • ${b['proClub'] ?? 'OpenClub'}',
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 11,
+                                                    color: const Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEAF7EE),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: const Color(0xFFC6F0DB)),
+                                            ),
+                                            child: Text(
+                                              (b['status'] ?? 'CONFIRMED').toString(),
+                                              style: GoogleFonts.dmSans(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF009A60),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8FAF9),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFFE8F1EB)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              b['serviceName'] ?? 'Golf Lesson',
+                                              style: GoogleFonts.dmSans(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF009A60)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${b['date']} • ${b['time']}',
+                                                  style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF475569)),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.location_on_outlined, size: 13, color: Color(0xFF8CA0BA)),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    b['location'] ?? 'Academy',
+                                                    style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Session on ${b['date']} synced to calendar.'),
+                                                    backgroundColor: const Color(0xFF009A60),
+                                                    behavior: SnackBarBehavior.floating,
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEAF7EE),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  'Add to Calendar',
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(0xFF009A60),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          GestureDetector(
+                                            onTap: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Contacting ${b['proName']} for reschedule options.'),
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                'Reschedule',
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF475569),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Book Another Session Button
+                    GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('PGA Pro booking catalog is active.'),
+                            backgroundColor: Color(0xFF009A60),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF009A60),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF009A60).withOpacity(0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Book Another Session with a Pro',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    child: Text('Close', style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600)),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -1377,6 +1842,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   Future<void> _handleLogout() async {
     final box = await Hive.openBox('auth');
     await box.clear();
+    setState(() {
+      _sentRequestIds.clear();
+      _acceptedFriendIds.clear();
+      _friendsOnCourse.clear();
+    });
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
     }
@@ -1392,15 +1862,16 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     final nameParts = displayName.trim().split(RegExp(r'\s+'));
     final firstName = _user?['firstName']?.toString().trim().isNotEmpty == true
         ? _user!['firstName'].toString().trim()
-        : (nameParts.isNotEmpty ? nameParts[0] : 'Samuel');
+        : (nameParts.isNotEmpty ? nameParts[0] : 'Tournament Player');
     final initials = nameParts.length >= 2
         ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
         : (displayName.isNotEmpty ? displayName.substring(0, displayName.length.clamp(1, 2)).toUpperCase() : 'TP');
-    final dynamic rawAvatar = _user?['avatar'] ?? _user?['photo'] ?? _user?['profilePicture'] ?? _user?['image'];
+    final dynamic rawAvatar = _user?['profilePhoto'] ?? _user?['avatar'] ?? _user?['photo'] ?? _user?['profilePicture'] ?? _user?['image'];
     final bool hasDisplayPicture = rawAvatar != null && 
         rawAvatar.toString().trim().isNotEmpty && 
         (rawAvatar.toString().startsWith('http') || 
          rawAvatar.toString().startsWith('assets/') || 
+         rawAvatar.toString().startsWith('data:image') ||
          rawAvatar.toString().startsWith('/'));
     final isPro = _user?['isPro'] == true || 
         _user?['classification']?.toString().toUpperCase() == 'PROFESSIONAL' || 
@@ -1503,13 +1974,13 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         color: Colors.white,
                                         size: 21,
                                       ),
-                                      onPressed: _showAddFriendsModal,
+                                      onPressed: _openAddFriendsScreen,
                                       tooltip: 'Add Friends',
                                     ),
                                   ),
                                   const SizedBox(width: 14),
 
-                                  // Notification Bell with Red Badge Dot
+                                  // Notification Bell with Badge
                                   SizedBox(
                                     width: 32,
                                     height: 32,
@@ -1524,44 +1995,106 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             color: Colors.white,
                                             size: 21,
                                           ),
-                                          Positioned(
-                                            top: 0,
-                                            right: 0,
-                                            child: Container(
-                                              width: 7,
-                                              height: 7,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFEF4444),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 1.2,
+                                          if (_incomingFriendRequests.isNotEmpty)
+                                            Positioned(
+                                              top: -3,
+                                              right: -6,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEF4444),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.2,
+                                                  ),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    '${_incomingFriendRequests.length}',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: Colors.white,
+                                                      fontSize: 9.5,
+                                                      fontWeight: FontWeight.w800,
+                                                      height: 1.0,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          else if (_notifications.any((n) => n['unread'] == true))
+                                            Positioned(
+                                              top: 0,
+                                              right: 0,
+                                              child: Container(
+                                                width: 7,
+                                                height: 7,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEF4444),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.2,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
                                         ],
                                       ),
-                                      onPressed: _showNotificationsModal,
+                                      onPressed: _openNotificationsScreen,
                                       tooltip: 'Notifications',
                                     ),
                                   ),
                                   const SizedBox(width: 14),
 
-                                  // Paper Airplane / Send Icon (Messages)
+                                  // My Bookings Icon (Displays bookings made with a Pro)
                                   SizedBox(
                                     width: 32,
                                     height: 32,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                      icon: const Icon(
-                                        Icons.send_outlined,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      onPressed: _showMessagesModal,
-                                      tooltip: 'Messages',
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          icon: const Icon(
+                                            Icons.calendar_month_outlined,
+                                            color: Colors.white,
+                                            size: 21,
+                                          ),
+                                          onPressed: _showMyBookingsModal,
+                                          tooltip: 'My Bookings (Pro Sessions)',
+                                        ),
+                                        if (_proBookings.isNotEmpty)
+                                          Positioned(
+                                            top: -3,
+                                            right: -5,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF009A60),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: const Color(0xFF0A3D27),
+                                                  width: 1.2,
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '${_proBookings.length}',
+                                                  style: GoogleFonts.dmSans(
+                                                    color: Colors.white,
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    height: 1.0,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(width: 14),
@@ -1636,21 +2169,39 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                         ),
                                                       ),
                                                     )
-                                                  : Image.asset(
-                                                      rawAvatar.toString(),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (ctx, err, stack) => Center(
-                                                        child: Text(
-                                                          initials,
-                                                          style: GoogleFonts.dmSans(
-                                                            fontSize: 19,
-                                                            fontWeight: FontWeight.w800,
-                                                            color: Colors.white,
-                                                            letterSpacing: 0.5,
+                                                  : rawAvatar.toString().startsWith('data:image')
+                                                      ? Builder(
+                                                          builder: (_) {
+                                                            try {
+                                                              final commaIdx = rawAvatar.toString().indexOf(',');
+                                                              final base64Str = commaIdx != -1 ? rawAvatar.toString().substring(commaIdx + 1) : rawAvatar.toString();
+                                                              return Image.memory(
+                                                                base64Decode(base64Str),
+                                                                fit: BoxFit.cover,
+                                                                errorBuilder: (_, __, ___) => Center(
+                                                                  child: Text(initials, style: GoogleFonts.dmSans(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+                                                                ),
+                                                              );
+                                                            } catch (_) {
+                                                              return Center(child: Text(initials, style: GoogleFonts.dmSans(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)));
+                                                            }
+                                                          },
+                                                        )
+                                                      : Image.asset(
+                                                          rawAvatar.toString(),
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder: (ctx, err, stack) => Center(
+                                                            child: Text(
+                                                              initials,
+                                                              style: GoogleFonts.dmSans(
+                                                                fontSize: 19,
+                                                                fontWeight: FontWeight.w800,
+                                                                color: Colors.white,
+                                                                letterSpacing: 0.5,
+                                                              ),
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ),
-                                                    ))
+                                                        ))
                                               : Center(
                                                   child: Text(
                                                     initials,
@@ -1843,62 +2394,76 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     ),
                                   ],
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(26),
+                                  child: Stack(
                                     children: [
-                                      const Icon(
-                                        Icons.calendar_month_rounded,
-                                        color: Color(0xFF009A60),
-                                        size: 20,
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: _BookAProPatternPainter(),
+                                        ),
                                       ),
-                                      const SizedBox(width: 7),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Book a Pro',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF009A60),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: -0.2,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.calendar_month_rounded,
+                                                color: Color(0xFF009A60),
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 7),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    'Book a Pro',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF009A60),
+                                                      fontSize: 17,
+                                                      fontWeight: FontWeight.w800,
+                                                      letterSpacing: -0.3,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                  const SizedBox(height: 1),
+                                                  Text(
+                                                    'Book the club pro',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF64748B),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w500,
+                                                      letterSpacing: -0.2,
+                                                      height: 1.1,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                  Text(
+                                                    'for golfing sessions',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF64748B),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w500,
+                                                      letterSpacing: -0.2,
+                                                      height: 1.1,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 1),
-                                          Text(
-                                            'Book the club pro',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF64748B),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w500,
-                                              letterSpacing: -0.2,
-                                              height: 1.1,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
-                                          ),
-                                          Text(
-                                            'for golfing sessions',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF64748B),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w500,
-                                              letterSpacing: -0.2,
-                                              height: 1.1,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1934,62 +2499,76 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     ),
                                   ],
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(26),
+                                  child: Stack(
                                     children: [
-                                      const Icon(
-                                        Icons.workspace_premium_rounded,
-                                        color: Color(0xFF009A60),
-                                        size: 20,
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: _HcpPatternPainter(),
+                                        ),
                                       ),
-                                      const SizedBox(width: 7),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            '$handicapValue HCP',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF009A60),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: -0.2,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.workspace_premium_rounded,
+                                                color: Color(0xFF009A60),
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 7),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    '$handicapValue HCP',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF009A60),
+                                                      fontSize: 17,
+                                                      fontWeight: FontWeight.w800,
+                                                      letterSpacing: -0.3,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                  const SizedBox(height: 1),
+                                                  Text(
+                                                    'Your verified',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF64748B),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w500,
+                                                      letterSpacing: -0.2,
+                                                      height: 1.1,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                  Text(
+                                                    'handicap index',
+                                                    style: GoogleFonts.dmSans(
+                                                      color: const Color(0xFF64748B),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w500,
+                                                      letterSpacing: -0.2,
+                                                      height: 1.1,
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 1),
-                                          Text(
-                                            'Your verified',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF64748B),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w500,
-                                              letterSpacing: -0.2,
-                                              height: 1.1,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
-                                          ),
-                                          Text(
-                                            'handicap index',
-                                            style: GoogleFonts.dmSans(
-                                              color: const Color(0xFF64748B),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w500,
-                                              letterSpacing: -0.2,
-                                              height: 1.1,
-                                            ),
-                                            maxLines: 1,
-                                            softWrap: false,
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -2012,464 +2591,491 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                         if (_activeRound != null) ...[
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: const Color(0xFF052417),
                               borderRadius: BorderRadius.circular(22),
                               border: Border.all(color: const Color(0xFF0D3826)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.18),
-                                  blurRadius: 20,
+                                  color: Colors.black.withOpacity(0.20),
+                                  blurRadius: 24,
                                   offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Top Row: Squircle Hole Badge + Details
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Squircle Hole Badge (Clean, without top-right dot)
-                                    Container(
-                                      width: 64,
-                                      height: 82,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0B3523),
-                                        borderRadius: BorderRadius.circular(18),
-                                        border: Border.all(color: const Color(0xFF16603E).withOpacity(0.7)),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'HOLE',
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF10B981).withOpacity(0.9),
-                                              letterSpacing: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${_activeRound!['holeNumber']}',
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 26,
-                                              fontWeight: FontWeight.w900,
-                                              color: const Color(0xFF10B981),
-                                              height: 1.0,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _ActiveRoundCoursePatternPainter(),
                                     ),
-                                    const SizedBox(width: 14),
-
-                                    // Right Details Column
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link (matching View Players font size 13 & w600, without arrow)
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(18),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Top Row: Squircle Hole Badge + Details
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Squircle Hole Badge (Clean, without top-right dot)
+                                            Container(
+                                              width: 66,
+                                              height: 86,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF0B3523),
+                                                borderRadius: BorderRadius.circular(18),
+                                                border: Border.all(color: const Color(0xFF16603E).withOpacity(0.7)),
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
-                                                  const _BlinkingLiveBadge(),
-                                                  const SizedBox(width: 8),
                                                   Text(
-                                                    (_activeRound!['dayText'] as String?) ?? 'ROUND 2',
+                                                    'HOLE',
                                                     style: GoogleFonts.dmSans(
-                                                      fontSize: 11,
+                                                      fontSize: 9.5,
                                                       fontWeight: FontWeight.w700,
-                                                      color: const Color(0xFF8FAEA2),
-                                                      letterSpacing: 0.5,
+                                                      color: const Color(0xFF10B981).withOpacity(0.9),
+                                                      letterSpacing: 1.2,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    '${_activeRound!['holeNumber']}',
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 28,
+                                                      fontWeight: FontWeight.w900,
+                                                      color: const Color(0xFF10B981),
+                                                      height: 1.0,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Opening tournament leaderboard...'),
-                                                      backgroundColor: Color(0xFF009A60),
-                                                    ),
-                                                  );
-                                                },
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      'Leaderboard',
-                                                      style: GoogleFonts.dmSans(
-                                                        fontSize: 11.5,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: const Color(0xFF10B981),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    const Icon(
-                                                      Icons.chevron_right_rounded,
-                                                      color: Color(0xFF10B981),
-                                                      size: 14,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 5),
-
-                                          // Row 2: Tournament Name (Full display)
-                                          Text(
-                                            _activeRound!['tournamentName'] as String,
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white,
-                                              letterSpacing: -0.2,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 2),
+                                            const SizedBox(width: 14),
 
-                                          // Row 3: Hole Information under Tournament Name
-                                          Text(
-                                            ((_activeRound!['holeInfo'] as String?) ?? 'Par 4 • 415 yds').replaceAll('yards', 'yds'),
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF8FAEA2),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-
-                                          // Row 4: Flight Avatars + Inactivity Status (Written in full)
-                                          Builder(
-                                            builder: (context) {
-                                              final groupPlayers = ((_activeRound!['groupPlayers'] as List<dynamic>?) ?? [])
-                                                  .cast<Map<String, dynamic>>();
-
-                                              final double stackWidth = groupPlayers.isEmpty
-                                                  ? 20.0
-                                                  : (20.0 + (groupPlayers.length - 1) * 14.0);
-
-                                              return Row(
+                                            // Right Details Column
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  SizedBox(
-                                                    width: stackWidth,
-                                                    height: 20,
-                                                    child: Stack(
-                                                      children: [
-                                                        for (int i = 0; i < groupPlayers.length; i++)
-                                                          Positioned(
-                                                            left: i * 14.0,
-                                                            child: Container(
-                                                              width: 20,
-                                                              height: 20,
-                                                              decoration: BoxDecoration(
-                                                                shape: BoxShape.circle,
-                                                                color: const Color(0xFF0E3D27),
-                                                                border: Border.all(color: const Color(0xFF052417), width: 1.5),
-                                                              ),
-                                                              child: ClipOval(
-                                                                child: (groupPlayers[i]['avatar'] != null &&
-                                                                        (groupPlayers[i]['avatar'] as String).isNotEmpty)
-                                                                    ? Image.asset(
-                                                                        groupPlayers[i]['avatar'] as String,
-                                                                        width: 20,
-                                                                        height: 20,
-                                                                        fit: BoxFit.cover,
-                                                                        errorBuilder: (context, error, stackTrace) => Center(
-                                                                          child: Text(
-                                                                            (groupPlayers[i]['initials'] as String?) ?? '',
-                                                                            style: GoogleFonts.dmSans(
-                                                                              fontSize: 8.5,
-                                                                              fontWeight: FontWeight.w700,
-                                                                              color: const Color(0xFF10B981),
-                                                                              letterSpacing: -0.5,
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      )
-                                                                    : Center(
-                                                                        child: Text(
-                                                                          (groupPlayers[i]['initials'] as String?) ?? '',
-                                                                          style: GoogleFonts.dmSans(
-                                                                            fontSize: 8.5,
-                                                                            fontWeight: FontWeight.w700,
-                                                                            color: const Color(0xFF10B981),
-                                                                            letterSpacing: -0.5,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  if (_hasInactivityWarning)
-                                                    Text(
-                                                      'INACTIVE FOR 30 MINUTES',
-                                                      style: GoogleFonts.dmSans(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.w700,
-                                                        color: const Color(0xFFF59E0B),
-                                                        letterSpacing: 0.5,
-                                                      ),
-                                                    )
-                                                  else
-                                                    Text(
-                                                      (_activeRound!['flightText'] as String?) ?? 'Active Flight',
-                                                      style: GoogleFonts.dmSans(
-                                                        fontSize: 10.5,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: const Color(0xFF8FAEA2),
-                                                      ),
-                                                    ),
-                                                ],
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                ],
-
-                                const SizedBox(height: 14),
-                                const Divider(color: Color(0xFF0F3D2A), height: 1),
-                                const SizedBox(height: 14),
-
-                                // Bottom Row: Resume Play + Forfeit (Consistent with Featured Tournament Card)
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 7,
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          try {
-                                            final roundKey = _activeRound?['id'] ?? 'active_round';
-                                            final box = await Hive.openBox('rounds');
-                                            await box.put('round_started_at_$roundKey', DateTime.now().millisecondsSinceEpoch);
-                                            await box.put('round_notified_$roundKey', false);
-                                          } catch (_) {}
-                                          if (mounted) setState(() => _hasInactivityWarning = false);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Resuming score entry for ${_activeRound!['tournamentName']} (Hole ${_activeRound!['holeNumber']})...'),
-                                              backgroundColor: const Color(0xFF009A60),
-                                            ),
-                                          );
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => const ScoringScreen(tournamentId: 't1', courseId: 'c1'),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF009A60),
-                                            borderRadius: BorderRadius.circular(12),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(0xFF009A60).withOpacity(0.35),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                'Resume Play',
-                                                style: GoogleFonts.dmSans(
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 16),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      flex: 3,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          showModalBottomSheet(
-                                            context: context,
-                                            backgroundColor: Colors.transparent,
-                                            builder: (ctx) => Center(
-                                              child: ConstrainedBox(
-                                                constraints: const BoxConstraints(maxWidth: 440),
-                                                child: Container(
-                                                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-                                                  decoration: const BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                                                  ),
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                  // Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Container(
-                                                        width: 44,
-                                                        height: 4,
-                                                        decoration: BoxDecoration(
-                                                          color: const Color(0xFFE2E8F0),
-                                                          borderRadius: BorderRadius.circular(2),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 20),
-                                                      // Centered Squircle Warning Badge
-                                                      Container(
-                                                        width: 64,
-                                                        height: 64,
-                                                        decoration: BoxDecoration(
-                                                          color: const Color(0xFFFFF1F2),
-                                                          borderRadius: BorderRadius.circular(22),
-                                                          border: Border.all(color: const Color(0xFFFFE4E6)),
-                                                        ),
-                                                        child: const Icon(Icons.warning_rounded, color: Color(0xFFDC2626), size: 32),
-                                                      ),
-                                                      const SizedBox(height: 18),
-                                                      // Centered Title
-                                                      Text(
-                                                        'Withdraw from Round?',
-                                                        style: GoogleFonts.dmSans(
-                                                          fontSize: 22,
-                                                          fontWeight: FontWeight.w900,
-                                                          color: const Color(0xFF0F172A),
-                                                          letterSpacing: -0.4,
-                                                        ),
-                                                        textAlign: TextAlign.center,
-                                                      ),
-                                                      const SizedBox(height: 10),
-                                                      // Centered Body with bold tournament name
-                                                      RichText(
-                                                        textAlign: TextAlign.center,
-                                                        text: TextSpan(
-                                                          style: GoogleFonts.dmSans(
-                                                            fontSize: 13.5,
-                                                            color: const Color(0xFF64748B),
-                                                            height: 1.45,
-                                                          ),
-                                                          children: [
-                                                            const TextSpan(text: 'Forfeiting now will disqualify your score from the '),
-                                                            TextSpan(
-                                                              text: _activeRound?['tournamentName'] ?? 'the tournament',
-                                                              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                                      Row(
+                                                        children: [
+                                                          const _BlinkingLiveBadge(),
+                                                          const SizedBox(width: 8),
+                                                          Text(
+                                                            (_activeRound!['dayText'] as String?) ?? 'ROUND 2',
+                                                            style: GoogleFonts.dmSans(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.w700,
+                                                              color: const Color(0xFF8FAEA2),
+                                                              letterSpacing: 0.5,
                                                             ),
-                                                            const TextSpan(text: '. This action cannot be undone.'),
-                                                          ],
-                                                        ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      const SizedBox(height: 24),
-                                                      // Button 1: Yes, Forfeit Match
-                                                      SizedBox(
-                                                        width: double.infinity,
-                                                        height: 48,
-                                                        child: ElevatedButton(
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: const Color(0xFFD92D20),
-                                                            foregroundColor: Colors.white,
-                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                            elevation: 2,
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text('Opening tournament leaderboard...'),
+                                                              backgroundColor: Color(0xFF009A60),
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: Container(
+                                                          width: 28,
+                                                          height: 28,
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFF0B3523),
+                                                            shape: BoxShape.circle,
+                                                            border: Border.all(color: const Color(0xFF16603E), width: 1),
                                                           ),
-                                                          onPressed: () async {
-                                                            try {
-                                                              final roundKey = _activeRound?['id'] ?? 'active_round';
-                                                              final box = await Hive.openBox('rounds');
-                                                              await box.put('round_forfeited_$roundKey', true);
-                                                            } catch (_) {}
-                                                            _forfeitTimer?.cancel();
-                                                            if (mounted) {
-                                                              setState(() => _activeRound = null);
-                                                            }
-                                                            Navigator.pop(ctx);
-                                                            ScaffoldMessenger.of(context).showSnackBar(
-                                                              const SnackBar(content: Text('Withdrawn from tournament round.')),
-                                                            );
-                                                          },
-                                                          child: Text(
-                                                            'Yes, Forfeit Match',
-                                                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 12),
-                                                      // Button 2: Cancel, Stay in Play
-                                                      SizedBox(
-                                                        width: double.infinity,
-                                                        height: 48,
-                                                        child: ElevatedButton(
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: const Color(0xFFF1F5F9),
-                                                            foregroundColor: const Color(0xFF0F172A),
-                                                            elevation: 0,
-                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                          ),
-                                                          onPressed: () => Navigator.pop(ctx),
-                                                          child: Text(
-                                                            'Cancel, Stay in Play',
-                                                            style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                          child: const Icon(
+                                                            Icons.emoji_events_rounded,
+                                                            color: Color(0xFF10B981),
+                                                            size: 15,
                                                           ),
                                                         ),
                                                       ),
                                                     ],
                                                   ),
+                                                  const SizedBox(height: 5),
+
+                                                  // Row 2: Tournament Name (Full display)
+                                                  Text(
+                                                    _activeRound!['tournamentName'] as String,
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Colors.white,
+                                                      letterSpacing: -0.2,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  if (_activeRound!['courseName'] != null && (_activeRound!['courseName'] as String).isNotEmpty) ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      _activeRound!['courseName'] as String,
+                                                      style: GoogleFonts.dmSans(
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: const Color(0xFF10B981),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                  const SizedBox(height: 3),
+
+                                                  // Row 4: Hole Information (Par & Distance)
+                                                  Text(
+                                                    ((_activeRound!['holeInfo'] as String?) ?? 'Par 4 • 345 yds').replaceAll('yards', 'yds'),
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 11.5,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: const Color(0xFF8FAEA2),
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 6),
+
+                                                  // Row 4: Flight Avatars + Inactivity Status
+                                                  Builder(
+                                                    builder: (context) {
+                                                      final rawPlayers = ((_activeRound!['groupPlayers'] as List<dynamic>?) ?? [])
+                                                          .cast<Map<String, dynamic>>();
+
+                                                      final currentUserId = _user?['id']?.toString();
+                                                      final currentUserEmail = _user?['email']?.toString()?.toLowerCase();
+                                                      final currentUserName = (_user?['fullName'] ?? _user?['name'] ?? 
+                                                          ((_user?['firstName'] != null && _user?['lastName'] != null)
+                                                              ? '${_user!['firstName']} ${_user!['lastName']}'.trim()
+                                                              : (_user?['firstName'] ?? ''))).toString().toLowerCase().trim();
+
+                                                      final groupPlayers = rawPlayers.where((p) {
+                                                        final pId = p['id']?.toString();
+                                                        final pEmail = p['email']?.toString()?.toLowerCase();
+                                                        final pName = p['name']?.toString()?.toLowerCase();
+                                                        if (currentUserId != null && currentUserId == pId) return false;
+                                                        if (currentUserEmail != null && currentUserEmail == pEmail) return false;
+                                                        if (currentUserName.isNotEmpty && currentUserName == pName) return false;
+                                                        if (currentUserName.contains('adediran') && pName != null && pName.contains('adediran')) return false;
+                                                        if (currentUserName.contains('obadina') && pName != null && pName.contains('obadina')) return false;
+                                                        if (_user == null && (pName == 'isabella wilson' || p['initials'] == 'IW')) return false;
+                                                        return true;
+                                                      }).take(3).toList();
+
+                                                      final double avatarSize = 28.0;
+                                                      final double overlap = 19.0;
+                                                      final double stackWidth = groupPlayers.isEmpty
+                                                          ? avatarSize
+                                                          : (avatarSize + (groupPlayers.length - 1) * overlap);
+
+                                                      return Row(
+                                                        children: [
+                                                          SizedBox(
+                                                            width: stackWidth,
+                                                            height: avatarSize,
+                                                            child: Stack(
+                                                              children: [
+                                                                for (int i = 0; i < groupPlayers.length; i++)
+                                                                  Positioned(
+                                                                    left: i * overlap,
+                                                                    child: Container(
+                                                                      width: avatarSize,
+                                                                      height: avatarSize,
+                                                                      decoration: BoxDecoration(
+                                                                        shape: BoxShape.circle,
+                                                                        color: const Color(0xFF0E3D27),
+                                                                        border: Border.all(color: const Color(0xFF052417), width: 1.5),
+                                                                        boxShadow: [
+                                                                          BoxShadow(
+                                                                            color: Colors.black.withOpacity(0.20),
+                                                                            blurRadius: 3,
+                                                                            offset: const Offset(0, 1),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      child: ClipOval(
+                                                                        child: _buildFlightPlayerAvatar(
+                                                                          groupPlayers[i]['name'] as String? ?? 'Golfer',
+                                                                          groupPlayers[i]['avatar'] as String?,
+                                                                          groupPlayers[i]['initials'] as String?,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          if (_hasInactivityWarning)
+                                                            Text(
+                                                              'INACTIVE FOR 30 MINUTES',
+                                                              style: GoogleFonts.dmSans(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.w700,
+                                                                color: const Color(0xFFF59E0B),
+                                                                letterSpacing: 0.5,
+                                                              ),
+                                                            )
+                                                          else
+                                                            Text(
+                                                              _activeRound?['flightText']
+                                                                      ?.toString()
+                                                                      .replaceAll(RegExp(r'\s*•\s*Players in Flight', caseSensitive: false), '')
+                                                                      .replaceAll(RegExp(r'Players in Flight', caseSensitive: false), '')
+                                                                      .trim() ?? 'Flight 1',
+                                                              style: GoogleFonts.dmSans(
+                                                                fontSize: 11.5,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: const Color(0xFFD1F2DE),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+
+                                        const SizedBox(height: 14),
+                                        const Divider(color: Color(0xFF0F3D2A), height: 1),
+                                        const SizedBox(height: 14),
+
+                                        // Bottom Row: Resume Play + Forfeit (Consistent with Featured Tournament Card)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 7,
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  try {
+                                                    final roundKey = _activeRound?['id'] ?? 'active_round';
+                                                    final box = await Hive.openBox('rounds');
+                                                    await box.put('round_started_at_$roundKey', DateTime.now().millisecondsSinceEpoch);
+                                                    await box.put('round_notified_$roundKey', false);
+                                                  } catch (_) {}
+                                                  if (mounted) setState(() => _hasInactivityWarning = false);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Resuming score entry for ${_activeRound!['tournamentName']} (Hole ${_activeRound!['holeNumber']})...'),
+                                                      backgroundColor: const Color(0xFF009A60),
+                                                    ),
+                                                  );
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => const ScoringScreen(tournamentId: 't1', courseId: 'c1'),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Container(
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF009A60),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: const Color(0xFF009A60).withOpacity(0.35),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: Row(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Text(
+                                                        'Resume Play',
+                                                        style: GoogleFonts.dmSans(
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 16),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          );
-                                        },
-                                        child: Container(
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF0C241B),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: const Color(0xFF1A3F30)),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(0.2),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 2),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              flex: 3,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  showModalBottomSheet(
+                                                    context: context,
+                                                    backgroundColor: Colors.transparent,
+                                                    builder: (ctx) => Center(
+                                                      child: ConstrainedBox(
+                                                        constraints: const BoxConstraints(maxWidth: 440),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                                                          decoration: const BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                                                          ),
+                                                          child: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Container(
+                                                                width: 44,
+                                                                height: 4,
+                                                                decoration: BoxDecoration(
+                                                                  color: const Color(0xFFE2E8F0),
+                                                                  borderRadius: BorderRadius.circular(2),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 20),
+                                                              // Centered Squircle Warning Badge
+                                                              Container(
+                                                                width: 64,
+                                                                height: 64,
+                                                                decoration: BoxDecoration(
+                                                                  color: const Color(0xFFFFF1F2),
+                                                                  borderRadius: BorderRadius.circular(22),
+                                                                  border: Border.all(color: const Color(0xFFFFE4E6)),
+                                                                ),
+                                                                child: const Icon(Icons.warning_rounded, color: Color(0xFFDC2626), size: 32),
+                                                              ),
+                                                              const SizedBox(height: 18),
+                                                              // Centered Title
+                                                              Text(
+                                                                'Withdraw from Round?',
+                                                                style: GoogleFonts.dmSans(
+                                                                  fontSize: 22,
+                                                                  fontWeight: FontWeight.w900,
+                                                                  color: const Color(0xFF0F172A),
+                                                                  letterSpacing: -0.4,
+                                                                ),
+                                                                textAlign: TextAlign.center,
+                                                              ),
+                                                              const SizedBox(height: 10),
+                                                              // Centered Body with bold tournament name
+                                                              RichText(
+                                                                textAlign: TextAlign.center,
+                                                                text: TextSpan(
+                                                                  style: GoogleFonts.dmSans(
+                                                                    fontSize: 13.5,
+                                                                    color: const Color(0xFF64748B),
+                                                                    height: 1.45,
+                                                                  ),
+                                                                  children: [
+                                                                    const TextSpan(text: 'Forfeiting now will disqualify your score from the '),
+                                                                    TextSpan(
+                                                                      text: _activeRound?['tournamentName'] ?? 'the tournament',
+                                                                      style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                                                    ),
+                                                                    const TextSpan(text: '. This action cannot be undone.'),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 24),
+                                                              // Button 1: Yes, Forfeit Match
+                                                              SizedBox(
+                                                                width: double.infinity,
+                                                                height: 48,
+                                                                child: ElevatedButton(
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: const Color(0xFFDC2626),
+                                                                    foregroundColor: Colors.white,
+                                                                    elevation: 0,
+                                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                                  ),
+                                                                  onPressed: () {
+                                                                    final id = _activeRound?['id'];
+                                                                    if (id != null) {
+                                                                      _forfeitedRoundIds.add(id);
+                                                                      setState(() => _activeRound = null);
+                                                                    }
+                                                                    Navigator.pop(ctx);
+                                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                                      const SnackBar(content: Text('Withdrawn from tournament round.')),
+                                                                    );
+                                                                  },
+                                                                  child: Text(
+                                                                    'Yes, Forfeit Match',
+                                                                    style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 12),
+                                                              // Button 2: Cancel, Stay in Play
+                                                              SizedBox(
+                                                                width: double.infinity,
+                                                                height: 48,
+                                                                child: ElevatedButton(
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: const Color(0xFFF1F5F9),
+                                                                    foregroundColor: const Color(0xFF0F172A),
+                                                                    elevation: 0,
+                                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                                  ),
+                                                                  onPressed: () => Navigator.pop(ctx),
+                                                                  child: Text(
+                                                                    'Cancel, Stay in Play',
+                                                                    style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Container(
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF0C241B),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(color: const Color(0xFF1A3F30)),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.2),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                    'Forfeit',
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(0xFFFB7185),
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ],
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            'Forfeit',
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFFFB7185),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -2479,7 +3085,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Playing Now',
+                              'Friends Playing Now',
                               style: GoogleFonts.dmSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -2680,14 +3286,14 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             onTap: _showAddFriendsModal,
                             child: CustomPaint(
                               painter: DashedBorderPainter(
-                                color: const Color(0xFFCBD5E1),
+                                color: const Color(0xFFC6F0DB),
                                 strokeWidth: 1.8,
                                 borderRadius: 22,
                               ),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF4F6F3).withOpacity(0.75),
+                                  color: const Color(0xFFEAF7EE).withOpacity(0.6),
                                   borderRadius: BorderRadius.circular(22),
                                 ),
                                 child: Row(
@@ -2721,7 +3327,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
-                                            'No friends active',
+                                            'No friends on the course yet',
                                             style: GoogleFonts.dmSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -2733,11 +3339,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'Tap to add friends',
+                                            'Invite fellow golfers or join active rounds',
                                             style: GoogleFonts.dmSans(
                                               fontSize: 11.5,
                                               fontWeight: FontWeight.w400,
-                                              color: const Color(0xFF94A3B8),
+                                              color: const Color(0xFF64748B),
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -3273,7 +3879,6 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -3286,114 +3891,129 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    // Mint Date Badge
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF7EE),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFC6F0DB)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            round['month'] ?? 'OCT',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF009A60),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Text(
-                            round['day'] ?? '12',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF009A60),
-                              height: 1.05,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Middle Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            round['clubName'] ?? 'Ikoyi Club 1938',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Text(
-                                '${round['holes'] ?? 18} Holes',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 12.5,
-                                  color: const Color(0xFF94A3B8),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                '•',
-                                style: TextStyle(color: Color(0xFFCBD5E1)),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                round['status'] ?? 'COMPLETED',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF009A60),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Right Score Column
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${round['netScore'] ?? 72}',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0F172A),
-                            letterSpacing: -0.5,
-                            height: 1.0,
-                          ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _ScorecardPatternPainter(),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'NET SCORE',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF94A3B8),
-                            letterSpacing: 0.5,
-                          ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            // Mint Date Badge
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF7EE),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: const Color(0xFFC6F0DB)),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    round['month'] ?? 'OCT',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF009A60),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    round['day'] ?? '12',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF009A60),
+                                      height: 1.05,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Middle Info
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    round['clubName'] ?? 'Ikoyi Club 1938',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${round['holes'] ?? 18} Holes',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 12.5,
+                                          color: const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        '•',
+                                        style: TextStyle(color: Color(0xFFCBD5E1)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        round['status'] ?? 'COMPLETED',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF009A60),
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Right Score Column
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${round['netScore'] ?? 72}',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0F172A),
+                                    letterSpacing: -0.5,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'NET SCORE',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF94A3B8),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )),
@@ -3936,9 +4556,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   }
 
   Widget _buildMenuDrawer() {
-    final firstName = _user?['firstName'] ?? 'Samuel';
-    final lastName = _user?['lastName'] ?? 'Obadina';
-    final email = _user?['email'] ?? 'samuel.obadina@gmail.com';
+    final firstName = _user?['firstName'] ?? 'Tournament';
+    final lastName = _user?['lastName'] ?? 'Player';
+    final email = _user?['email'] ?? 'player@openclub.app';
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -4000,6 +4620,27 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
               leading: const Icon(Icons.golf_course_rounded, color: Color(0xFF009A60), size: 20),
               title: Text('Home Club Directory', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined, color: Color(0xFF009A60), size: 20),
+              title: Text('My Pro Bookings', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              trailing: _proBookings.isNotEmpty
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF7EE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_proBookings.length} Active',
+                        style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF009A60)),
+                      ),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                _showMyBookingsModal();
+              },
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Color(0xFF009A60), size: 20),
@@ -4319,3 +4960,201 @@ class _BlinkingLiveBadgeState extends State<_BlinkingLiveBadge> with SingleTicke
     );
   }
 }
+
+/// Custom painter for Book a Pro swing velocity trajectory arc pattern
+class _BookAProPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final arcPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    final path = Path()
+      ..moveTo(-10, size.height * 0.9)
+      ..quadraticBezierTo(size.width * 0.45, size.height * 0.65, size.width * 0.92, size.height * 0.18);
+    canvas.drawPath(path, arcPaint);
+
+    // Target concentric impact arcs
+    final center = Offset(size.width * 0.88, size.height * 0.28);
+    final circlePaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    canvas.drawCircle(center, 14, circlePaint);
+    circlePaint.color = const Color(0xFF009A60).withOpacity(0.07);
+    canvas.drawCircle(center, 26, circlePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for HCP USGA slope rating diamond lattice pattern
+class _HcpPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final slopePaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final path = Path()
+      ..moveTo(-5, size.height * 0.72)
+      ..lineTo(size.width * 0.35, size.height * 0.58)
+      ..lineTo(size.width * 0.65, size.height * 0.38)
+      ..lineTo(size.width + 10, size.height * 0.22);
+    canvas.drawPath(path, slopePaint);
+
+    final dotPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.18)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(size.width * 0.35, size.height * 0.58), 2.5, dotPaint);
+    canvas.drawCircle(Offset(size.width * 0.65, size.height * 0.38), 3.0, dotPaint);
+
+    // Subtle diamond marks
+    final diamondPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+    for (double x = 10; x < size.width; x += 32) {
+      final dPath = Path()
+        ..moveTo(x, size.height * 0.82)
+        ..lineTo(x + 5, size.height * 0.82 - 5)
+        ..lineTo(x + 10, size.height * 0.82)
+        ..lineTo(x + 5, size.height * 0.82 + 5)
+        ..close();
+      canvas.drawPath(dPath, diamondPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for Scorecard Completed Round ledger ruler & pin flag watermark
+class _ScorecardPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    // Horizontal ledger rule
+    canvas.drawLine(Offset(0, size.height * 0.5), Offset(size.width, size.height * 0.5), linePaint);
+
+    // Flagstick pin watermark behind net score
+    final pinX = size.width - 32;
+    final pinPaint = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawLine(Offset(pinX, 10), Offset(pinX, size.height - 12), pinPaint);
+
+    final flagPath = Path()
+      ..moveTo(pinX, 12)
+      ..lineTo(pinX - 14, 18)
+      ..lineTo(pinX, 24)
+      ..close();
+    final flagFill = Paint()
+      ..color = const Color(0xFF009A60).withOpacity(0.10)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(flagPath, flagFill);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for Active In-Progress Tournament Round Golf Course Topographic Contours & Green Complex Plateau
+class _ActiveRoundCoursePatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Ambient radial glows
+    final glowPaint1 = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.64, -0.36),
+        radius: 0.85,
+        colors: [
+          const Color(0xFF10B981).withOpacity(0.24),
+          const Color(0xFF10B981).withOpacity(0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), glowPaint1);
+
+    final glowPaint2 = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0.76, 0.45),
+        radius: 0.70,
+        colors: [
+          const Color(0xFF059669).withOpacity(0.16),
+          const Color(0xFF059669).withOpacity(0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), glowPaint2);
+
+    // Organic Course Topographic Elevation Contours
+    final paint1 = Paint()
+      ..color = const Color(0xFF10B981).withOpacity(0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3;
+
+    final path1 = Path()
+      ..moveTo(-20, size.height * 0.20)
+      ..cubicTo(size.width * 0.18, size.height * 0.05, size.width * 0.42, size.height * 0.32, size.width * 0.68, size.height * 0.14)
+      ..cubicTo(size.width * 0.82, size.height * 0.02, size.width * 0.94, size.height * 0.22, size.width + 25, size.height * 0.10);
+    canvas.drawPath(path1, paint1);
+
+    final paint2 = Paint()
+      ..color = const Color(0xFF10B981).withOpacity(0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    final path2 = Path()
+      ..moveTo(-15, size.height * 0.40)
+      ..cubicTo(size.width * 0.16, size.height * 0.22, size.width * 0.46, size.height * 0.54, size.width * 0.72, size.height * 0.34)
+      ..cubicTo(size.width * 0.86, size.height * 0.20, size.width * 0.96, size.height * 0.38, size.width + 25, size.height * 0.28);
+    canvas.drawPath(path2, paint2);
+
+    final paint3 = Paint()
+      ..color = const Color(0xFF10B981).withOpacity(0.11)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9;
+
+    final path3 = Path()
+      ..moveTo(-20, size.height * 0.62)
+      ..cubicTo(size.width * 0.20, size.height * 0.48, size.width * 0.50, size.height * 0.74, size.width * 0.76, size.height * 0.52)
+      ..cubicTo(size.width * 0.88, size.height * 0.42, size.width * 0.96, size.height * 0.60, size.width + 25, size.height * 0.48);
+    canvas.drawPath(path3, paint3);
+
+    final paint4 = Paint()
+      ..color = const Color(0xFF10B981).withOpacity(0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    final path4 = Path()
+      ..moveTo(-10, size.height * 0.82)
+      ..cubicTo(size.width * 0.24, size.height * 0.70, size.width * 0.52, size.height * 0.92, size.width * 0.78, size.height * 0.74)
+      ..cubicTo(size.width * 0.90, size.height * 0.64, size.width * 0.96, size.height * 0.80, size.width + 20, size.height * 0.72);
+    canvas.drawPath(path4, paint4);
+
+    // Putting Green Complex Plateau Elevation Rings around Hole squircle
+    final center = Offset(size.width * 0.13, size.height * 0.32);
+    final circlePaint = Paint()
+      ..color = const Color(0xFF10B981).withOpacity(0.16)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(center, 34, circlePaint);
+
+    circlePaint.color = const Color(0xFF10B981).withOpacity(0.11);
+    canvas.drawCircle(center, 58, circlePaint);
+
+    circlePaint.color = const Color(0xFF10B981).withOpacity(0.07);
+    canvas.drawCircle(center, 84, circlePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+

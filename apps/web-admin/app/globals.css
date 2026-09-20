@@ -64,6 +64,16 @@
   --color-slate-500: #6b7280;
   --color-neutral-500: #6b7280;
 
+  /* Exact Colors from UXPilot Prototype */
+  --color-emerald: #009A60;
+  --color-emerald-dark: #008754;
+  --color-emerald-soft: #F5FAF6;
+  --color-emerald-border: #E1EFE5;
+  --color-emerald-fill: #E8F5ED;
+  --color-neutral-dark: #0F172A;
+  --color-neutral-text: #111827;
+  --color-slate-accent: #5B6B7F;
+
   --animate-marquee: marquee 40s linear infinite;
 
   @keyframes marquee {
@@ -246,3 +256,52 @@
     @apply underline transition-colors duration-200 hover:text-primary;
   }
 }
+
+.pattern-dots {
+  background-image: radial-gradient(#009A60 0.8px, transparent 0.8px);
+  background-size: 24px 24px;
+}
+
+.pattern-grid {
+  background-image: linear-gradient(to right, rgba(0, 154, 96, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 154, 96, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.bento-card {
+  transition: all 0.3s ease;
+}
+
+.bento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+}
+
+.pattern-waves {
+  mask-image: linear-gradient(to bottom, transparent, black, transparent);
+  opacity: 0.1;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+
