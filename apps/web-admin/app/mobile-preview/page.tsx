@@ -23,6 +23,7 @@ import {
   Plus,
   Minus,
   Check,
+  CheckCheck,
   ShieldCheck,
   ShieldAlert,
   ExternalLink,
@@ -80,6 +81,7 @@ import {
   SlidersHorizontal,
   UserMinus,
   Ban,
+  MoreHorizontal,
 } from "lucide-react";
 import { formatNumber, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
@@ -317,13 +319,23 @@ interface GroupPlayer {
 
 function GroupPlayerAvatarItem({ player }: { player: GroupPlayer }) {
   const initials = getTwoInitials(player.name);
+  const [imgFailed, setImgFailed] = useState(false);
 
   return (
     <div
       title={player.name}
-      className="w-[28px] h-[28px] rounded-full border-[1.5px] border-[#052417] bg-[#0E3D27] text-[#10B981] flex items-center justify-center text-[10px] font-bold tracking-tight shrink-0 select-none uppercase shadow-xs ring-1 ring-[#10B981]/25"
+      className="w-[28px] h-[28px] rounded-full border-[1.5px] border-[#052417] bg-[#0E3D27] text-[#10B981] flex items-center justify-center text-[10px] font-bold tracking-tight shrink-0 select-none uppercase shadow-xs ring-1 ring-[#10B981]/25 overflow-hidden"
     >
-      {initials}
+      {player.avatar && !imgFailed ? (
+        <img
+          src={player.avatar}
+          alt={player.name}
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -792,6 +804,12 @@ export default function MobilePreviewPage() {
   const [showForfeitModal, setShowForfeitModal] = useState(false);
   const [unfriendCandidate, setUnfriendCandidate] = useState<{ id: string; name: string } | null>(null);
   const [blockCandidate, setBlockCandidate] = useState<{ id: string; name: string } | null>(null);
+  const [friendActionUser, setFriendActionUser] = useState<{ id: string; name: string; club?: string; hcp?: string; avatar?: string; profilePhoto?: string } | null>(null);
+  const [reportCandidate, setReportCandidate] = useState<{ id: string; name: string; club?: string; hcp?: string; avatar?: string; profilePhoto?: string } | null>(null);
+  const [reportReason, setReportReason] = useState<string>("Unsportsmanlike Conduct / Cheating");
+  const [reportDetails, setReportDetails] = useState<string>("");
+  const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
+  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const [mobileNotifications, setMobileNotifications] = useState<any[]>([]);
   const [notificationsMarkedRead, setNotificationsMarkedRead] = useState(false);
   const [showBookingsModal, setShowBookingsModal] = useState(false);
@@ -971,6 +989,8 @@ export default function MobilePreviewPage() {
     userId ? `openclub_incoming_friend_requests_${userId}` : "openclub_incoming_friend_requests_guest";
   const getUserNotificationsKey = (userId?: string | null) =>
     userId ? `openclub_user_notifications_${userId}` : "openclub_user_notifications_guest";
+  const getBlockedUsersKey = (userId?: string | null) =>
+    userId ? `openclub_blocked_users_${userId}` : "openclub_blocked_users_guest";
 
   const formatNotifTime = (dateVal?: string | number | Date | null) => {
     if (!dateVal) return "Just now";
@@ -1169,27 +1189,46 @@ export default function MobilePreviewPage() {
         }
         const deduplicatedIncoming = Array.from(incomingMap.values());
 
-        // Critical fix: Ensure pending sent requests are never kept in accepted friends
-        const cleanedAccepted = Array.isArray(parsedAccepted) ? parsedAccepted.filter((id: string) => !parsedSent.includes(id)) : [];
+        // Critical fix: Ensure pending sent requests and blocked users are never kept in accepted friends
+        const blockedKey = getBlockedUsersKey(authenticatedPlayer.id);
+        const savedBlocked = localStorage.getItem(blockedKey);
+        const parsedBlocked = savedBlocked ? JSON.parse(savedBlocked) : [];
+        const validBlocked = Array.isArray(parsedBlocked) ? parsedBlocked : [];
+        const blockedLowerSet = new Set(validBlocked.map((b: string) => String(b).toLowerCase().trim()));
+
+        const cleanedAccepted = Array.isArray(parsedAccepted)
+          ? parsedAccepted.filter((id: string) => !parsedSent.includes(id) && !blockedLowerSet.has(String(id).toLowerCase().trim()))
+          : [];
         if (Array.isArray(parsedAccepted) && cleanedAccepted.length !== parsedAccepted.length) {
           try {
             localStorage.setItem(acceptedKey, JSON.stringify(cleanedAccepted));
           } catch {}
         }
 
-        setSentFriendRequests(Array.isArray(parsedSent) ? parsedSent : []);
+        setBlockedUserIds(validBlocked);
+        setSentFriendRequests(Array.isArray(parsedSent) ? parsedSent.filter((id: string) => !blockedLowerSet.has(String(id).toLowerCase().trim())) : []);
         setAcceptedFriendIds(cleanedAccepted);
         setIncomingFriendRequests(deduplicatedIncoming);
 
         const parsedLocalNotifs = savedLocalNotifs ? JSON.parse(savedLocalNotifs) : [];
         if (Array.isArray(parsedLocalNotifs) && parsedLocalNotifs.length > 0) {
           setMobileNotifications((prev) => {
-            const existingIds = new Set(prev.map((n: any) => n.id));
-            const newNotifs = parsedLocalNotifs.filter((n: any) => !existingIds.has(n.id));
-            return [...newNotifs, ...prev];
+            const map = new Map<string, any>();
+            for (const n of [...parsedLocalNotifs, ...prev]) {
+              const nType = (n.data?.type || n.type || "").toUpperCase();
+              const nUserId = String(n.data?.userId || n.userId || n.data?.senderId || n.senderId || "");
+              const key = nType === "FRIEND_ACCEPTED" && nUserId
+                ? `FRIEND_ACCEPTED_${nUserId}`
+                : n.id || `${n.title}_${n.body || n.desc || n.message}`;
+              if (!map.has(key)) {
+                map.set(key, n);
+              }
+            }
+            return Array.from(map.values());
           });
         }
       } else {
+        setBlockedUserIds([]);
         setSentFriendRequests([]);
         setAcceptedFriendIds([]);
         setIncomingFriendRequests([]);
@@ -1198,6 +1237,7 @@ export default function MobilePreviewPage() {
         setSimulatedActiveFriendIds([]);
       }
     } catch {
+      setBlockedUserIds([]);
       setSentFriendRequests([]);
       setAcceptedFriendIds([]);
       setIncomingFriendRequests([]);
@@ -1293,12 +1333,13 @@ export default function MobilePreviewPage() {
       return next;
     });
 
-    // 4. Create in-app accepted notification in RECIPIENT'S mailbox (isRead: false so Bell red dot pops up)
+    // 4. Create in-app accepted notification in RECIPIENT'S mailbox (isRead: false, unread: true so Bell red dot pops up)
     const recipientNotif = {
       id: `notif_acc_rec_${Date.now()}`,
       title: "Friend Request Accepted",
       body: `You and ${senderName} are now connected!`,
       isRead: false,
+      unread: true,
       createdAt: new Date().toISOString(),
       data: {
         type: "FRIEND_ACCEPTED",
@@ -1322,6 +1363,7 @@ export default function MobilePreviewPage() {
       return false;
     };
 
+    setNotificationsMarkedRead(false);
     setMobileNotifications((prev) => [recipientNotif, ...prev.filter((n: any) => !isMatchingAcceptedNotif(n))]);
     try {
       const notifKey = getUserNotificationsKey(currentUserId);
@@ -1330,7 +1372,7 @@ export default function MobilePreviewPage() {
       localStorage.setItem(notifKey, JSON.stringify([recipientNotif, ...parsed.filter((n: any) => !isMatchingAcceptedNotif(n))]));
     } catch {}
 
-    // 5. Notify sender that friend request was accepted (with isRead: false)
+    // 5. Notify sender that friend request was accepted (with isRead: false, unread: true)
     try {
       const senderNotifKey = getUserNotificationsKey(senderId);
       const senderNotifsRaw = localStorage.getItem(senderNotifKey);
@@ -1340,6 +1382,7 @@ export default function MobilePreviewPage() {
         title: "Friend Request Accepted",
         body: `${authenticatedPlayer?.name || "A golfer"} accepted your friend request! You are now connected.`,
         isRead: false,
+        unread: true,
         createdAt: new Date().toISOString(),
         data: {
           type: "FRIEND_ACCEPTED",
@@ -1347,10 +1390,31 @@ export default function MobilePreviewPage() {
           userName: authenticatedPlayer?.name,
         },
       };
-      localStorage.setItem(senderNotifKey, JSON.stringify([acceptNotif, ...senderNotifs]));
+      const filteredSenderNotifs = senderNotifs.filter((n: any) => {
+        const nType = (n.data?.type || n.type || "").toUpperCase();
+        const nUserId = String(n.data?.userId || n.userId || n.data?.senderId || n.senderId || "");
+        if (nType === "FRIEND_ACCEPTED" && (nUserId === currentUserId || (authenticatedPlayer?.name && n.body?.includes(authenticatedPlayer.name)))) {
+          return false;
+        }
+        return true;
+      });
+      localStorage.setItem(senderNotifKey, JSON.stringify([acceptNotif, ...filteredSenderNotifs]));
 
       const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
       const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${backendBase}/friends/respond`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          requestId: reqId || senderId,
+          accept: true,
+          userId: currentUserId,
+        }),
+      }).catch(() => null);
+
       if (token) {
         fetch(`${backendBase}/notifications/send`, {
           method: "POST",
@@ -1440,13 +1504,33 @@ export default function MobilePreviewPage() {
       return next;
     });
 
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${backendBase}/friends/respond`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          requestId: reqId || senderId,
+          accept: false,
+          userId: currentUserId,
+        }),
+      }).catch(() => null);
+    } catch {}
+
     showToast("Friend request declined.", "alert", "REQUEST REMOVED");
   };
 
   // Handle cancelling an outgoing pending friend request
   const handleCancelSentFriendRequest = (targetId: string) => {
     const currentUserId = authenticatedPlayer?.id || "guest";
+    const currentUserEmail = (authenticatedPlayer?.email || "").toLowerCase().trim();
+    const currentUserName = (authenticatedPlayer?.name || "").toLowerCase().trim();
     const sentKey = getSentRequestsKey(currentUserId);
+
     setSentFriendRequests((prev) => {
       const next = prev.filter((id: string) => id !== targetId);
       try {
@@ -1455,23 +1539,172 @@ export default function MobilePreviewPage() {
       return next;
     });
 
-    // Also remove from recipient's incoming requests across potential keys
+    // 1. Remove from recipient's incoming requests across potential keys
     try {
-      const keysToClean = [
-        getIncomingRequestsKey(targetId),
-        getIncomingRequestsKey(targetId.toLowerCase()),
+      const targetKeys = [
+        targetId,
+        targetId.toLowerCase(),
+        targetId.replace(/\s+/g, "_").toLowerCase(),
       ];
-      for (const k of keysToClean) {
-        const raw = localStorage.getItem(k);
+      for (const tk of targetKeys) {
+        const incomingKey = getIncomingRequestsKey(tk);
+        const raw = localStorage.getItem(incomingKey);
         if (raw) {
           const parsed = JSON.parse(raw);
-          const updated = parsed.filter((item: any) => item.senderId !== currentUserId);
-          localStorage.setItem(k, JSON.stringify(updated));
+          if (Array.isArray(parsed)) {
+            const updated = parsed.filter((item: any) => {
+              const sId = String(item.senderId || item.id || "").toLowerCase().trim();
+              const sEmail = String(item.senderEmail || item.email || "").toLowerCase().trim();
+              const sName = String(item.senderName || item.name || "").toLowerCase().trim();
+              return (
+                sId !== String(currentUserId).toLowerCase().trim() &&
+                (!currentUserEmail || sEmail !== currentUserEmail) &&
+                (!currentUserName || sName !== currentUserName)
+              );
+            });
+            localStorage.setItem(incomingKey, JSON.stringify(updated));
+          }
         }
       }
     } catch {}
 
+    // 2. Remove from recipient's user_notifications_* in localStorage so it never lingers
+    try {
+      const targetKeys = [
+        targetId,
+        targetId.toLowerCase(),
+        targetId.replace(/\s+/g, "_").toLowerCase(),
+      ];
+      for (const tk of targetKeys) {
+        const notifKey = `user_notifications_${tk}`;
+        const raw = localStorage.getItem(notifKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const updated = parsed.filter((notif: any) => {
+              const isFriendReq =
+                notif.type === "FRIEND_REQUEST" ||
+                notif.data?.type === "FRIEND_REQUEST" ||
+                String(notif.title || "").toLowerCase().includes("friend request");
+              if (!isFriendReq) return true;
+              const sId = String(notif.data?.senderId || notif.senderId || "").toLowerCase().trim();
+              const sEmail = String(notif.data?.senderEmail || "").toLowerCase().trim();
+              const sName = String(notif.data?.senderName || "").toLowerCase().trim();
+              return (
+                sId !== String(currentUserId).toLowerCase().trim() &&
+                (!currentUserEmail || sEmail !== currentUserEmail) &&
+                (!currentUserName || sName !== currentUserName)
+              );
+            });
+            localStorage.setItem(notifKey, JSON.stringify(updated));
+          }
+        }
+      }
+    } catch {}
+
+    // 3. Immediately clean local simulator incoming requests if viewing that profile
+    setIncomingFriendRequests((prev) =>
+      prev.filter((r: any) => {
+        const sId = String(r.senderId || r.id || "").toLowerCase().trim();
+        return (
+          sId !== String(currentUserId).toLowerCase().trim() &&
+          sId !== String(targetId).toLowerCase().trim()
+        );
+      })
+    );
+
+    // 4. Synchronize with database via dedicated cancel and unfriend endpoints
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-user-id": currentUserId,
+      };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      // Call dedicated cancel endpoints
+      fetch(`${backendBase}/friends/request/${targetId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      }).catch(() => null);
+
+      fetch(`${backendBase}/friends/cancel`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ senderId: currentUserId, targetUserId: targetId }),
+      }).catch(() => null);
+
+      fetch(`${backendBase}/friends/${targetId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      }).catch(() => null);
+    } catch {}
+
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+
     showToast("Friend request cancelled.", "alert", "REQUEST CANCELLED");
+  };
+
+  // Handle filing a moderation report against a player
+  const handleFileUserReport = async () => {
+    if (!reportCandidate) return;
+    const currentUserId = authenticatedPlayer?.id || "guest";
+    setIsSubmittingReport(true);
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-user-id": currentUserId,
+      };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      await fetch(`${backendBase}/reports/user`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          reportedId: reportCandidate.id,
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      }).catch(() => null);
+
+      // Save to local user_reports for persistence and immediate Super Admin view
+      try {
+        const localReports = JSON.parse(localStorage.getItem("openclub_user_reports") || "[]");
+        const newReport = {
+          id: `rep_${Date.now()}`,
+          reporterId: currentUserId,
+          reporterName: authenticatedPlayer?.name || "Player",
+          reporterEmail: authenticatedPlayer?.email || "player@openclubos.com",
+          reportedId: reportCandidate.id,
+          reportedName: reportCandidate.name,
+          reportedClub: reportCandidate.club || "OpenClub Golfer",
+          reportedHcp: reportCandidate.hcp || "0.0",
+          reason: reportReason,
+          details: reportDetails,
+          status: "PENDING",
+          actionTaken: "NONE",
+          createdAt: new Date().toISOString(),
+        };
+        localStorage.setItem("openclub_user_reports", JSON.stringify([newReport, ...localReports]));
+      } catch {}
+
+      showToast(
+        "Report submitted. Our moderation team will review this shortly.",
+        "success",
+        "REPORT FILED"
+      );
+    } catch {
+      showToast("Report submitted for review.", "success", "REPORT FILED");
+    } finally {
+      setIsSubmittingReport(false);
+      setReportCandidate(null);
+      setReportDetails("");
+    }
   };
 
   // Handle unfriending an already accepted friend
@@ -1544,6 +1777,18 @@ export default function MobilePreviewPage() {
       prev.filter((f) => String(f.id).toLowerCase().trim() !== targetIdLower)
     );
 
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${backendBase}/friends/${targetId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      }).catch(() => null);
+    } catch {}
+
     showToast(`${targetName || "Player"} removed from friends.`, "alert", "UNFRIENDED");
   };
 
@@ -1611,26 +1856,77 @@ export default function MobilePreviewPage() {
     });
 
     // 4. Save to blocked users list
-    try {
-      const blockedKey = `openclub_blocked_users_${currentUserId}`;
-      const rawBlocked = localStorage.getItem(blockedKey);
-      const parsedBlocked = rawBlocked ? JSON.parse(rawBlocked) : [];
-      if (!parsedBlocked.includes(targetId)) {
-        localStorage.setItem(blockedKey, JSON.stringify([...parsedBlocked, targetId]));
-      }
-    } catch {}
+    setBlockedUserIds((prev) => {
+      const next = prev.includes(targetId) ? prev : [...prev, targetId];
+      try {
+        const blockedKey = getBlockedUsersKey(currentUserId);
+        localStorage.setItem(blockedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
     // 5. Update friends on course if present
     setFriendsOnCourse((prev) =>
       prev.filter((f) => String(f.id).toLowerCase().trim() !== targetIdLower)
     );
 
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${backendBase}/friends/block/${targetId}`, {
+        method: "POST",
+        headers: authHeaders,
+      }).catch(() => null);
+    } catch {}
+
     showToast(`${targetName || "Player"} has been blocked.`, "alert", "PLAYER BLOCKED");
   };
 
+  // Handle unblocking a user
+  const handleUnblockUser = (targetId: string, targetName?: string) => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId || !targetId) return;
+
+    const targetIdLower = String(targetId).toLowerCase().trim();
+
+    setBlockedUserIds((prev) => {
+      const next = prev.filter((id) => String(id).toLowerCase().trim() !== targetIdLower);
+      try {
+        const blockedKey = getBlockedUsersKey(currentUserId);
+        localStorage.setItem(blockedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${backendBase}/friends/block/${targetId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      }).catch(() => null);
+    } catch {}
+
+    showToast(`${targetName || "Player"} has been unblocked.`, "success", "PLAYER UNBLOCKED");
+  };
+
   // Handle sending an outgoing friend request
-  const handleSendFriendRequest = (targetUserId: string, targetPlayer?: any) => {
+  const handleSendFriendRequest = async (targetUserId: string, targetPlayer?: any) => {
     const currentUserId = authenticatedPlayer?.id || "guest";
+    const targetIdLower = String(targetUserId).toLowerCase().trim();
+
+    // Industry standard guard: never dispatch friend request to blocked player
+    if (blockedUserIds.some((id) => String(id).toLowerCase().trim() === targetIdLower)) {
+      showToast("You have blocked this player. Unblock them first to connect.", "error", "ACCESS DENIED (BLOCKED)");
+      return;
+    }
+
     const sentKey = getSentRequestsKey(currentUserId);
 
     setSentFriendRequests((prev) => {
@@ -1680,69 +1976,114 @@ export default function MobilePreviewPage() {
       localStorage.setItem(targetNotifKey, JSON.stringify([newNotif, ...prevNotifs]));
     } catch {}
 
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${backendBase}/friends/request`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          targetUserId,
+          senderId: currentUserId,
+        }),
+      }).catch(() => null);
+
+      if (res && !res.ok) {
+        const errData = await res.json().catch(() => null);
+        // Rollback optimistic sent request
+        setSentFriendRequests((prev) => {
+          const next = prev.filter((id) => id !== targetUserId);
+          try {
+            localStorage.setItem(sentKey, JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+        showToast(errData?.message || "Unable to send friend request.", "error", "REQUEST REJECTED");
+        return;
+      }
+    } catch {}
+
     showToast(`Friend request sent to ${targetPlayer?.name || "golfer"}.`, "success", "REQUEST SENT");
   };
 
   // Compute unread count dynamically (strictly for general notifications, not friend requests)
   const unreadNotificationsCount = useMemo(() => {
-    if (notificationsMarkedRead) return 0;
     return mobileNotifications.filter(
-      (n: any) => !n.isRead && n.data?.type !== "FRIEND_REQUEST" && n.data?.type !== "FRIEND_REQUEST_SENT"
+      (n: any) => (!n.isRead && n.unread !== false) && n.data?.type !== "FRIEND_REQUEST" && n.data?.type !== "FRIEND_REQUEST_SENT"
     ).length;
-  }, [mobileNotifications, notificationsMarkedRead]);
+  }, [mobileNotifications]);
 
-  // Auto mark notifications as read once the notification page has been opened
+  // Synchronize friends, friend requests, and blocked users directly from PostgreSQL database
   useEffect(() => {
-    if (activeScreen === "notifications") {
-      setNotificationsMarkedRead(true);
-      setMobileNotifications((prev) =>
-        prev.map((n: any) => {
-          const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
-          if (isFriend) return n;
-          return { ...n, isRead: true, unread: false };
-        })
-      );
-      if (authenticatedPlayer?.id) {
-        try {
-          const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
-          const saved = localStorage.getItem(notifKey);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-              const updated = parsed.map((n: any) => {
-                const isFriend = n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST";
-                if (isFriend) return n;
-                return { ...n, isRead: true, unread: false };
-              });
-              localStorage.setItem(notifKey, JSON.stringify(updated));
-            }
-          }
-          localStorage.setItem(`openclub_all_notifs_read_${authenticatedPlayer.id}`, "true");
-        } catch {}
-      }
+    let isMounted = true;
+    async function syncSocialFromDb() {
+      const currentUserId = authenticatedPlayer?.id;
+      if (!currentUserId) return;
       try {
         const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-        const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
-        if (token) {
-          fetch(`${backendBase}/notifications/mark-all-read`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => null);
+        const headers: Record<string, string> = { "x-user-id": currentUserId };
+        const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        // 1. Fetch accepted friends from DB
+        const friendsRes = await fetch(`${backendBase}/friends`, { headers }).catch(() => null);
+        if (friendsRes && friendsRes.ok) {
+          const friends = await friendsRes.json().catch(() => null);
+          if (isMounted && Array.isArray(friends) && friends.length > 0) {
+            setAcceptedFriendIds((prev) => {
+              const serverIds = friends.map((f: any) => f.id);
+              const serverNames = friends.map((f: any) => f.name?.toLowerCase()).filter(Boolean);
+              const merged = Array.from(new Set([...prev, ...serverIds, ...serverNames]));
+              try {
+                localStorage.setItem(getAcceptedFriendsKey(currentUserId), JSON.stringify(merged));
+              } catch {}
+              return merged;
+            });
+          }
         }
-      } catch {}
-      try {
-        const raw = localStorage.getItem("openclub_live_admin_notifications");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const updated = parsed.map((item: any) => ({ ...item, isRead: true, readAt: new Date().toISOString() }));
-            localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+
+        // 2. Fetch pending requests from DB
+        const requestsRes = await fetch(`${backendBase}/friends/requests`, { headers }).catch(() => null);
+        if (requestsRes && requestsRes.ok) {
+          const reqData = await requestsRes.json().catch(() => null);
+          if (isMounted && reqData?.incoming && Array.isArray(reqData.incoming)) {
+            setIncomingFriendRequests((prev) => {
+              const existingIds = new Set(prev.map((p: any) => p.id || p.senderId));
+              const newIncoming = reqData.incoming.filter((inc: any) => !existingIds.has(inc.id) && !existingIds.has(inc.senderId));
+              return [...newIncoming, ...prev];
+            });
+          }
+          if (isMounted && reqData?.outgoing && Array.isArray(reqData.outgoing)) {
+            setSentFriendRequests((prev) => {
+              const serverSent = reqData.outgoing.map((o: any) => o.receiverId);
+              return Array.from(new Set([...prev, ...serverSent]));
+            });
+          }
+        }
+
+        // 3. Fetch blocked users from DB
+        const blockedRes = await fetch(`${backendBase}/friends/blocked`, { headers }).catch(() => null);
+        if (blockedRes && blockedRes.ok) {
+          const blocked = await blockedRes.json().catch(() => null);
+          if (isMounted && Array.isArray(blocked)) {
+            const serverBlockedIds = blocked.map((b: any) => b.id);
+            setBlockedUserIds((prev) => {
+              const merged = Array.from(new Set([...prev, ...serverBlockedIds]));
+              try {
+                localStorage.setItem(getBlockedUsersKey(currentUserId), JSON.stringify(merged));
+              } catch {}
+              return merged;
+            });
           }
         }
       } catch {}
     }
-  }, [activeScreen, authenticatedPlayer?.id]);
-
+    syncSocialFromDb();
+    return () => { isMounted = false; };
+  }, [authenticatedPlayer?.id]);
 
   // Load real members from database for Add Golf Friends search
   useEffect(() => {
@@ -1752,9 +2093,14 @@ export default function MobilePreviewPage() {
       try {
         const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
         const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        const currentUserId = authenticatedPlayer?.id;
         const headers: Record<string, string> = {};
         if (token) {
           headers["Authorization"] = `Bearer ${token}`;
+        }
+        if (currentUserId) {
+          headers["x-user-id"] = currentUserId;
+          headers["x-player-id"] = currentUserId;
         }
         const res = await fetch(`${backendBase}/members?take=100`, { headers }).catch(() => null);
         if (res && res.ok) {
@@ -1798,8 +2144,13 @@ export default function MobilePreviewPage() {
       try {
         const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
         const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        const currentUserId = authenticatedPlayer?.id;
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
+        if (currentUserId) {
+          headers["x-user-id"] = currentUserId;
+          headers["x-player-id"] = currentUserId;
+        }
         const res = await fetch(`${backendBase}/members?search=${encodeURIComponent(friendsSearchQuery.trim())}&take=50`, { headers }).catch(() => null);
         if (res && res.ok) {
           const data = await res.json().catch(() => null);
@@ -1881,10 +2232,37 @@ export default function MobilePreviewPage() {
                 if (localSaved) {
                   const parsed = JSON.parse(localSaved);
                   if (Array.isArray(parsed)) {
+                    const parseNotifData = (d: any) => typeof d === "string" ? (() => { try { return JSON.parse(d); } catch { return {}; } })() : (d || {});
                     const existingIds = new Set(combined.map((n: any) => n.id));
                     for (const ln of parsed) {
                       const sanitized = sanitizeFlightNotif(ln);
-                      if (!existingIds.has(sanitized.id)) {
+                      const sData = parseNotifData(sanitized.data);
+                      const sTitle = (sanitized.title || "").trim().toLowerCase();
+                      const sBody = (sanitized.body || sanitized.message || sanitized.desc || "").trim().toLowerCase();
+                      const sType = (sData.type || sanitized.type || "").toUpperCase();
+                      const sUserId = String(sData.userId || sanitized.userId || sData.senderId || sanitized.senderId || "").trim().toLowerCase();
+                      const sUserName = String(sData.userName || sData.senderName || sanitized.userName || sBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+                      const isSFriendAccepted = sType === "FRIEND_ACCEPTED" || sTitle.includes("friend request accepted") || sBody.includes("accepted your friend request");
+
+                      const isDup =
+                        existingIds.has(sanitized.id) ||
+                        combined.some((c: any) => {
+                          const cData = parseNotifData(c.data);
+                          const cTitle = (c.title || "").trim().toLowerCase();
+                          const cBody = (c.body || c.message || c.desc || "").trim().toLowerCase();
+                          const cType = (cData.type || c.type || "").toUpperCase();
+                          const cUserId = String(cData.userId || c.userId || cData.senderId || c.senderId || "").trim().toLowerCase();
+                          const cUserName = String(cData.userName || cData.senderName || c.userName || cBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+                          const isCFriendAccepted = cType === "FRIEND_ACCEPTED" || cTitle.includes("friend request accepted") || cBody.includes("accepted your friend request");
+
+                          if (isSFriendAccepted && isCFriendAccepted) {
+                            if (sUserId && cUserId && sUserId === cUserId) return true;
+                            if (sUserName && cUserName && sUserName === cUserName) return true;
+                          }
+                          if (cTitle === sTitle && cBody === sBody) return true;
+                          return false;
+                        });
+                      if (!isDup) {
                         combined.unshift(sanitized);
                       }
                     }
@@ -1901,7 +2279,21 @@ export default function MobilePreviewPage() {
             if (localSaved) {
               const parsed = JSON.parse(localSaved);
               if (Array.isArray(parsed)) {
-                setMobileNotifications(parsed.map((n: any) => {
+                const seenLocalKeys = new Set<string>();
+                const dedupedLocal = parsed.filter((n: any) => {
+                  const d = typeof n.data === "string" ? (() => { try { return JSON.parse(n.data); } catch { return {}; } })() : (n.data || {});
+                  const title = (n.title || "").trim().toLowerCase();
+                  const body = (n.body || n.desc || n.message || "").trim().toLowerCase();
+                  const type = (d.type || n.type || "").toUpperCase();
+                  const uId = String(d.userId || n.userId || d.senderId || n.senderId || "").trim().toLowerCase();
+                  const uName = String(d.userName || d.senderName || n.userName || body.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+                  const isAccepted = type === "FRIEND_ACCEPTED" || title.includes("friend request accepted") || body.includes("accepted your friend request");
+                  const key = isAccepted && (uId || uName) ? `FA_${uId || uName}` : `${title}:::${body}`;
+                  if (key && seenLocalKeys.has(key)) return false;
+                  if (key) seenLocalKeys.add(key);
+                  return true;
+                });
+                setMobileNotifications(dedupedLocal.map((n: any) => {
                   if (n?.type === "FLIGHT_GROUPING" || n?.data?.type === "FLIGHT_GROUPING") {
                     if (n.body && !n.body.includes("\n")) {
                       const match = n.body.match(/You are grouped with (.*?) for (.*?)\./i);
@@ -2030,11 +2422,16 @@ export default function MobilePreviewPage() {
               }
               if (!seenIds.has(partnerId)) {
                 seenIds.add(partnerId);
+                const photo =
+                  r.user?.profilePhoto ||
+                  (r as any).avatar ||
+                  (r.user as any)?.avatar ||
+                  undefined;
                 players.push({
                   id: partnerId,
                   name: partnerName,
                   initials: getTwoInitials(partnerName),
-                  avatar: undefined,
+                  avatar: photo,
                 });
               }
               if (players.length >= 3) break;
@@ -2055,10 +2452,29 @@ export default function MobilePreviewPage() {
                 const flightNotifBody = `You are grouped with:\n${formattedNames}\nfor ${matchedGroup.name || dayText} of ${activeTournament.name}.`;
 
                 if (!existingNotif || existingNotif.body !== flightNotifBody) {
+                  const getGroupCreationTimestamp = (uuid?: string): string | null => {
+                    if (!uuid || typeof uuid !== "string") return null;
+                    try {
+                      const clean = uuid.replace(/-/g, "");
+                      if (clean.length < 32) return null;
+                      const ms = parseInt(clean.substring(0, 12), 16);
+                      if (ms > 1577836800000 && ms < 2524608000000) {
+                        return new Date(ms).toISOString();
+                      }
+                      return null;
+                    } catch {
+                      return null;
+                    }
+                  };
+
+                  const groupCreationTime =
+                    (matchedGroup as any)?.groupedAt ||
+                    (matchedGroup as any)?.createdAt ||
+                    getGroupCreationTimestamp(matchedGroup?.id);
+
                   const dbTimestamp =
                     existingNotif?.createdAt ||
-                    (matchedGroup?.startTime ? new Date(matchedGroup.startTime).toISOString() : null) ||
-                    ((matchedGroup as any)?.createdAt ? new Date((matchedGroup as any).createdAt).toISOString() : null) ||
+                    groupCreationTime ||
                     ((activeTournament as any)?.createdAt ? new Date((activeTournament as any).createdAt).toISOString() : null) ||
                     new Date().toISOString();
 
@@ -2259,12 +2675,21 @@ export default function MobilePreviewPage() {
       if (currentEmail && p.email && p.email.toLowerCase().trim() === currentEmail) return false;
       if (currentName && p.name && p.name.toLowerCase().trim() === currentName) return false;
 
+      // Exclude blocked users from friend search
+      const pIdLower = String(p.id).toLowerCase().trim();
+      const pNameLower = p.name.toLowerCase().trim();
+      const pEmailLower = (p.email || "").toLowerCase().trim();
+      if (blockedUserIds.some((bId) => {
+        const bLower = String(bId).toLowerCase().trim();
+        return bLower === pIdLower || bLower === pNameLower || (pEmailLower && bLower === pEmailLower);
+      })) return false;
+
       return (
         p.name.toLowerCase().includes(q) ||
         (p.email && p.email.toLowerCase().includes(q))
       );
     });
-  }, [golfCompetitors, registeredPlayers, friendsSearchQuery, authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name, acceptedFriendIds]);
+  }, [golfCompetitors, registeredPlayers, friendsSearchQuery, authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name, acceptedFriendIds, blockedUserIds]);
 
   const filteredActivePlayers = useMemo(() => {
     // Only display players who have actually started playing on the golf course / started a round
@@ -10662,6 +11087,13 @@ class TournamentsView extends StatelessWidget {
                         if (currentEmail && pEmail && pEmail === currentEmail) return false;
                         if (isAccountUser(p)) return false;
 
+                        // Mutual invisibility: Blocked users are completely hidden from friend suggestions and discovery
+                        const isBlocked = blockedUserIds.some((bId) => {
+                          const bLower = String(bId).toLowerCase().trim();
+                          return bLower === pId || bLower === pName || (pEmail && bLower === pEmail);
+                        });
+                        if (isBlocked) return false;
+
                         // Check if golfer has sent an incoming friend request waiting for acceptance in notifications
                         const isIncomingRequest = incomingFriendRequests.some((req: any) => {
                           const rId = req.senderId || req.id || req.userId;
@@ -10953,6 +11385,10 @@ class TournamentsView extends StatelessWidget {
                                   const isConnected =
                                     acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pId) ||
                                     acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pName);
+                                  const isBlocked = blockedUserIds.some((bId) => {
+                                    const bLower = String(bId).toLowerCase().trim();
+                                    return bLower === pId || bLower === pName || (pEmail && bLower === pEmail);
+                                  });
                                   const matchingIncomingReq = incomingFriendRequests.find((req: any) => {
                                     const rId = (req.senderId || req.id || req.userId || "").toString().toLowerCase().trim();
                                     const rName = (req.senderName || req.name || "").toString().toLowerCase().trim();
@@ -11027,14 +11463,12 @@ class TournamentsView extends StatelessWidget {
                                         </div>
 
                                         <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-1.5 min-w-0">
-                                            <h4 className="text-[14px] font-bold text-[#0F172A] truncate leading-tight">
+                                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                            <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
                                               {player.name}
                                             </h4>
                                             {isConnected && (
-                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[10px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
-                                                Friend ✓
-                                              </span>
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
                                             )}
                                           </div>
                                           {/* Demarcation line '|' instead of dot '•' */}
@@ -11049,27 +11483,34 @@ class TournamentsView extends StatelessWidget {
                                       {/* Right Action Button: Authenticated Interactive States */}
                                       <div className="shrink-0">
                                         {isConnected ? (
-                                          /* Accepted Friend State: Dual circular action buttons (Unfriend + Block) */
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                            <button
-                                              type="button"
-                                              onClick={() => setUnfriendCandidate({ id: player.id, name: player.name })}
-                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                              title={`Remove ${player.name} from friends`}
-                                              aria-label="Remove Friend"
-                                            >
-                                              <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setBlockCandidate({ id: player.id, name: player.name })}
-                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                              title={`Block ${player.name}`}
-                                              aria-label="Block Golfer"
-                                            >
-                                              <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
-                                            </button>
-                                          </div>
+                                          /* Accepted Friend State: Single horizontal 3-dots action button */
+                                          <button
+                                            type="button"
+                                            onClick={() => setFriendActionUser({
+                                              id: player.id,
+                                              name: player.name,
+                                              club: player.club,
+                                              hcp: player.hcp,
+                                              avatar: player.avatar,
+                                              profilePhoto: player.profilePhoto,
+                                            })}
+                                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                            title={`Manage connection with ${player.name}`}
+                                            aria-label="Golfer Options"
+                                          >
+                                            <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
+                                          </button>
+                                        ) : isBlocked ? (
+                                          /* Blocked State: Displays Unblock pill button */
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUnblockUser(player.id, player.name)}
+                                            className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold border border-slate-300 transition-all cursor-pointer shrink-0 shadow-2xs"
+                                            title={`Unblock ${player.name}`}
+                                            aria-label="Unblock Golfer"
+                                          >
+                                            Unblock
+                                          </button>
                                         ) : isIncoming ? (
                                           /* Incoming Friend Request State: Displays mark icon button (accept) + cancel icon button (decline) */
                                           <div className="flex items-center gap-1.5 shrink-0">
@@ -11085,7 +11526,7 @@ class TournamentsView extends StatelessWidget {
                                             <button
                                               type="button"
                                               onClick={() => handleDeclineFriendRequest(matchingIncomingReq)}
-                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
                                               title={`Decline friend request from ${player.name}`}
                                               aria-label="Decline Request"
                                             >
@@ -11093,7 +11534,7 @@ class TournamentsView extends StatelessWidget {
                                             </button>
                                           </div>
                                         ) : isSent ? (
-                                          /* Sent Friend Request State: Displays SENT text + light circular X cancel button */
+                                          /* Sent Friend Request State: Displays SENT text + subtle red circular X cancel button */
                                           <div className="flex items-center gap-1.5 shrink-0">
                                             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                                               SENT
@@ -11101,7 +11542,7 @@ class TournamentsView extends StatelessWidget {
                                             <button
                                               type="button"
                                               onClick={() => handleCancelSentFriendRequest(player.id)}
-                                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors cursor-pointer active:scale-95"
+                                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
                                               title="Cancel Request"
                                               aria-label="Cancel Request"
                                             >
@@ -11635,6 +12076,10 @@ class TournamentsView extends StatelessWidget {
                                   displayedContacts.map((contact) => {
                                     const isSent = sentFriendRequests.includes(contact.id);
                                     const isAccepted = acceptedFriendIds.includes(contact.id);
+                                    const isContactBlocked = blockedUserIds.some((bId) => {
+                                      const bLower = String(bId).toLowerCase().trim();
+                                      return bLower === String(contact.id).toLowerCase().trim() || bLower === contact.name.toLowerCase().trim();
+                                    });
                                     const isInvited = invitedContactPhones.includes(contact.phone);
 
                                     return (
@@ -11647,14 +12092,12 @@ class TournamentsView extends StatelessWidget {
                                             {getTwoInitials(contact.name)}
                                           </div>
                                           <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5 min-w-0">
-                                              <p className="text-xs font-bold text-[#0F172A] truncate">
+                                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                              <p className="text-xs font-bold text-[#0F172A] leading-tight">
                                                 {contact.name}
                                               </p>
                                               {isAccepted && (
-                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9.5px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
-                                                  Friend ✓
-                                                </span>
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
                                               )}
                                             </div>
                                             <p className="text-[10.5px] text-slate-500 font-medium truncate">
@@ -11675,26 +12118,31 @@ class TournamentsView extends StatelessWidget {
                                         <div className="shrink-0">
                                           {contact.isOnOpenclub ? (
                                             isAccepted ? (
-                                              <div className="flex items-center gap-1 shrink-0">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setUnfriendCandidate({ id: contact.id, name: contact.name })}
-                                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                                  title={`Remove ${contact.name} from friends`}
-                                                  aria-label="Remove Friend"
-                                                >
-                                                  <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setBlockCandidate({ id: contact.id, name: contact.name })}
-                                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                                  title={`Block ${contact.name}`}
-                                                  aria-label="Block Golfer"
-                                                >
-                                                  <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
-                                                </button>
-                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={() => setFriendActionUser({
+                                                  id: contact.id,
+                                                  name: contact.name,
+                                                  club: contact.club,
+                                                  hcp: contact.hcp,
+                                                  avatar: (contact as any).avatar,
+                                                  profilePhoto: (contact as any).profilePhoto,
+                                                })}
+                                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                                title={`Manage connection with ${contact.name}`}
+                                                aria-label="Golfer Options"
+                                              >
+                                                <MoreHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
+                                              </button>
+                                            ) : isContactBlocked ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUnblockUser(contact.id, contact.name)}
+                                                className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-semibold border border-slate-300 transition-all cursor-pointer shadow-2xs active:scale-95"
+                                                title={`Unblock ${contact.name}`}
+                                              >
+                                                Unblock
+                                              </button>
                                             ) : isSent ? (
                                               <button
                                                 type="button"
@@ -11946,7 +12394,7 @@ class TournamentsView extends StatelessWidget {
 
                   {/* 14. NOTIFICATIONS FULL SCREEN (PURE REAL DATABASE DATA) */}
                   {targetScreen === "notifications" && (() => {
-                    const isAllRead = notificationsMarkedRead || (mobileNotifications.length > 0 && mobileNotifications.every((n: any) => n.isRead));
+                    const isAllRead = mobileNotifications.length > 0 && mobileNotifications.every((n: any) => n.isRead === true && n.unread !== true);
 
                     const handleMarkAllRead = async () => {
                       setNotificationsMarkedRead(true);
@@ -11984,6 +12432,37 @@ class TournamentsView extends StatelessWidget {
                         }
                       } catch {}
                       showToast("All notifications marked as read.", "success", "NOTIFICATIONS READ");
+                    };
+
+                    const handleNotificationClick = async (notif: any) => {
+                      if (!notif.isRead || notif.unread !== false) {
+                        setMobileNotifications((prev) =>
+                          prev.map((n: any) => (n.id === notif.id ? { ...n, isRead: true, unread: false } : n))
+                        );
+                        if (authenticatedPlayer?.id) {
+                          try {
+                            const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
+                            const saved = localStorage.getItem(notifKey);
+                            if (saved) {
+                              const parsed = JSON.parse(saved);
+                              if (Array.isArray(parsed)) {
+                                const updated = parsed.map((n: any) => (n.id === notif.id ? { ...n, isRead: true, unread: false } : n));
+                                localStorage.setItem(notifKey, JSON.stringify(updated));
+                              }
+                            }
+                          } catch {}
+                        }
+                        try {
+                          const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+                          const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+                          if (token && notif.id && !String(notif.id).startsWith("notif_")) {
+                            fetch(`${backendBase}/notifications/${notif.id}/read`, {
+                              method: "PATCH",
+                              headers: { Authorization: `Bearer ${token}` },
+                            }).catch(() => null);
+                          }
+                        } catch {}
+                      }
                     };
 
                     const now = new Date();
@@ -12172,15 +12651,16 @@ class TournamentsView extends StatelessWidget {
                         return renderFriendRequestCard(notif);
                       }
 
-                      const isUnread = (!notif.isRead && !isAllRead) || notif.unread === true;
+                      const isUnread = !isAllRead && notif.isRead !== true && notif.unread !== false;
                       const flightDetails = parseFlightGroupingNotif(notif);
 
                       return (
                         <div
                           key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
                           className={`w-full bg-white ${
                             isUnread ? "border-[#C6F0DB] shadow-xs" : "border-slate-200/90 shadow-2xs"
-                          } rounded-2xl border p-3.5 flex items-start gap-3.5 transition-all hover:border-slate-300 relative`}
+                          } rounded-2xl border p-3.5 flex items-start gap-3.5 transition-all hover:border-slate-300 relative cursor-pointer`}
                         >
                           <div className="w-8 h-8 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB]/70 flex items-center justify-center text-[#009A60] shrink-0 mt-0.5 shadow-2xs">
                             {notif.type === "TOURNAMENT_UPDATE" || notif.type === "TOURNAMENT_ALERT" ? (
@@ -12195,7 +12675,7 @@ class TournamentsView extends StatelessWidget {
                               <Bell className="w-4 h-4 text-[#009A60]" />
                             )}
                           </div>
-                          <div className={`min-w-0 flex-1 transition-opacity duration-200 ${notif.isRead === true && !notif.unread ? "opacity-60" : "opacity-100"}`}>
+                          <div className={`min-w-0 flex-1 transition-opacity duration-200 ${isUnread ? "opacity-100" : "opacity-60"}`}>
                             <div className="flex items-start justify-between gap-2">
                               {flightDetails.isFlightGrouping ? (
                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
@@ -12211,9 +12691,14 @@ class TournamentsView extends StatelessWidget {
                                   {notif.title}
                                 </h4>
                               )}
-                              <span className="text-[11px] font-medium text-[#8CA0BA] shrink-0">
-                                {formatNotifTime(notif.createdAt)}
-                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[11px] font-medium text-[#8CA0BA]">
+                                  {formatNotifTime(notif.createdAt)}
+                                </span>
+                                {isUnread && (
+                                  <span className="w-2 h-2 rounded-full bg-[#009A60] shrink-0" title="Unread" />
+                                )}
+                              </div>
                             </div>
 
                             {flightDetails.isFlightGrouping ? (
@@ -12260,11 +12745,34 @@ class TournamentsView extends StatelessWidget {
                       );
                     };
 
-                    // Sort real database notifications chronologically
+                    // Helper to reliably extract timestamp for reverse-chronological sorting (newest first)
+                    const getNotificationTimestamp = (item: any): number => {
+                      if (!item) return 0;
+                      if (typeof item.timestamp === "number" && !isNaN(item.timestamp)) return item.timestamp;
+                      if (item.createdAt) {
+                        const t = new Date(item.createdAt).getTime();
+                        if (!isNaN(t)) return t;
+                      }
+                      if (item.time) {
+                        const t = new Date(item.time).getTime();
+                        if (!isNaN(t)) return t;
+                      }
+                      const match = String(item.id || "").match(/(\d{10,13})/);
+                      if (match) {
+                        const parsed = parseInt(match[1], 10);
+                        if (!isNaN(parsed)) return parsed;
+                      }
+                      return 0;
+                    };
+
+                    // Sort real database notifications in strict reverse-chronological order (latest notification first)
                     const sortedNotifs = [...mobileNotifications].sort((a, b) => {
-                      const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                      const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                      return tB - tA;
+                      return getNotificationTimestamp(b) - getNotificationTimestamp(a);
+                    });
+
+                    // Sort incoming friend requests in reverse-chronological order (latest notification first)
+                    const sortedIncomingFriendRequests = [...incomingFriendRequests].sort((a: any, b: any) => {
+                      return getNotificationTimestamp(b) - getNotificationTimestamp(a);
                     });
 
                     // Deduplicate notifications against incomingFriendRequests to prevent showing duplicate cards
@@ -12283,31 +12791,63 @@ class TournamentsView extends StatelessWidget {
                       return (sId && incomingSenderIds.has(sId)) || (rId && incomingReqIds.has(rId));
                     };
 
-                    const todayNotifs = sortedNotifs.filter((n: any) => {
+                    // Semantic deduplication ensuring identical cards (e.g. FRIEND_ACCEPTED or duplicate title+body) never render twice
+                    const seenFeedKeys = new Set<string>();
+                    const deduplicatedFeedNotifs = sortedNotifs.filter((n: any) => {
                       if (isDuplicateOfIncoming(n)) return false;
-                      if (!n.createdAt) return true;
-                      const t = new Date(n.createdAt).getTime();
-                      return isNaN(t) || t >= startOfToday;
+                      const parsedData = typeof n.data === "string" ? (() => { try { return JSON.parse(n.data); } catch { return {}; } })() : (n.data || {});
+                      const nType = (parsedData.type || n.type || "").toUpperCase();
+                      const normTitle = (n.title || "").trim().toLowerCase();
+                      const normBody = (n.body || n.desc || n.message || "").trim().toLowerCase();
+
+                      const isFriendAccepted = nType === "FRIEND_ACCEPTED" ||
+                        normTitle.includes("friend request accepted") ||
+                        normBody.includes("accepted your friend request") ||
+                        normBody.includes("now connected");
+
+                      const friendId = String(parsedData.userId || n.userId || parsedData.senderId || n.senderId || "").trim().toLowerCase();
+                      const friendName = String(parsedData.userName || parsedData.senderName || n.userName || normBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+
+                      const key = isFriendAccepted && (friendId || friendName)
+                        ? `FRIEND_ACCEPTED_${friendId || friendName}`
+                        : `${normTitle}:::${normBody}`;
+
+                      if (key && seenFeedKeys.has(key)) return false;
+                      if (key) seenFeedKeys.add(key);
+                      return true;
                     });
 
-                    const yesterdayNotifs = sortedNotifs.filter((n: any) => {
-                      if (isDuplicateOfIncoming(n)) return false;
-                      if (!n.createdAt) return false;
-                      const t = new Date(n.createdAt).getTime();
-                      return !isNaN(t) && t >= startOfYesterday && t < startOfToday;
-                    });
+                    // Ensure today's notifications strictly sort latest first
+                    const todayNotifs = deduplicatedFeedNotifs
+                      .filter((n: any) => {
+                        if (!n.createdAt) return true;
+                        const t = new Date(n.createdAt).getTime();
+                        return isNaN(t) || t >= startOfToday;
+                      })
+                      .sort((a: any, b: any) => getNotificationTimestamp(b) - getNotificationTimestamp(a));
 
-                    const earlierNotifs = sortedNotifs.filter((n: any) => {
-                      if (isDuplicateOfIncoming(n)) return false;
-                      if (!n.createdAt) return false;
-                      const t = new Date(n.createdAt).getTime();
-                      return !isNaN(t) && t < startOfYesterday;
-                    });
+                    // Ensure yesterday's notifications strictly sort latest first
+                    const yesterdayNotifs = deduplicatedFeedNotifs
+                      .filter((n: any) => {
+                        if (!n.createdAt) return false;
+                        const t = new Date(n.createdAt).getTime();
+                        return !isNaN(t) && t >= startOfYesterday && t < startOfToday;
+                      })
+                      .sort((a: any, b: any) => getNotificationTimestamp(b) - getNotificationTimestamp(a));
 
-                    const hasUnreadToday = !isAllRead && (incomingFriendRequests.length > 0 || todayNotifs.some((n: any) => !n.isRead && n.unread !== false));
+                    // Ensure earlier notifications strictly sort latest first
+                    const earlierNotifs = deduplicatedFeedNotifs
+                      .filter((n: any) => {
+                        if (!n.createdAt) return false;
+                        const t = new Date(n.createdAt).getTime();
+                        return !isNaN(t) && t < startOfYesterday;
+                      })
+                      .sort((a: any, b: any) => getNotificationTimestamp(b) - getNotificationTimestamp(a));
+
+                    const hasUnreadToday = !isAllRead && (sortedIncomingFriendRequests.length > 0 || todayNotifs.some((n: any) => !n.isRead && n.unread !== false));
                     const hasUnreadYesterday = !isAllRead && yesterdayNotifs.some((n: any) => !n.isRead && n.unread !== false);
 
-                    const totalCount = incomingFriendRequests.length + todayNotifs.length + yesterdayNotifs.length + earlierNotifs.length;
+                    const totalCount = sortedIncomingFriendRequests.length + todayNotifs.length + yesterdayNotifs.length + earlierNotifs.length;
 
                     return (
                       <div className="flex-1 min-h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
@@ -12325,8 +12865,16 @@ class TournamentsView extends StatelessWidget {
                               <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
                             </button>
                             <h2 className="text-base font-bold text-[#0F172A]">Notifications</h2>
-                            {/* Empty balance spacer to preserve mathematical center alignment */}
-                            <div className="w-8 h-8 shrink-0" aria-hidden="true" />
+                            {/* Mark all as read button matching standard circular pill design */}
+                            <button
+                              type="button"
+                              onClick={handleMarkAllRead}
+                              className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#009A60] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                              title="Mark all as read"
+                              aria-label="Mark all as read"
+                            >
+                              <CheckCheck className="h-[18px] w-[18px] text-[#009A60]" />
+                            </button>
                           </div>
                         </div>
 
@@ -12348,7 +12896,7 @@ class TournamentsView extends StatelessWidget {
                             ) : (
                               <>
                                 {/* SECTION: TODAY */}
-                                {(incomingFriendRequests.length > 0 || todayNotifs.length > 0) && (
+                                {(sortedIncomingFriendRequests.length > 0 || todayNotifs.length > 0) && (
                                   <div>
                                     <div className="flex items-center justify-between px-1 mb-2.5">
                                       <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
@@ -12360,8 +12908,8 @@ class TournamentsView extends StatelessWidget {
                                     </div>
 
                                     <div className="space-y-2.5">
-                                      {/* Real Incoming Friend Requests from database (Standardized Card 1 design) */}
-                                      {incomingFriendRequests.map((req: any) => renderFriendRequestCard(req))}
+                                      {/* Real Incoming Friend Requests from database (Standardized Card 1 design, latest first) */}
+                                      {sortedIncomingFriendRequests.map((req: any) => renderFriendRequestCard(req))}
 
                                       {/* Real Database Notifications for Today */}
                                       {todayNotifs.map((notif: any) => renderNotificationCard(notif))}
@@ -13166,6 +13714,217 @@ class TournamentsView extends StatelessWidget {
               </div>
             )}
 
+            {/* --- BOTTOM SHEET: FRIEND ACTIONS MODAL (MATCHING FORFEIT DISPLAY FORMAT) --- */}
+            {friendActionUser && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setFriendActionUser(null)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                  {/* Centered Friend Squircle Badge (Matching forfeit warning geometry with real display photo) */}
+                  {(() => {
+                    const resolvedFriendAvatar =
+                      friendActionUser.avatar ||
+                      friendActionUser.profilePhoto ||
+                      (registeredPlayers || []).find(
+                        (p: any) => p.id === friendActionUser.id || (p.name && p.name.toLowerCase() === friendActionUser.name.toLowerCase())
+                      )?.profilePhoto ||
+                      (registeredPlayers || []).find(
+                        (p: any) => p.id === friendActionUser.id || (p.name && p.name.toLowerCase() === friendActionUser.name.toLowerCase())
+                      )?.avatar ||
+                      (golfCompetitors || []).find(
+                        (p: any) => p.id === friendActionUser.id || (p.name && p.name.toLowerCase() === friendActionUser.name.toLowerCase())
+                      )?.avatar;
+
+                    return (
+                      <div className="w-16 h-16 rounded-[22px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-5 shadow-xs relative">
+                        {resolvedFriendAvatar ? (
+                          <img
+                            src={resolvedFriendAvatar}
+                            alt={friendActionUser.name}
+                            className="w-11 h-11 rounded-full object-cover border border-[#009A60]/20"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fallback = e.currentTarget.parentElement?.querySelector(".friend-action-initials-fallback");
+                              if (fallback) fallback.classList.remove("hidden");
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`friend-action-initials-fallback w-11 h-11 rounded-full bg-[#009A60]/10 text-[#009A60] font-bold text-base flex items-center justify-center border border-[#009A60]/20 ${
+                            resolvedFriendAvatar ? "hidden" : "flex"
+                          }`}
+                        >
+                          {getTwoInitials(friendActionUser.name)}
+                        </div>
+                        <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Centered Heading: Golfer Full Name */}
+                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-1.5">
+                    {friendActionUser.name}
+                  </h3>
+
+                  {/* Centered Body / Subtitle */}
+                  <p className="text-[13.5px] text-[#64748B] text-center leading-relaxed max-w-[280px] mx-auto mb-7 font-normal">
+                    <span className="font-semibold text-[#009A60]">Connected Friend</span> • {friendActionUser.club || "Golf Club"} | {friendActionUser.hcp || "12"} HCP
+                  </p>
+
+                  {/* Vertically Stacked Action Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = friendActionUser;
+                      setFriendActionUser(null);
+                      setUnfriendCandidate(target);
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#FFE4E6] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                  >
+                    <UserMinus className="w-4 h-4 stroke-[2.2]" />
+                    <span>Remove from Friends</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = friendActionUser;
+                      setFriendActionUser(null);
+                      setBlockCandidate(target);
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#FFE4E6] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                  >
+                    <Ban className="w-4 h-4 stroke-[2.2]" />
+                    <span>Block Golfer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = friendActionUser;
+                      setFriendActionUser(null);
+                      setReportCandidate(target);
+                    }}
+                    className="w-full h-12 rounded-[14px] bg-[#FEF2F2] hover:bg-[#FEE2E2] border border-[#FECACA] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                  >
+                    <Flag className="w-4 h-4 stroke-[2.2]" />
+                    <span>Report Golfer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFriendActionUser(null)}
+                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: REPORT GOLFER MODAL --- */}
+            {reportCandidate && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setReportCandidate(null)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto max-h-[88vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-5 shrink-0" />
+
+                  {/* Centered Warning Squircle Badge */}
+                  <div className="w-16 h-16 rounded-[22px] bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-4 shadow-xs shrink-0 text-[#DC2626]">
+                    <Flag className="w-7 h-7 stroke-[2.2]" />
+                  </div>
+
+                  <h3 className="text-[20px] font-black text-[#0F172A] tracking-tight text-center mb-1 shrink-0">
+                    Report Golfer
+                  </h3>
+                  <p className="text-[13px] text-[#64748B] text-center mb-5 shrink-0 font-normal">
+                    Help maintain a fair, respectful community. Select the infraction regarding{" "}
+                    <strong className="font-semibold text-[#0F172A]">{reportCandidate.name}</strong>.
+                  </p>
+
+                  {/* Infraction Category Selector */}
+                  <div className="space-y-2 mb-4 shrink-0">
+                    <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
+                      Infraction Reason
+                    </label>
+                    {[
+                      "Unsportsmanlike Conduct / Cheating",
+                      "Harassment / Offensive Behavior",
+                      "Impersonation / Fake Profile",
+                      "Inappropriate Content or Avatar",
+                      "Spam or Solicitation",
+                      "Other Violation",
+                    ].map((reason) => (
+                      <label
+                        key={reason}
+                        className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                          reportReason === reason
+                            ? "border-[#009A60] bg-[#EAF7EE] text-[#009A60]"
+                            : "border-slate-200 bg-[#F5FAF6] text-[#0F172A] hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="reportReason"
+                          value={reason}
+                          checked={reportReason === reason}
+                          onChange={() => setReportReason(reason)}
+                          className="accent-[#009A60]"
+                        />
+                        <span>{reason}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Details Textarea */}
+                  <div className="mb-5 shrink-0">
+                    <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-1.5">
+                      Additional Details (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={reportDetails}
+                      onChange={(e) => setReportDetails(e.target.value)}
+                      placeholder="Describe what happened or reference specific tournament rounds..."
+                      className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-xs text-[#0F172A] placeholder:text-[#8CA0BA] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden resize-none"
+                    />
+                  </div>
+
+                  {/* Submit & Cancel Buttons */}
+                  <button
+                    type="button"
+                    disabled={isSubmittingReport}
+                    onClick={handleFileUserReport}
+                    className="w-full h-12 rounded-[14px] bg-[#DC2626] hover:bg-[#B91C1C] active:scale-98 text-white text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all disabled:opacity-50 shrink-0"
+                  >
+                    <Flag className="w-4 h-4 stroke-[2.2]" />
+                    <span>{isSubmittingReport ? "Submitting Report..." : "Submit Report to Moderation"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setReportCandidate(null)}
+                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* --- BOTTOM SHEET 1: ADD GOLF FRIENDS MODAL (Full Device Frame Overlay) --- */}
             {showAddFriendsModal && (
               <div
@@ -13337,12 +14096,10 @@ class TournamentsView extends StatelessWidget {
                                 {player.initial}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <div className="text-xs font-bold text-slate-900 truncate">{player.name}</div>
+                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                  <div className="text-xs font-bold text-slate-900 leading-tight">{player.name}</div>
                                   {(acceptedFriendIds.includes(player.id) || acceptedFriendIds.includes(player.name)) && (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9.5px] font-extrabold border border-[#C6F0DB] shrink-0 select-none">
-                                      Friend ✓
-                                    </span>
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
                                   )}
                                 </div>
                                 <div className="text-[10px] text-slate-500 truncate">
@@ -13351,26 +14108,34 @@ class TournamentsView extends StatelessWidget {
                               </div>
                             </div>
                             {acceptedFriendIds.includes(player.id) || acceptedFriendIds.includes(player.name) ? (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => setUnfriendCandidate({ id: player.id, name: player.name })}
-                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                  title={`Remove ${player.name} from friends`}
-                                  aria-label="Remove Friend"
-                                >
-                                  <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setBlockCandidate({ id: player.id, name: player.name })}
-                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                  title={`Block ${player.name}`}
-                                  aria-label="Block Golfer"
-                                >
-                                  <Ban className="w-3.5 h-3.5 stroke-[2.2]" />
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setFriendActionUser({
+                                  id: player.id,
+                                  name: player.name,
+                                  club: player.club,
+                                  hcp: player.hcp,
+                                  avatar: player.avatar,
+                                  profilePhoto: player.profilePhoto,
+                                })}
+                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                title={`Manage connection with ${player.name}`}
+                                aria-label="Golfer Options"
+                              >
+                                <MoreHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
+                              </button>
+                            ) : blockedUserIds.some((bId) => {
+                              const bLower = String(bId).toLowerCase().trim();
+                              return bLower === String(player.id).toLowerCase().trim() || bLower === player.name.toLowerCase().trim();
+                            }) ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUnblockUser(player.id, player.name)}
+                                className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold border border-slate-300 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                                title={`Unblock ${player.name}`}
+                              >
+                                Unblock
+                              </button>
                             ) : sentFriendRequests.includes(player.id) ? (
                               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-[#009A60] border border-emerald-200 text-[11px] font-bold shrink-0">
                                 <Send className="w-3 h-3" /> Sent
@@ -14630,7 +15395,7 @@ class TournamentsView extends StatelessWidget {
                               id: p.id,
                               name: p.name,
                               initials: getTwoInitials(p.name),
-                              avatar: undefined,
+                              avatar: (p as any).profilePhoto || (p as any).avatar || undefined,
                             })),
                         });
                       }
@@ -14771,7 +15536,7 @@ class TournamentsView extends StatelessWidget {
                               id: p.id,
                               name: p.name,
                               initials: getTwoInitials(p.name),
-                              avatar: undefined,
+                              avatar: (p as any).profilePhoto || (p as any).avatar || undefined,
                             })),
                         });
                       } else {

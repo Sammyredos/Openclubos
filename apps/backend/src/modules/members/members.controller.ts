@@ -68,6 +68,11 @@ export class MembersController {
     const userClubId = req.user?.clubId as string | undefined;
 
     const effectiveClubId = role === UserRole.CLUB_ADMIN ? userClubId : clubId;
+    const viewerId =
+      req.user?.id ||
+      req.user?.userId ||
+      req.headers['x-user-id'] ||
+      req.headers['x-player-id'];
 
     return this.membersService.findAll({
       skip,
@@ -76,6 +81,7 @@ export class MembersController {
       status,
       clubId: effectiveClubId,
       role: filterRole,
+      viewerId,
     });
   }
 

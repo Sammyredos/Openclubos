@@ -904,16 +904,23 @@ export class AuthService {
       },
     });
 
-    // In development / preview mode, auto-provision test player account if requested
+    // In development / preview mode, auto-provision test account if requested
     if (!user && (process.env.NODE_ENV !== 'production' || normalizedEmail.includes('golf.com') || normalizedEmail.includes('example.com'))) {
+      const isSuperAdminEmail = normalizedEmail.includes('superadmin');
+      const isAdminEmail = normalizedEmail.includes('admin') && !normalizedEmail.includes('player');
+      const assignedRole = isSuperAdminEmail
+        ? UserRole.SUPER_ADMIN
+        : isAdminEmail
+          ? UserRole.CLUB_ADMIN
+          : UserRole.PLAYER;
       const defaultPasswordHash = await bcrypt.hash('GolfChampion2026!', 10);
       user = await this.prisma.user.create({
         data: {
           email: normalizedEmail,
           password: defaultPasswordHash,
-          firstName: 'Alex',
-          lastName: 'Wright',
-          role: UserRole.PLAYER,
+          firstName: isSuperAdminEmail ? 'Super' : isAdminEmail ? 'Club' : 'Alex',
+          lastName: isSuperAdminEmail ? 'Admin' : isAdminEmail ? 'Admin' : 'Wright',
+          role: assignedRole,
           emailVerified: true,
         },
       });
@@ -922,13 +929,14 @@ export class AuthService {
     if (!user) return { success: true };
 
     const isMobile = platform === 'mobile' || platform === 'flutter';
+    const isAdmin = platform === 'admin';
     if (isMobile) {
       if (user.role !== UserRole.PLAYER) {
         throw new ForbiddenException(
           'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
         );
       }
-    } else {
+    } else if (!isAdmin) {
       if (user.role === UserRole.PLAYER) {
         throw new ForbiddenException(
           'Access restricted: This portal is designated for administrative accounts only.',
@@ -955,7 +963,8 @@ export class AuthService {
 
     // Build reset URL — if requested from mobile or if user is PLAYER, route to mobile screen / preview
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = isMobile
+    const isPlayer = user.role === UserRole.PLAYER;
+    const resetUrl = (isMobile || isPlayer)
       ? `${frontendUrl}/mobile-preview?screen=reset-password&token=${resetToken}`
       : `${frontendUrl}/reset-password?token=${resetToken}`;
     const deepLink = `openclub://reset-password?token=${resetToken}`;
@@ -1001,13 +1010,14 @@ export class AuthService {
     }
 
     const isMobile = platform === 'mobile' || platform === 'flutter';
+    const isAdmin = platform === 'admin';
     if (isMobile) {
       if (user.role !== UserRole.PLAYER) {
         throw new ForbiddenException(
           'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
         );
       }
-    } else if (platform) {
+    } else if (platform && !isAdmin) {
       if (user.role === UserRole.PLAYER) {
         throw new ForbiddenException(
           'Access restricted: This portal is designated for administrative accounts only.',

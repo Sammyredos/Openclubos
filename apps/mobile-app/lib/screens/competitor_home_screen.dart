@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -32,6 +33,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   List<Map<String, dynamic>> _friendsOnCourse = [];
   final Set<String> _acceptedFriendIds = {};
   final Set<String> _sentRequestIds = {};
+  final Set<String> _blockedUserIds = {};
   String _searchQueryAddFriends = '';
   final TextEditingController _searchControllerAddFriends = TextEditingController();
 
@@ -49,7 +51,33 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   }
 
   Widget _buildFlightPlayerAvatar(String name, String? avatarUrl, String? initials) {
-    final effectiveInitials = _getTwoInitials(name);
+    final effectiveInitials = (initials != null && initials.isNotEmpty) ? initials : _getTwoInitials(name);
+    if (avatarUrl != null && avatarUrl.trim().isNotEmpty) {
+      final cleanUrl = avatarUrl.trim();
+      if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+        return Image.network(
+          cleanUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (ctx, err, stack) => _buildFlightInitialsText(effectiveInitials),
+        );
+      } else if (cleanUrl.startsWith('data:image')) {
+        try {
+          final commaIdx = cleanUrl.indexOf(',');
+          final base64Str = commaIdx != -1 ? cleanUrl.substring(commaIdx + 1) : cleanUrl;
+          return Image.memory(
+            base64Decode(base64Str),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (ctx, err, stack) => _buildFlightInitialsText(effectiveInitials),
+          );
+        } catch (_) {
+          return _buildFlightInitialsText(effectiveInitials);
+        }
+      }
+    }
     return _buildFlightInitialsText(effectiveInitials);
   }
 
@@ -208,7 +236,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         final sentList = box.get('sent_friend_requests_$userId');
         final acceptedList = box.get('accepted_friends_$userId');
         final incomingList = box.get('incoming_friend_requests_$userId');
+        final blockedList = box.get('blocked_users_$userId');
         setState(() {
+          _blockedUserIds.clear();
+          if (blockedList is List) {
+            _blockedUserIds.addAll(blockedList.map((e) => e.toString()));
+          }
           _sentRequestIds.clear();
           if (sentList is List) {
             _sentRequestIds.addAll(sentList.map((e) => e.toString()));
@@ -217,8 +250,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           if (acceptedList is List) {
             _acceptedFriendIds.addAll(acceptedList.map((e) => e.toString()));
           }
-          // Critical fix: pending sent requests can NEVER remain in accepted friends
-          _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id));
+          // Critical fix: pending sent requests and blocked users can NEVER remain in accepted friends
+          _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id) || _blockedUserIds.contains(id));
+          _sentRequestIds.removeWhere((id) => _blockedUserIds.contains(id));
 
           _incomingFriendRequests.clear();
           if (incomingList is List) {
@@ -226,14 +260,115 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           }
         });
       } catch (_) {}
+      _fetchFriendsFromDb();
     } else {
       setState(() {
+        _blockedUserIds.clear();
         _sentRequestIds.clear();
         _acceptedFriendIds.clear();
         _incomingFriendRequests.clear();
         _friendsOnCourse.clear();
       });
     }
+  }
+
+  Future<void> _fetchFriendsFromDb() async {
+    final userId = _user?['id']?.toString() ?? _user?['email']?.toString();
+    if (userId == null || userId.isEmpty) return;
+
+    try {
+      // 1. Fetch accepted friends from database
+      final friendsRes = await _apiClient.dio.get(
+        '/friends',
+        options: Options(headers: {'x-user-id': userId}),
+      );
+      if (friendsRes.statusCode == 200 && friendsRes.data is List) {
+        final List<dynamic> list = friendsRes.data;
+        final accepted = <String>[];
+        for (final f in list) {
+          final fid = f['id']?.toString();
+          final fname = f['name']?.toString()?.toLowerCase();
+          if (fid != null && fid.isNotEmpty) accepted.add(fid);
+          if (fname != null && fname.isNotEmpty) accepted.add(fname);
+        }
+        if (mounted) {
+          setState(() {
+            _acceptedFriendIds.addAll(accepted);
+            _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id));
+          });
+        }
+        final box = await Hive.openBox('auth');
+        await box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+      }
+
+      // 2. Fetch pending requests (incoming & outgoing)
+      final reqRes = await _apiClient.dio.get(
+        '/friends/requests',
+        options: Options(headers: {'x-user-id': userId}),
+      );
+      if (reqRes.statusCode == 200 && reqRes.data is Map) {
+        final incoming = reqRes.data['incoming'] as List? ?? [];
+        final outgoing = reqRes.data['outgoing'] as List? ?? [];
+
+        final incomingList = incoming.map((item) {
+          return {
+            'id': item['id']?.toString(),
+            'senderId': item['senderId']?.toString(),
+            'senderName': item['senderName']?.toString() ?? 'Golfer',
+            'senderEmail': item['senderEmail']?.toString() ?? '',
+            'senderClub': item['senderClub']?.toString() ?? 'OpenClub Golfer',
+            'senderHcp': item['senderHcp']?.toString() ?? '0.0',
+            'senderInitial': (item['senderName']?.toString().isNotEmpty == true)
+                ? item['senderName'][0].toUpperCase()
+                : 'G',
+            'senderAvatar': item['senderAvatar']?.toString(),
+            'createdAt': item['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
+          };
+        }).toList();
+
+        final sentIds = outgoing
+            .map((item) => item['receiverId']?.toString())
+            .whereType<String>()
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _incomingFriendRequests.clear();
+            _incomingFriendRequests.addAll(incomingList);
+            _sentRequestIds.addAll(sentIds);
+            _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id));
+          });
+        }
+
+        final box = await Hive.openBox('auth');
+        await box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
+        await box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+        await box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+      }
+
+      // 3. Fetch blocked users from database
+      final blockedRes = await _apiClient.dio.get(
+        '/friends/blocked',
+        options: Options(headers: {'x-user-id': userId}),
+      );
+      if (blockedRes.statusCode == 200 && blockedRes.data is List) {
+        final List<dynamic> blockedData = blockedRes.data;
+        final serverBlocked = <String>[];
+        for (final b in blockedData) {
+          final bid = b['id']?.toString();
+          if (bid != null && bid.isNotEmpty) serverBlocked.add(bid);
+        }
+        if (mounted) {
+          setState(() {
+            _blockedUserIds.addAll(serverBlocked);
+            _acceptedFriendIds.removeWhere((id) => _blockedUserIds.contains(id));
+            _sentRequestIds.removeWhere((id) => _blockedUserIds.contains(id));
+          });
+        }
+        final box = await Hive.openBox('auth');
+        await box.put('blocked_users_$userId', _blockedUserIds.toList());
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchTournaments() async {
@@ -325,7 +460,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           final scoreText = thruCount == 0 ? 'Tee Time: ${reg['teeTime'] ?? '08:00 AM'}' : 'Hole $currentHole • ${toPar == 0 ? 'Even' : (toPar > 0 ? '+$toPar' : '$toPar')}';
 
           final compData = {
-            'id': reg['id']?.toString() ?? 'c_$i',
+            'id': user?['id']?.toString() ?? reg['id']?.toString() ?? 'c_$i',
+            'registrationId': reg['id']?.toString(),
+            'userId': user?['id']?.toString(),
             'name': name,
             'initials': initials,
             'avatar': photo,
@@ -469,12 +606,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
                     if (!isCurrentUser) {
                       final displayName = uName.isNotEmpty ? uName : (uEmail ?? 'Player');
-                      final photo = u?['profilePhoto']?.toString();
+                      final photo = u?['profilePhoto']?.toString() ?? u?['avatar']?.toString() ?? r?['avatar']?.toString();
                       flightPlayers.add({
                         'id': uId,
                         'name': displayName,
                         'initials': _getTwoInitials(displayName),
-                        'avatar': null,
+                        'avatar': photo,
                       });
                     }
                     if (flightPlayers.length >= 3) break;
@@ -507,7 +644,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                   'id': comp['id'],
                   'name': comp['name'],
                   'initials': _getTwoInitials(comp['name']?.toString() ?? 'Golfer'),
-                  'avatar': null,
+                  'avatar': photo,
                 });
               }
               if (flightPlayers.length >= 3) break;
@@ -566,6 +703,40 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     } catch (_) {}
   }
 
+  String _formatNotificationTime(dynamic dateVal) {
+    if (dateVal == null) return 'Just now';
+    try {
+      final dt = dateVal is DateTime
+          ? dateVal
+          : DateTime.tryParse(dateVal.toString()) ?? DateTime.now();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.isNegative || diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      final timeStr = '$hour:$minute $period';
+
+      final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+      final yesterday = now.subtract(const Duration(days: 1));
+      final isYesterday = dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day;
+
+      if (isToday) {
+        if (diff.inHours < 4) return '${diff.inHours}h ago';
+        return timeStr;
+      }
+      if (isYesterday) {
+        return 'Yesterday, $timeStr';
+      }
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[dt.month - 1]} ${dt.day}, $timeStr';
+    } catch (_) {
+      return 'Recently';
+    }
+  }
+
   Future<void> _fetchNotifications() async {
     setState(() => _isLoadingNotifications = true);
     try {
@@ -576,11 +747,13 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           : (data is List ? data : []);
 
       final List<Map<String, dynamic>> fetched = items.map((n) {
+        final createdAt = n['createdAt'] ?? n['timestamp'] ?? n['created_at'];
         return {
           'id': n['id']?.toString() ?? '',
           'title': n['title']?.toString() ?? 'Tournament Notice',
           'desc': n['body']?.toString() ?? n['message']?.toString() ?? n['description']?.toString() ?? '',
-          'time': 'Just now',
+          'time': _formatNotificationTime(createdAt),
+          'createdAt': createdAt?.toString(),
           'unread': n['isRead'] != true,
           'type': n['type']?.toString() ?? 'SYSTEM',
           'data': n['data'] is Map ? Map<String, dynamic>.from(n['data']) : null,
@@ -597,7 +770,32 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             for (final ln in localNotifs) {
               if (ln is Map) {
                 final m = Map<String, dynamic>.from(ln);
-                if (!existingIds.contains(m['id']?.toString())) {
+                final mId = m['id']?.toString() ?? '';
+                final mData = m['data'] is Map ? m['data'] as Map : {};
+                final mType = (m['type'] ?? mData['type'] ?? '').toString().toUpperCase();
+                final mUserId = mData['userId']?.toString();
+                final isDup = existingIds.contains(mId) || fetched.any((f) {
+                  final fData = f['data'] is Map ? f['data'] as Map : {};
+                  final fType = (f['type'] ?? fData['type'] ?? '').toString().toUpperCase();
+                  final fTitle = (f['title'] ?? '').toString().trim().toLowerCase();
+                  final mTitle = (m['title'] ?? '').toString().trim().toLowerCase();
+                  final fDesc = (f['desc'] ?? f['body'] ?? '').toString().trim().toLowerCase();
+                  final mDesc = (m['desc'] ?? m['body'] ?? '').toString().trim().toLowerCase();
+                  final fUserId = (fData['userId'] ?? fData['senderId'] ?? '').toString().trim().toLowerCase();
+                  final mUser = (mUserId ?? mData['senderId'] ?? '').toString().trim().toLowerCase();
+                  final fUserName = (fData['userName'] ?? fData['senderName'] ?? '').toString().trim().toLowerCase();
+                  final mUserName = (mData['userName'] ?? mData['senderName'] ?? '').toString().trim().toLowerCase();
+
+                  final isMFriend = mType == 'FRIEND_ACCEPTED' || mTitle.contains('friend request accepted') || mDesc.contains('accepted your friend request');
+                  final isFFriend = fType == 'FRIEND_ACCEPTED' || fTitle.contains('friend request accepted') || fDesc.contains('accepted your friend request');
+
+                  if (isMFriend && isFFriend) {
+                    if (mUser.isNotEmpty && fUserId.isNotEmpty && mUser == fUserId) return true;
+                    if (mUserName.isNotEmpty && fUserName.isNotEmpty && mUserName == fUserName) return true;
+                  }
+                  return fTitle == mTitle && (fDesc == mDesc || fDesc.contains(mUserName) || mDesc.contains(fUserName));
+                });
+                if (!isDup) {
                   fetched.insert(0, m);
                 }
               }
@@ -643,6 +841,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     final senderName = req['senderName']?.toString() ?? 'Golfer';
     if (senderId == null || _user == null) return;
     final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
+    final reqId = req['id']?.toString() ?? req['requestId']?.toString() ?? senderId;
 
     setState(() {
       _acceptedFriendIds.add(senderId);
@@ -654,6 +853,19 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         }
       }
     });
+
+    try {
+      // Synchronize with database
+      _apiClient.dio.post(
+        '/friends/respond',
+        data: {
+          'requestId': reqId,
+          'accept': true,
+          'userId': userId,
+        },
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
 
     try {
       final box = await Hive.openBox('auth');
@@ -684,12 +896,21 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       final senderNotifs = box.get('user_notifications_$senderId');
       final senderNotifList = (senderNotifs is List) ? List<Map<String, dynamic>>.from(senderNotifs) : <Map<String, dynamic>>[];
       final myName = (_user!['fullName'] ?? _user!['name'] ?? 'A golfer').toString();
+      senderNotifList.removeWhere((n) {
+        final nData = n['data'] is Map ? n['data'] as Map : {};
+        final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+        return nType == 'FRIEND_ACCEPTED' && (nData['userId']?.toString() == userId || nData['userName']?.toString() == myName);
+      });
+      final nowIso = DateTime.now().toIso8601String();
       senderNotifList.insert(0, {
         'id': 'notif_acc_${DateTime.now().millisecondsSinceEpoch}',
         'title': 'Friend Request Accepted',
-        'desc': '$myName accepted your friend request! You can now follow their scores live.',
+        'desc': '$myName accepted your friend request! You are now connected.',
+        'body': '$myName accepted your friend request! You are now connected.',
         'time': 'Just now',
+        'createdAt': nowIso,
         'unread': true,
+        'isRead': false,
         'data': {'type': 'FRIEND_ACCEPTED', 'userId': userId, 'userName': myName},
       });
       await box.put('user_notifications_$senderId', senderNotifList);
@@ -730,17 +951,30 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     final senderId = req['senderId']?.toString();
     if (senderId == null || _user == null) return;
     final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
-    final reqId = req['id']?.toString() ?? req['requestId']?.toString();
+    final reqId = req['id']?.toString() ?? req['requestId']?.toString() ?? senderId;
 
     setState(() {
-      _incomingFriendRequests.removeWhere((r) => (senderId.isNotEmpty && r['senderId'] == senderId) || (reqId != null && r['id'] == reqId));
+      _incomingFriendRequests.removeWhere((r) => (senderId.isNotEmpty && r['senderId'] == senderId) || (reqId.isNotEmpty && r['id'] == reqId));
       _notifications.removeWhere((n) {
         final nData = n['data'] is Map ? n['data'] as Map : {};
-        if (reqId != null && (n['id'] == reqId || nData['requestId'] == reqId)) return true;
+        if (reqId.isNotEmpty && (n['id'] == reqId || nData['requestId'] == reqId)) return true;
         if (senderId.isNotEmpty && (nData['senderId'] == senderId || n['senderId'] == senderId)) return true;
         return false;
       });
     });
+
+    try {
+      // Synchronize with database
+      _apiClient.dio.post(
+        '/friends/respond',
+        data: {
+          'requestId': reqId,
+          'accept': false,
+          'userId': userId,
+        },
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
 
     try {
       final box = await Hive.openBox('auth');
@@ -772,14 +1006,70 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     setState(() {
       _sentRequestIds.remove(targetId);
     });
+
+    try {
+      // Synchronize with database: delete request record and notifications
+      _apiClient.dio.delete(
+        '/friends/request/$targetId',
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+      _apiClient.dio.post(
+        '/friends/cancel',
+        data: {'senderId': userId, 'targetUserId': targetId},
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+      _apiClient.dio.delete(
+        '/friends/$targetId',
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
+
     try {
       final box = await Hive.openBox('auth');
       await box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+
+      // Clean recipient's incoming requests
       final targetIncoming = box.get('incoming_friend_requests_$targetId');
       if (targetIncoming is List) {
         final updated = List<Map<String, dynamic>>.from(targetIncoming)
-          ..removeWhere((r) => r['senderId']?.toString() == userId);
+          ..removeWhere((r) => (r['senderId'] ?? r['id'] ?? r['userId'])?.toString() == userId);
         await box.put('incoming_friend_requests_$targetId', updated);
+      }
+
+      // Clean recipient's notifications
+      final targetNotifs = box.get('user_notifications_$targetId');
+      if (targetNotifs is List) {
+        final updatedNotifs = List<Map<String, dynamic>>.from(targetNotifs)
+          ..removeWhere((n) {
+            final nData = n['data'] is Map ? n['data'] as Map : {};
+            final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+            final nSender = (nData['senderId'] ?? n['senderId'] ?? '').toString();
+            return nType == 'FRIEND_REQUEST' && nSender == userId;
+          });
+        await box.put('user_notifications_$targetId', updatedNotifs);
+      }
+
+      // Clean sender's own pending sent notifications
+      final senderNotifs = box.get('user_notifications_$userId');
+      if (senderNotifs is List) {
+        final updatedSenderNotifs = List<Map<String, dynamic>>.from(senderNotifs)
+          ..removeWhere((n) {
+            final nData = n['data'] is Map ? n['data'] as Map : {};
+            final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+            final nTarget = (nData['targetId'] ?? '').toString();
+            return nType == 'FRIEND_REQUEST_SENT' && nTarget == targetId;
+          });
+        await box.put('user_notifications_$userId', updatedSenderNotifs);
+        if (mounted) {
+          setState(() {
+            _notifications.removeWhere((n) {
+              final nData = n['data'] is Map ? n['data'] as Map : {};
+              final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+              final nTarget = (nData['targetId'] ?? '').toString();
+              return nType == 'FRIEND_REQUEST_SENT' && nTarget == targetId;
+            });
+          });
+        }
       }
     } catch (_) {}
 
@@ -814,12 +1104,14 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           candidateCompetitors: combined.values.toList(),
           sentRequestIds: _sentRequestIds,
           acceptedFriendIds: _acceptedFriendIds,
+          blockedUserIds: _blockedUserIds,
           incomingRequests: _incomingFriendRequests,
           onRequestToggled: _handleToggleFriendRequest,
           onAcceptIncoming: _acceptFriendRequest,
           onDeclineIncoming: _declineFriendRequest,
           onUnfriend: _handleUnfriend,
           onBlock: _handleBlock,
+          onUnblock: _handleUnblock,
         ),
       ),
     ).then((_) => setState(() {}));
@@ -832,11 +1124,20 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
 
     setState(() {
+      _blockedUserIds.add(compId);
       _acceptedFriendIds.remove(compId);
       _acceptedFriendIds.remove(compName);
       _sentRequestIds.remove(compId);
       _friendsOnCourse.removeWhere((f) => f['id']?.toString() == compId);
     });
+
+    try {
+      // Synchronize with database
+      _apiClient.dio.post(
+        '/friends/block/$compId',
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
 
     try {
       final box = await Hive.openBox('auth');
@@ -875,6 +1176,42 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     }
   }
 
+  Future<void> _handleUnblock(Map<String, dynamic> comp) async {
+    final compId = comp['id']?.toString() ?? '';
+    if (compId.isEmpty || _user == null) return;
+    final userId = _user!['id']?.toString() ?? _user!['email']?.toString() ?? 'anonymous';
+
+    setState(() {
+      _blockedUserIds.remove(compId);
+    });
+
+    try {
+      _apiClient.dio.delete(
+        '/friends/block/$compId',
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
+
+    try {
+      final box = await Hive.openBox('auth');
+      final blockedRaw = box.get('blocked_users_$userId');
+      final List blockedList = (blockedRaw is List) ? List.from(blockedRaw) : [];
+      blockedList.remove(compId);
+      await box.put('blocked_users_$userId', blockedList);
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${comp['name'] ?? 'Player'} has been unblocked.'),
+          backgroundColor: const Color(0xFF009A60),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   Future<void> _handleUnfriend(Map<String, dynamic> comp) async {
     final compId = comp['id']?.toString() ?? '';
     if (compId.isEmpty || _user == null) return;
@@ -885,6 +1222,14 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       _acceptedFriendIds.remove(compId);
       _acceptedFriendIds.remove(compName);
     });
+
+    try {
+      // Synchronize with database
+      _apiClient.dio.delete(
+        '/friends/$compId',
+        options: Options(headers: {'x-user-id': userId}),
+      ).catchError((_) => null);
+    } catch (_) {}
 
     try {
       final box = await Hive.openBox('auth');
@@ -919,8 +1264,26 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   Future<void> _handleToggleFriendRequest(Map<String, dynamic> comp) async {
     final compId = comp['id']?.toString() ?? '';
     if (compId.isEmpty) return;
+
+    // Strict guard: Blocked users cannot receive friend requests
+    if (_blockedUserIds.contains(compId)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have blocked this player. Unblock them first to connect.'),
+            backgroundColor: Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     final compName = (comp['name'] as String? ?? 'Golfer').toLowerCase();
     final isSent = _sentRequestIds.contains(compId);
+    final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
+    final userName = (_user?['fullName'] ?? _user?['name'] ?? 'Tournament Player').toString();
 
     setState(() {
       if (isSent) {
@@ -935,9 +1298,34 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     });
 
     try {
+      if (isSent) {
+        _apiClient.dio.delete(
+          '/friends/request/$compId',
+          options: Options(headers: {'x-user-id': userId}),
+        ).catchError((_) => null);
+        _apiClient.dio.post(
+          '/friends/cancel',
+          data: {'senderId': userId, 'targetUserId': compId},
+          options: Options(headers: {'x-user-id': userId}),
+        ).catchError((_) => null);
+        _apiClient.dio.delete(
+          '/friends/$compId',
+          options: Options(headers: {'x-user-id': userId}),
+        ).catchError((_) => null);
+      } else {
+        _apiClient.dio.post(
+          '/friends/request',
+          data: {
+            'targetUserId': compId,
+            'senderId': userId,
+          },
+          options: Options(headers: {'x-user-id': userId}),
+        ).catchError((_) => null);
+      }
+    } catch (_) {}
+
+    try {
       final box = await Hive.openBox('auth');
-      final userId = _user?['id']?.toString() ?? _user?['email']?.toString() ?? 'anonymous';
-      final userName = (_user?['fullName'] ?? _user?['name'] ?? 'Tournament Player').toString();
       await box.put('sent_friend_requests_' + userId, _sentRequestIds.toList());
       await box.put('accepted_friends_' + userId, _acceptedFriendIds.toList());
 
@@ -958,11 +1346,13 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
         final existingNotifs = box.get('user_notifications_' + compId);
         final notifList = (existingNotifs is List) ? List<Map<String, dynamic>>.from(existingNotifs) : <Map<String, dynamic>>[];
+        final nowIso = DateTime.now().toIso8601String();
         notifList.insert(0, {
           'id': 'notif_freq_' + DateTime.now().millisecondsSinceEpoch.toString(),
           'title': 'Friend Request',
           'desc': userName + ' sent you a friend request to connect on OpenClub.',
           'time': 'Just now',
+          'createdAt': nowIso,
           'unread': true,
           'data': {'type': 'FRIEND_REQUEST', 'senderId': userId, 'senderName': userName},
         });
@@ -975,6 +1365,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           'title': 'Friend Request Sent',
           'desc': 'You sent a friend request to ' + (comp['name'] ?? '') + ' (' + (comp['club'] ?? '') + ' • HCP ' + (comp['hcp'] ?? '') + '). Pending acceptance.',
           'time': 'Just now',
+          'createdAt': nowIso,
           'unread': false,
           'data': {
             'type': 'FRIEND_REQUEST_SENT',
@@ -1000,6 +1391,63 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           'type': 'SYSTEM',
           'data': {'type': 'FRIEND_REQUEST', 'senderId': userId, 'senderName': userName},
         }).catchError((_) => null);
+
+        _apiClient.dio.post('/friends/request', data: {
+          'senderId': userId,
+          'receiverId': compId,
+        }).catchError((_) => null);
+      } else {
+        // Purge recipient's incoming friend requests
+        final existingIncoming = box.get('incoming_friend_requests_' + compId);
+        if (existingIncoming is List) {
+          final incomingList = List<Map<String, dynamic>>.from(existingIncoming)
+            ..removeWhere((item) => (item['senderId'] ?? item['id'] ?? item['userId'])?.toString() == userId);
+          await box.put('incoming_friend_requests_' + compId, incomingList);
+        }
+
+        // Purge recipient's friend request notifications
+        final existingNotifs = box.get('user_notifications_' + compId);
+        if (existingNotifs is List) {
+          final notifList = List<Map<String, dynamic>>.from(existingNotifs)
+            ..removeWhere((n) {
+              final nData = n['data'] is Map ? n['data'] as Map : {};
+              final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+              final nSender = (nData['senderId'] ?? n['senderId'] ?? '').toString();
+              return nType == 'FRIEND_REQUEST' && nSender == userId;
+            });
+          await box.put('user_notifications_' + compId, notifList);
+        }
+
+        // Purge sender's own pending sent notification
+        final senderNotifs = box.get('user_notifications_' + userId);
+        if (senderNotifs is List) {
+          final senderNotifList = List<Map<String, dynamic>>.from(senderNotifs)
+            ..removeWhere((n) {
+              final nData = n['data'] is Map ? n['data'] as Map : {};
+              final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+              final nTarget = (nData['targetId'] ?? '').toString();
+              return nType == 'FRIEND_REQUEST_SENT' && nTarget == compId;
+            });
+          await box.put('user_notifications_' + userId, senderNotifList);
+          if (mounted) {
+            setState(() {
+              _notifications.removeWhere((n) {
+                final nData = n['data'] is Map ? n['data'] as Map : {};
+                final nType = (n['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+                final nTarget = (nData['targetId'] ?? '').toString();
+                return nType == 'FRIEND_REQUEST_SENT' && nTarget == compId;
+              });
+            });
+          }
+        }
+
+        // Synchronize cancellation with backend database so it cancels for the recipient
+        _apiClient.dio.delete('/friends/request/$compId').catchError((_) => null);
+        _apiClient.dio.post('/friends/cancel', data: {
+          'senderId': userId,
+          'targetUserId': compId,
+        }).catchError((_) => null);
+        _apiClient.dio.delete('/friends/$compId').catchError((_) => null);
       }
     } catch (_) {}
   }

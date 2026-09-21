@@ -15,6 +15,22 @@ import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
 const MAX_PAGE_SIZE = 100;
 
+function getTimestampFromUuidV7(uuid: string): string | null {
+  try {
+    if (!uuid || typeof uuid !== 'string') return null;
+    const clean = uuid.replace(/-/g, '');
+    if (clean.length < 32) return null;
+    const timeHex = clean.substring(0, 12);
+    const ms = parseInt(timeHex, 16);
+    if (ms > 1577836800000 && ms < 2524608000000) {
+      return new Date(ms).toISOString();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const GOLF_COURSE_BANNERS = [
   '/images/tournaments/course_banner_01.jpg',
   '/images/tournaments/course_banner_02.jpg',
@@ -1298,26 +1314,31 @@ Please arrive at least 30 minutes before your tee time. Best of luck on the cour
     });
 
     return {
-      groups: groups.map(g => ({
-        id: g.id,
-        name: g.name,
-        day: g.day,
-        startTime: g.startTime ? g.startTime.toISOString() : null,
-        registrations: g.players.map(p => ({
-          id: p.registration.id,
-          paymentStatus: p.registration.paymentStatus,
-          user: {
-            id: p.registration.user.id,
-            email: p.registration.user.email,
-            firstName: p.registration.user.firstName,
-            lastName: p.registration.user.lastName,
-            handicap: p.registration.user.handicap,
-            profilePhoto: p.registration.user.profilePhoto,
-            gender: p.registration.user.gender,
-            dob: p.registration.user.dob,
-          }
-        }))
-      })),
+      groups: groups.map(g => {
+        const groupedAt = getTimestampFromUuidV7(g.id);
+        return {
+          id: g.id,
+          name: g.name,
+          day: g.day,
+          startTime: g.startTime ? g.startTime.toISOString() : null,
+          createdAt: groupedAt,
+          groupedAt: groupedAt,
+          registrations: g.players.map(p => ({
+            id: p.registration.id,
+            paymentStatus: p.registration.paymentStatus,
+            user: {
+              id: p.registration.user.id,
+              email: p.registration.user.email,
+              firstName: p.registration.user.firstName,
+              lastName: p.registration.user.lastName,
+              handicap: p.registration.user.handicap,
+              profilePhoto: p.registration.user.profilePhoto,
+              gender: p.registration.user.gender,
+              dob: p.registration.user.dob,
+            }
+          }))
+        };
+      }),
       unassigned: unassignedRegistrations.map(r => ({
         id: r.id,
         paymentStatus: r.paymentStatus,

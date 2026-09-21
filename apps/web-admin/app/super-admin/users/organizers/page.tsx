@@ -177,6 +177,7 @@ export default function SuperAdminUsersPage() {
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
+  const [resetEmail, setResetEmail] = useState("");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
@@ -381,6 +382,7 @@ export default function SuperAdminUsersPage() {
 
   const openResetPasswordModal = (u: AdminUser) => {
     setSelectedUser(u);
+    setResetEmail(u.email || "");
     setResetTab("link");
     setGeneratedPassword(null);
     setCopiedPassword(false);
@@ -498,15 +500,15 @@ export default function SuperAdminUsersPage() {
   };
 
   const sendResetLink = async () => {
-    const email = selectedUser?.email;
-    if (!email) {
-      toast.error("No email found for this user");
+    const targetEmail = (resetEmail || selectedUser?.email || "").trim();
+    if (!targetEmail) {
+      toast.error("Please enter a valid email address");
       return;
     }
     setMutating(true);
     try {
-      const r = await forgotPasswordRequest(email);
-      toast.success(r?.message || "Reset link sent");
+      const r = await forgotPasswordRequest(targetEmail, "admin");
+      toast.success(r?.message || `Password reset link sent to ${targetEmail}`);
       setIsResetPasswordModalOpen(false);
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to send reset email");
@@ -1310,16 +1312,23 @@ export default function SuperAdminUsersPage() {
 
           {resetTab === "link" ? (
             <div className="flex flex-col items-center text-center py-2">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#15803D]">
-                <Mail className="h-10 w-10" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-emerald-50 text-[#15803D]">
+                <Mail className="h-8 w-8" />
               </div>
-              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Send password reset link to</h4>
-              <p className="text-gray-500 max-w-sm">
-                <span className="font-normal text-gray-800">{selectedUser?.email || "—"}</span>
+              <h4 className="text-[16px] font-semibold text-gray-900 mb-1">Send Password Reset Link</h4>
+              <p className="text-[13px] text-gray-500 max-w-sm mb-4">
+                The user will receive an email with secure instructions to reset their password.
               </p>
-              <p className="text-gray-500 max-w-sm mt-2">
-                User will receive an email with instructions to reset their password.
-              </p>
+              <div className="w-full text-left space-y-1.5">
+                <label className="text-[13px] font-semibold text-[#0F172A]">Recipient Email Address</label>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full h-11 px-3.5 bg-[#f5faf6] border border-[#e1efe5] rounded-xl text-sm text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20"
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-5">

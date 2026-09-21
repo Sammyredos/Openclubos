@@ -217,10 +217,36 @@ export class MembersService {
     status?: MemberStatus;
     clubId?: string;
     role?: string;
+    viewerId?: string;
   }) {
-    const { skip, take, search, status, clubId, role } = query;
+    const { skip, take, search, status, clubId, role, viewerId } = query;
 
     const where: any = {};
+
+    // Exclude mutually blocked users if viewer is identified
+    if (viewerId) {
+      try {
+        const blocks = await this.prisma.blockedUser.findMany({
+          where: {
+            OR: [
+              { blockerId: viewerId },
+              { blockedId: viewerId },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        });
+        if (blocks.length > 0) {
+          const blockedIds = new Set<string>();
+          for (const b of blocks) {
+            if (b.blockerId === viewerId) blockedIds.add(b.blockedId);
+            if (b.blockedId === viewerId) blockedIds.add(b.blockerId);
+          }
+          if (blockedIds.size > 0) {
+            where.id = { notIn: Array.from(blockedIds) };
+          }
+        }
+      } catch (_) {}
+    }
 
     // Filter by role: if specific role requested use it, otherwise exclude SUPER_ADMIN
     if (clubId) {

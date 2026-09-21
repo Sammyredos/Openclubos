@@ -34,6 +34,7 @@ import {
   Target,
   FileText,
   FileSpreadsheet,
+  Flag,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -175,6 +176,7 @@ export default function SuperAdminUsersPage() {
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [resetTab, setResetTab] = useState<"link" | "generate">("link");
+  const [resetEmail, setResetEmail] = useState("");
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
@@ -202,6 +204,98 @@ export default function SuperAdminUsersPage() {
   const [paymentPage, setPaymentPage] = useState(1);
   const [tournamentPage, setTournamentPage] = useState(1);
   const modalItemsPerPage = 5;
+
+  // Moderation & Player Reports State
+  const [mainTab, setMainTab] = useState<"players" | "reports">("players");
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportStatusFilter, setReportStatusFilter] = useState<string>("ALL");
+  const [actionModal, setActionModal] = useState<{ report: any; action: "SUSPEND" | "WARN" | "DISMISS" } | null>(null);
+  const [actionNotes, setActionNotes] = useState("");
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+
+  const fetchReports = async () => {
+    setReportsLoading(true);
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${backendBase}/reports/user`, { headers }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setReports(data);
+          setReportsLoading(false);
+          return;
+        }
+      }
+    } catch {}
+
+    try {
+      const local = JSON.parse(localStorage.getItem("openclub_user_reports") || "[]");
+      setReports(local);
+    } catch {
+      setReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const handleExecuteAction = async () => {
+    if (!actionModal) return;
+    setIsSubmittingAction(true);
+    const { report, action } = actionModal;
+    try {
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const token = getAuthToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      await fetch(`${backendBase}/reports/user/${report.id}/action`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ action, notes: actionNotes }),
+      }).catch(() => null);
+
+      try {
+        const local = JSON.parse(localStorage.getItem("openclub_user_reports") || "[]");
+        const updated = local.map((r: any) =>
+          r.id === report.id
+            ? {
+                ...r,
+                status: action === "DISMISS" ? "DISMISSED" : "RESOLVED",
+                actionTaken: action,
+                actionNotes,
+                resolvedAt: new Date().toISOString(),
+              }
+            : r
+        );
+        localStorage.setItem("openclub_user_reports", JSON.stringify(updated));
+      } catch {}
+
+      toast.success(
+        action === "SUSPEND"
+          ? `Player ${report.reportedName} has been suspended.`
+          : action === "WARN"
+          ? `Warning sent to ${report.reportedName}.`
+          : "Report dismissed."
+      );
+      setActionModal(null);
+      setActionNotes("");
+      fetchReports();
+      reload();
+    } catch (err: any) {
+      toast.error("Failed to execute moderation action", { description: err.message });
+    } finally {
+      setIsSubmittingAction(false);
+    }
+  };
 
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -368,6 +462,7 @@ export default function SuperAdminUsersPage() {
 
   const openResetPasswordModal = (u: AdminUser) => {
     setSelectedUser(u);
+    setResetEmail(u.email || "");
     setResetTab("link");
     setGeneratedPassword(null);
     setCopiedPassword(false);
@@ -485,15 +580,15 @@ export default function SuperAdminUsersPage() {
   };
 
   const sendResetLink = async () => {
-    const email = selectedUser?.email;
-    if (!email) {
-      toast.error("No email found for this user");
+    const targetEmail = (resetEmail || selectedUser?.email || "").trim();
+    if (!targetEmail) {
+      toast.error("Please enter a valid email address");
       return;
     }
     setMutating(true);
     try {
-      const r = await forgotPasswordRequest(email);
-      toast.success(r?.message || "Reset link sent");
+      const r = await forgotPasswordRequest(targetEmail, "admin");
+      toast.success(r?.message || `Password reset link sent to ${targetEmail}`);
       setIsResetPasswordModalOpen(false);
     } catch (e: unknown) {
       toast.error(getErrorMessage(e) || "Failed to send reset email");
@@ -637,7 +732,40 @@ export default function SuperAdminUsersPage() {
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Users</CardTitle>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMainTab("players")}
+              className={cn(
+                "text-lg font-bold pb-1 transition-all border-b-2 cursor-pointer",
+                mainTab === "players"
+                  ? "border-[#15803D] text-[#15803D]"
+                  : "border-transparent text-gray-400 hover:text-gray-700"
+              )}
+            >
+              All Players
+            </button>
+            <div className="w-px h-5 bg-gray-200" />
+            <button
+              onClick={() => {
+                setMainTab("reports");
+                fetchReports();
+              }}
+              className={cn(
+                "text-lg font-bold pb-1 transition-all border-b-2 flex items-center gap-2 cursor-pointer",
+                mainTab === "reports"
+                  ? "border-[#DC2626] text-[#DC2626]"
+                  : "border-transparent text-gray-400 hover:text-gray-700"
+              )}
+            >
+              <Flag className="w-4 h-4" />
+              <span>Player Reports</span>
+              {reports.filter((r) => r.status === "PENDING").length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-black">
+                  {reports.filter((r) => r.status === "PENDING").length}
+                </span>
+              )}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
@@ -706,10 +834,171 @@ export default function SuperAdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Main Container */}
-          <div className="px-6 pb-6">
-            <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
-              <div className="p-5 border-b border-[#e1efe5]">
+          {mainTab === "reports" ? (
+            /* --- MODERATION & PLAYER REPORTS VIEW --- */
+            <div className="px-6 pb-6">
+              <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+                <div className="p-5 border-b border-[#e1efe5] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700">Filter Status:</span>
+                    {["ALL", "PENDING", "RESOLVED", "DISMISSED"].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setReportStatusFilter(st)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                          reportStatusFilter === st
+                            ? "bg-[#009A60] text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        )}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={fetchReports}
+                    className="h-9 border-[#e1efe5] text-xs font-semibold"
+                  >
+                    Refresh Reports
+                  </Button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                        <th className="px-6 py-4">Reported Golfer</th>
+                        <th className="px-6 py-4">Infraction Reason</th>
+                        <th className="px-6 py-4">Report Details</th>
+                        <th className="px-6 py-4">Reporter</th>
+                        <th className="px-6 py-4">Filed Date</th>
+                        <th className="px-6 py-4">Status & Action</th>
+                        <th className="px-6 py-4 text-center">Moderation Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#e1efe5]">
+                      {reportsLoading ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-10 text-gray-500">
+                            Loading reports...
+                          </td>
+                        </tr>
+                      ) : reports.filter((r) => reportStatusFilter === "ALL" || r.status === reportStatusFilter).length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-12">
+                            <EmptyState
+                              icon={Flag}
+                              title="No player reports found"
+                              description="No infraction reports match your current filter."
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        reports
+                          .filter((r) => reportStatusFilter === "ALL" || r.status === reportStatusFilter)
+                          .map((rep) => (
+                            <tr key={rep.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold flex items-center justify-center border border-[#C6F0DB]">
+                                    {rep.reportedPhoto ? (
+                                      <img src={rep.reportedPhoto} alt="" className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                      fullName(rep.reportedName?.split(" ")[0], rep.reportedName?.split(" ")[1])
+                                        .slice(0, 2)
+                                        .toUpperCase()
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-gray-900">{rep.reportedName}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {rep.reportedClub || "Golfer"} • HCP {rep.reportedHcp || "0.0"}
+                                    </p>
+                                    {rep.reportedUserStatus === "SUSPENDED" && (
+                                      <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-black bg-red-100 text-red-700">
+                                        ACCOUNT SUSPENDED
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100">
+                                  {rep.reason}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 max-w-xs">
+                                <p className="text-xs text-gray-700 line-clamp-2">
+                                  {rep.details || "No additional description provided."}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <p className="text-xs font-semibold text-gray-800">{rep.reporterName}</p>
+                                <p className="text-[11px] text-gray-500">{rep.reporterEmail}</p>
+                              </td>
+                              <td className="px-6 py-4 text-xs text-gray-500">
+                                {formatJoinedDate(rep.createdAt)}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span
+                                  className={cn(
+                                    "px-2.5 py-1 rounded-full text-xs font-bold",
+                                    rep.status === "PENDING"
+                                      ? "bg-amber-100 text-amber-800"
+                                      : rep.status === "RESOLVED"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-gray-100 text-gray-700"
+                                  )}
+                                >
+                                  {rep.status} {rep.actionTaken && rep.actionTaken !== "NONE" ? `(${rep.actionTaken})` : ""}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setActionModal({ report: rep, action: "SUSPEND" })}
+                                    className="h-8 px-2.5 text-xs text-red-700 border-red-200 hover:bg-red-50 font-bold"
+                                    title="Suspend Golfer"
+                                  >
+                                    Suspend
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setActionModal({ report: rep, action: "WARN" })}
+                                    className="h-8 px-2.5 text-xs text-amber-700 border-amber-200 hover:bg-amber-50 font-bold"
+                                    title="Send Formal Warning"
+                                  >
+                                    Warn
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setActionModal({ report: rep, action: "DISMISS" })}
+                                    className="h-8 px-2.5 text-xs text-gray-500 hover:bg-gray-100"
+                                    title="Dismiss Report"
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* --- STANDARD PLAYERS TABLE VIEW --- */
+            <div className="px-6 pb-6">
+              <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+                <div className="p-5 border-b border-[#e1efe5]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -925,9 +1214,10 @@ export default function SuperAdminUsersPage() {
             </p>
             <Pagination currentPage={pageSafe} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
-          </div>
         </div>
-        </CardContent>
+      </div>
+    )}
+  </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1315,16 +1605,23 @@ export default function SuperAdminUsersPage() {
 
           {resetTab === "link" ? (
             <div className="flex flex-col items-center text-center py-2">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-emerald-50 text-[#15803D]">
-                <Mail className="h-10 w-10" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-emerald-50 text-[#15803D]">
+                <Mail className="h-8 w-8" />
               </div>
-              <h4 className="text-[14px] font-normal text-gray-900 mb-2">Send password reset link to</h4>
-              <p className="text-gray-500 max-w-sm">
-                <span className="font-normal text-gray-800">{selectedUser?.email || "—"}</span>
+              <h4 className="text-[16px] font-semibold text-gray-900 mb-1">Send Password Reset Link</h4>
+              <p className="text-[13px] text-gray-500 max-w-sm mb-4">
+                The user will receive an email with secure instructions to reset their password.
               </p>
-              <p className="text-gray-500 max-w-sm mt-2">
-                User will receive an email with instructions to reset their password.
-              </p>
+              <div className="w-full text-left space-y-1.5">
+                <label className="text-[13px] font-semibold text-[#0F172A]">Recipient Email Address</label>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full h-11 px-3.5 bg-[#f5faf6] border border-[#e1efe5] rounded-xl text-sm text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20"
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-5">
@@ -1728,6 +2025,88 @@ export default function SuperAdminUsersPage() {
         })()}
       </Modal>
 
+
+      {/* --- MODERATION ACTION CONFIRMATION MODAL --- */}
+      {actionModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActionModal(null)}
+          title={
+            actionModal.action === "SUSPEND"
+              ? "Suspend Player Account"
+              : actionModal.action === "WARN"
+              ? "Send Conduct Warning"
+              : "Dismiss Player Report"
+          }
+          className="max-w-md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+              <p>
+                <strong className="text-gray-700">Reported Golfer:</strong> {actionModal.report.reportedName}
+              </p>
+              <p>
+                <strong className="text-gray-700">Infraction Reason:</strong> {actionModal.report.reason}
+              </p>
+              {actionModal.report.details && (
+                <p>
+                  <strong className="text-gray-700">Details:</strong> {actionModal.report.details}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 block mb-1.5">
+                Moderation Notes / Message to Player
+              </Label>
+              <textarea
+                rows={3}
+                value={actionNotes}
+                onChange={(e) => setActionNotes(e.target.value)}
+                placeholder={
+                  actionModal.action === "SUSPEND"
+                    ? "Enter reason for suspension (will be visible in their notification)..."
+                    : actionModal.action === "WARN"
+                    ? "Enter specific conduct warning message..."
+                    : "Enter notes explaining dismissal (internal)..."
+                }
+                className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-3 text-xs text-[#0F172A] placeholder:text-[#8CA0BA] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setActionModal(null)}
+                disabled={isSubmittingAction}
+                className="h-10 text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleExecuteAction}
+                disabled={isSubmittingAction}
+                className={cn(
+                  "h-10 text-xs font-bold text-white",
+                  actionModal.action === "SUSPEND"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : actionModal.action === "WARN"
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-gray-800 hover:bg-gray-900"
+                )}
+              >
+                {isSubmittingAction
+                  ? "Processing..."
+                  : actionModal.action === "SUSPEND"
+                  ? "Confirm Suspension"
+                  : actionModal.action === "WARN"
+                  ? "Send Warning"
+                  : "Confirm Dismissal"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
     </div>
   );

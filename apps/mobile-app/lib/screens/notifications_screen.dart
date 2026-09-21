@@ -30,16 +30,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _notifications = List<Map<String, dynamic>>.from(widget.initialNotifications);
-    _autoMarkAllAsRead();
   }
 
-  Future<void> _autoMarkAllAsRead() async {
+  Future<void> _markAllAsRead() async {
     setState(() {
       _isAllRead = true;
       for (final n in _notifications) {
         final nType = (n['type'] ?? '').toString().toLowerCase();
         final nData = n['data'] is Map ? n['data'] as Map : {};
-        final isFriend = nType.contains('friend') || nData['type'] == 'FRIEND_REQUEST';
+        final isFriend = nType.contains('friend') && !nType.contains('accepted');
         if (!isFriend) {
           n['unread'] = false;
           n['isRead'] = true;
@@ -55,6 +54,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (widget.onDismissAll != null) {
       widget.onDismissAll!();
+    }
+  }
+
+  Future<void> _handleCardClick(Map<String, dynamic> item) async {
+    if (item['isRead'] != true || item['unread'] != false) {
+      setState(() {
+        item['isRead'] = true;
+        item['unread'] = false;
+      });
+      try {
+        final userId = widget.user?['id']?.toString() ?? 'anonymous';
+        final box = await Hive.openBox('auth');
+        await box.put('user_notifications_$userId', _notifications);
+      } catch (_) {}
     }
   }
 
@@ -478,7 +491,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final title = item['title']?.toString() ?? 'Notification';
     final message = (item['message'] ?? item['body'] ?? '').toString();
     final timeStr = _formatTime(item['createdAt']);
-    final isUnread = !_isAllRead && (item['unread'] == true || item['isRead'] == false);
+    final isUnread = !_isAllRead && (item['isRead'] != true && item['unread'] != false);
     // Note: type, itemData, isFriendAccepted, isFriendSent, isFriendRequest already declared above
     final shouldDim = !isUnread && !isFriendRequest;
 
@@ -566,8 +579,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       iconBorder = const Color(0xFFFDE68A);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+    return GestureDetector(
+      onTap: () => _handleCardClick(item),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -792,6 +807,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final seenKeys = <String>{};
+    final deduplicatedNotifs = <Map<String, dynamic>>[];
+    for (final notif in _notifications) {
+      final nData = notif['data'] is Map ? notif['data'] as Map : {};
+      final nTitle = (notif['title'] ?? '').toString().trim().toLowerCase();
+      final nBody = (notif['body'] ?? notif['message'] ?? notif['desc'] ?? '').toString().trim().toLowerCase();
+      final nType = (notif['type'] ?? nData['type'] ?? '').toString().toUpperCase();
+      final isFriendAccepted = nType == 'FRIEND_ACCEPTED' ||
+          nTitle.contains('friend request accepted') ||
+          nBody.contains('accepted your friend request');
+      final friendId = (nData['userId'] ?? notif['userId'] ?? nData['senderId'] ?? notif['senderId'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      final friendName = (nData['userName'] ?? nData['senderName'] ?? notif['userName'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      final key = isFriendAccepted && (friendId.isNotEmpty || friendName.isNotEmpty)
+          ? 'FRIEND_ACCEPTED_${friendId.isNotEmpty ? friendId : friendName}'
+          : '${nTitle}:::$nBody';
+      if (key.isNotEmpty && seenKeys.contains(key)) continue;
+      seenKeys.add(key);
+      deduplicatedNotifs.add(notif);
+    }
+
+  DateTime _parseNotificationDateTime(dynamic dateVal, [dynamic notifId]) {
+    if (dateVal is DateTime) return dateVal;
+    if (dateVal != null) {
+      final parsed = DateTime.tryParse(dateVal.toString());
+      if (parsed != null) return parsed;
+    }
+    // Attempt extraction from ID if it contains epoch milliseconds (e.g. notif_freq_1789...)
+    if (notifId != null) {
+      final match = RegExp(r'(\d{10,13})').firstMatch(notifId.toString());
+      if (match != null) {
+        final ms = int.tryParse(match.group(1)!);
+        if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
+      }
+    }
+    return DateTime.now();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Partition notifications chronologically
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -801,25 +861,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final yesterdayNotifs = <Map<String, dynamic>>[];
     final earlierNotifs = <Map<String, dynamic>>[];
 
-    for (final notif in _notifications) {
-      final dateVal = notif['createdAt'];
-      if (dateVal == null) {
+    for (final notif in deduplicatedNotifs) {
+      final dateVal = notif['createdAt'] ?? notif['time'];
+      final dt = _parseNotificationDateTime(dateVal, notif['id']);
+      if (dt.isAfter(todayStart) || dt.isAtSameMomentAs(todayStart)) {
         todayNotifs.add(notif);
+      } else if (dt.isAfter(yesterdayStart) || dt.isAtSameMomentAs(yesterdayStart)) {
+        yesterdayNotifs.add(notif);
       } else {
-        try {
-          final dt = dateVal is DateTime ? dateVal : DateTime.tryParse(dateVal.toString());
-          if (dt == null || dt.isAfter(todayStart) || dt.isAtSameMomentAs(todayStart)) {
-            todayNotifs.add(notif);
-          } else if (dt.isAfter(yesterdayStart) || dt.isAtSameMomentAs(yesterdayStart)) {
-            yesterdayNotifs.add(notif);
-          } else {
-            earlierNotifs.add(notif);
-          }
-        } catch (_) {
-          todayNotifs.add(notif);
-        }
+        earlierNotifs.add(notif);
       }
     }
+
+    // Sort strictly in reverse-chronological order: latest notification is first to display
+    todayNotifs.sort((a, b) {
+      final dtA = _parseNotificationDateTime(a['createdAt'] ?? a['time'], a['id']);
+      final dtB = _parseNotificationDateTime(b['createdAt'] ?? b['time'], b['id']);
+      return dtB.compareTo(dtA);
+    });
+
+    yesterdayNotifs.sort((a, b) {
+      final dtA = _parseNotificationDateTime(a['createdAt'] ?? a['time'], a['id']);
+      final dtB = _parseNotificationDateTime(b['createdAt'] ?? b['time'], b['id']);
+      return dtB.compareTo(dtA);
+    });
+
+    earlierNotifs.sort((a, b) {
+      final dtA = _parseNotificationDateTime(a['createdAt'] ?? a['time'], a['id']);
+      final dtB = _parseNotificationDateTime(b['createdAt'] ?? b['time'], b['id']);
+      return dtB.compareTo(dtA);
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F3),
@@ -889,7 +960,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                 // 2. Scrollable Feed Content: Pure Dynamic Database Data
                 Expanded(
-                  child: _notifications.isEmpty
+                  child: deduplicatedNotifs.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),

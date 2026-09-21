@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../core/api/api_client.dart';
 import 'sync_contacts_screen.dart';
 
 class AddFriendsScreen extends StatefulWidget {
@@ -16,6 +18,8 @@ class AddFriendsScreen extends StatefulWidget {
   final Function(Map<String, dynamic> comp)? onDeclineIncoming;
   final Function(Map<String, dynamic> comp)? onUnfriend;
   final Function(Map<String, dynamic> comp)? onBlock;
+  final Function(Map<String, dynamic> comp)? onUnblock;
+  final Set<String> blockedUserIds;
 
   const AddFriendsScreen({
     super.key,
@@ -23,12 +27,14 @@ class AddFriendsScreen extends StatefulWidget {
     required this.candidateCompetitors,
     required this.sentRequestIds,
     required this.acceptedFriendIds,
+    this.blockedUserIds = const {},
     this.incomingRequests = const [],
     this.onRequestToggled,
     this.onAcceptIncoming,
     this.onDeclineIncoming,
     this.onUnfriend,
     this.onBlock,
+    this.onUnblock,
   });
 
   @override
@@ -36,10 +42,12 @@ class AddFriendsScreen extends StatefulWidget {
 }
 
 class _AddFriendsScreenState extends State<AddFriendsScreen> {
+  final ApiClient _apiClient = ApiClient();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Set<String> _localSentIds;
   late Set<String> _localAcceptedIds;
+  late Set<String> _localBlockedIds;
   List<Map<String, dynamic>> _localIncomingRequests = [];
   final Set<String> _localIncomingIds = {};
   final Set<String> _localIncomingNames = {};
@@ -310,11 +318,11 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Friend request from $compName declined.'),
-        backgroundColor: const Color(0xFF64748B),
+      const SnackBar(
+        content: Text('Friend request declined.'),
+        backgroundColor: Color(0xFF64748B),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
+        duration: Duration(seconds: 2),
       ),
     );
 
@@ -344,6 +352,576 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     if (widget.onUnfriend != null) {
       widget.onUnfriend!(player);
     }
+  }
+
+  String _getTwoInitials(String name) {
+    if (name.trim().isEmpty) return 'OC';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      final first = parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '';
+      final second = parts[1].isNotEmpty ? parts[1][0].toUpperCase() : '';
+      return '$first$second';
+    }
+    return name.trim().substring(0, name.trim().length >= 2 ? 2 : 1).toUpperCase();
+  }
+
+  void _showFriendActionSheet(Map<String, dynamic> player) {
+    final compName = player['name']?.toString() ?? 'Golfer';
+    final compClub = player['club']?.toString() ?? 'Ikoyi Golf Club';
+    final compHcp = player['hcp']?.toString() ?? '12';
+
+    // Resolve display photo with candidates lookup fallback
+    final compPhoto = player['avatar']?.toString() ??
+        player['profilePhoto']?.toString() ??
+        player['photo']?.toString() ??
+        player['image']?.toString();
+    String? resolvedPhoto = compPhoto;
+    if (resolvedPhoto == null || resolvedPhoto.trim().isEmpty) {
+      final compId = player['id']?.toString();
+      final compEmail = player['email']?.toString()?.toLowerCase();
+      for (final c in widget.candidateCompetitors) {
+        if ((compId != null && c['id']?.toString() == compId) ||
+            (compEmail != null && c['email']?.toString()?.toLowerCase() == compEmail) ||
+            (c['name']?.toString().toLowerCase() == compName.toLowerCase())) {
+          final cPhoto = c['avatar']?.toString() ?? c['profilePhoto']?.toString() ?? c['photo']?.toString();
+          if (cPhoto != null && cPhoto.trim().isNotEmpty) {
+            resolvedPhoto = cPhoto;
+            break;
+          }
+        }
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle pill
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Centered Friend Squircle Badge (Matching forfeit warning geometry)
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF7EE),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0xFFC6F0DB)),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      _buildPlayerAvatar(compName, resolvedPhoto, size: 44),
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF009A60),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.check_rounded, size: 10, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Centered Golfer Full Name
+                Text(
+                  compName,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: -0.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+
+                // Subtitle / Body
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13.5,
+                      color: const Color(0xFF64748B),
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Connected Friend',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF009A60)),
+                      ),
+                      TextSpan(text: ' • $compClub | $compHcp HCP'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Button 1: Remove from Friends
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFF1F2),
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(color: Color(0xFFFFE4E6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showUnfriendConfirmation(player);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.person_remove_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Remove from Friends',
+                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Button 2: Report Golfer
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFF1F2),
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(color: Color(0xFFFFE4E6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showReportGolferDialog(player);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.flag_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Report Golfer',
+                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Button 3: Block Golfer
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFF1F2),
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(color: Color(0xFFFFE4E6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showBlockConfirmation(player);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.block_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Block Golfer',
+                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Button 4: Cancel
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      foregroundColor: const Color(0xFF0F172A),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReportGolferDialog(Map<String, dynamic> player) {
+    final compName = player['name']?.toString() ?? 'Golfer';
+    final compId = player['id']?.toString() ?? '';
+    final compClub = player['club']?.toString() ?? 'OpenClub Golfer';
+    final compHcp = player['hcp']?.toString() ?? '0.0';
+
+    String selectedReason = 'Unsportsmanlike Conduct / Cheating';
+    final TextEditingController detailsController = TextEditingController();
+    bool isSubmitting = false;
+
+    final List<String> reasons = [
+      'Unsportsmanlike Conduct / Cheating',
+      'Harassment / Offensive Behavior',
+      'Impersonation / Fake Profile',
+      'Inappropriate Content or Avatar',
+      'Spam or Solicitation',
+      'Other Violation',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalCtx, setModalState) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                12,
+                24,
+                MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Drag handle
+                    Container(
+                      width: 48,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Flag Icon Badge (Red/Danger tint)
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.flag_rounded, color: Color(0xFFDC2626), size: 30),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Title & Description
+                    Text(
+                      'Report Golfer',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0F172A),
+                        letterSpacing: -0.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
+                        children: [
+                          const TextSpan(text: 'Help maintain a fair, respectful community. Select the infraction regarding '),
+                          TextSpan(
+                            text: compName,
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                          ),
+                          const TextSpan(text: '.'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Infraction Reason Selection
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'INFRACTION REASON',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF64748B),
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...reasons.map((r) {
+                      final isSelected = selectedReason == r;
+                      return GestureDetector(
+                        onTap: () => setModalState(() => selectedReason = r),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFEAF7EE) : const Color(0xFFF5FAF6),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF009A60) : const Color(0xFFE1EFE5),
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? const Color(0xFF009A60) : const Color(0xFFCBD5E1),
+                                    width: 2,
+                                  ),
+                                  color: isSelected ? const Color(0xFF009A60) : Colors.transparent,
+                                ),
+                                child: isSelected
+                                    ? const Center(
+                                        child: Icon(Icons.check, size: 12, color: Colors.white),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  r,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSelected ? const Color(0xFF009A60) : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+
+                    // Additional Details
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'ADDITIONAL DETAILS (OPTIONAL)',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF64748B),
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: detailsController,
+                      maxLines: 3,
+                      style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF5FAF6),
+                        hintText: 'Describe what happened or reference specific tournament rounds...',
+                        hintStyle: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF8CA0BA)),
+                        contentPadding: const EdgeInsets.all(12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE1EFE5)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE1EFE5)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF009A60), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Submit button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                setModalState(() => isSubmitting = true);
+                                final reporterId = widget.user?['id']?.toString() ??
+                                    widget.user?['email']?.toString() ??
+                                    'anonymous';
+                                final reporterName = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Alex Morgan';
+                                final details = detailsController.text.trim();
+
+                                try {
+                                  // Send to backend API
+                                  final apiClient = ApiClient();
+                                  await apiClient.dio.post(
+                                    '/reports/user',
+                                    data: {
+                                      'reporterId': reporterId,
+                                      'reporterName': reporterName,
+                                      'reportedId': compId,
+                                      'reportedName': compName,
+                                      'reportedClub': compClub,
+                                      'reportedHcp': compHcp,
+                                      'reason': selectedReason,
+                                      'details': details,
+                                    },
+                                    options: Options(headers: {'x-user-id': reporterId}),
+                                  ).catchError((_) => null);
+                                } catch (_) {}
+
+                                try {
+                                  // Persist locally in Hive
+                                  final box = await Hive.openBox('auth');
+                                  final existingReports = box.get('user_reports');
+                                  final reportsList = (existingReports is List)
+                                      ? List<Map<String, dynamic>>.from(existingReports)
+                                      : <Map<String, dynamic>>[];
+                                  reportsList.insert(0, {
+                                    'id': 'rep_${DateTime.now().millisecondsSinceEpoch}',
+                                    'reporterId': reporterId,
+                                    'reporterName': reporterName,
+                                    'reportedId': compId,
+                                    'reportedName': compName,
+                                    'reportedClub': compClub,
+                                    'reportedHcp': compHcp,
+                                    'reason': selectedReason,
+                                    'details': details,
+                                    'status': 'PENDING',
+                                    'createdAt': DateTime.now().toIso8601String(),
+                                  });
+                                  await box.put('user_reports', reportsList);
+                                } catch (_) {}
+
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Report submitted. Our moderation team will review this shortly.'),
+                                      backgroundColor: Color(0xFF009A60),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.flag_rounded, size: 18, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              isSubmitting ? 'Submitting...' : 'Submit Report to Moderation',
+                              style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Cancel button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          foregroundColor: const Color(0xFF0F172A),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showUnfriendConfirmation(Map<String, dynamic> player) {
@@ -649,13 +1227,23 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          isSent ? 'Friend request to $compName cancelled.' : 'Friend request sent to $compName!',
+          isSent ? 'Friend request cancelled.' : 'Friend request sent to $compName!',
         ),
         backgroundColor: isSent ? const Color(0xFF64748B) : const Color(0xFF009A60),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
     );
+
+    if (isSent) {
+      final myId = widget.user?['id']?.toString() ?? widget.user?['email']?.toString() ?? '';
+      _apiClient.dio.delete('/friends/request/$compId').catchError((_) => null);
+      _apiClient.dio.post('/friends/cancel', data: {
+        'senderId': myId,
+        'targetUserId': compId,
+      }).catchError((_) => null);
+      _apiClient.dio.delete('/friends/$compId').catchError((_) => null);
+    }
 
     if (widget.onRequestToggled != null) {
       widget.onRequestToggled!(comp);
@@ -1521,22 +2109,20 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Row(
+                                              Wrap(
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                spacing: 5,
+                                                runSpacing: 2,
                                                 children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      cName,
-                                                      style: GoogleFonts.dmSans(
-                                                        fontSize: 13,
-                                                        fontWeight: FontWeight.w700,
-                                                        color: const Color(0xFF0F172A),
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                  Text(
+                                                    cName,
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(0xFF0F172A),
                                                     ),
                                                   ),
-                                                  if (isOnApp && isAccepted) ...[
-                                                    const SizedBox(width: 5),
+                                                  if (isOnApp && isAccepted)
                                                     Container(
                                                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                                       decoration: BoxDecoration(
@@ -1545,15 +2131,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                         border: Border.all(color: const Color(0xFFC6F0DB)),
                                                       ),
                                                       child: Text(
-                                                        'Friend ✓',
+                                                        'Friend',
                                                         style: GoogleFonts.dmSans(
-                                                          fontSize: 9.5,
+                                                          fontSize: 9,
                                                           fontWeight: FontWeight.w700,
                                                           color: const Color(0xFF009A60),
                                                         ),
                                                       ),
                                                     ),
-                                                  ],
                                                 ],
                                               ),
                                               Text(
@@ -1585,55 +2170,25 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         ),
                                         if (isOnApp) ...[
                                           if (isAccepted)
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                GestureDetector(
-                                                  onTap: () {
-                                                    _showUnfriendConfirmation({
-                                                      'id': cId,
-                                                      'name': cName,
-                                                      'club': contact['club'] ?? '',
-                                                      'hcp': contact['hcp'] ?? '',
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    width: 28,
-                                                    height: 28,
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFFF1F5F9),
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                                    ),
-                                                    child: const Center(
-                                                      child: Icon(Icons.person_remove_rounded, size: 14, color: Color(0xFF64748B)),
-                                                    ),
-                                                  ),
+                                            GestureDetector(
+                                              onTap: () => _showFriendActionSheet({
+                                                'id': cId,
+                                                'name': cName,
+                                                'club': contact['club'] ?? '',
+                                                'hcp': contact['hcp'] ?? '',
+                                              }),
+                                              child: Container(
+                                                width: 28,
+                                                height: 28,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF1F5F9),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: const Color(0xFFE2E8F0)),
                                                 ),
-                                                const SizedBox(width: 4),
-                                                GestureDetector(
-                                                  onTap: () {
-                                                    _showBlockConfirmation({
-                                                      'id': cId,
-                                                      'name': cName,
-                                                      'club': contact['club'] ?? '',
-                                                      'hcp': contact['hcp'] ?? '',
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    width: 28,
-                                                    height: 28,
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFFF1F5F9),
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                                    ),
-                                                    child: const Center(
-                                                      child: Icon(Icons.block_rounded, size: 14, color: Color(0xFF64748B)),
-                                                    ),
-                                                  ),
+                                                child: const Center(
+                                                  child: Icon(Icons.more_horiz_rounded, size: 16, color: Color(0xFF64748B)),
                                                 ),
-                                              ],
+                                              ),
                                             )
                                           else
                                             GestureDetector(
@@ -2145,22 +2700,20 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
+                                    Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 6,
+                                      runSpacing: 2,
                                       children: [
-                                        Flexible(
-                                          child: Text(
-                                            name,
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF0F172A),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                        Text(
+                                          name,
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF0F172A),
                                           ),
                                         ),
-                                        if (isConnected) ...[
-                                          const SizedBox(width: 6),
+                                        if (isConnected)
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
@@ -2169,15 +2722,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               border: Border.all(color: const Color(0xFFC6F0DB)),
                                             ),
                                             child: Text(
-                                              'Friend ✓',
+                                              'Friend',
                                               style: GoogleFonts.dmSans(
-                                                fontSize: 10,
+                                                fontSize: 9,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                               ),
                                             ),
                                           ),
-                                        ],
                                       ],
                                     ),
                                     const SizedBox(height: 2),
@@ -2196,42 +2748,21 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               const SizedBox(width: 8),
                               // Right Action Button: Four Authentic Interactive States
                               if (isConnected)
-                                // Accepted state: dual circular action buttons (Unfriend + Block)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => _showUnfriendConfirmation(player),
-                                      child: Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                                        ),
-                                        child: const Center(
-                                          child: Icon(Icons.person_remove_rounded, size: 16, color: Color(0xFF64748B)),
-                                        ),
-                                      ),
+                                // Accepted state: single 3-dot action button opening forfeit-style action sheet
+                                GestureDetector(
+                                  onTap: () => _showFriendActionSheet(player),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
                                     ),
-                                    const SizedBox(width: 6),
-                                    GestureDetector(
-                                      onTap: () => _showBlockConfirmation(player),
-                                      child: Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                                        ),
-                                        child: const Center(
-                                          child: Icon(Icons.block_rounded, size: 16, color: Color(0xFF64748B)),
-                                        ),
-                                      ),
+                                    child: const Center(
+                                      child: Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFF64748B)),
                                     ),
-                                  ],
+                                  ),
                                 )
                               else if (isIncoming)
                                 // Incoming state: displays mark icon button (accept) + cancel icon button (decline)
@@ -2268,19 +2799,19 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         width: 34,
                                         height: 34,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
+                                          color: const Color(0xFFFEF2F2),
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          border: Border.all(color: const Color(0xFFFECACA)),
                                         ),
                                         child: const Center(
-                                          child: Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                                          child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
                                         ),
                                       ),
                                     ),
                                   ],
                                 )
                               else if (isSent)
-                                // Sent state: displays SENT text + light circular X cancel button (matching Image 2)
+                                // Sent state: displays SENT text + subtle red circular X cancel button
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -2299,11 +2830,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       child: Container(
                                         width: 32,
                                         height: 32,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFF1F5F9),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF2F2),
                                           shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFFECACA)),
                                         ),
-                                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                                        child: const Center(
+                                          child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
+                                        ),
                                       ),
                                     ),
                                   ],

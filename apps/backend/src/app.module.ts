@@ -38,6 +38,8 @@ import { ResendModule } from './modules/resend/resend.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { FriendsModule } from './modules/friends/friends.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 
@@ -117,6 +119,8 @@ if (process.env.SENTRY_DSN) {
     SubscriptionsModule,
     WithdrawalsModule,
     NotificationsModule,
+    FriendsModule,
+    ReportsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
