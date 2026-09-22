@@ -1,12 +1,16 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { FriendshipStatus, NotificationType } from '@prisma/client';
+import { FriendsGateway } from './friends.gateway';
 
 @Injectable()
 export class FriendsService {
   private readonly logger = new Logger(FriendsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly friendsGateway: FriendsGateway,
+  ) {}
 
   /**
    * Helper to resolve a user by ID or email
@@ -63,6 +67,9 @@ export class FriendsService {
       },
     });
 
+    const senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.email || 'A golfer';
+    const targetName = [target.firstName, target.lastName].filter(Boolean).join(' ') || target.email || 'A golfer';
+
     if (existing) {
       if (existing.status === FriendshipStatus.ACCEPTED) {
         return { success: true, message: 'Already connected as friends', friendship: existing };
@@ -76,6 +83,40 @@ export class FriendsService {
             where: { id: existing.id },
             data: { status: FriendshipStatus.ACCEPTED },
           });
+
+          // Real-time emit to both users
+          this.friendsGateway.emitFriendRequestAccepted(target.id, {
+            friendshipId: updated.id,
+            friend: {
+              friendshipId: updated.id,
+              friendId: sender.id,
+              name: senderName,
+              email: sender.email,
+              club: sender.club?.name || 'OpenClub Golfer',
+              handicap: sender.handicap,
+              profilePhoto: sender.profilePhoto,
+              connectedAt: updated.updatedAt.toISOString(),
+            },
+            byUserId: sender.id,
+            byUserName: senderName,
+          });
+
+          this.friendsGateway.emitFriendRequestAccepted(sender.id, {
+            friendshipId: updated.id,
+            friend: {
+              friendshipId: updated.id,
+              friendId: target.id,
+              name: targetName,
+              email: target.email,
+              club: target.club?.name || 'OpenClub Golfer',
+              handicap: target.handicap,
+              profilePhoto: target.profilePhoto,
+              connectedAt: updated.updatedAt.toISOString(),
+            },
+            byUserId: sender.id,
+            byUserName: senderName,
+          });
+
           return { success: true, message: 'Friend request accepted', friendship: updated };
         }
       }
@@ -89,6 +130,20 @@ export class FriendsService {
         },
       });
       await this.createFriendRequestNotification(sender, target);
+
+      this.friendsGateway.emitFriendRequestReceived(target.id, {
+        id: reset.id,
+        requestId: reset.id,
+        senderId: sender.id,
+        senderName,
+        senderEmail: sender.email,
+        senderClub: sender.club?.name || 'OpenClub Golfer',
+        senderHcp: sender.handicap,
+        senderAvatar: sender.profilePhoto,
+        profilePhoto: sender.profilePhoto,
+        createdAt: reset.createdAt.toISOString(),
+      });
+
       return { success: true, message: 'Friend request sent', friendship: reset };
     }
 
@@ -103,6 +158,20 @@ export class FriendsService {
 
     // Create notification for target recipient
     await this.createFriendRequestNotification(sender, target);
+
+    // Real-time emit to recipient
+    this.friendsGateway.emitFriendRequestReceived(target.id, {
+      id: friendship.id,
+      requestId: friendship.id,
+      senderId: sender.id,
+      senderName,
+      senderEmail: sender.email,
+      senderClub: sender.club?.name || 'OpenClub Golfer',
+      senderHcp: sender.handicap,
+      senderAvatar: sender.profilePhoto,
+      profilePhoto: sender.profilePhoto,
+      createdAt: friendship.createdAt.toISOString(),
+    });
 
     this.logger.log(`Friend request sent: ${sender.email} (${sender.id}) -> ${target.email} (${target.id})`);
     return { success: true, message: 'Friend request sent successfully', friendship };
@@ -234,6 +303,8 @@ export class FriendsService {
       // Send acceptance notification to the original sender
       const accepterName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'A golfer';
       const targetRecipientId = friendship.senderId === user.id ? friendship.receiverId : friendship.senderId;
+      const otherUser = await this.resolveUser(targetRecipientId);
+      const otherUserName = otherUser ? ([otherUser.firstName, otherUser.lastName].filter(Boolean).join(' ') || otherUser.email) : 'A golfer';
 
       await this.prisma.notification.create({
         data: {
@@ -248,6 +319,42 @@ export class FriendsService {
           },
         },
       }).catch(() => null);
+
+      // Emit real-time friend:request_accepted to other user (targetRecipientId)
+      this.friendsGateway.emitFriendRequestAccepted(targetRecipientId, {
+        friendshipId: updated.id,
+        friend: {
+          friendshipId: updated.id,
+          friendId: user.id,
+          name: accepterName,
+          email: user.email,
+          club: user.club?.name || 'OpenClub Golfer',
+          handicap: user.handicap,
+          profilePhoto: user.profilePhoto,
+          connectedAt: updated.updatedAt.toISOString(),
+        },
+        byUserId: user.id,
+        byUserName: accepterName,
+      });
+
+      // Emit real-time friend:request_accepted to the accepting user (user.id)
+      if (otherUser) {
+        this.friendsGateway.emitFriendRequestAccepted(user.id, {
+          friendshipId: updated.id,
+          friend: {
+            friendshipId: updated.id,
+            friendId: otherUser.id,
+            name: otherUserName,
+            email: otherUser.email,
+            club: otherUser.club?.name || 'OpenClub Golfer',
+            handicap: otherUser.handicap,
+            profilePhoto: otherUser.profilePhoto,
+            connectedAt: updated.updatedAt.toISOString(),
+          },
+          byUserId: user.id,
+          byUserName: accepterName,
+        });
+      }
 
       return { success: true, status: 'ACCEPTED', friendship: updated };
     } else {
@@ -272,6 +379,13 @@ export class FriendsService {
           data: { path: ['type'], equals: 'FRIEND_REQUEST_SENT' },
         },
       }).catch(() => null);
+
+      // Emit real-time friend:request_declined
+      this.friendsGateway.emitFriendRequestDeclined(senderId, {
+        senderId,
+        targetId: receiverId,
+        requestId: friendship.id,
+      });
 
       this.logger.log(`Friend request declined: friendship ${friendship.id} deleted`);
       return { success: true, status: 'DECLINED' };
@@ -299,6 +413,11 @@ export class FriendsService {
       },
     });
 
+    this.friendsGateway.emitFriendRequestCancelled(target.id, {
+      senderId: user.id,
+      targetId: target.id,
+    });
+
     return { success: true, message: 'Friend request cancelled' };
   }
 
@@ -321,6 +440,13 @@ export class FriendsService {
           { senderId: target.id, receiverId: user.id },
         ],
       },
+    });
+
+    const userName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    this.friendsGateway.emitFriendRemoved(target.id, {
+      friendId: user.id,
+      friendName: userName,
+      removedByUserId: user.id,
     });
 
     return { success: true, message: 'Friend removed successfully' };
@@ -400,6 +526,13 @@ export class FriendsService {
       update: {},
     });
 
+    const blockerName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    this.friendsGateway.emitFriendBlocked(target.id, {
+      blockerId: user.id,
+      blockedId: target.id,
+      blockerName,
+    });
+
     return { success: true, message: 'User blocked successfully' };
   }
 
@@ -420,6 +553,11 @@ export class FriendsService {
         blockerId: user.id,
         blockedId: target.id,
       },
+    });
+
+    this.friendsGateway.emitFriendUnblocked(target.id, {
+      unblockerId: user.id,
+      unblockedId: target.id,
     });
 
     return { success: true, message: 'User unblocked successfully' };

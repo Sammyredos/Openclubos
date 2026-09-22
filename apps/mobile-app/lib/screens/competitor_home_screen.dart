@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/api/api_client.dart';
 import '../features/scoring/presentation/screens/scoring_screen.dart';
 import 'player_scorecard_screen.dart';
@@ -21,6 +22,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   final ApiClient _apiClient = ApiClient();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  IO.Socket? _socket;
   Map<String, dynamic>? _user;
   List<dynamic> _tournaments = [];
   bool _isLoadingTournaments = true;
@@ -155,6 +157,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
   @override
   void dispose() {
+    try {
+      _socket?.disconnect();
+      _socket?.dispose();
+    } catch (_) {}
     _searchControllerAddFriends.dispose();
     _featuredTournamentsScrollController.dispose();
     _forfeitTimer?.cancel();
@@ -261,7 +267,13 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         });
       } catch (_) {}
       _fetchFriendsFromDb();
+      _initSocket();
     } else {
+      try {
+        _socket?.disconnect();
+        _socket?.dispose();
+        _socket = null;
+      } catch (_) {}
       setState(() {
         _blockedUserIds.clear();
         _sentRequestIds.clear();
@@ -270,6 +282,233 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         _friendsOnCourse.clear();
       });
     }
+  }
+
+  void _initSocket() {
+    final userId = _user?['id']?.toString() ?? _user?['email']?.toString();
+    if (userId == null || userId.isEmpty) return;
+
+    try {
+      _socket?.disconnect();
+      _socket?.dispose();
+    } catch (_) {}
+
+    final rawBase = ApiClient.resolveBaseUrl();
+    final socketUrl = rawBase.replaceAll(RegExp(r'/api/?$'), '');
+
+    try {
+      final s = IO.io(
+        socketUrl,
+        IO.OptionBuilder()
+            .setTransports(['websocket', 'polling'])
+            .enableAutoConnect()
+            .enableReconnection()
+            .setReconnectionAttempts(10)
+            .setReconnectionDelay(1000)
+            .setQuery({'userId': userId})
+            .build(),
+      );
+
+      s.onConnect((_) {
+        s.emit('subscribe:user', {'userId': userId});
+      });
+
+      s.on('friend:request_received', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final senderId = map['senderId']?.toString() ?? map['id']?.toString();
+        if (senderId == null || senderId.isEmpty) return;
+        if (_blockedUserIds.contains(senderId)) return;
+
+        final incomingItem = {
+          'id': map['id']?.toString() ?? map['requestId']?.toString() ?? 'freq_${DateTime.now().millisecondsSinceEpoch}',
+          'requestId': map['requestId']?.toString() ?? map['id']?.toString(),
+          'senderId': senderId,
+          'senderName': map['senderName']?.toString() ?? 'Golfer',
+          'senderEmail': map['senderEmail']?.toString() ?? '',
+          'senderClub': map['senderClub']?.toString() ?? 'OpenClub Golfer',
+          'senderHcp': map['senderHcp']?.toString() ?? '0.0',
+          'senderInitial': (map['senderName']?.toString().isNotEmpty == true) ? map['senderName'][0].toUpperCase() : 'G',
+          'senderAvatar': map['senderAvatar']?.toString() ?? map['profilePhoto']?.toString(),
+          'createdAt': map['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
+        };
+
+        setState(() {
+          _incomingFriendRequests.removeWhere((r) => r['senderId'] == senderId || r['id'] == incomingItem['id']);
+          _incomingFriendRequests.insert(0, incomingItem);
+        });
+
+        Hive.openBox('auth').then((box) {
+          box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
+        });
+      });
+
+      s.on('friend:request_cancelled', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final senderId = map['senderId']?.toString();
+        final targetId = map['targetId']?.toString();
+        final reqId = map['requestId']?.toString();
+
+        setState(() {
+          _incomingFriendRequests.removeWhere((r) {
+            if (reqId != null && (r['id'] == reqId || r['requestId'] == reqId)) return true;
+            if (senderId != null && (r['senderId'] == senderId || r['id'] == senderId)) return true;
+            return false;
+          });
+          if (senderId == userId && targetId != null) {
+            _sentRequestIds.remove(targetId);
+          }
+        });
+
+        Hive.openBox('auth').then((box) {
+          box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
+          box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+        });
+      });
+
+      s.on('friend:request_accepted', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final friendMap = map['friend'] is Map ? Map<String, dynamic>.from(map['friend'] as Map) : null;
+        final friendId = friendMap?['friendId']?.toString() ?? map['byUserId']?.toString();
+        final friendName = friendMap?['name']?.toString() ?? map['byUserName']?.toString();
+        if (friendId == null || friendId.isEmpty) return;
+
+        setState(() {
+          _acceptedFriendIds.add(friendId);
+          if (friendName != null && friendName.isNotEmpty) {
+            _acceptedFriendIds.add(friendName.toLowerCase());
+          }
+          _sentRequestIds.remove(friendId);
+          _incomingFriendRequests.removeWhere((r) => r['senderId'] == friendId || r['id'] == friendId);
+        });
+
+        Hive.openBox('auth').then((box) {
+          box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+          box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+          box.put('incoming_friend_requests_$userId', _incomingFriendRequests);
+        });
+      });
+
+      s.on('friend:request_declined', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final targetId = map['targetId']?.toString();
+        final senderId = map['senderId']?.toString();
+
+        if (userId == senderId && targetId != null) {
+          setState(() {
+            _sentRequestIds.remove(targetId);
+          });
+          Hive.openBox('auth').then((box) {
+            box.put('sent_friend_requests_$userId', _sentRequestIds.toList());
+          });
+        }
+      });
+
+      s.on('friend:removed', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final id1 = map['friendId']?.toString();
+        final id2 = map['removedByUserId']?.toString();
+
+        setState(() {
+          if (id1 != null) {
+            _acceptedFriendIds.remove(id1);
+            _friendsOnCourse.removeWhere((f) => f['id'] == id1);
+          }
+          if (id2 != null) {
+            _acceptedFriendIds.remove(id2);
+            _friendsOnCourse.removeWhere((f) => f['id'] == id2);
+          }
+        });
+
+        Hive.openBox('auth').then((box) {
+          box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+        });
+      });
+
+      s.on('friend:blocked', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final blockerId = map['blockerId']?.toString();
+        final blockedId = map['blockedId']?.toString();
+
+        setState(() {
+          if (userId == blockerId && blockedId != null) {
+            _blockedUserIds.add(blockedId);
+          }
+          final other = userId == blockerId ? blockedId : blockerId;
+          if (other != null) {
+            _acceptedFriendIds.remove(other);
+            _sentRequestIds.remove(other);
+            _incomingFriendRequests.removeWhere((r) => r['senderId'] == other || r['id'] == other);
+            _friendsOnCourse.removeWhere((f) => f['id'] == other);
+          }
+        });
+
+        Hive.openBox('auth').then((box) {
+          box.put('blocked_users_$userId', _blockedUserIds.toList());
+          box.put('accepted_friends_$userId', _acceptedFriendIds.toList());
+        });
+      });
+
+      s.on('friend:unblocked', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final unblockerId = map['unblockerId']?.toString();
+        final unblockedId = map['unblockedId']?.toString();
+
+        if (userId == unblockerId && unblockedId != null) {
+          setState(() {
+            _blockedUserIds.remove(unblockedId);
+          });
+          Hive.openBox('auth').then((box) {
+            box.put('blocked_users_$userId', _blockedUserIds.toList());
+          });
+        }
+      });
+
+      s.on('friend:playing_update', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final friendId = map['friendId']?.toString();
+        final isPlaying = map['isPlaying'] == true;
+        if (friendId == null || friendId.isEmpty) return;
+
+        setState(() {
+          if (isPlaying) {
+            final idx = _friendsOnCourse.indexWhere((f) => f['id'] == friendId);
+            final score = map['score']?.toString() ?? 'E';
+            if (idx != -1) {
+              _friendsOnCourse[idx]['score'] = score;
+            } else {
+              final name = map['name']?.toString() ?? 'Friend';
+              _friendsOnCourse.add({
+                'id': friendId,
+                'name': name,
+                'initials': _getTwoInitials(name),
+                'score': score,
+                'bg': 'bg-emerald-600',
+              });
+            }
+          } else {
+            _friendsOnCourse.removeWhere((f) => f['id'] == friendId);
+          }
+        });
+      });
+
+      _socket = s;
+    } catch (_) {}
   }
 
   Future<void> _fetchFriendsFromDb() async {

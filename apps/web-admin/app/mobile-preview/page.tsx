@@ -90,6 +90,7 @@ import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
 import { getNigerianStates, getNigerianLGAs, NIGERIAN_STATES_LGAS } from "@/lib/nigerian-states-lgas";
 import { Country, State, City } from "country-state-city";
+import { io } from "socket.io-client";
 
 // Real Organizer Tournament Interface
 interface RealTournament {
@@ -1413,6 +1414,308 @@ export default function MobilePreviewPage() {
       setSimulatedActiveFriendIds([]);
     }
   }, [authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name]);
+
+  // --- Real-Time Socket Connection for Friend Activity & Notifications ---
+  useEffect(() => {
+    const userId = authenticatedPlayer?.id;
+    if (!userId) return;
+
+    const getSocketUrl = () => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      try {
+        const parsed = new URL(apiUrl);
+        return `${parsed.protocol}//${parsed.host}`;
+      } catch {
+        return "http://localhost:3001";
+      }
+    };
+
+    const socketUrl = getSocketUrl();
+    const socket = io(socketUrl, {
+      query: { userId },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
+
+    socket.on("connect", () => {
+      socket.emit("subscribe:user", { userId });
+    });
+
+    // 1. Live Friend Request Received
+    socket.on("friend:request_received", (payload: any) => {
+      if (!payload) return;
+      const senderId = payload.senderId || payload.id;
+      if (!senderId) return;
+
+      // Don't show if user has blocked sender
+      const blockedKey = getBlockedUsersKey(userId);
+      const savedBlocked = localStorage.getItem(blockedKey);
+      const parsedBlocked = savedBlocked ? JSON.parse(savedBlocked) : [];
+      if (Array.isArray(parsedBlocked) && parsedBlocked.some((b: string) => String(b).toLowerCase().trim() === String(senderId).toLowerCase().trim())) {
+        return;
+      }
+
+      const incomingItem = {
+        id: payload.id || payload.requestId || `freq_${Date.now()}`,
+        requestId: payload.requestId || payload.id,
+        senderId: payload.senderId,
+        senderName: payload.senderName || "A golfer",
+        senderEmail: payload.senderEmail || "",
+        senderClub: payload.senderClub || "OpenClub Golfer",
+        senderHcp: payload.senderHcp != null ? String(payload.senderHcp) : "0.0",
+        senderAvatar: payload.senderAvatar || payload.profilePhoto,
+        profilePhoto: payload.profilePhoto || payload.senderAvatar,
+        createdAt: payload.createdAt || new Date().toISOString(),
+      };
+
+      setIncomingFriendRequests((prev) => {
+        if (prev.some((r) => r.senderId === incomingItem.senderId || r.id === incomingItem.id)) {
+          return prev;
+        }
+        const updated = [incomingItem, ...prev];
+        try {
+          const incKey = getIncomingRequestsKey(userId);
+          localStorage.setItem(incKey, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      const notifItem = {
+        id: `notif_freq_${Date.now()}`,
+        title: "Friend Request",
+        body: `${incomingItem.senderName} sent you a friend request.`,
+        data: {
+          type: "FRIEND_REQUEST",
+          senderId: incomingItem.senderId,
+          senderName: incomingItem.senderName,
+          requestId: incomingItem.id,
+        },
+        isRead: false,
+        unread: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      setNotificationsMarkedRead(false);
+      setMobileNotifications((prev) => {
+        const updated = [notifItem, ...prev.filter((n) => !(n.data?.type === "FRIEND_REQUEST" && n.data?.senderId === incomingItem.senderId))];
+        try {
+          const notifKey = getUserNotificationsKey(userId);
+          localStorage.setItem(notifKey, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      showToast(`${incomingItem.senderName} sent you a friend request.`, "alert", "NEW FRIEND REQUEST");
+    });
+
+    // 2. Live Friend Request Cancelled
+    socket.on("friend:request_cancelled", (payload: any) => {
+      if (!payload) return;
+      const senderId = payload.senderId;
+      const targetId = payload.targetId;
+      const reqId = payload.requestId;
+
+      setIncomingFriendRequests((prev) => {
+        const filtered = prev.filter((r) => {
+          if (reqId && (r.id === reqId || r.requestId === reqId)) return false;
+          if (senderId && (r.senderId === senderId || r.id === senderId)) return false;
+          return true;
+        });
+        try {
+          const incKey = getIncomingRequestsKey(userId);
+          localStorage.setItem(incKey, JSON.stringify(filtered));
+        } catch {}
+        return filtered;
+      });
+
+      setMobileNotifications((prev) => {
+        const filtered = prev.filter((n) => {
+          if (reqId && (n.id === reqId || n.data?.requestId === reqId)) return false;
+          if (senderId && (n.data?.senderId === senderId || n.id === senderId)) return false;
+          return true;
+        });
+        try {
+          const notifKey = getUserNotificationsKey(userId);
+          localStorage.setItem(notifKey, JSON.stringify(filtered));
+        } catch {}
+        return filtered;
+      });
+
+      if (senderId === userId || (authenticatedPlayer?.email && senderId === authenticatedPlayer.email)) {
+        setSentFriendRequests((prev) => {
+          const filtered = prev.filter((id) => id !== targetId);
+          try {
+            const sentKey = getSentRequestsKey(userId);
+            localStorage.setItem(sentKey, JSON.stringify(filtered));
+          } catch {}
+          return filtered;
+        });
+      }
+    });
+
+    // 3. Live Friend Request Accepted
+    socket.on("friend:request_accepted", (payload: any) => {
+      if (!payload) return;
+      const friendData = payload.friend;
+      const newFriendId = friendData?.friendId || payload.byUserId;
+      const newFriendName = friendData?.name || payload.byUserName || "A golfer";
+      if (!newFriendId) return;
+
+      setAcceptedFriendIds((prev) => {
+        if (prev.includes(newFriendId)) return prev;
+        const updated = [...prev, newFriendId];
+        try {
+          const accKey = getAcceptedFriendsKey(userId);
+          localStorage.setItem(accKey, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      setSentFriendRequests((prev) => {
+        const filtered = prev.filter((id) => id !== newFriendId);
+        try {
+          const sentKey = getSentRequestsKey(userId);
+          localStorage.setItem(sentKey, JSON.stringify(filtered));
+        } catch {}
+        return filtered;
+      });
+
+      setIncomingFriendRequests((prev) => {
+        const filtered = prev.filter((r) => r.senderId !== newFriendId && r.id !== newFriendId);
+        try {
+          const incKey = getIncomingRequestsKey(userId);
+          localStorage.setItem(incKey, JSON.stringify(filtered));
+        } catch {}
+        return filtered;
+      });
+
+      const acceptNotif = {
+        id: `notif_acc_${Date.now()}`,
+        title: "Friend Request Accepted",
+        body: `${newFriendName} accepted your friend request! You are now connected.`,
+        data: {
+          type: "FRIEND_ACCEPTED",
+          userId: newFriendId,
+          userName: newFriendName,
+        },
+        isRead: false,
+        unread: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      setNotificationsMarkedRead(false);
+      setMobileNotifications((prev) => {
+        const updated = [acceptNotif, ...prev.filter((n) => !(n.data?.type === "FRIEND_ACCEPTED" && n.data?.userId === newFriendId))];
+        try {
+          const notifKey = getUserNotificationsKey(userId);
+          localStorage.setItem(notifKey, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      showToast(`You and ${newFriendName} are now connected!`, "success", "FRIEND CONNECTED");
+    });
+
+    // 4. Live Friend Request Declined
+    socket.on("friend:request_declined", (payload: any) => {
+      if (!payload) return;
+      const targetId = payload.targetId;
+      const senderId = payload.senderId;
+
+      if (userId === senderId) {
+        setSentFriendRequests((prev) => {
+          const filtered = prev.filter((id) => id !== targetId);
+          try {
+            const sentKey = getSentRequestsKey(userId);
+            localStorage.setItem(sentKey, JSON.stringify(filtered));
+          } catch {}
+          return filtered;
+        });
+      }
+    });
+
+    // 5. Live Friend Removed / Unfriended
+    socket.on("friend:removed", (payload: any) => {
+      if (!payload) return;
+      const targetId1 = payload.friendId;
+      const targetId2 = payload.removedByUserId;
+
+      setAcceptedFriendIds((prev) => {
+        const filtered = prev.filter((id) => id !== targetId1 && id !== targetId2);
+        try {
+          const accKey = getAcceptedFriendsKey(userId);
+          localStorage.setItem(accKey, JSON.stringify(filtered));
+        } catch {}
+        return filtered;
+      });
+
+      setFriendsOnCourse((prev) => prev.filter((f) => f.id !== targetId1 && f.id !== targetId2));
+      setSimulatedActiveFriendIds((prev) => prev.filter((id) => id !== targetId1 && id !== targetId2));
+    });
+
+    // 6. Live User Blocked
+    socket.on("friend:blocked", (payload: any) => {
+      if (!payload) return;
+      const blockerId = payload.blockerId;
+      const blockedId = payload.blockedId;
+
+      if (userId === blockerId) {
+        setBlockedUserIds((prev) => prev.includes(blockedId) ? prev : [...prev, blockedId]);
+      }
+
+      const otherPartyId = userId === blockerId ? blockedId : blockerId;
+      setAcceptedFriendIds((prev) => prev.filter((id) => id !== otherPartyId));
+      setSentFriendRequests((prev) => prev.filter((id) => id !== otherPartyId));
+      setIncomingFriendRequests((prev) => prev.filter((r) => r.senderId !== otherPartyId && r.id !== otherPartyId));
+      setFriendsOnCourse((prev) => prev.filter((f) => f.id !== otherPartyId));
+    });
+
+    // 7. Live User Unblocked
+    socket.on("friend:unblocked", (payload: any) => {
+      if (!payload) return;
+      if (userId === payload.unblockerId) {
+        setBlockedUserIds((prev) => prev.filter((id) => id !== payload.unblockedId));
+      }
+    });
+
+    // 8. Live Friend Playing Status Update
+    socket.on("friend:playing_update", (payload: any) => {
+      if (!payload || !payload.friendId) return;
+      if (payload.isPlaying) {
+        setFriendsOnCourse((prev) => {
+          const existing = prev.find((f) => f.id === payload.friendId);
+          if (existing) {
+            return prev.map((f) => f.id === payload.friendId ? { ...f, score: payload.score || f.score } : f);
+          }
+          const initials = payload.name
+            ? payload.name.split(" ").map((p: string) => p[0]).join("").slice(0, 2).toUpperCase()
+            : "OC";
+          return [
+            ...prev,
+            {
+              id: payload.friendId,
+              name: payload.name || "Friend",
+              initials,
+              score: payload.score || "E",
+              bg: "bg-emerald-600",
+            },
+          ];
+        });
+        setSimulatedActiveFriendIds((prev) => prev.includes(payload.friendId) ? prev : [...prev, payload.friendId]);
+      } else {
+        setFriendsOnCourse((prev) => prev.filter((f) => f.id !== payload.friendId));
+        setSimulatedActiveFriendIds((prev) => prev.filter((id) => id !== payload.friendId));
+      }
+    });
+
+    return () => {
+      socket.emit("unsubscribe:user", { userId });
+      socket.disconnect();
+    };
+  }, [authenticatedPlayer?.id, authenticatedPlayer?.email]);
 
   // Handle accepting an incoming friend request
   const handleAcceptFriendRequest = (req: any) => {
@@ -11905,32 +12208,48 @@ class TournamentsView extends StatelessWidget {
                           </div>
                         </div>
 
-                        {/* Interactive QR Code Modal (Display QR Code + Functional Scanner) */}
+                        {/* --- BOTTOM SHEET: MY QR CODE & SCANNER (MATCHING BOOKINGS DISPLAY GEOMETRY) --- */}
                         {showQrCodeModal && (
                           <div
-                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-5"
+                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
                             onClick={() => setShowQrCodeModal(false)}
                           >
                             <div
-                              className="w-full max-w-xs bg-white rounded-3xl p-5 shadow-2xl space-y-4 text-center border border-slate-100"
+                              className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {/* Modal Header */}
-                              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                <h4 className="text-sm font-bold text-[#0F172A]">
-                                  {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
-                                </h4>
+                              {/* Drag Handle */}
+                              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5 shrink-0" />
+
+                              {/* Sheet Header (Matching My Bookings Display) */}
+                              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
+                                    <QrCode className="h-5 w-5 text-[#009A60]" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h4 className="text-base font-bold text-slate-900 leading-tight truncate">
+                                      {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
+                                    </h4>
+                                    <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
+                                      {qrModalTab === "display"
+                                        ? "Connect with golfers on course instantly"
+                                        : "Point camera or test scan on-course"}
+                                    </p>
+                                  </div>
+                                </div>
                                 <button
                                   type="button"
                                   onClick={() => setShowQrCodeModal(false)}
-                                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                                  className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                                  title="Close"
                                 >
-                                  <X className="w-3.5 h-3.5" />
+                                  <X className="w-4 h-4" />
                                 </button>
                               </div>
 
                               {/* Segmented Mode Switcher: My QR Code vs Scan QR Code */}
-                              <div className="flex rounded-xl bg-[#f4f6f3] border border-slate-200/60 p-1">
+                              <div className="flex rounded-xl bg-[#f4f6f3] border border-slate-200/60 p-1 my-3.5 shrink-0">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -11961,244 +12280,310 @@ class TournamentsView extends StatelessWidget {
                                 </button>
                               </div>
 
-                              {qrModalTab === "display" ? (
-                                /* TAB 1: DISPLAY USER QR CODE (NO verified openclub competitor) */
-                                <div className="space-y-3.5">
-                                  <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 rounded-full border-2 border-[#009A60] p-0.5 mb-2 shrink-0">
-                                      {(authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo) && !qrPhotoError ? (
-                                        <img
-                                          src={authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo}
-                                          alt={authenticatedPlayer?.name || "Player"}
-                                          onError={() => setQrPhotoError(true)}
-                                          className="w-full h-full rounded-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
-                                          {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <p className="text-sm font-bold text-[#0F172A]">
-                                      {authenticatedPlayer?.name || "Alex Morgan"}
-                                    </p>
-                                    <p className="text-xs font-medium text-[#64748B] mt-0.5">
-                                      <span>{authenticatedPlayer?.club || "Ikoyi Club 1938"}</span>
-                                      <span className="mx-1 text-slate-300">|</span>
-                                      <span>
-                                        {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
-                                          ? (typeof authenticatedPlayer.handicap === "number" ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
-                                          : ((authenticatedPlayer as any)?.handicapIndex || (authenticatedPlayer as any)?.hcp || "0.0")}{" "}
-                                        HCP
-                                      </span>
-                                    </p>
-                                  </div>
-
-                                  {/* High-contrast Dynamic Unique QR Graphic with 4-Module Quiet Zone for Stress-Free Scanning */}
-                                  {(() => {
-                                    const activeInviteCode = getUserInviteCode(authenticatedPlayer);
-                                    const currentOrigin = typeof window !== "undefined" && window.location.origin
-                                      ? window.location.origin
-                                      : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
-                                    const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
-                                    const qrData = generateUniqueQrMatrix(qrPayload, 25);
-                                    const cellSize = 100 / qrData.size;
-
-                                    return (
-                                      <div className="w-44 h-44 mx-auto p-2 bg-[#EAF7EE] border-2 border-[#C6F0DB]/80 rounded-2xl shadow-xs flex items-center justify-center relative">
-                                        <svg viewBox="-16 -16 132 132" className="w-full h-full">
-                                          {/* Standard 4-Module Blank White Quiet Zone */}
-                                          <rect x="-16" y="-16" width="132" height="132" fill="#FFFFFF" rx="8" />
-
-                                          {/* Deterministic Data Cells */}
-                                          {qrData.grid.map((row, r) =>
-                                            row.map((cell, c) => {
-                                              const isCornerFinder =
-                                                (r < 7 && c < 7) ||
-                                                (r < 7 && c >= qrData.size - 7) ||
-                                                (r >= qrData.size - 7 && c < 7);
-                                              const isCenterEmblem =
-                                                r >= qrData.mid - 2 &&
-                                                r <= qrData.mid + 2 &&
-                                                c >= qrData.mid - 2 &&
-                                                c <= qrData.mid + 2;
-
-                                              if (isCornerFinder || isCenterEmblem) return null;
-                                              if (cell === 0) return null;
-
-                                              return (
-                                                <rect
-                                                  key={`qr-c-${r}-${c}`}
-                                                  x={c * cellSize + 0.3}
-                                                  y={r * cellSize + 0.3}
-                                                  width={cellSize - 0.6}
-                                                  height={cellSize - 0.6}
-                                                  rx="0.8"
-                                                  fill="#052417"
-                                                />
-                                              );
-                                            })
-                                          )}
-
-                                          {/* Top-Left Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
-                                          <rect x="0" y="0" width="28" height="28" rx="4" fill="#052417" />
-                                          <rect x="4" y="4" width="20" height="20" rx="2" fill="white" />
-                                          <rect x="8" y="8" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                          {/* Top-Right Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
-                                          <rect x="72" y="0" width="28" height="28" rx="4" fill="#052417" />
-                                          <rect x="76" y="4" width="20" height="20" rx="2" fill="white" />
-                                          <rect x="80" y="8" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                          {/* Bottom-Left Finder (Exact 1:1:3:1:1 concentric ratio, dark obsidian) */}
-                                          <rect x="0" y="72" width="28" height="28" rx="4" fill="#052417" />
-                                          <rect x="4" y="76" width="20" height="20" rx="2" fill="white" />
-                                          <rect x="8" y="80" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                          {/* Center Brand / Profile Monogram Emblem */}
-                                          <rect x="38" y="38" width="24" height="24" rx="6" fill="white" stroke="#E2E8F0" strokeWidth="1" />
-                                          <circle cx="50" cy="50" r="8" fill="#009A60" />
-                                          <text
-                                            x="50"
-                                            y="53"
-                                            textAnchor="middle"
-                                            fill="white"
-                                            fontSize="6.5"
-                                            fontWeight="bold"
-                                            fontFamily="sans-serif"
-                                          >
+                              {/* Sheet Body: Scrollable Content */}
+                              <div className="overflow-y-auto max-h-[440px] scrollbar-hide space-y-3.5 text-center">
+                                {qrModalTab === "display" ? (
+                                  /* TAB 1: DISPLAY USER QR CODE */
+                                  <div className="space-y-3.5">
+                                    <div className="flex flex-col items-center">
+                                      <div className="w-12 h-12 rounded-full border-2 border-[#009A60] p-0.5 mb-1.5 shrink-0">
+                                        {(authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo) && !qrPhotoError ? (
+                                          <img
+                                            src={authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo}
+                                            alt={authenticatedPlayer?.name || "Player"}
+                                            onError={() => setQrPhotoError(true)}
+                                            className="w-full h-full rounded-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
                                             {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
-                                          </text>
-                                        </svg>
-                                      </div>
-                                    );
-                                  })()}
-
-                                  <p className="text-[11.5px] text-slate-500 leading-tight">
-                                    Let other golfers scan your code on the course to connect instantly.
-                                  </p>
-
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const activeCode = getUserInviteCode(authenticatedPlayer);
-                                      const origin = typeof window !== "undefined" && window.location.origin
-                                        ? window.location.origin
-                                        : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
-                                      const shareUrl = `${origin}/invite/${activeCode}`;
-                                      const shareData = {
-                                        title: "Add me on OpenclubOS",
-                                        text: `Hey! Add me as a golf friend on OpenclubOS.`,
-                                        url: shareUrl,
-                                      };
-
-                                      // Try native share first, fallback to clipboard
-                                      if (typeof navigator !== "undefined" && navigator.share) {
-                                        try {
-                                          await navigator.share(shareData);
-                                          showToast("QR invite link shared!", "success", "QR CODE SHARED");
-                                        } catch (err: any) {
-                                          if (err?.name !== "AbortError") {
-                                            // User cancelled — silently ignore
-                                            if (navigator.clipboard) {
-                                              await navigator.clipboard.writeText(shareUrl).catch(() => {});
-                                            }
-                                            showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
-                                          }
-                                        }
-                                      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                        await navigator.clipboard.writeText(shareUrl).catch(() => {});
-                                        showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
-                                      }
-                                    }}
-                                    className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
-                                  >
-                                    Share QR Code
-                                  </button>
-                                </div>
-                              ) : (
-                                /* TAB 2: FUNCTIONAL QR SCANNER VIEW */
-                                <div className="space-y-3.5">
-                                  {/* Camera Viewfinder Box with Laser & Corner Brackets */}
-                                  <div className="relative w-full h-44 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
-                                    {/* Corner Reticles */}
-                                    <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#009A60] rounded-tl" />
-                                    <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#009A60] rounded-tr" />
-                                    <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#009A60] rounded-bl" />
-                                    <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#009A60] rounded-br" />
-
-                                    {/* Animated Scan Line */}
-                                    <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
-
-                                    {/* Scanner Guidance */}
-                                    <div className="z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs border border-white/10 text-[10.5px] font-medium text-slate-300 flex items-center gap-1.5">
-                                      <Camera className="w-3.5 h-3.5 text-[#009A60]" />
-                                      <span>Point camera at golfer&apos;s QR code</span>
-                                    </div>
-                                  </div>
-
-                                  {/* Scanned Result or Action Button */}
-                                  {scannedFriendResult ? (
-                                    <div className="space-y-2.5">
-                                      <div className="w-full bg-[#F0FDF4] border border-[#A7F3D0] rounded-2xl p-3 text-left flex items-center justify-between gap-2.5">
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                          {scannedFriendResult.avatar || scannedFriendResult.profilePhoto ? (
-                                            <div className="w-10 h-10 rounded-full border border-[#C6F0DB] overflow-hidden shrink-0">
-                                              <img
-                                                src={scannedFriendResult.avatar || scannedFriendResult.profilePhoto}
-                                                alt={scannedFriendResult.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                  (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div class="w-full h-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center uppercase">${getTwoInitials(scannedFriendResult.name)}</div>`;
-                                                }}
-                                              />
-                                            </div>
-                                          ) : (
-                                            <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 select-none uppercase">
-                                              {getTwoInitials(scannedFriendResult.name)}
-                                            </div>
-                                          )}
-                                          <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold text-[#0F172A] truncate">
-                                              {scannedFriendResult.name}
-                                            </p>
-                                            <p className="text-[11px] text-[#009A60] font-medium truncate">
-                                              {scannedFriendResult.club} | {scannedFriendResult.hcp} HCP
-                                            </p>
                                           </div>
-                                        </div>
-                                        <span className="shrink-0 w-7 h-7 rounded-full bg-[#009A60] text-white flex items-center justify-center shadow-2xs" title="Request sent">
-                                          <Send className="w-3.5 h-3.5" />
+                                        )}
+                                      </div>
+                                      <p className="text-sm font-bold text-[#0F172A]">
+                                        {authenticatedPlayer?.name || "Alex Morgan"}
+                                      </p>
+                                      <p className="text-xs font-medium text-[#64748B] mt-0.5">
+                                        <span>{authenticatedPlayer?.club || "Ikoyi Club 1938"}</span>
+                                        <span className="mx-1 text-slate-300">|</span>
+                                        <span>
+                                          {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
+                                            ? (typeof authenticatedPlayer.handicap === "number" ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
+                                            : ((authenticatedPlayer as any)?.handicapIndex || (authenticatedPlayer as any)?.hcp || "0.0")}{" "}
+                                          HCP
                                         </span>
-                                      </div>
-
-                                      <div className="flex gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => setScannedFriendResult(null)}
-                                          className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-                                        >
-                                          Scan Another
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setShowQrCodeModal(false)}
-                                          className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
-                                        >
-                                          Done
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    /* Scanner viewfinder — real camera integration handles detection */
-                                    <div className="space-y-2">
-                                      <p className="text-[11.5px] text-slate-500 leading-tight">
-                                        Point your camera at another golfer&apos;s QR code to connect instantly.
                                       </p>
                                     </div>
-                                  )}
-                                </div>
-                              )}
+
+                                    {/* High-contrast Dynamic Unique QR Graphic with 4-Module Quiet Zone */}
+                                    {(() => {
+                                      const activeInviteCode = getUserInviteCode(authenticatedPlayer);
+                                      const currentOrigin = typeof window !== "undefined" && window.location.origin
+                                        ? window.location.origin
+                                        : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                      const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
+                                      const qrData = generateUniqueQrMatrix(qrPayload, 25);
+                                      const cellSize = 100 / qrData.size;
+
+                                      return (
+                                        <div className="w-44 h-44 mx-auto p-2 bg-[#EAF7EE] border-2 border-[#C6F0DB]/80 rounded-2xl shadow-xs flex items-center justify-center relative">
+                                          <svg viewBox="-16 -16 132 132" className="w-full h-full">
+                                            {/* Standard 4-Module Blank White Quiet Zone */}
+                                            <rect x="-16" y="-16" width="132" height="132" fill="#FFFFFF" rx="8" />
+
+                                            {/* Deterministic Data Cells */}
+                                            {qrData.grid.map((row, r) =>
+                                              row.map((cell, c) => {
+                                                const isCornerFinder =
+                                                  (r < 7 && c < 7) ||
+                                                  (r < 7 && c >= qrData.size - 7) ||
+                                                  (r >= qrData.size - 7 && c < 7);
+                                                const isCenterEmblem =
+                                                  r >= qrData.mid - 2 &&
+                                                  r <= qrData.mid + 2 &&
+                                                  c >= qrData.mid - 2 &&
+                                                  c <= qrData.mid + 2;
+
+                                                if (isCornerFinder || isCenterEmblem) return null;
+                                                if (cell === 0) return null;
+
+                                                return (
+                                                  <rect
+                                                    key={`qr-c-${r}-${c}`}
+                                                    x={c * cellSize + 0.3}
+                                                    y={r * cellSize + 0.3}
+                                                    width={cellSize - 0.6}
+                                                    height={cellSize - 0.6}
+                                                    rx="0.8"
+                                                    fill="#052417"
+                                                  />
+                                                );
+                                              })
+                                            )}
+
+                                            {/* Top-Left Finder */}
+                                            <rect x="0" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                            <rect x="4" y="4" width="20" height="20" rx="2" fill="white" />
+                                            <rect x="8" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                            {/* Top-Right Finder */}
+                                            <rect x="72" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                            <rect x="76" y="4" width="20" height="20" rx="2" fill="white" />
+                                            <rect x="80" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                            {/* Bottom-Left Finder */}
+                                            <rect x="0" y="72" width="28" height="28" rx="4" fill="#052417" />
+                                            <rect x="4" y="76" width="20" height="20" rx="2" fill="white" />
+                                            <rect x="8" y="80" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                            {/* Center Brand / Profile Monogram Emblem */}
+                                            <rect x="38" y="38" width="24" height="24" rx="6" fill="white" stroke="#E2E8F0" strokeWidth="1" />
+                                            <circle cx="50" cy="50" r="8" fill="#009A60" />
+                                            <text
+                                              x="50"
+                                              y="53"
+                                              textAnchor="middle"
+                                              fill="white"
+                                              fontSize="6.5"
+                                              fontWeight="bold"
+                                              fontFamily="sans-serif"
+                                            >
+                                              {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
+                                            </text>
+                                          </svg>
+                                        </div>
+                                      );
+                                    })()}
+
+                                    <p className="text-[11.5px] text-slate-500 leading-tight">
+                                      Let other golfers scan your code on the course to connect instantly.
+                                    </p>
+
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const activeCode = getUserInviteCode(authenticatedPlayer);
+                                        const origin = typeof window !== "undefined" && window.location.origin
+                                          ? window.location.origin
+                                          : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                        const shareUrl = `${origin}/invite/${activeCode}`;
+                                        const shareData = {
+                                          title: "Add me on OpenclubOS",
+                                          text: `Hey! Add me as a golf friend on OpenclubOS.`,
+                                          url: shareUrl,
+                                        };
+
+                                        if (typeof navigator !== "undefined" && navigator.share) {
+                                          try {
+                                            await navigator.share(shareData);
+                                            showToast("QR invite link shared!", "success", "QR CODE SHARED");
+                                          } catch (err: any) {
+                                            if (err?.name !== "AbortError") {
+                                              if (navigator.clipboard) {
+                                                await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                                              }
+                                              showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                            }
+                                          }
+                                        } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                          await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                                          showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                        }
+                                      }}
+                                      className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+                                    >
+                                      Share QR Code
+                                    </button>
+                                  </div>
+                                ) : (
+                                  /* TAB 2: FUNCTIONAL QR SCANNER VIEW (WITH REAL-TIME FRIEND SYSTEM) */
+                                  <div className="space-y-3.5">
+                                    {/* Camera Viewfinder Box with Laser & Corner Brackets */}
+                                    <div className="relative w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
+                                      {/* Corner Reticles */}
+                                      <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#009A60] rounded-tl" />
+                                      <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#009A60] rounded-tr" />
+                                      <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#009A60] rounded-bl" />
+                                      <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#009A60] rounded-br" />
+
+                                      {/* Animated Scan Line */}
+                                      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
+
+                                      {/* Scanner Guidance */}
+                                      <div className="z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs border border-white/10 text-[10.5px] font-medium text-slate-300 flex items-center gap-1.5">
+                                        <Camera className="w-3.5 h-3.5 text-[#009A60]" />
+                                        <span>Point camera at golfer&apos;s QR code</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Scanned Result Card with Real-Time Connection Indicator */}
+                                    {scannedFriendResult ? (
+                                      <div className="space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="w-full bg-[#F0FDF4] border border-[#A7F3D0] rounded-2xl p-3.5 text-left flex items-center justify-between gap-2.5 shadow-2xs">
+                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            {scannedFriendResult.avatar || scannedFriendResult.profilePhoto ? (
+                                              <div className="w-11 h-11 rounded-full border border-[#C6F0DB] overflow-hidden shrink-0">
+                                                <img
+                                                  src={scannedFriendResult.avatar || scannedFriendResult.profilePhoto}
+                                                  alt={scannedFriendResult.name}
+                                                  className="w-full h-full object-cover"
+                                                  onError={(e) => {
+                                                    (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div class="w-full h-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center uppercase">${getTwoInitials(scannedFriendResult.name)}</div>`;
+                                                  }}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <div className="w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 select-none uppercase">
+                                                {getTwoInitials(scannedFriendResult.name)}
+                                              </div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-1.5">
+                                                <p className="text-xs font-bold text-[#0F172A] truncate">
+                                                  {scannedFriendResult.name}
+                                                </p>
+                                                {acceptedFriendIds.includes(scannedFriendResult.id) ? (
+                                                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold">
+                                                    MUTUAL FRIEND
+                                                  </span>
+                                                ) : (
+                                                  <span className="px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-extrabold">
+                                                    CONNECTED LIVE
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-[11px] text-[#009A60] font-medium truncate mt-0.5">
+                                                {scannedFriendResult.club || "OpenClub Golfer"} | {scannedFriendResult.hcp || "0.0"} HCP
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <span className="shrink-0 w-8 h-8 rounded-full bg-[#009A60] text-white flex items-center justify-center shadow-2xs">
+                                            <Check className="w-4 h-4" />
+                                          </span>
+                                        </div>
+
+                                        <p className="text-[11px] text-[#009A60] font-medium">
+                                          ✓ Real-time friend request dispatched directly to {scannedFriendResult.name}
+                                        </p>
+
+                                        <div className="flex gap-2 pt-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => setScannedFriendResult(null)}
+                                            className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                          >
+                                            Scan Another
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowQrCodeModal(false)}
+                                            className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
+                                          >
+                                            Done
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      /* On-Course Simulated Scanning Tray (Connects via Real-Time Friend System) */
+                                      <div className="space-y-2.5 text-left pt-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-bold text-slate-800">Simulate On-Course Scan</span>
+                                          <span className="text-[11px] text-slate-400">Tap a player to test scan:</span>
+                                        </div>
+
+                                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-hide">
+                                          {golfCompetitors
+                                            .filter((c) => c.id !== authenticatedPlayer?.id && (!authenticatedPlayer?.email || c.email?.toLowerCase() !== authenticatedPlayer.email.toLowerCase()))
+                                            .slice(0, 5)
+                                            .map((comp) => {
+                                              const isAlreadyFriend = acceptedFriendIds.includes(comp.id);
+                                              const isSent = sentFriendRequests.includes(comp.id);
+
+                                              return (
+                                                <div
+                                                  key={comp.id}
+                                                  className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs hover:border-[#009A60] transition-colors"
+                                                >
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] text-[11px] font-black flex items-center justify-center shrink-0 border border-[#C6F0DB]">
+                                                      {comp.initial || getTwoInitials(comp.name)}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                      <p className="text-xs font-bold text-[#0F172A] truncate leading-tight">
+                                                        {comp.name}
+                                                      </p>
+                                                      <p className="text-[10px] text-slate-500 truncate leading-tight">
+                                                        {comp.club} • {comp.hcp} HCP
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    disabled={isAlreadyFriend}
+                                                    onClick={() => {
+                                                      handleSendFriendRequest(comp.id, comp);
+                                                      setScannedFriendResult(comp);
+                                                      showToast(`Friend request dispatched via QR scan to ${comp.name}`, "alert", "QR SCAN CONNECTED");
+                                                    }}
+                                                    className={`px-2.5 py-1.5 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer shrink-0 ${
+                                                      isAlreadyFriend
+                                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                                        : isSent
+                                                        ? "bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB]"
+                                                        : "bg-[#009A60] text-white hover:bg-[#008251] active:scale-95 shadow-2xs"
+                                                    }`}
+                                                  >
+                                                    {isAlreadyFriend ? "Connected" : isSent ? "Request Sent" : "Scan QR"}
+                                                  </button>
+                                                </div>
+                                              );
+                                            })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )}

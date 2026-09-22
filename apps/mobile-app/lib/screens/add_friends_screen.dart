@@ -1308,6 +1308,12 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
         'targetUserId': compId,
       }).catchError((_) => null);
       _apiClient.dio.delete('/friends/$compId').catchError((_) => null);
+    } else {
+      final myId = widget.user?['id']?.toString() ?? widget.user?['email']?.toString() ?? '';
+      _apiClient.dio.post('/friends/request', data: {
+        'senderId': myId,
+        'targetUserId': compId,
+      }).catchError((_) => null);
     }
 
     if (widget.onRequestToggled != null) {
@@ -1323,408 +1329,615 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     final qrPayload = '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode';
     final initials = name.toString().trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).map((s) => s[0]).take(2).join('').toUpperCase();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
         int activeTab = 0;
-        bool isScanning = false;
         Map<String, dynamic>? scannedResult;
 
         return StatefulBuilder(
-          builder: (dialogCtx, setDialogState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              backgroundColor: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          activeTab == 0 ? 'My QR Code' : 'Scan QR Code',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.of(ctx).pop(),
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Segmented Mode Switcher: My QR Code vs Scan QR Code
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6F3),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.8), width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setDialogState(() {
-                                activeTab = 0;
-                                scannedResult = null;
-                              }),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: activeTab == 0 ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: activeTab == 0
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.04),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'My QR Code',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: activeTab == 0 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setDialogState(() {
-                                activeTab = 1;
-                                scannedResult = null;
-                              }),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: activeTab == 1 ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: activeTab == 1
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.04),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'Scan QR Code',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: activeTab == 1 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    if (activeTab == 0) ...[
-                      // TAB 1: Display User QR Code (NO "Verified OpenClub Competitor")
-                      _buildPlayerAvatar(
-                        name.toString(),
-                        widget.user?['profilePhoto']?.toString() ??
-                            widget.user?['avatar']?.toString() ??
-                            widget.user?['photo']?.toString() ??
-                            widget.user?['profilePicture']?.toString(),
-                        size: 52,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        name.toString(),
-                        style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                      ),
-                      Text(
-                        '$club | $hcp HCP',
-                        style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        width: 155,
-                        height: 155,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF7EE),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFC6F0DB), width: 1.5),
-                        ),
-                        child: Center(
-                          child: CustomPaint(
-                            size: const Size(135, 135),
-                            painter: UniqueQrCodePainter(
-                              payload: qrPayload,
-                              initials: initials.isNotEmpty ? initials : 'OC',
-                            ),
-                          ),
-                        ),
-                      ),
+          builder: (modalCtx, setSheetState) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(modalCtx).size.height * 0.88,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       const SizedBox(height: 10),
-                      Text(
-                        'Let other golfers scan your code on the course to connect instantly.',
-                        style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
-                        textAlign: TextAlign.center,
+                      // Drag Handle
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                       const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 42,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(ctx).pop();
-                            Clipboard.setData(ClipboardData(text: '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode'));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('QR Code invite link copied to clipboard!'),
-                                backgroundColor: Color(0xFF009A60),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF009A60),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text('Share QR Code', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700)),
-                        ),
-                      ),
-                    ] else ...[
-                      // TAB 2: Functional QR Scanner View
-                      Container(
-                        width: double.infinity,
-                        height: 165,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFF1E293B)),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
+
+                      // Header Row (Matching My Bookings Display)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
                           children: [
-                            Positioned(
-                              top: 12,
-                              left: 12,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    top: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                    left: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    top: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                    right: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 12,
-                              left: 12,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                    left: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 12,
-                              right: 12,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                    right: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                  ),
-                                ),
-                              ),
-                            ),
                             Container(
-                              height: 2,
-                              margin: const EdgeInsets.symmetric(horizontal: 24),
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF009A60),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF009A60).withOpacity(0.8),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
+                                color: const Color(0xFFEAF7EE),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFC6F0DB)),
+                              ),
+                              child: const Icon(
+                                Icons.qr_code_2_rounded,
+                                size: 22,
+                                color: Color(0xFF009A60),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    activeTab == 0 ? 'My QR Code' : 'Scan QR Code',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  Text(
+                                    activeTab == 0
+                                        ? 'Connect with golfers on course instantly'
+                                        : 'Point camera or test scan on-course',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF64748B),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Positioned(
-                              bottom: 16,
+                            GestureDetector(
+                              onTap: () => Navigator.of(sheetCtx).pop(),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(20),
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF1F5F9),
+                                  shape: BoxShape.circle,
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.camera_alt_rounded, size: 12, color: Color(0xFF009A60)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Point camera at golfer QR',
-                                      style: GoogleFonts.dmSans(fontSize: 10.5, color: Colors.white70),
-                                    ),
-                                  ],
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: Color(0xFF64748B),
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
 
-                      if (scannedResult != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
+                      // Segmented Mode Switcher: My QR Code vs Scan QR Code
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                            color: const Color(0xFFF4F6F3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.8), width: 1),
                           ),
                           child: Row(
                             children: [
-                              _buildPlayerAvatar(
-                                scannedResult!['name']?.toString() ?? 'Golfer',
-                                scannedResult!['avatar']?.toString() ?? scannedResult!['profilePhoto']?.toString(),
-                                size: 38,
-                              ),
-                              const SizedBox(width: 10),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      scannedResult!['name']?.toString() ?? 'Golfer',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0F172A),
-                                      ),
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() {
+                                    activeTab = 0;
+                                    scannedResult = null;
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: activeTab == 0 ? Colors.white : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: activeTab == 0
+                                          ? [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.04),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
                                     ),
-                                    Text(
-                                      '${scannedResult!['club']} | ${scannedResult!['hcp']} HCP',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF009A60),
-                                      ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.qr_code_rounded,
+                                          size: 14,
+                                          color: activeTab == 0 ? const Color(0xFF009A60) : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'My QR Code',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: activeTab == 0 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF009A60),
-                                  shape: BoxShape.circle,
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() {
+                                    activeTab = 1;
+                                    scannedResult = null;
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: activeTab == 1 ? Colors.white : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: activeTab == 1
+                                          ? [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.04),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.qr_code_scanner_rounded,
+                                          size: 14,
+                                          color: activeTab == 1 ? const Color(0xFF009A60) : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Scan QR Code',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: activeTab == 1 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                                child: const Icon(Icons.send_rounded, size: 14, color: Colors.white),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 40,
-                                child: OutlinedButton(
-                                  onPressed: () => setDialogState(() => scannedResult = null),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: Text('Scan Another', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
+                      ),
+
+                      // Sheet Body
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                          child: activeTab == 0
+                              ? Column(
+                                  children: [
+                                    _buildPlayerAvatar(
+                                      name.toString(),
+                                      widget.user?['profilePhoto']?.toString() ??
+                                          widget.user?['avatar']?.toString() ??
+                                          widget.user?['photo']?.toString() ??
+                                          widget.user?['profilePicture']?.toString(),
+                                      size: 52,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      name.toString(),
+                                      style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                    ),
+                                    Text(
+                                      '$club | $hcp HCP',
+                                      style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      width: 165,
+                                      height: 165,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAF7EE),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: const Color(0xFFC6F0DB), width: 1.5),
+                                      ),
+                                      child: Center(
+                                        child: CustomPaint(
+                                          size: const Size(140, 140),
+                                          painter: UniqueQrCodePainter(
+                                            payload: qrPayload,
+                                            initials: initials.isNotEmpty ? initials : 'OC',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Let other golfers scan your code on the course to connect instantly.',
+                                      style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 44,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(sheetCtx).pop();
+                                          Clipboard.setData(ClipboardData(text: '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode'));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('QR Code invite link copied to clipboard!'),
+                                              backgroundColor: Color(0xFF009A60),
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF009A60),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: Text('Share QR Code', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    // Viewfinder
+                                    Container(
+                                      width: double.infinity,
+                                      height: 165,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0F172A),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(color: const Color(0xFF1E293B)),
+                                      ),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned(
+                                            top: 12,
+                                            left: 12,
+                                            child: Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  top: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                  left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 12,
+                                            right: 12,
+                                            child: Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  top: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                  right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 12,
+                                            left: 12,
+                                            child: Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                  left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 12,
+                                            right: 12,
+                                            child: Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                  right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            height: 2,
+                                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF009A60),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF009A60).withOpacity(0.8),
+                                                  blurRadius: 8,
+                                                  spreadRadius: 2,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 14,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(0.6),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.camera_alt_rounded, size: 12, color: Color(0xFF009A60)),
+                                                  const SizedBox(width: 5),
+                                                  Text(
+                                                    'Point camera at golfer QR',
+                                                    style: GoogleFonts.dmSans(fontSize: 11, color: Colors.white70),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+
+                                    if (scannedResult != null) ...[
+                                      // Scanned Result Card
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF0FDF4),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            _buildPlayerAvatar(
+                                              scannedResult!['name']?.toString() ?? 'Golfer',
+                                              scannedResult!['avatar']?.toString() ?? scannedResult!['profilePhoto']?.toString(),
+                                              size: 40,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          scannedResult!['name']?.toString() ?? 'Golfer',
+                                                          style: GoogleFonts.dmSans(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: const Color(0xFF0F172A),
+                                                          ),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFFEAF7EE),
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        child: Text(
+                                                          'CONNECTED LIVE',
+                                                          style: GoogleFonts.dmSans(
+                                                            fontSize: 8.5,
+                                                            fontWeight: FontWeight.w800,
+                                                            color: const Color(0xFF009A60),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  Text(
+                                                    '${scannedResult!['club'] ?? 'OpenClub Golfer'} | ${scannedResult!['hcp'] ?? '0.0'} HCP',
+                                                    style: GoogleFonts.dmSans(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: const Color(0xFF009A60),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              width: 30,
+                                              height: 30,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFF009A60),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '✓ Real-time friend request dispatched directly to ${scannedResult!['name'] ?? 'player'}',
+                                        style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF009A60), fontWeight: FontWeight.w600),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 40,
+                                              child: OutlinedButton(
+                                                onPressed: () => setSheetState(() => scannedResult = null),
+                                                style: OutlinedButton.styleFrom(
+                                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                                child: Text('Scan Another', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                onPressed: () => Navigator.of(sheetCtx).pop(),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF009A60),
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                                child: Text('Done', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700)),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ] else ...[
+                                      Text(
+                                        'Point your camera at another golfer\'s QR code to connect instantly.',
+                                        style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 14),
+
+                                      // Simulated On-Course Scanning Tray
+                                      if (allRealCompetitors.isNotEmpty) ...[
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'Simulate On-Course Scan',
+                                              style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                            ),
+                                            Text(
+                                              'Tap a player to test scan:',
+                                              style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        ...allRealCompetitors.take(4).map((comp) {
+                                          final compId = comp['id']?.toString() ?? '';
+                                          final isAlreadySent = _localSentIds.contains(compId);
+                                          final compName = comp['name']?.toString() ?? 'Golfer';
+
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 8),
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                _buildPlayerAvatar(
+                                                  compName,
+                                                  comp['avatar']?.toString() ?? comp['profilePhoto']?.toString(),
+                                                  size: 34,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        compName,
+                                                        style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                      Text(
+                                                        '${comp['club'] ?? 'OpenClub Golfer'} | ${comp['hcp'] ?? '0.0'} HCP',
+                                                        style: GoogleFonts.dmSans(fontSize: 10.5, color: const Color(0xFF64748B)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  height: 30,
+                                                  child: ElevatedButton.icon(
+                                                    onPressed: () {
+                                                      if (!isAlreadySent) {
+                                                        _toggleSendRequest(comp);
+                                                      }
+                                                      setSheetState(() {
+                                                        scannedResult = comp;
+                                                      });
+                                                    },
+                                                    icon: Icon(
+                                                      isAlreadySent ? Icons.check_rounded : Icons.qr_code_scanner_rounded,
+                                                      size: 13,
+                                                    ),
+                                                    label: Text(
+                                                      isAlreadySent ? 'Sent' : 'Scan QR',
+                                                      style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700),
+                                                    ),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: isAlreadySent ? const Color(0xFFE2E8F0) : const Color(0xFF009A60),
+                                                      foregroundColor: isAlreadySent ? const Color(0xFF64748B) : Colors.white,
+                                                      elevation: 0,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ],
+                                    ],
+                                  ],
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SizedBox(
-                                height: 40,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF009A60),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: Text('Done', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
-                      ] else ...[
-                        // Scanner viewfinder — real camera integration handles detection
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            'Point your camera at another golfer\'s QR code to connect instantly.',
-                            style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
+                      ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             );
