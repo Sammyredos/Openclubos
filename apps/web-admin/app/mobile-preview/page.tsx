@@ -118,6 +118,7 @@ interface RealTournament {
   clubName?: string;
   startDate?: string;
   endDate?: string;
+  teeStartTime?: string;
 }
 
 interface CourseHole {
@@ -207,6 +208,106 @@ function getTwoInitials(name?: string | null): string {
   }
   return name.trim().slice(0, 2).toUpperCase();
 }
+
+function addMinutesToTimeString(timeStr?: string | null, minutesToAdd: number = 0): string {
+  if (!timeStr) return "08:00 AM";
+  const trimmed = String(timeStr).trim();
+  let h = 8;
+  let m = 0;
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (match) {
+    h = parseInt(match[1], 10);
+    m = parseInt(match[2], 10);
+    if (match[3] && match[3].toUpperCase() === "PM" && h < 12) h += 12;
+    if (match[3] && match[3].toUpperCase() === "AM" && h === 12) h = 0;
+  }
+  const totalMins = h * 60 + m + minutesToAdd;
+  const newH = Math.floor(totalMins / 60) % 24;
+  const newM = totalMins % 60;
+  const ampm = newH >= 12 ? "PM" : "AM";
+  const dispH = newH % 12 || 12;
+  return `${String(dispH).padStart(2, "0")}:${String(newM).padStart(2, "0")} ${ampm}`;
+}
+
+function parseTeeTimeStatus(
+  rawTeeTime?: string | null,
+  tournamentStartDate?: string | null,
+  tournamentTeeStartTime?: string | null,
+  flightText?: string | null
+): { teeDate: Date | null; teeLabel: string; isTeeTimeReached: boolean } {
+  let teeLabel = "";
+  let teeDate: Date | null = null;
+
+  // 1. If tournament specifies an explicit course teeStartTime (e.g. "06:00" or "08:00 AM"),
+  // compute the flight's exact course tee time directly to prevent client browser timezone/DST distortion:
+  if (tournamentTeeStartTime) {
+    const flightMatch = (flightText || "").match(/flight\s*(\d+)/i);
+    const flightNum = flightMatch ? parseInt(flightMatch[1], 10) : 1;
+    const offsetMinutes = (flightNum - 1) * 10;
+    teeLabel = addMinutesToTimeString(tournamentTeeStartTime, offsetMinutes);
+
+    const match = teeLabel.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const meridiem = match[3].toUpperCase();
+      if (meridiem === "PM" && h < 12) h += 12;
+      if (meridiem === "AM" && h === 12) h = 0;
+
+      const baseDate = tournamentStartDate ? new Date(tournamentStartDate) : new Date();
+      teeDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m, 0);
+    }
+  }
+
+  // 2. Otherwise, parse rawTeeTime without client-side timezone shifts
+  if (!teeLabel && rawTeeTime) {
+    const trimmed = String(rawTeeTime).trim();
+    const match12 = trimmed.match(/^(\d{1,2}):?(\d{2})?\s*(AM|PM)$/i);
+    if (match12) {
+      let h = parseInt(match12[1], 10);
+      const m = match12[2] ? parseInt(match12[2], 10) : 0;
+      const meridiem = match12[3].toUpperCase();
+      if (meridiem === "PM" && h < 12) h += 12;
+      if (meridiem === "AM" && h === 12) h = 0;
+
+      const baseDate = tournamentStartDate ? new Date(tournamentStartDate) : new Date();
+      teeDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m, 0);
+      const dispH = h % 12 || 12;
+      teeLabel = `${String(dispH).padStart(2, "0")}:${String(m).padStart(2, "0")} ${meridiem}`;
+    } else if (/^(\d{1,2}):(\d{2})$/.test(trimmed)) {
+      const match24 = trimmed.match(/^(\d{1,2}):(\d{2})$/)!;
+      const h = parseInt(match24[1], 10);
+      const m = parseInt(match24[2], 10);
+      const baseDate = tournamentStartDate ? new Date(tournamentStartDate) : new Date();
+      teeDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m, 0);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const dispH = h % 12 || 12;
+      teeLabel = `${String(dispH).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+    } else if (trimmed.includes("T")) {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        teeDate = d;
+        const hours = d.getUTCHours();
+        const minutes = d.getUTCMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const dispH = hours % 12 || 12;
+        teeLabel = `${String(dispH).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${ampm}`;
+      }
+    }
+  }
+
+  if (!teeLabel && rawTeeTime) {
+    teeLabel = String(rawTeeTime).trim();
+  }
+  if (!teeLabel) {
+    teeLabel = "06:10 AM";
+  }
+
+  const isTeeTimeReached = !teeDate || new Date() >= teeDate;
+
+  return { teeDate, teeLabel, isTeeTimeReached };
+}
+
 
 /**
  * Procedural Deterministic QR Matrix Generator
@@ -799,6 +900,7 @@ export default function MobilePreviewPage() {
     thru: string;
     flightText: string;
     groupPlayers: GroupPlayer[];
+    teeTime?: string | null;
   } | null>(null);
   const [activeRoundMinutesElapsed, setActiveRoundMinutesElapsed] = useState<number>(0);
   const [hasInactivityWarning, setHasInactivityWarning] = useState(false);
@@ -2531,6 +2633,19 @@ export default function MobilePreviewPage() {
           : (tournamentGroupings && Array.isArray(tournamentGroupings.groups) && tournamentGroupings.groups.length > 0
               ? "Flight Pending Assignment"
               : "Flight 1"),
+        teeTime: (() => {
+          const flightLabel = matchedGroup?.name || "Flight 1";
+          const flightMatch = flightLabel.match(/flight\s*(\d+)/i);
+          const flightNum = flightMatch ? parseInt(flightMatch[1], 10) : 1;
+          const offsetMinutes = (flightNum - 1) * 10;
+          if ((activeTournament as any)?.teeStartTime) {
+            return addMinutesToTimeString((activeTournament as any).teeStartTime, offsetMinutes);
+          }
+          if (matchedGroup?.startTime) {
+            return matchedGroup.startTime;
+          }
+          return addMinutesToTimeString("08:00 AM", offsetMinutes);
+        })(),
         groupPlayers: (() => {
           const players: GroupPlayer[] = [];
           const seenIds = new Set<string>();
@@ -2669,13 +2784,36 @@ export default function MobilePreviewPage() {
           return;
         }
 
+        // Gate Pace of Play: Check if flight scheduled tee-off time has arrived
+        const { isTeeTimeReached, teeDate } = parseTeeTimeStatus(
+          activeRound.teeTime,
+          activeTournament?.startDate,
+          (activeTournament as any)?.teeStartTime,
+          activeRound.flightText
+        );
+
+        // Before flight tee-off time: Keep stopwatch asleep at 0m so players never accumulate slow play penalties before match begins
+        if (!isTeeTimeReached) {
+          setActiveRoundMinutesElapsed(0);
+          setHasInactivityWarning(false);
+          localStorage.removeItem("openclub_active_round_started_at");
+          sessionStorage.removeItem("openclub_inactivity_notified");
+          return;
+        }
+
+        // Once the scheduled tee-off time arrives and Resume Play unlocks:
+        // Automatically wake the stopwatch on the official flight tee time without waiting for a button tap,
+        // ensuring pace of play on Hole 1 is accurately enforced even if a player holes out before opening the app.
         let startedAtStr = localStorage.getItem("openclub_active_round_started_at");
         let startedAt = startedAtStr ? parseInt(startedAtStr, 10) : 0;
         const now = Date.now();
 
         if (!startedAt || isNaN(startedAt)) {
-          startedAt = now;
-          localStorage.setItem("openclub_active_round_started_at", String(now));
+          const officialStart = teeDate && !isNaN(teeDate.getTime()) && teeDate.getTime() <= now
+            ? teeDate.getTime()
+            : now;
+          startedAt = officialStart;
+          localStorage.setItem("openclub_active_round_started_at", String(officialStart));
         }
 
         const elapsedMs = now - startedAt;
@@ -3677,6 +3815,7 @@ export default function MobilePreviewPage() {
                 deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
                 startDate: t.startDate || undefined,
                 endDate: t.endDate || undefined,
+                teeStartTime: t.teeStartTime || undefined,
               };
             });
             setLiveTournaments(mapped);
@@ -6108,71 +6247,117 @@ class TournamentsView extends StatelessWidget {
                                     </p>
                                   </div>
 
-                                  {/* Row 4: Flight Avatars & Inactivity Status */}
-                                  <div className="flex items-center gap-2.5 mt-2 min-h-[28px]">
-                                    <div className="flex items-center -space-x-2">
-                                      {(activeRound.groupPlayers || [])
-                                        .filter((player) => !isAccountUser(player))
-                                        .slice(0, 3)
-                                        .map((player) => (
-                                          <GroupPlayerAvatarItem key={player.id} player={player} />
-                                        ))}
-                                    </div>
-                                    {hasInactivityWarning ? (
-                                      <span className="text-[10px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none">
-                                        INACTIVE FOR {activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30} MINUTES
-                                      </span>
-                                    ) : (
-                                      <span className="text-[11.5px] font-medium text-[#D1F2DE] leading-none tracking-tight">
-                                        {activeRound.flightText
-                                          ? activeRound.flightText.replace(/\s*•\s*Players in Flight/gi, "").replace(/Players in Flight/gi, "").trim() || "Flight 1"
-                                          : "Flight 1"}
-                                      </span>
-                                    )}
-                                  </div>
                                 </div>
                               </div>
 
-                              {/* Thin subtle divider */}
-                              <div className="border-t border-[#0F3D2A]/80 my-3" />
+                              {/* Horizontal line divider */}
+                              <div className="border-t border-[#16603E]/60 my-3" />
 
-                              {/* Bottom Row: Resume Play & Forfeit Buttons (Consistent with Featured Tournament Card) */}
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (typeof window !== "undefined") {
-                                      try {
-                                        localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
-                                        sessionStorage.removeItem("openclub_inactivity_notified");
-                                        const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
-                                        if (existingRaw) {
-                                          const existingList = JSON.parse(existingRaw);
-                                          const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
-                                          localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
-                                        }
-                                      } catch { }
-                                    }
-                                    broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
-                                    setHasInactivityWarning(false);
-                                    setActiveRoundMinutesElapsed(0);
-                                    showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
-                                    setTimeout(() => switchScreen("scoring"), 250);
-                                  }}
-                                  className="flex-[7] h-[40px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                >
-                                  <span>Resume Play</span>
-                                  <ChevronRight className="w-4 h-4" />
-                                </button>
+                              {/* Flight and Tee-Off Time Row & Action Buttons */}
+                              {(() => {
+                                const { teeLabel, isTeeTimeReached } = parseTeeTimeStatus(
+                                  activeRound.teeTime,
+                                  activeTournament?.startDate,
+                                  (activeTournament as any)?.teeStartTime,
+                                  activeRound.flightText
+                                );
 
-                                <button
-                                  type="button"
-                                  onClick={() => setShowForfeitModal(true)}
-                                  className="flex-[3] h-[40px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                >
-                                  <span>Forfeit</span>
-                                </button>
-                              </div>
+                                const flightDisplay = activeRound.flightText
+                                  ? activeRound.flightText.replace(/\s*•\s*Players in Flight/gi, "").replace(/Players in Flight/gi, "").trim() || "Flight 1"
+                                  : "Flight 1";
+
+                                return (
+                                  <>
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-[#10B981]/80 shrink-0" />
+                                        <span className="text-[12px] font-bold text-[#D1F2DE] tracking-tight">
+                                          {flightDisplay}
+                                        </span>
+                                        {hasInactivityWarning && isTeeTimeReached && (
+                                          <span className="text-[9.5px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none ml-1">
+                                            • INACTIVE ({activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`text-[12px] font-black tracking-tight ${
+                                          isTeeTimeReached ? "text-[#10B981]" : "text-[#F59E0B]"
+                                        }`}>
+                                          {teeLabel}
+                                        </span>
+                                        {!isTeeTimeReached && (
+                                          <span className="px-1.5 py-0.5 rounded-[4px] bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[9px] font-bold text-[#F59E0B] uppercase tracking-wider leading-none">
+                                            Not Started
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Bottom Row: Resume Play & Forfeit Buttons */}
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        aria-disabled={!isTeeTimeReached}
+                                        onClick={() => {
+                                          if (!isTeeTimeReached) {
+                                            showToast(
+                                              `Score entry is locked until your flight tees off at ${teeLabel}.`,
+                                              "error",
+                                              "TEE TIME NOT REACHED"
+                                            );
+                                            return;
+                                          }
+                                          if (typeof window !== "undefined") {
+                                            try {
+                                              localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
+                                              sessionStorage.removeItem("openclub_inactivity_notified");
+                                              const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
+                                              if (existingRaw) {
+                                                const existingList = JSON.parse(existingRaw);
+                                                const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
+                                                localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
+                                              }
+                                            } catch { }
+                                          }
+                                          broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
+                                          setHasInactivityWarning(false);
+                                          setActiveRoundMinutesElapsed(0);
+                                          showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
+                                          setTimeout(() => switchScreen("scoring"), 250);
+                                        }}
+                                        className={`flex-[7] h-[40px] rounded-xl font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all ${
+                                          isTeeTimeReached
+                                            ? "bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white cursor-pointer"
+                                            : "bg-[#0B3523] border border-[#16603E]/60 text-[#8FAEA2] cursor-not-allowed opacity-75 hover:border-[#F59E0B]/50"
+                                        }`}
+                                        title={!isTeeTimeReached ? `Score entry locked until ${teeLabel}` : undefined}
+                                      >
+                                        {!isTeeTimeReached ? (
+                                          <>
+                                            <Clock className="w-4 h-4 text-[#F59E0B]" />
+                                            <span>Tee Off at {teeLabel}</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span>Resume Play</span>
+                                            <ChevronRight className="w-4 h-4" />
+                                          </>
+                                        )}
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowForfeitModal(true)}
+                                        className="flex-[3] h-[40px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                      >
+                                        <span>Forfeit</span>
+                                      </button>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+
                             </div>
                           </div>
                         )}
@@ -15486,11 +15671,22 @@ class TournamentsView extends StatelessWidget {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400 font-medium">Active Match (3-Stage):</span>
                   <span className="text-[9.5px] text-slate-500 font-medium">
-                    {!activeRound
-                      ? "Closed / Forfeited"
-                      : hasInactivityWarning
-                      ? `⚠️ Inactivity Alert (${activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)`
-                      : `Normal Play (${activeRoundMinutesElapsed}m / 30m)`}
+                    {(() => {
+                      if (!activeRound) return "Closed / Forfeited";
+                      const { isTeeTimeReached, teeLabel } = parseTeeTimeStatus(
+                        activeRound.teeTime,
+                        activeTournament?.startDate,
+                        (activeTournament as any)?.teeStartTime,
+                        activeRound.flightText
+                      );
+                      if (!isTeeTimeReached) {
+                        return `Pending Tee-Off (${teeLabel || "Scheduled"})`;
+                      }
+                      if (hasInactivityWarning) {
+                        return `⚠️ Inactivity Alert (${activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)`;
+                      }
+                      return `Normal Play (${activeRoundMinutesElapsed}m / 30m)`;
+                    })()}
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-1 bg-[#080D15] rounded-lg p-1 border border-slate-800 text-xs">
@@ -15525,6 +15721,7 @@ class TournamentsView extends StatelessWidget {
                               initials: getTwoInitials(p.name),
                               avatar: (p as any).profilePhoto || (p as any).avatar || undefined,
                             })),
+                          teeTime: "08:00 AM",
                         });
                       }
                       setActiveRoundMinutesElapsed(30);
@@ -15666,6 +15863,7 @@ class TournamentsView extends StatelessWidget {
                               initials: getTwoInitials(p.name),
                               avatar: (p as any).profilePhoto || (p as any).avatar || undefined,
                             })),
+                          teeTime: "08:00 AM",
                         });
                       } else {
                         setActiveRound(null);
