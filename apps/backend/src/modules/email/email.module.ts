@@ -15,7 +15,7 @@ const logger = new Logger('EmailModule');
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const host = config.get<string>('SMTP_HOST', 'localhost');
+        const host = config.get<string>('SMTP_HOST', '127.0.0.1');
         const isLocal = !host || host === 'localhost' || host === '127.0.0.1';
         const port = config.get<number>('SMTP_PORT', isLocal ? 1025 : 587);
         const user = config.get<string>('SMTP_USER', '');
@@ -27,7 +27,7 @@ const logger = new Logger('EmailModule');
         );
 
         const transport: Record<string, any> = {
-          host,
+          host: isLocal ? '127.0.0.1' : host,
           port,
         };
 
