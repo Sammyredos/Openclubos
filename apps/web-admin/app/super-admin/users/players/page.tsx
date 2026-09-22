@@ -35,6 +35,7 @@ import {
   FileText,
   FileSpreadsheet,
   Flag,
+  RefreshCcw,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -210,9 +211,35 @@ export default function SuperAdminUsersPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportStatusFilter, setReportStatusFilter] = useState<string>("ALL");
+  const [reportSearchQuery, setReportSearchQuery] = useState("");
+  const debouncedReportSearch = useDebounce(reportSearchQuery, 300);
   const [actionModal, setActionModal] = useState<{ report: any; action: "SUSPEND" | "WARN" | "DISMISS" } | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) => {
+      if (reportStatusFilter !== "ALL" && r.status !== reportStatusFilter) {
+        return false;
+      }
+      if (debouncedReportSearch.trim()) {
+        const q = debouncedReportSearch.trim().toLowerCase();
+        const repName = (r.reportedName || "").toLowerCase();
+        const reporter = (r.reporterName || "").toLowerCase();
+        const reason = (r.reason || "").toLowerCase();
+        const details = (r.details || r.comment || r.description || "").toLowerCase();
+        const club = (r.reportedClub || "").toLowerCase();
+        return (
+          repName.includes(q) ||
+          reporter.includes(q) ||
+          reason.includes(q) ||
+          details.includes(q) ||
+          club.includes(q)
+        );
+      }
+      return true;
+    });
+  }, [reports, reportStatusFilter, debouncedReportSearch]);
 
   const fetchReports = async () => {
     setReportsLoading(true);
@@ -732,137 +759,156 @@ export default function SuperAdminUsersPage() {
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <div className="flex items-center gap-3">
-            <button
+          {/* Main View Tabs (Toolbar Card style matching Flights & Tee Times) */}
+          <div className="flex flex-wrap items-center gap-2.5 bg-[#fafafa] p-3 rounded-xl border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]">
+            <Button
+              type="button"
               onClick={() => setMainTab("players")}
               className={cn(
-                "text-lg font-bold pb-1 transition-all border-b-2 cursor-pointer",
+                "rounded-md h-9 px-4 text-[12px] font-normal gap-1.5 shadow-sm transition-all capitalize tracking-wider cursor-pointer",
                 mainTab === "players"
-                  ? "border-[#15803D] text-[#15803D]"
-                  : "border-transparent text-gray-400 hover:text-gray-700"
+                  ? "bg-openclub-700 hover:bg-openclub-800 text-white border border-openclub-800/20"
+                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200"
               )}
             >
+              <Users className="w-3.5 h-3.5" />
               All Players
-            </button>
-            <div className="w-px h-5 bg-gray-200" />
-            <button
+            </Button>
+
+            <Button
+              type="button"
               onClick={() => {
                 setMainTab("reports");
                 fetchReports();
               }}
               className={cn(
-                "text-lg font-bold pb-1 transition-all border-b-2 flex items-center gap-2 cursor-pointer",
+                "rounded-md h-9 px-4 text-[12px] font-normal gap-1.5 shadow-sm transition-all capitalize tracking-wider relative cursor-pointer",
                 mainTab === "reports"
-                  ? "border-[#DC2626] text-[#DC2626]"
-                  : "border-transparent text-gray-400 hover:text-gray-700"
+                  ? "bg-red-50 hover:bg-red-100 text-red-600 border border-dashed border-red-300 hover:border-red-400"
+                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200"
               )}
             >
-              <Flag className="w-4 h-4" />
-              <span>Player Reports</span>
+              <Flag className="w-3.5 h-3.5" />
+              Player Reports
               {reports.filter((r) => r.status === "PENDING").length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-black">
-                  {reports.filter((r) => r.status === "PENDING").length}
-                </span>
+                <>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-medium ml-0.5">
+                    {reports.filter((r) => r.status === "PENDING").length}
+                  </span>
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white"></span>
+                  </span>
+                </>
               )}
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={(e) => setExportAnchorEl(e.currentTarget)}
-              className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
-            >
-              <Download className="w-4 h-4" /> Export
-            </Button>
-            <FloatingMenu
-              open={exportAnchorEl != null}
-              anchorEl={exportAnchorEl}
-              onClose={() => setExportAnchorEl(null)}
-              placement="bottom-end"
-              className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
-            >
-              <button
-                onClick={() => {
-                  setExportAnchorEl(null);
-                  exportToCsv(
-                    filteredUsers,
-                    [
-                      { header: "First Name", key: "firstName" },
-                      { header: "Last Name", key: "lastName" },
-                      { header: "Email", key: "email" },
-                      { header: "Phone", key: "phone" },
-                      { header: "Role", key: "role" },
-                      { header: "Status", key: "status" },
-                      { header: "Handicap", key: "handicap" },
-                      { header: "Joined Date", key: "createdAt" },
-                    ],
-                    "users-export.csv"
-                  );
-                }}
-                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
-                Export CSV
-              </button>
-              <button
-                onClick={() => {
-                  setExportAnchorEl(null);
-                  exportToPdf(
-                    filteredUsers,
-                    [
-                      { header: "Name", key: "firstName" },
-                      { header: "Email", key: "email" },
-                      { header: "Role", key: "role" },
-                      { header: "Status", key: "status" },
-                    ],
-                    "users-export.pdf",
-                    "Users Export"
-                  );
-                }}
-                className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-              >
-                <FileText className="w-4 h-4 text-rose-600" />
-                Export PDF
-              </button>
-            </FloatingMenu>
-            <Button
-              onClick={() => router.push("/super-admin/users/create")}
-              className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
-            >
-              <UserPlus className="w-4 h-4" /> Add User
             </Button>
           </div>
+          {mainTab === "players" && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+              >
+                <Download className="w-4 h-4" /> Export
+              </Button>
+              <FloatingMenu
+                open={exportAnchorEl != null}
+                anchorEl={exportAnchorEl}
+                onClose={() => setExportAnchorEl(null)}
+                placement="bottom-end"
+                className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2"
+              >
+                <button
+                  onClick={() => {
+                    setExportAnchorEl(null);
+                    exportToCsv(
+                      filteredUsers,
+                      [
+                        { header: "First Name", key: "firstName" },
+                        { header: "Last Name", key: "lastName" },
+                        { header: "Email", key: "email" },
+                        { header: "Phone", key: "phone" },
+                        { header: "Role", key: "role" },
+                        { header: "Status", key: "status" },
+                        { header: "Handicap", key: "handicap" },
+                        { header: "Joined Date", key: "createdAt" },
+                      ],
+                      "users-export.csv"
+                    );
+                  }}
+                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => {
+                    setExportAnchorEl(null);
+                    exportToPdf(
+                      filteredUsers,
+                      [
+                        { header: "Name", key: "firstName" },
+                        { header: "Email", key: "email" },
+                        { header: "Role", key: "role" },
+                        { header: "Status", key: "status" },
+                      ],
+                      "users-export.pdf",
+                      "Users Export"
+                    );
+                  }}
+                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                >
+                  <FileText className="w-4 h-4 text-rose-600" />
+                  Export PDF
+                </button>
+              </FloatingMenu>
+              <Button
+                onClick={() => router.push("/super-admin/users/create")}
+                className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium"
+              >
+                <UserPlus className="w-4 h-4" /> Add User
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {mainTab === "reports" ? (
             /* --- MODERATION & PLAYER REPORTS VIEW --- */
             <div className="px-6 pb-6">
               <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
-                <div className="p-5 border-b border-[#e1efe5] flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-700">Filter Status:</span>
-                    {["ALL", "PENDING", "RESOLVED", "DISMISSED"].map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => setReportStatusFilter(st)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                          reportStatusFilter === st
-                            ? "bg-[#009A60] text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        )}
-                      >
-                        {st}
-                      </button>
-                    ))}
+                <div className="p-5 border-b border-[#e1efe5]">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search reports by golfer, reporter, or infraction reason..."
+                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-gray-800 focus:bg-white placeholder:text-gray-400"
+                        value={reportSearchQuery}
+                        onChange={(e) => setReportSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <SearchableSelect
+                      value={reportStatusFilter}
+                      onValueChange={(v) => setReportStatusFilter(v)}
+                      options={[
+                        { value: "ALL", label: "All Statuses" },
+                        { value: "PENDING", label: "Pending Review" },
+                        { value: "RESOLVED", label: "Resolved" },
+                        { value: "DISMISSED", label: "Dismissed" },
+                      ]}
+                      className="min-w-[170px]"
+                      triggerClassName="h-11 bg-white border-[#e1efe5] text-gray-700 font-normal"
+                      placeholder="All Statuses"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={fetchReports}
+                      className="h-11 border-[#e1efe5] text-gray-600 hover:text-gray-900 gap-2 rounded-lg px-4 text-[14px] font-normal cursor-pointer"
+                    >
+                      <RefreshCcw className="w-4 h-4" /> Refresh
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={fetchReports}
-                    className="h-9 border-[#e1efe5] text-xs font-semibold"
-                  >
-                    Refresh Reports
-                  </Button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -885,19 +931,18 @@ export default function SuperAdminUsersPage() {
                             Loading reports...
                           </td>
                         </tr>
-                      ) : reports.filter((r) => reportStatusFilter === "ALL" || r.status === reportStatusFilter).length === 0 ? (
+                      ) : filteredReports.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="text-center py-12">
                             <EmptyState
                               icon={Flag}
                               title="No player reports found"
-                              description="No infraction reports match your current filter."
+                              description="No infraction reports match your current filter or search criteria."
                             />
                           </td>
                         </tr>
                       ) : (
-                        reports
-                          .filter((r) => reportStatusFilter === "ALL" || r.status === reportStatusFilter)
+                        filteredReports
                           .map((rep) => (
                             <tr key={rep.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-6 py-4">
