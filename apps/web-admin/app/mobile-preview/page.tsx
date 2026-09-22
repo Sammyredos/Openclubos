@@ -82,6 +82,7 @@ import {
   UserMinus,
   Ban,
   MoreHorizontal,
+  Trash2,
 } from "lucide-react";
 import { formatNumber, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
@@ -1256,11 +1257,29 @@ export default function MobilePreviewPage() {
         setAcceptedFriendIds(cleanedAccepted);
         setIncomingFriendRequests(deduplicatedIncoming);
 
+        // Strip FRIEND_REQUEST notifications from localStorage before hydrating state.
+        // These must come exclusively from GET /friends/requests (DB sync), not from
+        // stale localStorage cache — otherwise declined requests re-appear on login.
+        const isFriendReqNotif = (n: any) => {
+          const t = (n?.data?.type || n?.type || "").toUpperCase();
+          return t === "FRIEND_REQUEST" || t === "FRIEND_REQUEST_SENT";
+        };
+
         const parsedLocalNotifs = savedLocalNotifs ? JSON.parse(savedLocalNotifs) : [];
-        if (Array.isArray(parsedLocalNotifs) && parsedLocalNotifs.length > 0) {
+        const filteredLocalNotifs = Array.isArray(parsedLocalNotifs)
+          ? parsedLocalNotifs.filter((n: any) => !isFriendReqNotif(n))
+          : [];
+        // Persist the stripped version back so it doesn't come back on next load
+        try {
+          if (Array.isArray(parsedLocalNotifs) && filteredLocalNotifs.length !== parsedLocalNotifs.length) {
+            localStorage.setItem(notifKey, JSON.stringify(filteredLocalNotifs));
+          }
+        } catch {}
+
+        if (filteredLocalNotifs.length > 0) {
           setMobileNotifications((prev) => {
             const map = new Map<string, any>();
-            for (const n of [...parsedLocalNotifs, ...prev]) {
+            for (const n of [...filteredLocalNotifs, ...prev]) {
               const nType = (n.data?.type || n.type || "").toUpperCase();
               const nUserId = String(n.data?.userId || n.userId || n.data?.senderId || n.senderId || "");
               const key = nType === "FRIEND_ACCEPTED" && nUserId
@@ -1456,6 +1475,7 @@ export default function MobilePreviewPage() {
         headers: authHeaders,
         body: JSON.stringify({
           requestId: reqId || senderId,
+          senderId: senderId,
           accept: true,
           userId: currentUserId,
         }),
@@ -1534,6 +1554,19 @@ export default function MobilePreviewPage() {
           localStorage.setItem(senderSentKey, JSON.stringify(updated));
         }
       } catch {}
+
+      // Also purge from React state immediately so the sender's UI card reverts
+      // from "SENT + Cancel" → back to the green Add Friend (+) button without
+      // requiring a page reload. We match on all known aliases of the current user
+      // (their id, email, and name) since sentFriendRequests may store any of these.
+      const recipientAliases = new Set<string>(
+        [currentUserId, authenticatedPlayer?.email, authenticatedPlayer?.name]
+          .filter(Boolean)
+          .map((v) => String(v).toLowerCase().trim())
+      );
+      setSentFriendRequests((prev) =>
+        prev.filter((id) => !recipientAliases.has(String(id).toLowerCase().trim()))
+      );
     }
 
     // 3. Remove the friend request notification from recipient's notification mailbox and persist
@@ -1556,11 +1589,15 @@ export default function MobilePreviewPage() {
       const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
       if (token) authHeaders["Authorization"] = `Bearer ${token}`;
 
+      // Send BOTH requestId (DB friendship UUID if available) AND senderId (real user ID)
+      // so the backend can find the Friendship record even when requestId is a
+      // localStorage-generated string (e.g. "freq_1234567890") rather than a DB UUID.
       fetch(`${backendBase}/friends/respond`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({
           requestId: reqId || senderId,
+          senderId: senderId,
           accept: false,
           userId: currentUserId,
         }),
@@ -1568,6 +1605,57 @@ export default function MobilePreviewPage() {
     } catch {}
 
     showToast("Friend request declined.", "alert", "REQUEST REMOVED");
+  };
+
+  // Clear ALL pending friend requests (sent + received) and related notifications for the current user
+  const handleClearAllFriendRequests = () => {
+    const currentUserId = authenticatedPlayer?.id;
+    if (!currentUserId) return;
+
+    // Clear React state
+    setSentFriendRequests([]);
+    setIncomingFriendRequests([]);
+
+    // Clear mobileNotifications of all friend-request-related entries
+    setMobileNotifications((prev) =>
+      prev.filter(
+        (n: any) =>
+          n.data?.type !== "FRIEND_REQUEST" &&
+          n.data?.type !== "FRIEND_REQUEST_SENT" &&
+          n.type !== "FRIEND_REQUEST"
+      )
+    );
+
+    // Wipe all localStorage keys for this user (id, email, name aliases)
+    const aliases = [
+      currentUserId,
+      authenticatedPlayer?.email?.toLowerCase().trim(),
+      authenticatedPlayer?.name?.toLowerCase().trim().replace(/\s+/g, "_"),
+    ].filter(Boolean) as string[];
+
+    try {
+      for (const alias of aliases) {
+        localStorage.setItem(getSentRequestsKey(alias), JSON.stringify([]));
+        localStorage.setItem(getIncomingRequestsKey(alias), JSON.stringify([]));
+        // Strip friend-request notifications from the user's notification key
+        const notifKey = getUserNotificationsKey(alias);
+        const raw = localStorage.getItem(notifKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter(
+              (n: any) =>
+                n.data?.type !== "FRIEND_REQUEST" &&
+                n.data?.type !== "FRIEND_REQUEST_SENT" &&
+                n.type !== "FRIEND_REQUEST"
+            );
+            localStorage.setItem(notifKey, JSON.stringify(cleaned));
+          }
+        }
+      }
+    } catch {}
+
+    showToast("All friend requests and related notifications cleared.", "success", "CLEARED");
   };
 
   // Handle cancelling an outgoing pending friend request
@@ -1708,21 +1796,10 @@ export default function MobilePreviewPage() {
       };
       if (token) authHeaders["Authorization"] = `Bearer ${token}`;
 
-      await fetch(`${backendBase}/reports/user`, {
+      const res = await fetch(`${backendBase}/reports/user`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({
-          reportedId: reportCandidate.id,
-          reason: reportReason,
-          details: reportDetails,
-        }),
-      }).catch(() => null);
-
-      // Save to local user_reports for persistence and immediate Super Admin view
-      try {
-        const localReports = JSON.parse(localStorage.getItem("openclub_user_reports") || "[]");
-        const newReport = {
-          id: `rep_${Date.now()}`,
           reporterId: currentUserId,
           reporterName: authenticatedPlayer?.name || "Player",
           reporterEmail: authenticatedPlayer?.email || "player@openclubos.com",
@@ -1732,12 +1809,19 @@ export default function MobilePreviewPage() {
           reportedHcp: reportCandidate.hcp || "0.0",
           reason: reportReason,
           details: reportDetails,
-          status: "PENDING",
-          actionTaken: "NONE",
-          createdAt: new Date().toISOString(),
-        };
-        localStorage.setItem("openclub_user_reports", JSON.stringify([newReport, ...localReports]));
-      } catch {}
+        }),
+      }).catch(() => null);
+
+      if (res && res.ok) {
+        const savedReport = await res.json().catch(() => null);
+        if (savedReport) {
+          try {
+            const localReports = JSON.parse(localStorage.getItem("openclub_user_reports") || "[]");
+            const cleanLocal = localReports.filter((r: any) => r.id !== savedReport.id && !r.reportedName?.includes("Marcus Aurelius"));
+            localStorage.setItem("openclub_user_reports", JSON.stringify([savedReport, ...cleanLocal]));
+          } catch {}
+        }
+      }
 
       showToast(
         "Report submitted. Our moderation team will review this shortly.",
@@ -2074,39 +2158,60 @@ export default function MobilePreviewPage() {
         const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        // 1. Fetch accepted friends from DB
+        // 1. Fetch accepted friends from DB — REPLACE authoritatively (not merge)
+        // so unfriended players are immediately removed from state even if they
+        // were previously stored in localStorage.
         const friendsRes = await fetch(`${backendBase}/friends`, { headers }).catch(() => null);
         if (friendsRes && friendsRes.ok) {
           const friends = await friendsRes.json().catch(() => null);
-          if (isMounted && Array.isArray(friends) && friends.length > 0) {
-            setAcceptedFriendIds((prev) => {
-              const serverIds = friends.map((f: any) => f.id);
-              const serverNames = friends.map((f: any) => f.name?.toLowerCase()).filter(Boolean);
-              const merged = Array.from(new Set([...prev, ...serverIds, ...serverNames]));
-              try {
-                localStorage.setItem(getAcceptedFriendsKey(currentUserId), JSON.stringify(merged));
-              } catch {}
-              return merged;
-            });
+          if (isMounted && Array.isArray(friends)) {
+            // Build the exact set the DB says are accepted friends
+            const serverIds = friends.map((f: any) => f.id).filter(Boolean);
+            const serverNames = friends.map((f: any) => f.name?.toLowerCase()).filter(Boolean);
+            const authoritative = Array.from(new Set([...serverIds, ...serverNames]));
+            setAcceptedFriendIds(authoritative);
+            try {
+              localStorage.setItem(getAcceptedFriendsKey(currentUserId), JSON.stringify(authoritative));
+            } catch {}
           }
+
         }
 
-        // 2. Fetch pending requests from DB
+        // 2. Fetch pending requests from DB — REPLACE state (not merge) so declined
+        // requests don't reappear after logout/login
         const requestsRes = await fetch(`${backendBase}/friends/requests`, { headers }).catch(() => null);
         if (requestsRes && requestsRes.ok) {
           const reqData = await requestsRes.json().catch(() => null);
-          if (isMounted && reqData?.incoming && Array.isArray(reqData.incoming)) {
-            setIncomingFriendRequests((prev) => {
-              const existingIds = new Set(prev.map((p: any) => p.id || p.senderId));
-              const newIncoming = reqData.incoming.filter((inc: any) => !existingIds.has(inc.id) && !existingIds.has(inc.senderId));
-              return [...newIncoming, ...prev];
-            });
-          }
-          if (isMounted && reqData?.outgoing && Array.isArray(reqData.outgoing)) {
-            setSentFriendRequests((prev) => {
-              const serverSent = reqData.outgoing.map((o: any) => o.receiverId);
-              return Array.from(new Set([...prev, ...serverSent]));
-            });
+          if (isMounted && reqData) {
+            // Authoritatively replace incoming with exactly what the DB says
+            if (Array.isArray(reqData.incoming)) {
+              const mapped = reqData.incoming.map((inc: any) => ({
+                id: inc.id || inc.requestId,
+                requestId: inc.requestId || inc.id,
+                senderId: inc.senderId,
+                senderName: inc.name || `${inc.firstName || ''} ${inc.lastName || ''}`.trim(),
+                senderEmail: inc.email,
+                senderClub: inc.club,
+                senderHcp: inc.handicap,
+                senderAvatar: inc.profilePhoto,
+                createdAt: inc.createdAt,
+              }));
+              setIncomingFriendRequests(mapped);
+              // Persist to localStorage so it survives a hot-reload within the session
+              try {
+                const incomingKey = getIncomingRequestsKey(currentUserId);
+                localStorage.setItem(incomingKey, JSON.stringify(mapped));
+              } catch {}
+            }
+            // Authoritatively replace outgoing sent requests with exactly what the DB says
+            if (Array.isArray(reqData.outgoing)) {
+              const outgoingIds = reqData.outgoing.map((o: any) => o.receiverId).filter(Boolean);
+              setSentFriendRequests(outgoingIds);
+              try {
+                const sentKey = getSentRequestsKey(currentUserId);
+                localStorage.setItem(sentKey, JSON.stringify(outgoingIds));
+              } catch {}
+            }
           }
         }
 
@@ -2252,7 +2357,16 @@ export default function MobilePreviewPage() {
           const items = Array.isArray(data) ? data : data?.items || [];
 
           if (isMounted) {
-            let combined = Array.isArray(items) ? items.map(sanitizeFlightNotif) : [];
+            // Strip FRIEND_REQUEST types from the DB result — they are managed
+            // exclusively by GET /friends/requests, not the general notifications feed.
+            const isFriendReqType = (n: any) => {
+              const t = (n?.data?.type || n?.type || "").toUpperCase();
+              return t === "FRIEND_REQUEST" || t === "FRIEND_REQUEST_SENT";
+            };
+
+            let combined = Array.isArray(items)
+              ? items.map(sanitizeFlightNotif).filter((n: any) => !isFriendReqType(n))
+              : [];
             try {
               const localSaved = localStorage.getItem(notifKey);
               if (localSaved) {
@@ -2261,6 +2375,8 @@ export default function MobilePreviewPage() {
                   const parseNotifData = (d: any) => typeof d === "string" ? (() => { try { return JSON.parse(d); } catch { return {}; } })() : (d || {});
                   const existingIds = new Set(combined.map((n: any) => n.id));
                   for (const ln of parsed) {
+                    // Skip friend request notifications from localStorage too
+                    if (isFriendReqType(ln)) continue;
                     const sanitized = sanitizeFlightNotif(ln);
                     const sData = parseNotifData(sanitized.data);
                     const sTitle = (sanitized.title || "").trim().toLowerCase();
@@ -11085,7 +11201,10 @@ class TournamentsView extends StatelessWidget {
                         });
                         if (isBlocked) return false;
 
-                        // Check if golfer has sent an incoming friend request waiting for acceptance in notifications
+                        // Check if golfer has sent an incoming friend request waiting for acceptance.
+                        // Only incomingFriendRequests is the source of truth — mobileNotifications
+                        // is NOT used here to avoid cross-user stale data in the simulator causing
+                        // incorrect Accept/Decline buttons to appear after a decline/cancel.
                         const isIncomingRequest = incomingFriendRequests.some((req: any) => {
                           const rId = req.senderId || req.id || req.userId;
                           const rName = req.senderName || req.name;
@@ -11093,16 +11212,6 @@ class TournamentsView extends StatelessWidget {
                           if (rId && String(rId).toLowerCase().trim() === pId) return true;
                           if (rName && String(rName).toLowerCase().trim() === pName) return true;
                           if (rEmail && pEmail && String(rEmail).toLowerCase().trim() === pEmail) return true;
-                          return false;
-                        }) || mobileNotifications.some((notif: any) => {
-                          if (notif.data?.type === "FRIEND_REQUEST" || notif.type === "FRIEND_REQUEST") {
-                            const sId = notif.data?.senderId || notif.senderId;
-                            const sName = notif.data?.senderName || notif.senderName;
-                            const sEmail = notif.data?.senderEmail || notif.senderEmail;
-                            if (sId && String(sId).toLowerCase().trim() === pId) return true;
-                            if (sName && String(sName).toLowerCase().trim() === pName) return true;
-                            if (sEmail && pEmail && String(sEmail).toLowerCase().trim() === pEmail) return true;
-                          }
                           return false;
                         });
 
@@ -11388,32 +11497,7 @@ class TournamentsView extends StatelessWidget {
                                     if (rName && rName === pName) return true;
                                     if (rEmail && pEmail && rEmail === pEmail) return true;
                                     return false;
-                                  }) || (() => {
-                                    const matchingNotif = mobileNotifications.find((notif: any) => {
-                                      if (notif.data?.type === "FRIEND_REQUEST" || notif.type === "FRIEND_REQUEST") {
-                                        const sId = (notif.data?.senderId || notif.senderId || "").toString().toLowerCase().trim();
-                                        const sName = (notif.data?.senderName || notif.senderName || "").toString().toLowerCase().trim();
-                                        const sEmail = (notif.data?.senderEmail || notif.senderEmail || "").toString().toLowerCase().trim();
-                                        if (sId && sId === pId) return true;
-                                        if (sName && sName === pName) return true;
-                                        if (sEmail && pEmail && sEmail === pEmail) return true;
-                                        // Cross-match: check if the notification sender ID matches any known ID alias for this player
-                                        if (sId && player.email && sId === player.email.toLowerCase().trim()) return true;
-                                        if (sName && pId && sName === pId) return true;
-                                      }
-                                      return false;
-                                    });
-                                    if (matchingNotif) {
-                                      return {
-                                        id: matchingNotif.data?.requestId || matchingNotif.id,
-                                        senderId: matchingNotif.data?.senderId || player.id,
-                                        senderName: matchingNotif.data?.senderName || player.name,
-                                        senderClub: matchingNotif.data?.senderClub || player.club,
-                                        senderHcp: matchingNotif.data?.senderHcp || player.hcp,
-                                      };
-                                    }
-                                    return null;
-                                  })() || ((player as any)._isIncoming ? {
+                                  }) || ((player as any)._isIncoming ? {
                                     id: `req_${player.id}`,
                                     senderId: player.id,
                                     senderName: player.name,
@@ -12425,6 +12509,32 @@ class TournamentsView extends StatelessWidget {
                       showToast("All notifications marked as read.", "success", "NOTIFICATIONS READ");
                     };
 
+                    const handleClearAllNotifications = () => {
+                      // Wipe all notifications from React state
+                      setMobileNotifications([]);
+                      setIncomingFriendRequests([]);
+                      setSentFriendRequests([]);
+                      setNotificationsMarkedRead(false);
+
+                      // Wipe all localStorage notification and friend-request keys for this user
+                      if (authenticatedPlayer?.id) {
+                        const aliases = [
+                          authenticatedPlayer.id,
+                          authenticatedPlayer?.email?.toLowerCase().trim(),
+                          authenticatedPlayer?.name?.toLowerCase().trim().replace(/\s+/g, "_"),
+                        ].filter(Boolean) as string[];
+                        try {
+                          for (const alias of aliases) {
+                            localStorage.removeItem(getUserNotificationsKey(alias));
+                            localStorage.setItem(getSentRequestsKey(alias), JSON.stringify([]));
+                            localStorage.setItem(getIncomingRequestsKey(alias), JSON.stringify([]));
+                          }
+                          localStorage.removeItem(`openclub_all_notifs_read_${authenticatedPlayer.id}`);
+                        } catch {}
+                      }
+                      showToast("All notifications and friend requests cleared.", "success", "CLEARED");
+                    };
+
                     const handleNotificationClick = async (notif: any) => {
                       if (!notif.isRead || notif.unread !== false) {
                         setMobileNotifications((prev) =>
@@ -12616,7 +12726,7 @@ class TournamentsView extends StatelessWidget {
                                   requestId: item.requestId || data.requestId || item.id,
                                   senderId,
                                 })}
-                                className="px-6 py-2 rounded-xl bg-[#EEF2F6] hover:bg-slate-200 text-[#64748B] text-[11px] font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer text-center"
+                                className="px-6 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-600 text-[11px] font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer text-center"
                               >
                                 DECLINE
                               </button>
@@ -12856,16 +12966,29 @@ class TournamentsView extends StatelessWidget {
                               <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
                             </button>
                             <h2 className="text-base font-bold text-[#0F172A]">Notifications</h2>
-                            {/* Mark all as read button matching standard circular pill design */}
-                            <button
-                              type="button"
-                              onClick={handleMarkAllRead}
-                              className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#009A60] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
-                              title="Mark all as read"
-                              aria-label="Mark all as read"
-                            >
-                              <CheckCheck className="h-[18px] w-[18px] text-[#009A60]" />
-                            </button>
+                            {/* Right action buttons: Clear All + Mark All Read */}
+                            <div className="flex items-center gap-1.5">
+                              {mobileNotifications.length > 0 || incomingFriendRequests.length > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={handleClearAllNotifications}
+                                  className="h-8 w-8 rounded-full border border-rose-200/70 bg-rose-50 hover:bg-rose-100 shadow-2xs flex items-center justify-center text-rose-500 hover:text-rose-600 transition-all cursor-pointer shrink-0"
+                                  title="Clear all notifications"
+                                  aria-label="Clear all notifications"
+                                >
+                                  <Trash2 className="h-[16px] w-[16px]" />
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={handleMarkAllRead}
+                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#009A60] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                title="Mark all as read"
+                                aria-label="Mark all as read"
+                              >
+                                <CheckCheck className="h-[18px] w-[18px] text-[#009A60]" />
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -14053,7 +14176,7 @@ class TournamentsView extends StatelessWidget {
                                 <button
                                   type="button"
                                   onClick={() => handleDeclineFriendRequest(req)}
-                                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                                  className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-600 border border-rose-200/80 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
                                   title={`Decline friend request from ${req.senderName}`}
                                 >
                                   <X className="w-3 h-3 stroke-[2.5]" />
@@ -14761,17 +14884,31 @@ class TournamentsView extends StatelessWidget {
                         <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">Manage connections & invitations</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowFriendRequestsModal(false);
-                        setVirtualKeyboard(null);
-                      }}
-                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
-                      title="Close"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {/* Clear All button — wipes all pending/sent requests and their notifications */}
+                      {(incomingFriendRequests.length > 0 || sentFriendRequests.length > 0) && (
+                        <button
+                          type="button"
+                          onClick={handleClearAllFriendRequests}
+                          className="h-8 w-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/70 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                          title="Clear all friend requests"
+                          aria-label="Clear All Requests"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowFriendRequestsModal(false);
+                          setVirtualKeyboard(null);
+                        }}
+                        className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                        title="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Content List */}
@@ -14831,7 +14968,7 @@ class TournamentsView extends StatelessWidget {
                               <button
                                 type="button"
                                 onClick={() => handleDeclineFriendRequest(req)}
-                                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-[11px] font-semibold cursor-pointer transition-all"
+                                className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 border border-rose-200/60 text-[11px] font-semibold cursor-pointer transition-all"
                               >
                                 Decline
                               </button>

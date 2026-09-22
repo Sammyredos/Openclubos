@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn, getAvatarUrl } from "@/lib/utils";
 import {
@@ -21,7 +21,7 @@ import {
   ClipboardDocumentListIcon as Activity,
   ShieldCheckIcon as ShieldCheck,
   BellIcon as Bell,
-  ChevronDownIcon as ChevronDown
+  ChevronDownIcon as ChevronDown,
 } from "@heroicons/react/24/solid";
 import { getClub } from "@/lib/api/clubs";
 import { Icons } from "@/components/ui/icons";
@@ -40,7 +40,17 @@ type SidebarGroup = {
   items: SidebarItem[];
 };
 
-function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { name: string; href: string }[]; isExpanded: boolean; pathname: string }) {
+function SubItemsAccordion({
+  subItems,
+  isExpanded,
+  pathname,
+  currentTab,
+}: {
+  subItems: { name: string; href: string }[];
+  isExpanded: boolean;
+  pathname: string;
+  currentTab?: string | null;
+}) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
 
@@ -61,7 +71,16 @@ function SubItemsAccordion({ subItems, isExpanded, pathname }: { subItems: { nam
       <div ref={contentRef} className="flex flex-col mt-1 ml-[44px] gap-1 relative pb-1">
         <div className="absolute left-[7px] top-0 bottom-1 w-px bg-slate-200" />
         {subItems.map((subItem) => {
-          const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+          const isSubActive = (() => {
+            if (subItem.href === "/super-admin/users/players/reports") {
+              return pathname === "/super-admin/users/players/reports";
+            }
+            if (subItem.href === "/super-admin/users/players") {
+              return pathname === "/super-admin/users/players";
+            }
+            return pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+          })();
+
           return (
             <Link
               key={subItem.name}
@@ -92,8 +111,9 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
         icon: User,
         subItems: [
           { name: "Players", href: "/super-admin/users/players" },
-          { name: "Organizers", href: "/super-admin/users/organizers" }
-        ]
+          { name: "Player Reports", href: "/super-admin/users/players/reports" },
+          { name: "Organizers", href: "/super-admin/users/organizers" },
+        ],
       },
       { name: "Golf Courses", href: "/super-admin/golf-courses", icon: Flag },
       {
@@ -103,8 +123,8 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
         subItems: [
           { name: "Plans", href: "/super-admin/subscriptions/plans" },
           { name: "Organizers", href: "/super-admin/subscriptions/organizers" },
-          { name: "Players", href: "/super-admin/subscriptions/players" }
-        ]
+          { name: "Players", href: "/super-admin/subscriptions/players" },
+        ],
       },
     ],
   },
@@ -118,8 +138,8 @@ const SUPER_ADMIN_GROUPS: SidebarGroup[] = [
         icon: CreditCard,
         subItems: [
           { name: "Withdrawals", href: "/super-admin/payments/withdrawals" },
-          { name: "All Transactions", href: "/super-admin/payments/transactions" }
-        ]
+          { name: "All Transactions", href: "/super-admin/payments/transactions" },
+        ],
       },
     ],
   },
@@ -159,8 +179,8 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
         icon: CreditCard,
         subItems: [
           { name: "All Transactions", href: "/organizer-admin/payments/transactions" },
-          { name: "Withdrawals", href: "/organizer-admin/payments/withdrawals" }
-        ]
+          { name: "Withdrawals", href: "/organizer-admin/payments/withdrawals" },
+        ],
       },
       { name: "Reports", href: "/organizer-admin/reports", icon: FileText },
     ],
@@ -174,28 +194,80 @@ const CLUB_ADMIN_GROUPS: SidebarGroup[] = [
   },
 ];
 
-export function Sidebar() {
+function SidebarSkeleton() {
+  return (
+    <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
+      <div className="p-8 flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-[52px] w-[52px] rounded-full shrink-0" />
+          <Skeleton className="h-5 w-24 shrink-0" />
+        </div>
+      </div>
+      <div className="flex-1 py-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
+          <div className="space-y-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="relative flex items-center h-[40px] w-[206px]">
+                <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
+                  <Skeleton className="h-4 w-4 shrink-0" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mx-5 border-t border-[#e1efe5]" />
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="space-y-1">
+            {[1, 2].map((i) => (
+              <div key={i} className="relative flex items-center h-[40px] w-[206px]">
+                <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
+                  <Skeleton className="h-4 w-4 shrink-0" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
+        <Skeleton className="w-[178px] h-[55px] rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function SidebarInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab");
   const { logout, user, isLoading } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [fetchedClub, setFetchedClub] = useState<{name: string, logo?: string} | null>(null);
+  const [fetchedClub, setFetchedClub] = useState<{ name: string; logo?: string } | null>(null);
   const [isFetchingClub, setIsFetchingClub] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'CLUB_ADMIN' && user?.clubId) {
+    if (user?.role === "CLUB_ADMIN" && user?.clubId) {
       setIsFetchingClub(true);
-      getClub(user.clubId).then(data => {
-        setFetchedClub({ name: data.name, logo: data.logo });
-      }).catch(() => {}).finally(() => setIsFetchingClub(false));
+      getClub(user.clubId)
+        .then((data) => {
+          setFetchedClub({ name: data.name, logo: data.logo });
+        })
+        .catch(() => {})
+        .finally(() => setIsFetchingClub(false));
     }
   }, [user?.role, user?.clubId]);
 
   useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
-    const groups = user?.role === 'SUPER_ADMIN' ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
-    groups.forEach(group => {
-      group.items.forEach(item => {
-        if (item.subItems && pathname.startsWith(item.href)) {
+    const groups = user?.role === "SUPER_ADMIN" ? SUPER_ADMIN_GROUPS : CLUB_ADMIN_GROUPS;
+    groups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (
+          item.subItems &&
+          (pathname.startsWith(item.href) ||
+            (item.name === "Users" && pathname.startsWith("/super-admin/users")))
+        ) {
           newExpanded[item.name] = true;
         }
       });
@@ -204,7 +276,7 @@ export function Sidebar() {
   }, [pathname, user?.role]);
 
   const toggleGroup = (name: string) => {
-    setExpandedGroups(prev => {
+    setExpandedGroups((prev) => {
       if (prev[name]) {
         return {};
       }
@@ -213,100 +285,68 @@ export function Sidebar() {
   };
 
   if (isLoading || !user) {
-    return (
-      <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
-        <div className="p-8 flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-[52px] w-[52px] rounded-full shrink-0" />
-            <Skeleton className="h-5 w-24 shrink-0" />
-          </div>
-        </div>
-        <div className="flex-1 py-4 flex flex-col gap-4">
-          <div className="flex flex-col gap-4">
-            <div className="space-y-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="relative flex items-center h-[40px] w-[206px]">
-                  <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
-                    <Skeleton className="h-4 w-4 shrink-0" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mx-5 border-t border-[#e1efe5]" />
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="space-y-1">
-              {[1, 2].map((i) => (
-                <div key={i} className="relative flex items-center h-[40px] w-[206px]">
-                  <div className="flex items-center gap-2.5 h-[40px] ml-[21px] px-3 flex-1 rounded-lg">
-                    <Skeleton className="h-4 w-4 shrink-0" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
-          <Skeleton className="w-[178px] h-[55px] rounded-lg" />
-        </div>
-      </div>
-    );
+    return <SidebarSkeleton />;
   }
 
-  const sidebarGroups = user.role === 'SUPER_ADMIN' 
-    ? SUPER_ADMIN_GROUPS 
-    : CLUB_ADMIN_GROUPS.map(group => ({
-        ...group,
-        items: group.items.filter(item => {
-          if (user.managerScope === 'TOURNAMENTS') {
-            const allowed = ["Dashboard", "Tournaments", "Leaderboard", "Reports", "Handicaps", "Notifications", "Settings"];
-            return allowed.includes(item.name);
-          }
-          if (user.managerScope === 'FINANCE') {
-            const allowed = ["Dashboard", "Payments", "Reports", "Notifications"];
-            return allowed.includes(item.name);
-          }
-          // Default for FULL manager scope or regular Organizer Admin
-          if (user.managerScope && item.name === 'Users') return false;
-          return true;
-        })
-      })).filter(group => group.items.length > 0);
+  const sidebarGroups =
+    user.role === "SUPER_ADMIN"
+      ? SUPER_ADMIN_GROUPS
+      : CLUB_ADMIN_GROUPS.map((group) => ({
+          ...group,
+          items: group.items.filter((item) => {
+            if (user.managerScope === "TOURNAMENTS") {
+              const allowed = [
+                "Dashboard",
+                "Tournaments",
+                "Leaderboard",
+                "Reports",
+                "Handicaps",
+                "Notifications",
+                "Settings",
+              ];
+              return allowed.includes(item.name);
+            }
+            if (user.managerScope === "FINANCE") {
+              const allowed = ["Dashboard", "Payments", "Reports", "Notifications"];
+              return allowed.includes(item.name);
+            }
+            if (user.managerScope && item.name === "Users") return false;
+            return true;
+          }),
+        })).filter((group) => group.items.length > 0);
 
   return (
-    <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative">
+    <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative select-none">
+      {/* Club Admin Brand Info Header */}
       <div className="p-8 flex flex-col gap-4">
-        {user?.role === 'CLUB_ADMIN' ? (
-          <div className="flex flex-col items-center justify-center gap-3 group cursor-pointer w-full mt-2 mb-2">
-            {isFetchingClub && !fetchedClub ? (
-              <>
-                <Skeleton className="w-[60px] h-[60px] rounded-full shrink-0" />
-                <Skeleton className="h-[20px] w-28 shrink-0 mt-1" />
-              </>
-            ) : (
-              <>
-                {fetchedClub?.logo || user?.profilePhoto ? (
-                  <div className="w-[60px] h-[60px] rounded-full shadow-lg shadow-openclub-700/20 overflow-hidden flex-shrink-0 border-2 border-white">
-                    <img src={fetchedClub?.logo || user?.profilePhoto} alt="Club Logo" className="w-full h-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="w-14 h-14 rounded-[18px] bg-[#009A60] flex items-center justify-center shadow-lg shadow-[#009A60]/20 shrink-0">
-                    <Icons.logo className="h-7 w-7 text-white" />
-                  </div>
-                )}
-                <div className="flex items-center justify-center w-full px-2">
-                  <span className="text-base font-medium text-gray-900 tracking-tight truncate text-center max-w-full">
-                    {fetchedClub?.name || user?.club?.name || "Organizer"}
+        {user.role === "CLUB_ADMIN" ? (
+          <div className="flex items-center gap-4">
+            <div className="h-[52px] w-[52px] rounded-full flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
+              {fetchedClub?.logo ? (
+                <img src={fetchedClub.logo} alt="Club Logo" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-[#e0fbea] flex items-center justify-center">
+                  <span className="text-[#15803D] font-bold text-xl">
+                    {fetchedClub?.name
+                      ? fetchedClub.name.charAt(0).toUpperCase()
+                      : user.name
+                      ? user.name.charAt(0).toUpperCase()
+                      : "C"}
                   </span>
                 </div>
-              </>
-            )}
+              )}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[17px] font-bold text-[#15803D] truncate leading-tight">
+                {fetchedClub?.name || "Golf Club"}
+              </span>
+              <span className="text-xs text-zinc-500 font-medium">Golf Club</span>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[12px] bg-[#009A60] flex items-center justify-center shadow-md shadow-[#009A60]/20 shrink-0">
-              <Icons.logo className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-[#009A60] flex items-center justify-center text-white shadow-xs">
+              <Icons.logo className="h-4 w-4" />
             </div>
             <span className="text-[17px] font-extrabold tracking-tight text-gray-900">
               Openclub<span className="text-[#009A60]">OS</span>
@@ -339,13 +379,20 @@ export function Sidebar() {
                           )}
                         >
                           <div className="flex items-center gap-2.5">
-                            <item.icon className={cn(
-                              "h-4 w-4 transition-colors",
-                              isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
-                            )} />
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-colors",
+                                isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
+                              )}
+                            />
                             {item.name}
                           </div>
-                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]", isExpanded ? "rotate-180 text-[#15803D]" : "text-zinc-400")} />
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+                              isExpanded ? "rotate-180 text-[#15803D]" : "text-zinc-400"
+                            )}
+                          />
                         </button>
                       ) : (
                         <Link
@@ -358,17 +405,24 @@ export function Sidebar() {
                           )}
                         >
                           <div className="flex items-center gap-2.5">
-                            <item.icon className={cn(
-                              "h-4 w-4 transition-colors",
-                              isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
-                            )} />
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-colors",
+                                isActive && !item.subItems ? "text-[#15803D]" : "text-zinc-700 group-hover:text-zinc-900"
+                              )}
+                            />
                             {item.name}
                           </div>
                         </Link>
                       )}
                     </div>
                     {item.subItems && (
-                      <SubItemsAccordion subItems={item.subItems} isExpanded={isExpanded} pathname={pathname} />
+                      <SubItemsAccordion
+                        subItems={item.subItems}
+                        isExpanded={isExpanded}
+                        pathname={pathname}
+                        currentTab={currentTab}
+                      />
                     )}
                   </div>
                 );
@@ -382,7 +436,11 @@ export function Sidebar() {
       </nav>
 
       <div className="pb-6 pt-4 flex flex-col items-center justify-center border-t border-[#e1efe5] bg-white">
-        <div className="w-[178px] h-[55px] bg-[#15803D] rounded-lg overflow-hidden flex items-center justify-between px-[10px] relative group cursor-pointer" onClick={logout} title="Click to Logout">
+        <div
+          className="w-[178px] h-[55px] bg-[#15803D] rounded-lg overflow-hidden flex items-center justify-between px-[10px] relative group cursor-pointer"
+          onClick={logout}
+          title="Click to Logout"
+        >
           <div className="flex items-center gap-2.5">
             <img
               className="w-7 h-7 rounded-full object-cover bg-white"
@@ -397,5 +455,13 @@ export function Sidebar() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <Suspense fallback={<SidebarSkeleton />}>
+      <SidebarInner />
+    </Suspense>
   );
 }

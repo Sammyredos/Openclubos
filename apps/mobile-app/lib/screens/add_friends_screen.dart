@@ -828,23 +828,88 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 final details = detailsController.text.trim();
 
                                 try {
-                                  // Send to backend API
-                                  final apiClient = ApiClient();
-                                  await apiClient.dio.post(
-                                    '/reports/user',
-                                    data: {
-                                      'reporterId': reporterId,
-                                      'reporterName': reporterName,
-                                      'reportedId': compId,
-                                      'reportedName': compName,
-                                      'reportedClub': compClub,
-                                      'reportedHcp': compHcp,
-                                      'reason': selectedReason,
-                                      'details': details,
-                                    },
-                                    options: Options(headers: {'x-user-id': reporterId}),
-                                  ).catchError((_) => null);
-                                } catch (_) {}
+                                  final authBox = await Hive.openBox('auth');
+                                  final dynamic storedUserRaw = authBox.get('user');
+                                  final Map<String, dynamic>? storedUser = (storedUserRaw is Map)
+                                      ? Map<String, dynamic>.from(storedUserRaw)
+                                      : null;
+
+                                  final effectiveReporterId = widget.user?['id']?.toString() ??
+                                      storedUser?['id']?.toString() ??
+                                      widget.user?['email']?.toString() ??
+                                      storedUser?['email']?.toString() ??
+                                      'anonymous';
+
+                                  final effectiveReporterName = widget.user?['fullName'] ??
+                                      widget.user?['name'] ??
+                                      storedUser?['fullName'] ??
+                                      storedUser?['name'] ??
+                                      'Alex Morgan';
+
+                                  final effectiveReporterEmail = widget.user?['email']?.toString() ??
+                                      storedUser?['email']?.toString() ??
+                                      'player@openclubos.com';
+
+                                  final reportPayload = {
+                                    'reporterId': effectiveReporterId,
+                                    'reporterName': effectiveReporterName,
+                                    'reporterEmail': effectiveReporterEmail,
+                                    'reportedId': compId,
+                                    'reportedName': compName,
+                                    'reportedClub': compClub,
+                                    'reportedHcp': compHcp,
+                                    'reason': selectedReason,
+                                    'details': details,
+                                  };
+
+                                  bool posted = false;
+                                  try {
+                                    final apiClient = ApiClient();
+                                    final res = await apiClient.dio.post(
+                                      '/reports/user',
+                                      data: reportPayload,
+                                      options: Options(headers: {
+                                        'x-user-id': effectiveReporterId,
+                                        'Content-Type': 'application/json',
+                                      }),
+                                    );
+                                    if (res.statusCode == 200 || res.statusCode == 201) {
+                                      posted = true;
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Primary ApiClient report error: $e');
+                                  }
+
+                                  if (!posted) {
+                                    final fallbackUrls = [
+                                      'http://10.0.2.2:3001/api/reports/user',
+                                      'http://localhost:3001/api/reports/user',
+                                      'http://127.0.0.1:3001/api/reports/user',
+                                    ];
+                                    for (final url in fallbackUrls) {
+                                      try {
+                                        final fallbackDio = Dio(BaseOptions(
+                                          connectTimeout: const Duration(seconds: 4),
+                                          receiveTimeout: const Duration(seconds: 4),
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'x-user-id': effectiveReporterId,
+                                          },
+                                        ));
+                                        final res = await fallbackDio.post(url, data: reportPayload);
+                                        if (res.statusCode == 200 || res.statusCode == 201) {
+                                          posted = true;
+                                          debugPrint('Report successfully posted via fallback: $url');
+                                          break;
+                                        }
+                                      } catch (fallbackError) {
+                                        debugPrint('Fallback report host failed ($url): $fallbackError');
+                                      }
+                                    }
+                                  }
+                                } catch (e) {
+                                  debugPrint('General report submission error: $e');
+                                }
 
                                 try {
                                   // Persist locally in Hive

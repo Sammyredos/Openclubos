@@ -48,18 +48,24 @@ async function bootstrap() {
     );
   }
 
-  // CORS — strict frontend URL in production, localhosts in development
+  // CORS — strict frontend URL in production, permissive local origins in development
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
       ? [process.env.FRONTEND_URL as string]
-      : process.env.FRONTEND_URL
-        ? [process.env.FRONTEND_URL]
-        : ['http://localhost:3000'];
+      : true;
 
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-XSRF-TOKEN'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-XSRF-TOKEN',
+      'x-user-id',
+      'x-client-platform',
+      'x-requested-with',
+      'Accept',
+    ],
     credentials: true,
   });
 

@@ -166,7 +166,7 @@ export default function OrganizerAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.totalMembers || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">Active Members</div>
@@ -179,7 +179,7 @@ export default function OrganizerAdminDashboard() {
             <div className="flex items-center gap-3.5">
               <div className="text-zinc-700 text-base font-medium">Active Tournaments</div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.activeTournaments || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">{stats?.ongoingTournaments || 0} ongoing</div>
@@ -192,7 +192,7 @@ export default function OrganizerAdminDashboard() {
             <div className="flex items-center gap-3.5">
               <div className="text-zinc-700 text-base font-medium">Total Registrations</div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.paidRegistrations || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">{stats?.unpaidRegistrations || 0} pending</div>
@@ -220,7 +220,7 @@ export default function OrganizerAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               ₦{formatNumber(wallet?.availableBalance ?? stats?.availableBalance ?? stats?.totalRevenue ?? 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">
@@ -235,7 +235,7 @@ export default function OrganizerAdminDashboard() {
             <div className="flex items-center gap-3.5">
               <div className="text-zinc-700 text-base font-medium">Pending Payments</div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.unpaidRegistrations || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">{stats?.unpaidAmount != null ? `₦${formatNumber(stats.unpaidAmount)}` : "₦0"}</div>

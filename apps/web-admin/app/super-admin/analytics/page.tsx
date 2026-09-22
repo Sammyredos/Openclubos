@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
                 <div className="text-openclub-700 text-xs font-medium">{kpis?.tournamentsGrowth || "0%"}</div>
               </div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">{formatNumber(kpis?.totalTournaments ?? 0)}</div>
+            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(kpis?.totalTournaments ?? 0)}</div>
             <div className="text-zinc-500 text-sm font-normal">Active & Scheduled</div>
           </div>
 
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
                 <div className="text-openclub-700 text-xs font-medium">{kpis?.playersGrowth || "0%"}</div>
               </div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">{formatNumber(kpis?.totalPlayers ?? 0)}</div>
+            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(kpis?.totalPlayers ?? 0)}</div>
             <div className="text-zinc-500 text-sm font-normal">Registered Golfers</div>
           </div>
 
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
                 <div className="text-openclub-700 text-xs font-medium">{kpis?.registrationsGrowth || "0%"}</div>
               </div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">{formatNumber(kpis?.totalRegistrations ?? 0)}</div>
+            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(kpis?.totalRegistrations ?? 0)}</div>
             <div className="text-zinc-500 text-sm font-normal">Tournament Entries</div>
           </div>
 
@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
                 <div className="text-openclub-700 text-xs font-medium">{kpis?.revenueGrowth || "0%"}</div>
               </div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">₦{formatNumber(kpis?.totalRevenue ?? 0)}</div>
+            <div className="text-[#15803D] text-3xl font-bold">₦{formatNumber(kpis?.totalRevenue ?? 0)}</div>
             <div className="text-zinc-500 text-sm font-normal">Paid Entry Fees</div>
           </div>
         </div>

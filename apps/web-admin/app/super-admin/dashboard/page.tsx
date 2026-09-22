@@ -461,7 +461,7 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {stats?.totalRevenue != null ? `₦${formatNumber(stats.totalRevenue)}` : "₦0"}
             </div>
             <div className="text-zinc-500 text-sm font-normal">All Time</div>
@@ -489,7 +489,7 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.totalClubs || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">Across Africa</div>
@@ -517,7 +517,7 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.totalMembers || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">Active Members</div>
@@ -545,7 +545,7 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {formatNumber(stats?.activeTournaments || 0)}
             </div>
             <div className="text-zinc-500 text-sm font-normal">Ongoing Events</div>
@@ -558,7 +558,7 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center gap-3.5">
               <div className="text-zinc-700 text-base font-medium">Platform Revenue</div>
             </div>
-            <div className="text-openclub-700 text-3xl font-semibold">
+            <div className="text-[#15803D] text-3xl font-bold">
               {stats?.subscriptionRevenue != null ? `₦${formatNumber(stats.subscriptionRevenue)}` : "₦0"}
             </div>
             <div className="text-zinc-500 text-sm font-normal">Subscription Revenue</div>
