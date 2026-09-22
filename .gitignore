@@ -51,9 +51,9 @@ mobile-app/.flutter-plugins-dependencies
 mobile-app/.metadata
 
 # Temporary Scripts
-*.js
-*.ts
-!prisma.config.ts
+/*.js
+/*.ts
+!/prisma.config.ts
 !database/prisma/seed.ts
 scratch/
 database/.seed.txt
