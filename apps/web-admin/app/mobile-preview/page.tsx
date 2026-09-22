@@ -1090,6 +1090,52 @@ export default function MobilePreviewPage() {
     [authenticatedPlayer]
   );
 
+  const isCorruptedFlightNotifDate = useCallback((dateVal?: string | number | Date | null): boolean => {
+    if (!dateVal) return true;
+    const t = new Date(dateVal).getTime();
+    if (isNaN(t)) return true;
+    const now = Date.now();
+    const d = new Date(t);
+    // Any notification backdated to seed dates (on or before Sep 21, 2026) or older than 24 hours
+    const isBackdatedSeed =
+      d.getFullYear() <= 2026 &&
+      (d.getFullYear() < 2026 || d.getMonth() < 8 || (d.getMonth() === 8 && d.getDate() <= 21));
+    const isOlderThan24h = now - t > 24 * 60 * 60 * 1000;
+    return isBackdatedSeed || isOlderThan24h;
+  }, []);
+
+  const sanitizeFlightNotif = useCallback((notif: any) => {
+    if (!notif) return notif;
+    const isFlightGrouping =
+      notif.type === "FLIGHT_GROUPING" ||
+      notif.data?.type === "FLIGHT_GROUPING" ||
+      (typeof notif.title === "string" && notif.title.toLowerCase().includes("flight grouping")) ||
+      (typeof notif.id === "string" && notif.id.includes("flight_grp"));
+
+    if (isFlightGrouping) {
+      const updated = { ...notif };
+      if (notif.body && !notif.body.includes("\n")) {
+        const match = notif.body.match(/You are grouped with (.*?) for (.*?)\./i);
+        if (match) {
+          const namesStr = match[1];
+          const flightInfo = match[2];
+          const parsed = namesStr
+            .split(",")
+            .map((s: string) => s.trim().replace(/-\d+$/, ""))
+            .filter((s: string) => s && !isAccountUser({ name: s }));
+          const formatted = parsed.length > 0 ? parsed.join("\n") : "your flight partners";
+          updated.body = `You are grouped with:\n${formatted}\nfor ${flightInfo}.`;
+        }
+      }
+      // Self-heal stale backdated timestamps (e.g. from seeded database rows or tournament creation dates)
+      if (isCorruptedFlightNotifDate(notif.createdAt || notif.timestamp || notif.time)) {
+        updated.createdAt = new Date().toISOString();
+      }
+      return updated;
+    }
+    return notif;
+  }, [isAccountUser, isCorruptedFlightNotifDate]);
+
   // Synchronize friends on course strictly from accepted friends who have started playing on the golf course
   useEffect(() => {
     if (registeredPlayers && registeredPlayers.length > 0 && acceptedFriendIds.length > 0) {
@@ -2198,83 +2244,62 @@ export default function MobilePreviewPage() {
         const res = await fetch(`${backendBase}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => null);
+        const currentUserId = authenticatedPlayer?.id || "guest";
+        const notifKey = getUserNotificationsKey(currentUserId);
+
         if (res && res.ok) {
           const data = await res.json().catch(() => null);
           const items = Array.isArray(data) ? data : data?.items || [];
-          const sanitizeFlightNotif = (notif: any) => {
-            if (notif?.type === "FLIGHT_GROUPING" || notif?.data?.type === "FLIGHT_GROUPING") {
-              if (notif.body && !notif.body.includes("\n")) {
-                const match = notif.body.match(/You are grouped with (.*?) for (.*?)\./i);
-                if (match) {
-                  const namesStr = match[1];
-                  const flightInfo = match[2];
-                  const parsed = namesStr
-                    .split(",")
-                    .map((s: string) => s.trim().replace(/-\d+$/, ""))
-                    .filter((s: string) => s && !isAccountUser({ name: s }));
-                  const formatted = parsed.length > 0 ? parsed.join("\n") : "your flight partners";
-                  return {
-                    ...notif,
-                    body: `You are grouped with:\n${formatted}\nfor ${flightInfo}.`,
-                  };
-                }
-              }
-            }
-            return notif;
-          };
 
           if (isMounted) {
             let combined = Array.isArray(items) ? items.map(sanitizeFlightNotif) : [];
-            if (authenticatedPlayer?.id) {
-              try {
-                const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
-                const localSaved = localStorage.getItem(notifKey);
-                if (localSaved) {
-                  const parsed = JSON.parse(localSaved);
-                  if (Array.isArray(parsed)) {
-                    const parseNotifData = (d: any) => typeof d === "string" ? (() => { try { return JSON.parse(d); } catch { return {}; } })() : (d || {});
-                    const existingIds = new Set(combined.map((n: any) => n.id));
-                    for (const ln of parsed) {
-                      const sanitized = sanitizeFlightNotif(ln);
-                      const sData = parseNotifData(sanitized.data);
-                      const sTitle = (sanitized.title || "").trim().toLowerCase();
-                      const sBody = (sanitized.body || sanitized.message || sanitized.desc || "").trim().toLowerCase();
-                      const sType = (sData.type || sanitized.type || "").toUpperCase();
-                      const sUserId = String(sData.userId || sanitized.userId || sData.senderId || sanitized.senderId || "").trim().toLowerCase();
-                      const sUserName = String(sData.userName || sData.senderName || sanitized.userName || sBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
-                      const isSFriendAccepted = sType === "FRIEND_ACCEPTED" || sTitle.includes("friend request accepted") || sBody.includes("accepted your friend request");
+            try {
+              const localSaved = localStorage.getItem(notifKey);
+              if (localSaved) {
+                const parsed = JSON.parse(localSaved);
+                if (Array.isArray(parsed)) {
+                  const parseNotifData = (d: any) => typeof d === "string" ? (() => { try { return JSON.parse(d); } catch { return {}; } })() : (d || {});
+                  const existingIds = new Set(combined.map((n: any) => n.id));
+                  for (const ln of parsed) {
+                    const sanitized = sanitizeFlightNotif(ln);
+                    const sData = parseNotifData(sanitized.data);
+                    const sTitle = (sanitized.title || "").trim().toLowerCase();
+                    const sBody = (sanitized.body || sanitized.message || sanitized.desc || "").trim().toLowerCase();
+                    const sType = (sData.type || sanitized.type || "").toUpperCase();
+                    const sUserId = String(sData.userId || sanitized.userId || sData.senderId || sanitized.senderId || "").trim().toLowerCase();
+                    const sUserName = String(sData.userName || sData.senderName || sanitized.userName || sBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+                    const isSFriendAccepted = sType === "FRIEND_ACCEPTED" || sTitle.includes("friend request accepted") || sBody.includes("accepted your friend request");
 
-                      const isDup =
-                        existingIds.has(sanitized.id) ||
-                        combined.some((c: any) => {
-                          const cData = parseNotifData(c.data);
-                          const cTitle = (c.title || "").trim().toLowerCase();
-                          const cBody = (c.body || c.message || c.desc || "").trim().toLowerCase();
-                          const cType = (cData.type || c.type || "").toUpperCase();
-                          const cUserId = String(cData.userId || c.userId || cData.senderId || c.senderId || "").trim().toLowerCase();
-                          const cUserName = String(cData.userName || cData.senderName || c.userName || cBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
-                          const isCFriendAccepted = cType === "FRIEND_ACCEPTED" || cTitle.includes("friend request accepted") || cBody.includes("accepted your friend request");
+                    const isDup =
+                      existingIds.has(sanitized.id) ||
+                      combined.some((c: any) => {
+                        const cData = parseNotifData(c.data);
+                        const cTitle = (c.title || "").trim().toLowerCase();
+                        const cBody = (c.body || c.message || c.desc || "").trim().toLowerCase();
+                        const cType = (cData.type || c.type || "").toUpperCase();
+                        const cUserId = String(cData.userId || c.userId || cData.senderId || c.senderId || "").trim().toLowerCase();
+                        const cUserName = String(cData.userName || cData.senderName || c.userName || cBody.match(/^(.*?)\s+accepted/i)?.[1] || "").trim().toLowerCase();
+                        const isCFriendAccepted = cType === "FRIEND_ACCEPTED" || cTitle.includes("friend request accepted") || cBody.includes("accepted your friend request");
 
-                          if (isSFriendAccepted && isCFriendAccepted) {
-                            if (sUserId && cUserId && sUserId === cUserId) return true;
-                            if (sUserName && cUserName && sUserName === cUserName) return true;
-                          }
-                          if (cTitle === sTitle && cBody === sBody) return true;
-                          return false;
-                        });
-                      if (!isDup) {
-                        combined.unshift(sanitized);
-                      }
+                        if (isSFriendAccepted && isCFriendAccepted) {
+                          if (sUserId && cUserId && sUserId === cUserId) return true;
+                          if (sUserName && cUserName && sUserName === cUserName) return true;
+                        }
+                        if (cTitle === sTitle && cBody === sBody) return true;
+                        return false;
+                      });
+                    if (!isDup) {
+                      combined.unshift(sanitized);
                     }
                   }
                 }
-              } catch {}
-            }
+              }
+              localStorage.setItem(notifKey, JSON.stringify(combined));
+            } catch {}
             setMobileNotifications(combined);
           }
-        } else if (isMounted && authenticatedPlayer?.id) {
+        } else if (isMounted) {
           try {
-            const notifKey = getUserNotificationsKey(authenticatedPlayer.id);
             const localSaved = localStorage.getItem(notifKey);
             if (localSaved) {
               const parsed = JSON.parse(localSaved);
@@ -2293,25 +2318,11 @@ export default function MobilePreviewPage() {
                   if (key) seenLocalKeys.add(key);
                   return true;
                 });
-                setMobileNotifications(dedupedLocal.map((n: any) => {
-                  if (n?.type === "FLIGHT_GROUPING" || n?.data?.type === "FLIGHT_GROUPING") {
-                    if (n.body && !n.body.includes("\n")) {
-                      const match = n.body.match(/You are grouped with (.*?) for (.*?)\./i);
-                      if (match) {
-                        const parsedNames = match[1]
-                          .split(",")
-                          .map((s: string) => s.trim().replace(/-\d+$/, ""))
-                          .filter((s: string) => s && !isAccountUser({ name: s }));
-                        const formatted = parsedNames.length > 0 ? parsedNames.join("\n") : "your flight partners";
-                        return {
-                          ...n,
-                          body: `You are grouped with:\n${formatted}\nfor ${match[2]}.`,
-                        };
-                      }
-                    }
-                  }
-                  return n;
-                }));
+                const sanitizedDeduped = dedupedLocal.map(sanitizeFlightNotif);
+                setMobileNotifications(sanitizedDeduped);
+                try {
+                  localStorage.setItem(notifKey, JSON.stringify(sanitizedDeduped));
+                } catch {}
               }
             }
           } catch {}
@@ -2320,7 +2331,7 @@ export default function MobilePreviewPage() {
     }
     loadNotifications();
     return () => { isMounted = false; };
-  }, [authenticatedPlayer?.id]);
+  }, [authenticatedPlayer?.id, sanitizeFlightNotif]);
 
   // Synchronize active round with live database tournament
   useEffect(() => {
@@ -2451,32 +2462,12 @@ export default function MobilePreviewPage() {
                 const formattedNames = partnerNamesList.join("\n");
                 const flightNotifBody = `You are grouped with:\n${formattedNames}\nfor ${matchedGroup.name || dayText} of ${activeTournament.name}.`;
 
-                if (!existingNotif || existingNotif.body !== flightNotifBody) {
-                  const getGroupCreationTimestamp = (uuid?: string): string | null => {
-                    if (!uuid || typeof uuid !== "string") return null;
-                    try {
-                      const clean = uuid.replace(/-/g, "");
-                      if (clean.length < 32) return null;
-                      const ms = parseInt(clean.substring(0, 12), 16);
-                      if (ms > 1577836800000 && ms < 2524608000000) {
-                        return new Date(ms).toISOString();
-                      }
-                      return null;
-                    } catch {
-                      return null;
-                    }
-                  };
-
-                  const groupCreationTime =
-                    (matchedGroup as any)?.groupedAt ||
-                    (matchedGroup as any)?.createdAt ||
-                    getGroupCreationTimestamp(matchedGroup?.id);
-
-                  const dbTimestamp =
-                    existingNotif?.createdAt ||
-                    groupCreationTime ||
-                    ((activeTournament as any)?.createdAt ? new Date((activeTournament as any).createdAt).toISOString() : null) ||
-                    new Date().toISOString();
+                if (!existingNotif || existingNotif.body !== flightNotifBody || isCorruptedFlightNotifDate(existingNotif.createdAt)) {
+                  // Flight grouping notification timestamp represents when the notification was created/assigned, never backdated to seed dates
+                  const notifCreatedAt =
+                    existingNotif && !isCorruptedFlightNotifDate(existingNotif.createdAt) && existingNotif.body === flightNotifBody
+                      ? existingNotif.createdAt
+                      : new Date().toISOString();
 
                   const flightNotif = {
                     id: groupingNotifId,
@@ -2484,7 +2475,7 @@ export default function MobilePreviewPage() {
                     body: flightNotifBody,
                     isRead: existingNotif ? existingNotif.isRead : false,
                     unread: existingNotif ? existingNotif.unread : true,
-                    createdAt: dbTimestamp,
+                    createdAt: notifCreatedAt,
                     type: "FLIGHT_GROUPING",
                     data: {
                       type: "FLIGHT_GROUPING",
@@ -12766,7 +12757,7 @@ class TournamentsView extends StatelessWidget {
                     };
 
                     // Sort real database notifications in strict reverse-chronological order (latest notification first)
-                    const sortedNotifs = [...mobileNotifications].sort((a, b) => {
+                    const sortedNotifs = [...mobileNotifications].map(sanitizeFlightNotif).sort((a, b) => {
                       return getNotificationTimestamp(b) - getNotificationTimestamp(a);
                     });
 
