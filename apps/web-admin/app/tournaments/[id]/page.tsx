@@ -26,7 +26,7 @@ import {
   Handshake
 } from "lucide-react"
 import { toast } from "sonner"
-import { formatWithCommas } from "@/lib/utils"
+import { formatWithCommas, formatTitleCase } from "@/lib/utils"
 import Link from "next/link"
 import PublicLeaderboard from "@/components/tournaments/PublicLeaderboard"
 
@@ -209,7 +209,7 @@ export default function TournamentDetailPage() {
                 Tournament
               </span>
               <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-[1.1]">
-                {tournament.name}
+                {formatTitleCase(tournament.name)}
               </h1>
 
 
@@ -309,7 +309,7 @@ export default function TournamentDetailPage() {
               <p className="text-gray-500 text-[15px] leading-relaxed whitespace-pre-line">
                 {"description" in tournament && tournament.description
                   ? (tournament as any).description
-                  : `Join us for the prestigious ${tournament.name} organized by ${tournament.club?.name || "our Club"}. This event brings players together for an outstanding competitive golf experience on a meticulously maintained course. Players of eligible divisions can confirm their slot and proceed with entry fee payments via the platform to secure their spot on the official roster.`}
+                  : `Join us for the prestigious ${formatTitleCase(tournament.name)} organized by ${tournament.club?.name || "our Club"}. This event brings players together for an outstanding competitive golf experience on a meticulously maintained course. Players of eligible divisions can confirm their slot and proceed with entry fee payments via the platform to secure their spot on the official roster.`}
               </p>
             </div>
 
@@ -494,8 +494,8 @@ export default function TournamentDetailPage() {
                   onClick={() => {
                     if (navigator.share) {
                       navigator.share({
-                        title: tournament.name,
-                        text: `Check out the ${tournament.name} tournament!`,
+                        title: formatTitleCase(tournament.name),
+                        text: `Check out the ${formatTitleCase(tournament.name)} tournament!`,
                         url: window.location.href,
                       }).catch(console.error);
                     } else {

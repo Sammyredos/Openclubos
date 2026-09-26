@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
+import '../core/formatters.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final Map<String, dynamic>? user;
@@ -697,7 +698,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         if (tournamentName.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
-                            tournamentName,
+                            toTitleCase(tournamentName),
                             style: GoogleFonts.dmSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,

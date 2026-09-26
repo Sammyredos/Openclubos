@@ -84,7 +84,7 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
-import { formatNumber, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
+import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
@@ -766,6 +766,7 @@ export default function MobilePreviewPage() {
     }
     if (screen === "register") {
       setRegError(null);
+      setMobileNotifications([]);
     }
     if (screen === "forgot-password") {
       if (loginEmail.trim()) {
@@ -1173,12 +1174,10 @@ export default function MobilePreviewPage() {
       if (curEmail && p.email && p.email.trim().toLowerCase() === curEmail) {
         return true;
       }
-      // 3. Exact or distinctive Name match
+      // 3. Exact Name match
       if (curName && p.name) {
         const pNameLower = p.name.trim().toLowerCase();
         if (pNameLower === curName) return true;
-        if (curName.includes("adediran") && pNameLower.includes("adediran")) return true;
-        if (curName.includes("obadina") && pNameLower.includes("obadina")) return true;
       }
 
       // 4. Default unauthenticated simulator fallback (Isabella Wilson / IW) ONLY when no explicit user is logged in
@@ -1380,20 +1379,9 @@ export default function MobilePreviewPage() {
         } catch {}
 
         if (filteredLocalNotifs.length > 0) {
-          setMobileNotifications((prev) => {
-            const map = new Map<string, any>();
-            for (const n of [...filteredLocalNotifs, ...prev]) {
-              const nType = (n.data?.type || n.type || "").toUpperCase();
-              const nUserId = String(n.data?.userId || n.userId || n.data?.senderId || n.senderId || "");
-              const key = nType === "FRIEND_ACCEPTED" && nUserId
-                ? `FRIEND_ACCEPTED_${nUserId}`
-                : n.id || `${n.title}_${n.body || n.desc || n.message}`;
-              if (!map.has(key)) {
-                map.set(key, n);
-              }
-            }
-            return Array.from(map.values());
-          });
+          setMobileNotifications(filteredLocalNotifs.map(sanitizeFlightNotif));
+        } else {
+          setMobileNotifications([]);
         }
       } else {
         setBlockedUserIds([]);
@@ -2748,14 +2736,28 @@ export default function MobilePreviewPage() {
     let isMounted = true;
     async function loadNotifications() {
       try {
+        const currentUserId = authenticatedPlayer?.id;
+        if (!currentUserId) {
+          if (isMounted) setMobileNotifications([]);
+          return;
+        }
+        const notifKey = getUserNotificationsKey(currentUserId);
         const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
         const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
-        if (!token) return;
+        if (!token) {
+          if (isMounted) {
+            try {
+              const localSaved = localStorage.getItem(notifKey);
+              setMobileNotifications(localSaved ? JSON.parse(localSaved) : []);
+            } catch {
+              setMobileNotifications([]);
+            }
+          }
+          return;
+        }
         const res = await fetch(`${backendBase}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => null);
-        const currentUserId = authenticatedPlayer?.id || "guest";
-        const notifKey = getUserNotificationsKey(currentUserId);
 
         if (res && res.ok) {
           const data = await res.json().catch(() => null);
@@ -2866,6 +2868,7 @@ export default function MobilePreviewPage() {
     }
 
     const hasOfficialGroup = Boolean(
+      authenticatedPlayer?.id &&
       tournamentGroupings &&
       Array.isArray(tournamentGroupings.groups) &&
       tournamentGroupings.groups.some((g) =>
@@ -2920,7 +2923,7 @@ export default function MobilePreviewPage() {
       setActiveRound({
         id: `ar-${activeTournament.id}`,
         tournamentId: activeTournament.id,
-        tournamentName: activeTournament.name,
+        tournamentName: formatTitleCase(activeTournament.name),
         courseName: activeTournament.courseName || "Oakwood Country Club Course",
         clubName: activeTournament.organizerClub || "Oakwood Country Club",
         holeNumber: activeHoleNumber,
@@ -2934,7 +2937,7 @@ export default function MobilePreviewPage() {
         flightText: matchedGroup
           ? (matchedGroup.name ? matchedGroup.name : "Flight 1")
           : (tournamentGroupings && Array.isArray(tournamentGroupings.groups) && tournamentGroupings.groups.length > 0
-              ? "Flight Pending Assignment"
+              ? "Flight Pending"
               : "Flight 1"),
         teeTime: (() => {
           const flightLabel = matchedGroup?.name || "Flight 1";
@@ -2982,10 +2985,20 @@ export default function MobilePreviewPage() {
               if (players.length >= 3) break;
             }
 
-            // Automatically record flight grouping notification in notifications tab if not already present
-            if (players.length > 0 && typeof window !== "undefined") {
+            // Automatically record flight grouping notification in notifications tab if user is authenticated and part of this flight
+            const isUserInThisGroup = Boolean(
+              authenticatedPlayer?.id &&
+              matchedGroup.registrations?.some((r: any) =>
+                isAccountUser({
+                  id: r.user?.id || r.id,
+                  email: r.user?.email,
+                  name: `${r.user?.firstName || ""} ${r.user?.lastName || ""}`.trim(),
+                })
+              )
+            );
+            if (isUserInThisGroup && players.length > 0 && typeof window !== "undefined") {
               try {
-                const currentUserId = authenticatedPlayer?.id || "guest";
+                const currentUserId = authenticatedPlayer!.id;
                 const notifKey = getUserNotificationsKey(currentUserId);
                 const groupingNotifId = `notif_flight_grp_${activeTournament.id}_${matchedGroup.id || "r1"}`;
                 const savedNotifsRaw = localStorage.getItem(notifKey);
@@ -4014,6 +4027,12 @@ export default function MobilePreviewPage() {
     };
 
     updateAuthenticatedPlayer(playerObj);
+    setMobileNotifications([]);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(getUserNotificationsKey("guest"));
+      } catch {}
+    }
     return playerObj;
   };
 
@@ -4772,7 +4791,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [_buildGoogleIcon(), const SizedBox(width: 10), const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A)))],
+                  children: [_buildGoogleIcon(), const SizedBox(width: 10), const Text('Continue with Google', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151)))],
                 ),
               ),
               const SizedBox(height: 16),
@@ -4823,7 +4842,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Sign In to Portal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const Text('Sign In to Portal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
                       const SizedBox(width: 8),
                       Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle), child: const Icon(Icons.arrow_forward, size: 12, color: Colors.white)),
                     ],
@@ -5770,7 +5789,7 @@ class TournamentsView extends StatelessWidget {
                         </button>
                         <div className="text-center max-w-[200px]">
                           <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[9px] font-bold tracking-wider text-amber-400 mb-0.5 truncate max-w-full">
-                            {activeTournament?.name || "Tournament"}
+                            {formatTitleCase(activeTournament?.name || "Tournament")}
                           </div>
                           <h2 className="text-xs font-medium text-white truncate">
                             {activeTournament?.courseName || "Championship Course"} • {activeTournament?.organizerClub || "OpenClub"}
@@ -6533,7 +6552,7 @@ class TournamentsView extends StatelessWidget {
 
                                   {/* Row 2: Full Display of Tournament Title */}
                                   <h3 className="text-[16px] font-bold text-white tracking-tight leading-tight truncate mt-1">
-                                    {activeRound.tournamentName}
+                                    {formatTitleCase(activeRound.tournamentName)}
                                   </h3>
 
                                   {/* Row 3: Course Name (Pushed to the top of Par 4, 345 yds) */}
@@ -6571,26 +6590,26 @@ class TournamentsView extends StatelessWidget {
 
                                 return (
                                   <>
-                                    <div className="flex items-center justify-between mb-3">
-                                      <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center justify-between mb-3 gap-2">
+                                      <div className="flex items-center gap-1.5 min-w-0">
                                         <Clock className="w-3.5 h-3.5 text-[#10B981]/80 shrink-0" />
-                                        <span className="text-[12px] font-bold text-[#D1F2DE] tracking-tight">
+                                        <span className="text-[12px] font-bold text-[#D1F2DE] tracking-tight whitespace-nowrap">
                                           {flightDisplay}
                                         </span>
                                         {hasInactivityWarning && isTeeTimeReached && (
-                                          <span className="text-[9.5px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none ml-1">
+                                          <span className="text-[9.5px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none ml-1 whitespace-nowrap shrink-0">
                                             • INACTIVE ({activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)
                                           </span>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-1.5">
-                                        <span className={`text-[12px] font-black tracking-tight ${
+                                      <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                                        <span className={`text-[12px] font-black tracking-tight whitespace-nowrap ${
                                           isTeeTimeReached ? "text-[#10B981]" : "text-[#F59E0B]"
                                         }`}>
                                           {teeLabel}
                                         </span>
                                         {!isTeeTimeReached && (
-                                          <span className="px-1.5 py-0.5 rounded-[4px] bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[9px] font-bold text-[#F59E0B] uppercase tracking-wider leading-none">
+                                          <span className="px-1.5 py-0.5 rounded-[4px] bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[9px] font-bold text-[#F59E0B] uppercase tracking-wider leading-none whitespace-nowrap">
                                             Not Started
                                           </span>
                                         )}
@@ -6896,7 +6915,7 @@ class TournamentsView extends StatelessWidget {
                       <div className="w-full max-w-sm mx-auto pt-3 pb-1">
                         {/* Section Header */}
                         <div className="flex items-center justify-between px-4 mb-2.5">
-                          <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight whitespace-nowrap">
+                          <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight whitespace-nowrap">
                             Featured Tournaments
                           </h3>
                           <button
@@ -7019,8 +7038,8 @@ class TournamentsView extends StatelessWidget {
                                         )}
                                       </div>
 
-                                      {/* Title: Exactly matches 'Host. Score. Win.' typography (17px, font-extrabold, tracking-tight, leading-tight) */}
-                                      <h4 className="text-[17px] font-extrabold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
+                                      {/* Title: Consistent 15px font sizing matching section typography */}
+                                      <h4 className="text-[15px] font-extrabold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
                                         {tourn.titleLine2 ? (
                                           <>
                                             <span className="block truncate">{tourn.titleLine1}</span>
@@ -7814,7 +7833,7 @@ class TournamentsView extends StatelessWidget {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <h4 className="text-[15px] font-bold text-[#0F172A] tracking-tight leading-tight mb-1 truncate">
-                                          {tournament.name}
+                                          {formatTitleCase(tournament.name)}
                                         </h4>
                                         <p className="text-[12px] text-[#64748B] font-medium leading-tight mb-2 truncate">
                                           {tournament.club}
@@ -8187,7 +8206,7 @@ class TournamentsView extends StatelessWidget {
                             Live Standings
                           </h2>
                           <span className="text-[9px] text-slate-400 block truncate max-w-[180px]">
-                            {activeTournament?.name || "Championship Tournament"}
+                            {formatTitleCase(activeTournament?.name || "Championship Tournament")}
                           </span>
                         </div>
                         <button
@@ -8347,7 +8366,7 @@ class TournamentsView extends StatelessWidget {
                               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                             />
                           </svg>
-                          <span className="text-[14px] font-bold text-[#0F172A] group-hover:text-slate-900">
+                          <span className="text-[14px] font-medium text-[#374151] group-hover:text-slate-900">
                             Continue with Google
                           </span>
                         </button>
@@ -8484,7 +8503,7 @@ class TournamentsView extends StatelessWidget {
                             type="button"
                             disabled={!loginEmail.trim() || !loginPassword.trim() || isLoggingIn}
                             onClick={() => handleLoginSubmit(loginEmail)}
-                            className={`w-full h-12 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                            className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                               loginEmail.trim() && loginPassword.trim() && !isLoggingIn
                                 ? "bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 active:scale-[0.99] cursor-pointer"
                                 : "bg-[#009A60]/35 text-white/75 cursor-not-allowed shadow-none"
@@ -8610,7 +8629,7 @@ class TournamentsView extends StatelessWidget {
                                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                                 />
                               </svg>
-                              <span className="text-[14px] font-bold text-[#0F172A] group-hover:text-slate-900">
+                              <span className="text-[14px] font-medium text-[#374151] group-hover:text-slate-900">
                                 Sign up with Google
                               </span>
                             </button>
@@ -15766,6 +15785,7 @@ class TournamentsView extends StatelessWidget {
                             sessionStorage.removeItem("openclub_inactivity_notified");
                             localStorage.removeItem("openclub_access_token");
                             localStorage.removeItem("openclub_mobile_token");
+                            localStorage.removeItem("openclub_user_notifications_guest");
                           } catch { }
                         }
                         switchScreen("login");
@@ -16085,7 +16105,7 @@ class TournamentsView extends StatelessWidget {
                         setActiveRound({
                           id: `ar-${activeTournament.id}`,
                           tournamentId: activeTournament.id,
-                          tournamentName: activeTournament.name,
+                          tournamentName: formatTitleCase(activeTournament.name),
                           courseName: activeTournament.courseName || "Oakwood Country Club Course",
                           clubName: activeTournament.organizerClub || "Oakwood Country Club",
                           holeNumber: 1,
@@ -16227,7 +16247,7 @@ class TournamentsView extends StatelessWidget {
                         setActiveRound({
                           id: `ar-${activeTournament.id}`,
                           tournamentId: activeTournament.id,
-                          tournamentName: activeTournament.name,
+                          tournamentName: formatTitleCase(activeTournament.name),
                           courseName: activeTournament.courseName || "Oakwood Country Club Course",
                           clubName: activeTournament.organizerClub || "Oakwood Country Club",
                           holeNumber: 1,

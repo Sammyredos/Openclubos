@@ -1,3 +1,5 @@
+import { toTitleCase } from './utils';
+
 export const COURSE_BANNER_URLS: string[] = [
   '/images/tournaments/course_banner_01.jpg',
   '/images/tournaments/course_banner_02.jpg',
@@ -62,7 +64,8 @@ export function resolveTournamentBanner(
 
 export function formatFeaturedTournamentTitle(name?: string | null): { line1: string; line2: string } {
   if (!name) return { line1: 'Featured', line2: 'Tournament' };
-  const words = name.trim().split(' ');
+  const formatted = toTitleCase(name);
+  const words = formatted.trim().split(' ');
   if (words.length <= 2) {
     return { line1: words[0] || '', line2: words.slice(1).join(' ') || '' };
   }
@@ -72,3 +75,4 @@ export function formatFeaturedTournamentTitle(name?: string | null): { line1: st
     line2: words.slice(mid).join(' '),
   };
 }
+

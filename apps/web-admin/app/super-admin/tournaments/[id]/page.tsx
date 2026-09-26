@@ -69,7 +69,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatWithCommas, subscribeAdminEvents, broadcastAdminEvent, getGolfCategory, formatTeeTime } from "@/lib/utils";
+import { cn, formatWithCommas, subscribeAdminEvents, broadcastAdminEvent, getGolfCategory, formatTeeTime, formatTitleCase } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -967,7 +967,7 @@ function ViewTournamentPageInner() {
       const types = Array.isArray(t.playerTypes) ? t.playerTypes : [];
       const mapped: TournamentRow = {
         id: t.id,
-        name: t.name,
+        name: formatTitleCase(t.name),
         clubName,
         clubId: t.clubId,
         courseId: t.courseId,
@@ -1037,7 +1037,7 @@ function ViewTournamentPageInner() {
         const types = Array.isArray(t.playerTypes) ? t.playerTypes : [];
         const mapped: TournamentRow = {
           id: t.id,
-          name: t.name,
+          name: formatTitleCase(t.name),
           clubName,
           clubId: t.clubId,
           courseId: t.courseId,
@@ -1748,7 +1748,7 @@ function ViewTournamentPageInner() {
           </button>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-[16px] font-medium text-gray-900">{selectedTournament.name}</h1>
+              <h1 className="text-[16px] font-medium text-gray-900">{formatTitleCase(selectedTournament.name)}</h1>
               <span className={cn(
                 "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-widest border shadow-sm",
                 STATUS_META[selectedTournament.statusKey]?.badge || "bg-gray-100 text-gray-600 border-gray-200"

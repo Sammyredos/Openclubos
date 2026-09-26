@@ -15,7 +15,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatTitleCase } from "@/lib/utils";
 import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle, Sparkles, Check } from "lucide-react";
 import { getRandomCourseBanner } from "@/lib/tournament-banners";
 
@@ -415,7 +415,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
     try {
       const f = formData;
       const payload: UpdateTournamentPayload = {
-        name: f.name,
+        name: formatTitleCase(f.name.trim()),
         clubId: f.clubId,
         ...(isCourseLocked ? {} : { courseId: f.courseId }),
         description: f.description || null,
@@ -511,6 +511,11 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                     onChange={(e) => {
                       set("name", e.target.value);
                       if (nameError) setNameError(null);
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) {
+                        set("name", formatTitleCase(e.target.value.trim()));
+                      }
                     }}
                     placeholder="e.g. Sunshine Tour 2026"
                     className={cn("pl-11 bg-white", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}

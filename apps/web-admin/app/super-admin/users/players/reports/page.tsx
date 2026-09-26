@@ -25,6 +25,7 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { getAuthToken } from "@/lib/api/auth";
 import { exportToCsv, exportToPdf } from "@/lib/export";
@@ -56,6 +57,7 @@ function PlayerReportsContent() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const skeletonRows = [1, 2, 3, 4, 5];
 
   const [actionModal, setActionModal] = useState<{
     report: any;
@@ -221,69 +223,89 @@ function PlayerReportsContent() {
   return (
     <div className="space-y-6">
       {/* --- TOP REPORT STATS CARDS --- */}
-      <div className="p-6 bg-white rounded-xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col justify-start items-start gap-4">
-        <div className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-6 w-full">
-          {/* Stat 1: Total Reports */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
-              <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <div className="text-[#15803D] text-xs font-medium">All Time</div>
-              </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(totalReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Filed by players</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200 hidden sm:block" />
-
-          {/* Stat 2: Pending Review */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Review</div>
-              <div className="px-2 py-1 bg-amber-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <div className="text-amber-700 text-xs font-medium">
-                  {totalReports ? `${Math.round((pendingReports / totalReports) * 100)}%` : "0%"}
+      {loading ? (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            {[1, 2, 3, 4].map((i, idx) => (
+              <div key={i} className="flex items-center gap-12 flex-1">
+                <div className="flex flex-col justify-start items-start gap-3.5 w-full">
+                  <div className="flex justify-start items-center gap-3.5">
+                    <Skeleton className="h-[22px] w-32" />
+                    <Skeleton className="h-6 w-16 rounded-lg" />
+                  </div>
+                  <Skeleton className="h-9 w-16" />
+                  <Skeleton className="h-5 w-24" />
                 </div>
+                {idx < 3 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
               </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(pendingReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Awaiting moderation</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200 hidden sm:block" />
-
-          {/* Stat 3: Resolved */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Resolved</div>
-              <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <div className="text-[#15803D] text-xs font-medium">
-                  {totalReports ? `${Math.round((resolvedReports / totalReports) * 100)}%` : "0%"}
-                </div>
-              </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(resolvedReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Action taken</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200 hidden sm:block" />
-
-          {/* Stat 4: Dismissed */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Dismissed</div>
-              <div className="px-2 py-1 bg-slate-100 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                <div className="text-slate-700 text-xs font-medium">
-                  {totalReports ? `${Math.round((dismissedReports / totalReports) * 100)}%` : "0%"}
-                </div>
-              </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatNumber(dismissedReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Closed with no action</div>
+            ))}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="p-6 bg-white rounded-xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col justify-start items-start gap-4">
+          <div className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-6 w-full">
+            {/* Stat 1: Total Reports */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-[#15803D] text-xs font-medium">All Time</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(totalReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Filed by players</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200 hidden sm:block" />
+
+            {/* Stat 2: Pending Review */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Review</div>
+                <div className="px-2 py-1 bg-amber-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-amber-700 text-xs font-medium">
+                    {totalReports ? `${Math.round((pendingReports / totalReports) * 100)}%` : "0%"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(pendingReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Awaiting moderation</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200 hidden sm:block" />
+
+            {/* Stat 3: Resolved */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Resolved</div>
+                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-[#15803D] text-xs font-medium">
+                    {totalReports ? `${Math.round((resolvedReports / totalReports) * 100)}%` : "0%"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(resolvedReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Action taken</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200 hidden sm:block" />
+
+            {/* Stat 4: Dismissed */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Dismissed</div>
+                <div className="px-2 py-1 bg-slate-100 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                  <div className="text-slate-700 text-xs font-medium">
+                    {totalReports ? `${Math.round((dismissedReports / totalReports) * 100)}%` : "0%"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatNumber(dismissedReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Closed with no action</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- REPORTS TABLE CARD --- */}
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
@@ -415,11 +437,46 @@ function PlayerReportsContent() {
                   </thead>
                   <tbody className="divide-y divide-[#e1efe5]">
                     {loading ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-10 text-gray-500 text-sm">
-                          Loading reports...
-                        </td>
-                      </tr>
+                      skeletonRows.map((i) => (
+                        <tr key={`sk-${i}`} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                              <div className="flex flex-col gap-1.5">
+                                <Skeleton className="h-4 w-32 rounded-md" />
+                                <Skeleton className="h-3 w-24 rounded-md" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-28 rounded-md" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <Skeleton className="h-3.5 w-44 rounded-md" />
+                              <Skeleton className="h-3 w-28 rounded-md" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <Skeleton className="h-3.5 w-24 rounded-md" />
+                              <Skeleton className="h-3 w-32 rounded-md" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-3.5 w-28 rounded-md" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-5.5 w-20 rounded-full" />
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Skeleton className="h-7 w-20 rounded-md" />
+                              <Skeleton className="h-7 w-16 rounded-md" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     ) : paginatedReports.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-12">

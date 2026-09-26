@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { registerForTournament } from "@/lib/api/registrations"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { getGolfCategory } from "@/lib/utils"
+import { getGolfCategory, formatTitleCase } from "@/lib/utils"
 
 type Step = "details" | "payment" | "success"
 
@@ -200,7 +200,7 @@ export default function TournamentRegistrationPage() {
                   <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Tournament Name <span className="text-red-500">*</span></p>
                   <p className="text-[12px] text-gray-400 mb-2">The tournament you are registering for.</p>
                   <div className="text-[15px] font-medium text-[#1b2533]">
-                    {tournament.name}
+                    {formatTitleCase(tournament.name)}
                   </div>
                 </div>
 
@@ -319,7 +319,7 @@ export default function TournamentRegistrationPage() {
 
               <h2 className="text-[18px] text-[#1b2533] font-medium mb-2">Registration Confirmed!</h2>
               <p className="text-[14px] text-[#6b7280] max-w-md mx-auto">
-                Your registration for <span className="font-medium text-[#1b2533]">{tournament.name}</span> is complete.
+                Your registration for <span className="font-medium text-[#1b2533]">{formatTitleCase(tournament.name)}</span> is complete.
               </p>
             </div>
 

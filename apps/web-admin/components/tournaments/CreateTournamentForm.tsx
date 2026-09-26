@@ -16,7 +16,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { incrementAIUsage } from "@/lib/api/auth";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatTitleCase } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { getRandomCourseBanner } from "@/lib/tournament-banners";
 import {
@@ -596,7 +596,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
     try {
       const f = formData;
       const basePayload: any = {
-        name: f.name,
+        name: formatTitleCase(f.name.trim()),
         description: f.description || null,
         bannerUrl: f.bannerUrl || getRandomCourseBanner(),
         venue: f.venue || null,
@@ -733,6 +733,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         onChange={(e) => {
                           set("name", e.target.value);
                           if (nameError) setNameError(null);
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value.trim()) {
+                            set("name", formatTitleCase(e.target.value.trim()));
+                          }
                         }}
                         placeholder="e.g. Sunshine Tour 2026"
                         className={cn("pl-11 bg-white", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}

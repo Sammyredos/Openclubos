@@ -4,10 +4,12 @@ import {
   ConflictException,
   Inject,
   forwardRef,
+  OnModuleInit,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
+import { toTitleCase } from '../../common/utils/string.util';
 import { JobsService } from '../jobs/jobs.service';
 import { SendchampService } from '../sendchamp/sendchamp.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
@@ -63,7 +65,7 @@ const BANNER_PERMUTATION = [
 ];
 
 @Injectable()
-export class TournamentsService {
+export class TournamentsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
@@ -75,10 +77,40 @@ export class TournamentsService {
   private dailyRemindedTournaments = new Set<string>();
   private lastRemindedDate: string | null = null;
 
+  async onModuleInit() {
+    this.healUppercaseTournamentNames().catch((err) => {
+      console.error('[TournamentsService] Failed to heal uppercase tournament names:', err);
+    });
+  }
+
+  private async healUppercaseTournamentNames() {
+    try {
+      const allTournaments = await this.prisma.tournament.findMany({
+        where: { deletedAt: null },
+        select: { id: true, name: true },
+      });
+
+      for (const t of allTournaments) {
+        if (!t.name) continue;
+        const formatted = toTitleCase(t.name);
+        if (formatted !== t.name) {
+          await this.prisma.tournament.update({
+            where: { id: t.id },
+            data: { name: formatted },
+          });
+        }
+      }
+      await this.cacheService.invalidatePattern('tournaments:*');
+    } catch (e) {
+      console.warn('[TournamentsService] Uppercase healing check skipped:', e);
+    }
+  }
+
   async create(dto: CreateTournamentDto) {
+    const formattedName = toTitleCase(dto.name);
     const existing = await this.prisma.tournament.findFirst({
       where: {
-        name: { equals: dto.name.trim(), mode: 'insensitive' },
+        name: { equals: formattedName, mode: 'insensitive' },
       },
     });
 
@@ -91,7 +123,7 @@ export class TournamentsService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
       // Basic
-      name: dto.name,
+      name: formattedName,
       description: dto.description ?? null,
       bannerUrl:
         dto.bannerUrl && !dto.bannerUrl.includes('yellow-9')
@@ -234,7 +266,7 @@ export class TournamentsService {
       }
     }
 
-    return this.prisma.tournament.findMany({
+    const items = await this.prisma.tournament.findMany({
       where,
       select: {
         id: true,
@@ -270,6 +302,10 @@ export class TournamentsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return items.map((item: any) => ({
+      ...item,
+      name: toTitleCase(item.name),
+    }));
   }
 
   async findAllPaged(query: {
@@ -349,7 +385,13 @@ export class TournamentsService {
       this.prisma.tournament.count({ where }),
     ]);
 
-    const result = { items, total };
+    const result = {
+      items: items.map((item: any) => ({
+        ...item,
+        name: toTitleCase(item.name),
+      })),
+      total,
+    };
 
     return result;
   }
@@ -436,7 +478,10 @@ export class TournamentsService {
         throw new NotFoundException('Tournament not found');
       }
 
-      return tournament;
+      return {
+        ...tournament,
+        name: toTitleCase(tournament.name),
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       console.error(
@@ -452,7 +497,7 @@ export class TournamentsService {
     // and to handle date conversions safely.
     const data: any = {};
 
-    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.name !== undefined) data.name = toTitleCase(dto.name);
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl || '/yellow-9-flag-realistic.png';
     if (dto.venue !== undefined) data.venue = dto.venue;

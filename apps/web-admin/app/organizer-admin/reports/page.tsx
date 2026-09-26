@@ -174,71 +174,91 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
-      <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
-        <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
-              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
-                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
-                </svg>
-                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+      {isLoading ? (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+            {[1, 2, 3, 4, 5].map((i, idx) => (
+              <div key={i} className="flex items-center gap-12 flex-1">
+                <div className="flex flex-col justify-start items-start gap-3.5 w-full">
+                  <div className="flex justify-start items-center gap-3.5">
+                    <Skeleton className="h-[22px] w-32" />
+                    {(i === 1 || i === 2) && <Skeleton className="h-6 w-16 rounded-lg" />}
+                  </div>
+                  <Skeleton className="h-9 w-20" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+                {idx < 4 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
               </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(totalReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            ))}
           </div>
-
-          <div className="w-px h-16 bg-slate-200" />
-
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Storage Used</div>
-              <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
-                  <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
-                </svg>
-                <div className="text-[#15803D] text-xs font-medium">0.0%</div>
-              </div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-semibold">{storageUsedMB} MB</div>
-            <div className="text-zinc-500 text-sm font-normal">Available capacity: 1.2 GB</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200" />
-
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Tournament Reports</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(tournamentReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200" />
-
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Financial Reports</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(financialReports)}</div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200" />
-
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Scheduled Reports</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">0</div>
-            <div className="text-zinc-500 text-sm font-normal">Coming soon</div>
-          </div>
-
         </div>
-      </div>
+      ) : (
+        <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
+          <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Reports</div>
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(totalReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Storage Used</div>
+                <div className="px-2 py-1 bg-green-50 rounded-lg flex justify-center items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#15803D]">
+                    <path d="M0 6.94583L1.17875 8.125L5.00167 4.23375L8.82125 8.125L10 6.94583L5.00167 1.875L0 6.94583Z" fill="currentColor" />
+                  </svg>
+                  <div className="text-[#15803D] text-xs font-medium">0.0%</div>
+                </div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-semibold">{storageUsedMB} MB</div>
+              <div className="text-zinc-500 text-sm font-normal">Available capacity: 1.2 GB</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Tournament Reports</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(tournamentReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Financial Reports</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-semibold">{formatNumber(financialReports)}</div>
+              <div className="text-zinc-500 text-sm font-normal">All Time</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Scheduled Reports</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">0</div>
+              <div className="text-zinc-500 text-sm font-normal">Coming soon</div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <div className="w-full space-y-6">
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">

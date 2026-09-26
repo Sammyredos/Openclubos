@@ -51,7 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatThousandsInput, formatWithCommas } from "@/lib/utils";
+import { cn, formatThousandsInput, formatWithCommas, formatTitleCase } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -363,7 +363,7 @@ export default function TournamentsPage() {
     const types = Array.isArray(t.playerTypes) ? t.playerTypes : [];
     return {
       id: t.id,
-      name: t.name,
+      name: formatTitleCase(t.name),
       clubName,
       clubLogo,
       courseName: t.course?.name || null,

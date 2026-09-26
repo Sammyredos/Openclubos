@@ -10,6 +10,7 @@ import '../features/scoring/presentation/screens/scoring_screen.dart';
 import 'player_scorecard_screen.dart';
 import 'add_friends_screen.dart';
 import 'notifications_screen.dart';
+import '../core/formatters.dart';
 
 class CompetitorHomeScreen extends StatefulWidget {
   const CompetitorHomeScreen({super.key});
@@ -768,7 +769,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
               final holeDist = distances.length > curHoleIdx ? distances[curHoleIdx] : 345;
               userActiveRound = {
                 'id': reg['id']?.toString() ?? 'ar_${tourn['id']}',
-                'tournamentName': tourn['name']?.toString() ?? 'Tournament',
+                'tournamentName': toTitleCase(tourn['name']?.toString() ?? 'Tournament'),
                 'courseName': courseName,
                 'holeNumber': currentHole,
                 'par': holePar,
@@ -3398,7 +3399,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
                                                   // Row 2: Tournament Name (Full display)
                                                   Text(
-                                                    _activeRound!['tournamentName'] as String,
+                                                    toTitleCase(_activeRound!['tournamentName'] as String),
                                                     style: GoogleFonts.dmSans(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.w700,
@@ -4297,10 +4298,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               Text(
                                 'Featured Tournaments',
                                 style: GoogleFonts.dmSans(
-                                  fontSize: 17,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
-                                  letterSpacing: -0.3,
+                                  letterSpacing: -0.2,
                                 ),
                               ),
                               GestureDetector(
@@ -4759,7 +4760,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
     for (int i = 0; i < displayList.length; i++) {
       final t = displayList[i] as Map;
-      final name = (t['name'] as String?) ?? 'Championship Tournament';
+      final name = toTitleCase((t['name'] as String?) ?? 'Championship Tournament');
 
       final divisions = t['divisions'] is List && (t['divisions'] as List).isNotEmpty
           ? (t['divisions'] as List).join(' & ')
@@ -4838,7 +4839,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   }
 
   Map<String, String> _formatFeaturedTournamentTitle(String rawTitle) {
-    final clean = rawTitle.trim();
+    final clean = toTitleCase(rawTitle);
     if (clean.isEmpty) {
       return {'line1': 'Championship Tournament', 'line2': ''};
     }
@@ -5037,11 +5038,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.dmSans(
-                                        fontSize: 17,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w800,
                                         color: Colors.white,
                                         height: 1.15,
-                                        letterSpacing: -0.3,
+                                        letterSpacing: -0.2,
                                       ),
                                     ),
                                     if (titleLines['line2'] != null && titleLines['line2']!.isNotEmpty)
@@ -5050,11 +5051,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.dmSans(
-                                          fontSize: 17,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.w800,
                                           color: Colors.white,
                                           height: 1.15,
-                                          letterSpacing: -0.3,
+                                          letterSpacing: -0.2,
                                         ),
                                       ),
                                   ],
