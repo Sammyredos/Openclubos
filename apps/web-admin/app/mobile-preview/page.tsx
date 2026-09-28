@@ -84,7 +84,7 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
-import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent } from "@/lib/utils";
+import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
@@ -4105,12 +4105,13 @@ export default function MobilePreviewPage() {
           if (isMounted && Array.isArray(data) && data.length > 0) {
             const mapped: RealTournament[] = data.map((t: any, idx: number) => {
               const isFree = t.requiresPayment === false || !t.entryFee || Number(t.entryFee) === 0;
+              const symbol = getCurrencySymbol(t.currency);
               const formattedPurse = (t.prizePool && Number(t.prizePool) > 0)
-                ? (t.currency === "NGN" ? `₦${formatNumber(Number(t.prizePool))}` : `$${formatNumber(Number(t.prizePool))}`)
-                : (isFree ? "—" : `$${formatNumber(Number(t.entryFee) * 50)}`);
-              const formattedFee = isFree
-                ? "Free"
-                : (t.currency === "NGN" ? `₦${formatNumber(Number(t.entryFee))}` : `$${formatNumber(Number(t.entryFee))}`);
+                ? `${symbol}${formatNumber(Number(t.prizePool))}`
+                : (isFree ? "—" : `${symbol}${formatNumber(Number(t.entryFee) * 50)}`);
+              const formattedFee = formatTournamentFee(t.entryFee, t.currency, {
+                requiresPayment: t.requiresPayment !== false,
+              });
 
               return {
                 id: t.id || `tournament_${idx}`,

@@ -4768,8 +4768,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
       String? gender;
       if (t['genderRestriction'] == 'MALE_ONLY') gender = 'Male';
-      final isFree = t['requiresPayment'] == false || t['entryFee'] == null || t['entryFee'] == 0 || t['entryFee'].toString() == '0';
-      final fee = isFree ? 'Free' : (t['currency'] == 'USD' ? '\$${t['entryFee']}' : '₦${t['entryFee']}');
+      final fee = formatTournamentFee(
+        t['entryFee'],
+        currency: t['currency']?.toString(),
+        requiresPayment: t['requiresPayment'] != false,
+      );
       final hcp = t['hasHandicapRestriction'] == true
           ? 'HCP ${t['minHandicap'] ?? 0}–${t['maxHandicap'] ?? 36}'
           : 'No Limit';

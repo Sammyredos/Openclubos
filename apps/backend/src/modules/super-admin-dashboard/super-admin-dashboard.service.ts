@@ -4,6 +4,7 @@ import {
   PaymentStatus,
   TournamentStatus,
   Gender,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
@@ -106,7 +107,7 @@ export class SuperAdminDashboardService {
       this.prisma.user.count({
         where: {
           deletedAt: null,
-          role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] },
+          role: { not: UserRole.SUPER_ADMIN },
         },
       }),
       this.prisma.tournament.count({
@@ -117,10 +118,10 @@ export class SuperAdminDashboardService {
       }),
       this.prisma.course.count(),
       this.prisma.user.count({
-        where: { deletedAt: null, gender: Gender.MALE },
+        where: { deletedAt: null, role: { not: UserRole.SUPER_ADMIN }, gender: Gender.MALE },
       }),
       this.prisma.user.count({
-        where: { deletedAt: null, gender: Gender.FEMALE },
+        where: { deletedAt: null, role: { not: UserRole.SUPER_ADMIN }, gender: Gender.FEMALE },
       }),
 
       // Growth - Clubs
@@ -378,7 +379,7 @@ export class SuperAdminDashboardService {
       where: {
         deletedAt: null,
         dob: { not: null },
-        role: { in: ['CLUB_ADMIN', 'PLAYER', 'MARKER'] },
+        role: { not: UserRole.SUPER_ADMIN },
       },
       select: { dob: true, gender: true },
     });
@@ -410,8 +411,9 @@ export class SuperAdminDashboardService {
       else if (age >= 65) bucket = '65-74+';
 
       if (bucket) {
-        if (u.gender === 'MALE') buckets[bucket].men++;
-        else if (u.gender === 'FEMALE') buckets[bucket].women++;
+        const g = (u.gender || '').toUpperCase();
+        if (g === 'MALE') buckets[bucket].men++;
+        else if (g === 'FEMALE') buckets[bucket].women++;
       }
     }
 

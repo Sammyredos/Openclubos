@@ -138,7 +138,7 @@ export class TournamentsController {
     @Param('id') id: string,
     @Body() updateTournamentDto: UpdateTournamentDto,
   ) {
-    return this.tournamentsService.update(id, updateTournamentDto);
+    return this.tournamentsService.update(id, updateTournamentDto, req.user?.role);
   }
 
   @Post(':id/groupings/email')

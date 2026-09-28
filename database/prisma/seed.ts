@@ -60,8 +60,62 @@ function shuffle<T>(arr: T[]) {
   return a;
 }
 
+function randomDob() {
+  const currentYear = new Date().getFullYear();
+  const ageWeights = [
+    { min: 14, max: 17, weight: 6 },
+    { min: 18, max: 24, weight: 14 },
+    { min: 25, max: 34, weight: 26 },
+    { min: 35, max: 44, weight: 24 },
+    { min: 45, max: 54, weight: 16 },
+    { min: 55, max: 64, weight: 9 },
+    { min: 65, max: 74, weight: 5 },
+  ];
+  const totalWeight = ageWeights.reduce((sum, w) => sum + w.weight, 0);
+  let rnd = Math.random() * totalWeight;
+  let chosen = ageWeights[0];
+  for (const w of ageWeights) {
+    if (rnd < w.weight) {
+      chosen = w;
+      break;
+    }
+    rnd -= w.weight;
+  }
+  const age = randomInt(chosen.min, chosen.max);
+  const birthYear = currentYear - age;
+  const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+  const birthDay = String(randomInt(1, 28)).padStart(2, '0');
+  return `${birthYear}-${birthMonth}-${birthDay}`;
+}
+
 async function main() {
   const clearOnly = hasFlag('--clear');
+  const demographicsOnly = hasFlag('--demographics-only');
+
+  if (demographicsOnly) {
+    console.log('🔄 Backfilling user demographics (DOB & Gender)...');
+    const allUsers = await prisma.user.findMany({
+      where: { deletedAt: null },
+      select: { id: true, dob: true, gender: true, role: true },
+    });
+    let updatedCount = 0;
+    for (const u of allUsers) {
+      const needsDob = !u.dob;
+      const needsGender = !u.gender;
+      if (needsDob || needsGender) {
+        await prisma.user.update({
+          where: { id: u.id },
+          data: {
+            dob: u.dob || randomDob(),
+            gender: u.gender || (pick(['MALE', 'FEMALE']) as any),
+          },
+        });
+        updatedCount++;
+      }
+    }
+    console.log(`✅ Demographics backfilled successfully for ${updatedCount} users!`);
+    return;
+  }
 
   console.log(clearOnly ? '🧹 Clearing database...' : '🌱 Seeding database with direct connection...');
 
@@ -150,6 +204,8 @@ async function main() {
       firstName: 'Samuel',
       lastName: 'Obadina',
       role: UserRole.SUPER_ADMIN,
+      dob: '1990-01-15',
+      gender: 'MALE' as any,
       emailVerified: true,
     },
   });
@@ -205,6 +261,8 @@ async function main() {
         lastName: pick(lastNames),
         role: UserRole.CLUB_ADMIN,
         clubId: club.id,
+        dob: randomDob(),
+        gender: pick(['MALE', 'FEMALE']) as any,
         emailVerified: true,
       },
     });
@@ -220,6 +278,8 @@ async function main() {
         lastName: pick(lastNames),
         role: UserRole.PLAYER,
         clubId: club.id,
+        dob: randomDob(),
+        gender: pick(['MALE', 'FEMALE']) as any,
         emailVerified: true,
       };
     });
@@ -240,6 +300,7 @@ async function main() {
         lastName: `${last}-${globalMemberIndex}`,
         role: UserRole.PLAYER,
         clubId: club.id,
+        dob: randomDob(),
         gender: pick(['MALE', 'FEMALE']) as any,
         emailVerified: true,
       };

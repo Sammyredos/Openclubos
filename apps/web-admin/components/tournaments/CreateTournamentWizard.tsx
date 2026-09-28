@@ -15,7 +15,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { cn, formatTitleCase } from "@/lib/utils";
+import { cn, formatTitleCase, getCurrencySymbol } from "@/lib/utils";
 import { Upload, X, ImageIcon, MapPin, Building2, Trophy, Info, Users, Shield, CalendarDays, ListOrdered, CreditCard, LayoutGrid, Activity, Clock, Eye, Send, AlertTriangle, Sparkles, Check } from "lucide-react";
 import { getRandomCourseBanner } from "@/lib/tournament-banners";
 
@@ -27,6 +27,23 @@ type WizardProps = {
 };
 
 const STEPS = ["Basic Details", "Schedule", "Format & Divisions", "Eligibility", "Payments", "Grouping", "Publish"];
+
+const COMMON_CURRENCIES = [
+  { value: "NGN", label: "NGN - Nigerian Naira (₦)" },
+  { value: "USD", label: "USD - US Dollar ($)" },
+  { value: "GBP", label: "GBP - British Pound (£)" },
+  { value: "EUR", label: "EUR - Euro (€)" },
+  { value: "ZAR", label: "ZAR - South African Rand (R)" },
+  { value: "GHS", label: "GHS - Ghanaian Cedi (GH₵)" },
+  { value: "KES", label: "KES - Kenyan Shilling (KSh)" },
+  { value: "CAD", label: "CAD - Canadian Dollar (CA$)" },
+  { value: "AUD", label: "AUD - Australian Dollar (A$)" },
+  { value: "AED", label: "AED - UAE Dirham (AED)" },
+  { value: "INR", label: "INR - Indian Rupee (₹)" },
+  { value: "JPY", label: "JPY - Japanese Yen (¥)" },
+  { value: "CNY", label: "CNY - Chinese Yuan (¥)" },
+  { value: "CHF", label: "CHF - Swiss Franc (CHF)" },
+];
 
 
 function getErrorMessage(e: unknown) {
@@ -166,7 +183,8 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM });
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
-  const isCourseLocked = Boolean(tournamentId && originalStatus && originalStatus !== "DRAFT");
+  const isSuperAdmin = user?.role === "SUPER_ADMIN" && !isOrganizerDashboard;
+  const isLocationLocked = Boolean(tournamentId) && !isSuperAdmin;
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
@@ -190,6 +208,16 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
   }, [formData.name, tournamentId]);
 
   const countryOptions = useMemo(() => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })), []);
+  const currencyOptions = useMemo(() => {
+    const options = [...COMMON_CURRENCIES];
+    if (formData.currency && !options.some((o) => o.value === formData.currency)) {
+      options.unshift({
+        value: formData.currency,
+        label: `${formData.currency} (${getCurrencySymbol(formData.currency)})`,
+      });
+    }
+    return options;
+  }, [formData.currency]);
   const stateOptions = useMemo(() => {
     if (!formData.venue) return [];
     if (formData.venue === "NG") {
@@ -417,11 +445,10 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
       const payload: UpdateTournamentPayload = {
         name: formatTitleCase(f.name.trim()),
         clubId: f.clubId,
-        ...(isCourseLocked ? {} : { courseId: f.courseId }),
+        ...(!isLocationLocked && f.courseId ? { courseId: f.courseId } : {}),
         description: f.description || null,
         bannerUrl: f.bannerUrl || getRandomCourseBanner(),
-        venue: f.venue || null,
-        location: f.location || null,
+        ...(!isLocationLocked ? { venue: f.venue || null, location: f.location || null } : {}),
         startDate: new Date(f.startDate).toISOString(),
         endDate: f.endDate ? new Date(f.endDate).toISOString() : null,
         registrationOpenAt: f.registrationOpenAt ? new Date(f.registrationOpenAt).toISOString() : null,
@@ -445,7 +472,7 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
         cutLine: f.enableCut && f.cutLine !== "" ? (f.cutFormat === "PERCENTAGE" ? -Number(f.cutLine) : Number(f.cutLine)) : null,
         requiresPayment: f.requiresPayment,
         entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
-        currency: f.requiresPayment ? f.currency : "NGN",
+        currency: f.currency ? f.currency.toUpperCase() : "NGN",
         paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
         isRefundable: f.requiresPayment ? f.isRefundable : false,
         autoGrouping: f.autoGrouping ?? true,
@@ -539,11 +566,19 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <Field label="Country" required>
                   <SearchableSelect
                     value={formData.venue}
-                    onValueChange={(v) => { set("venue", v); set("courseId", ""); set("location", ""); }}
+                    onValueChange={(v) => {
+                      set("venue", v);
+                      set("courseId", "");
+                      set("location", "");
+                      const detectedCurrency = Country.getCountryByCode(v)?.currency;
+                      if (detectedCurrency) {
+                        set("currency", detectedCurrency.toUpperCase());
+                      }
+                    }}
                     options={countryOptions}
                     placeholder="Select country..."
-                    disabled={isCourseLocked}
-                    triggerClassName={cn("bg-white", req(formData.venue), isCourseLocked && "bg-gray-50/70 border-gray-200 text-gray-500")}
+                    disabled={isLocationLocked}
+                    triggerClassName={cn("bg-white", req(formData.venue), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
                   />
                 </Field>
                 <Field label="Golf Course" required>
@@ -556,18 +591,35 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                       image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`
                     }))}
                     placeholder="Select course..."
-                    disabled={isCourseLocked || !formData.venue}
-                    triggerClassName={cn("bg-white", req(formData.courseId), isCourseLocked && "bg-gray-50/70 border-gray-200 text-gray-500")}
+                    disabled={isLocationLocked || !formData.venue}
+                    triggerClassName={cn("bg-white", req(formData.courseId), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
                   />
                 </Field>
               </div>
 
-              {isCourseLocked ? (
-                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 flex items-center gap-3">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <p className="text-[12px] font-normal text-amber-800">
-                    Host golf course and country cannot be modified once a tournament is upcoming or registration has opened.
-                  </p>
+              {isLocationLocked ? (
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-[12px] font-medium text-amber-900">
+                      Location and Host Venue Locked
+                    </p>
+                    <p className="text-[12px] font-normal text-amber-800 leading-relaxed">
+                      Location and host venue can only be modified by a Super Administrator on an already created tournament. Contact your platform administrator if this tournament needs to be relocated.
+                    </p>
+                  </div>
+                </div>
+              ) : tournamentId && isSuperAdmin ? (
+                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 flex items-start gap-3">
+                  <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-[12px] font-medium text-emerald-900">
+                      Super Administrator Access
+                    </p>
+                    <p className="text-[12px] font-normal text-emerald-800 leading-relaxed">
+                      You have elevated administrative permissions to reassign the host venue, country, or course for this tournament.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-white border border-[#e1efe5] rounded-xl p-3 flex items-center gap-3">
@@ -1194,19 +1246,30 @@ export function CreateTournamentWizard({ isOpen, onClose, onSuccess, tournamentI
                 <div className="pt-4 border-t border-[#e1efe5] space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Entry Fee" required>
-                      <Input
-                        type="text"
-                        value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
-                        onChange={(e) => {
-                          const rawValue = e.target.value.replace(/\D/g, "");
-                          set("entryFee", rawValue);
-                        }}
-                        placeholder="5,000"
-                        className={req(formData.entryFee)}
-                      />
+                      <div className="relative flex rounded-md">
+                        <div className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-gray-50 text-gray-600 text-sm font-medium select-none">
+                          {getCurrencySymbol(formData.currency)}
+                        </div>
+                        <Input
+                          type="text"
+                          value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
+                          onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\D/g, "");
+                            set("entryFee", rawValue);
+                          }}
+                          placeholder="5,000"
+                          className={cn("rounded-l-none", req(formData.entryFee))}
+                        />
+                      </div>
                     </Field>
                     <Field label="Currency" required>
-                      <Input value={formData.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} placeholder="NGN" />
+                      <SearchableSelect
+                        value={formData.currency}
+                        onValueChange={(v) => set("currency", v.toUpperCase())}
+                        options={currencyOptions}
+                        placeholder="Select currency..."
+                        triggerClassName="bg-white"
+                      />
                     </Field>
                   </div>
                   <Toggle label="Refundable Entry Fee?" checked={formData.isRefundable} onChange={(v) => set("isRefundable", v)} />

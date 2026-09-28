@@ -51,7 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatThousandsInput, formatWithCommas, formatTitleCase } from "@/lib/utils";
+import { cn, formatThousandsInput, formatWithCommas, formatTitleCase, formatTournamentFee } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -93,6 +93,7 @@ type ApiTournament = {
   endDate: string | null;
   status: TournamentStatus;
   entryFee: number | null;
+  currency?: string | null;
   requiresPayment: boolean;
   maxPlayers: number | null;
   registrationDeadline?: string | null;
@@ -119,6 +120,7 @@ type TournamentRow = {
   status: string;
   badge: string;
   entryFee: number | null;
+  currency?: string | null;
   requiresPayment: boolean;
   startDate: string;
   endDate: string | null;
@@ -374,6 +376,7 @@ export default function TournamentsPage() {
       status: STATUS_META[t.status]?.label ?? t.status,
       badge: STATUS_META[t.status]?.badge ?? "bg-gray-100 text-gray-500",
       entryFee: t.entryFee,
+      currency: t.currency || "NGN",
       requiresPayment: t.requiresPayment,
       startDate: t.startDate,
       endDate: t.endDate,
@@ -1309,7 +1312,7 @@ export default function TournamentsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{t.entryFee && t.entryFee > 0 ? formatNaira(t.entryFee) : "Free"}</span>
+                          <span className="text-slate-900 text-[13px] font-medium whitespace-nowrap">{t.entryFee && t.entryFee > 0 ? formatTournamentFee(t.entryFee, t.currency) : "Free"}</span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">

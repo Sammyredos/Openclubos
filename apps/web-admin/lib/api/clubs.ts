@@ -65,6 +65,20 @@ export async function getClubChartData(id: string, range: string) {
   return res.json();
 }
 
+export async function getClubAgeDemographics(id: string) {
+  const token = getAuthToken();
+  const res = await fetchWithSuperAdminFallback(`/clubs/${id}/age-demographics`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to fetch club age demographics');
+  }
+  return res.json();
+}
+
 export type Club = {
   id: string;
   name: string;

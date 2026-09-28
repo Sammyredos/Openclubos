@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { registerForTournament } from "@/lib/api/registrations"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { getGolfCategory, formatTitleCase } from "@/lib/utils"
+import { getGolfCategory, formatTitleCase, formatCurrency, formatTournamentFee } from "@/lib/utils"
 
 type Step = "details" | "payment" | "success"
 
@@ -237,7 +237,7 @@ export default function TournamentRegistrationPage() {
                     <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Entry Fee <span className="text-red-500">*</span></p>
                     <p className="text-[12px] text-gray-400 mb-2">Amount to be paid.</p>
                     <div className="text-[15px] font-semibold text-[#1b2533]">
-                      {tournament.entryFee && tournament.entryFee > 0 ? `₦${tournament.entryFee.toFixed(2)}` : 'FREE'}
+                      {tournament.entryFee && tournament.entryFee > 0 ? formatTournamentFee(tournament.entryFee, tournament.currency) : 'FREE'}
                     </div>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function TournamentRegistrationPage() {
                 <div>
                   <p className="text-[13px] text-[#1b2533] font-normal mb-0.5">Amount to Pay <span className="text-red-500">*</span></p>
                   <div className="text-[15px] font-medium text-[#1b2533]">
-                    ₦{tournament.entryFee?.toFixed(2)}
+                    {formatCurrency(tournament.entryFee || 0, tournament.currency || 'NGN')}
                   </div>
                 </div>
 

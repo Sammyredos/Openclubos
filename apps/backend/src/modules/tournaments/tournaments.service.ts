@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
   Inject,
   forwardRef,
   OnModuleInit,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
 import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma.service';
@@ -492,7 +494,7 @@ export class TournamentsService implements OnModuleInit {
     }
   }
 
-  async update(id: string, dto: UpdateTournamentDto) {
+  async update(id: string, dto: UpdateTournamentDto, userRole?: UserRole) {
     // Manually map fields to ensure we don't pass unexpected fields to Prisma
     // and to handle date conversions safely.
     const data: any = {};
@@ -584,6 +586,36 @@ export class TournamentsService implements OnModuleInit {
     const existing = await this.prisma.tournament.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Tournament not found');
+    }
+
+    // Role-based restrictions: Location and host venue can only be modified by SUPER_ADMIN on an already created tournament
+    const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
+    if (!isSuperAdmin) {
+      const isAttemptingVenueChange =
+        dto.venue !== undefined && dto.venue !== existing.venue;
+      const isAttemptingLocationChange =
+        dto.location !== undefined && dto.location !== existing.location;
+      const isAttemptingCourseChange =
+        dto.courseId !== undefined && dto.courseId !== existing.courseId;
+      const isAttemptingClubChange =
+        dto.clubId !== undefined && dto.clubId !== existing.clubId;
+
+      if (
+        isAttemptingVenueChange ||
+        isAttemptingLocationChange ||
+        isAttemptingCourseChange ||
+        isAttemptingClubChange
+      ) {
+        throw new ForbiddenException(
+          'Location and host venue can only be modified by a Super Administrator on an already created tournament.',
+        );
+      }
+
+      // Safeguard: Ensure organizers cannot mutate courseId, venue, location, or clubId on update
+      delete data.venue;
+      delete data.location;
+      delete data.courseId;
+      delete data.clubId;
     }
 
     if (dto.name && dto.name.trim() !== existing.name) {

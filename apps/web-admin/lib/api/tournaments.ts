@@ -10,6 +10,8 @@ export interface Tournament {
   endDate?: string;
   status: 'DRAFT' | 'REGISTRATION_OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
   entryFee?: number;
+  currency?: string | null;
+  requiresPayment?: boolean;
   minHandicap?: number;
   maxHandicap?: number;
   playerTypes: string[];

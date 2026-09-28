@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { getClubStats, getClubChartData } from "@/lib/api/clubs";
+import { getClubStats, getClubChartData, getClubAgeDemographics } from "@/lib/api/clubs";
 import { getTournaments } from "@/lib/api/tournaments";
 import { getClubWallet, type ClubWalletSummary } from "@/lib/api/withdrawals";
 import { toast } from "sonner";
@@ -57,6 +57,9 @@ export default function OrganizerAdminDashboard() {
   const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ageDemographicsData, setAgeDemographicsData] = useState<Array<{ age: string, men: number, women: number }>>([]);
+  const [ageDemographicsFilter, setAgeDemographicsFilter] = useState<"All" | "Men" | "Women">("All");
+  const [ageLoading, setAgeLoading] = useState(false);
 
   const isMounted = useSyncExternalStore(
     () => () => { },
@@ -106,6 +109,16 @@ export default function OrganizerAdminDashboard() {
     }
   }, [user?.clubId, revenueRange]);
 
+  useEffect(() => {
+    if (user?.clubId) {
+      setAgeLoading(true);
+      getClubAgeDemographics(user.clubId)
+        .then((data: any) => setAgeDemographicsData(Array.isArray(data) ? data : []))
+        .catch(console.error)
+        .finally(() => setAgeLoading(false));
+    }
+  }, [user?.clubId]);
+
   if (loading) {
     return (
       <div className="space-y-8 w-full max-w-full px-2 pb-10">
@@ -132,6 +145,12 @@ export default function OrganizerAdminDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
           <Skeleton className="h-[400px] w-full rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]" />
           <Skeleton className="h-[400px] w-full rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]" />
+        </div>
+
+        {/* Demographics Skeleton */}
+        <div className="flex flex-col xl:flex-row gap-6 w-full">
+          <Skeleton className="h-[430px] w-full xl:flex-[1.4] rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]" />
+          <Skeleton className="h-[430px] w-full xl:flex-1 rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)]" />
         </div>
       </div>
     );
@@ -387,6 +406,161 @@ export default function OrganizerAdminDashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Demographics Row */}
+      <div className="flex flex-col xl:flex-row gap-6 w-full">
+        {/* Age Range Card */}
+        <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col gap-6 w-full xl:w-auto xl:flex-[1.4] xl:h-[430px] font-sans">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-2">
+              <div className="text-zinc-700 text-xl font-medium">Age range</div>
+              <div className="relative group flex items-center justify-center">
+                <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-medium flex items-center justify-center cursor-help">?</div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                  Distribution of club members across different age groups.
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-[#f5faf6] border border-[#e1efe5] rounded-lg p-1">
+              {["All", "Men", "Women"].map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setAgeDemographicsFilter(filter as any)}
+                  className={cn(
+                    "px-3 py-1 text-sm transition-all rounded-md",
+                    ageDemographicsFilter === filter ? "bg-white text-openclub-700 font-medium shadow-sm border border-[#e1efe5]" : "text-zinc-500 font-normal hover:text-zinc-700 hover:bg-slate-100/50"
+                  )}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full flex-1 min-h-[220px] mt-2">
+            {!isMounted || loading || ageLoading ? (
+              <Skeleton className="h-[220px] w-full rounded-xl" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                {(() => {
+                  const defaultBuckets = [
+                    { age: "13-17", men: 0, women: 0 },
+                    { age: "18-24", men: 0, women: 0 },
+                    { age: "25-34", men: 0, women: 0 },
+                    { age: "35-44", men: 0, women: 0 },
+                    { age: "45-54", men: 0, women: 0 },
+                    { age: "55-64", men: 0, women: 0 },
+                    { age: "65-74+", men: 0, women: 0 },
+                  ];
+                  const displayData = ageDemographicsData && ageDemographicsData.length > 0 ? ageDemographicsData : defaultBuckets;
+
+                  return (
+                    <BarChart data={displayData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e1efe5" />
+                      <XAxis dataKey="age" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717A" }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717A" }} />
+                      <Tooltip
+                        cursor={{ fill: '#f1f5f9' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                        labelStyle={{ color: '#71717A', marginBottom: '4px' }}
+                      />
+                      {(ageDemographicsFilter === "All" || ageDemographicsFilter === "Men") && (
+                        <Bar dataKey="men" name="Men" fill="#15803D" radius={[4, 4, 0, 0]} barSize={ageDemographicsFilter === "All" ? 12 : 24} />
+                      )}
+                      {(ageDemographicsFilter === "All" || ageDemographicsFilter === "Women") && (
+                        <Bar dataKey="women" name="Women" fill="#86EFAC" radius={[4, 4, 0, 0]} barSize={ageDemographicsFilter === "All" ? 12 : 24} />
+                      )}
+                    </BarChart>
+                  );
+                })()}
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Gender Card */}
+        {(() => {
+          const menCount = stats?.menCount || 0;
+          const womenCount = stats?.womenCount || 0;
+
+          const totalGender = menCount + womenCount;
+          const menPercent = totalGender === 0 ? 0 : Math.round((menCount / totalGender) * 100);
+          const womenPercent = totalGender === 0 ? 0 : Math.round((womenCount / totalGender) * 100);
+
+          const pieData = totalGender === 0
+            ? [{ name: "No Data", value: 100, color: "#e1efe5" }]
+            : [
+              { name: "Men", value: menPercent, color: "#15803D" },
+              { name: "Women", value: womenPercent, color: "#86EFAC" },
+            ];
+
+          return (
+            <div className="p-7 bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full xl:w-auto xl:flex-1 xl:h-[430px] font-sans">
+              <div className="flex justify-between items-center w-full mb-8">
+                <div className="flex items-center gap-2">
+                  <div className="text-zinc-700 text-xl font-medium">Gender</div>
+                  <div className="relative group flex items-center justify-center">
+                    <div className="w-4 h-4 bg-zinc-400 rounded-full text-white text-[10px] font-medium flex items-center justify-center cursor-help">?</div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[220px] p-2.5 bg-[#0a2316] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg text-center leading-relaxed">
+                      Breakdown of club members by gender.
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0a2316]"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative w-full flex-1 min-h-[160px] flex items-end justify-center mb-6">
+                <ResponsiveContainer width="100%" height="200%">
+                  <RePieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="100%"
+                      startAngle={180}
+                      endAngle={0}
+                      innerRadius={115}
+                      outerRadius={145}
+                      dataKey="value"
+                      stroke="none"
+                      cornerRadius={10}
+                      paddingAngle={5}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      itemStyle={{ color: '#374151', fontSize: '14px', fontWeight: 500 }}
+                      formatter={((value: any) => [`${value}%`, ""]) as any}
+                    />
+                  </RePieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex justify-center items-center gap-12 w-full mt-auto">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-[#15803D] rounded-full" />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-zinc-700 text-sm font-medium">{menPercent}%</span>
+                    <span className="text-zinc-500 text-[10px] font-medium mt-1">Men</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-[#86EFAC] rounded-full" />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-zinc-700 text-sm font-medium">{womenPercent}%</span>
+                    <span className="text-zinc-500 text-[10px] font-medium mt-1">Women</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -26,7 +26,7 @@ import {
   Handshake
 } from "lucide-react"
 import { toast } from "sonner"
-import { formatWithCommas, formatTitleCase } from "@/lib/utils"
+import { formatWithCommas, formatTitleCase, formatTournamentFee } from "@/lib/utils"
 import Link from "next/link"
 import PublicLeaderboard from "@/components/tournaments/PublicLeaderboard"
 
@@ -178,9 +178,9 @@ export default function TournamentDetailPage() {
   )
 
   const isRegistrationOpen = tournament.status === "REGISTRATION_OPEN"
-  const formattedFee = tournament.entryFee && tournament.entryFee > 0
-    ? `₦${formatWithCommas(tournament.entryFee)}`
-    : "FREE"
+  const formattedFee = formatTournamentFee(tournament.entryFee, tournament.currency, {
+    requiresPayment: tournament.requiresPayment !== false,
+  })
 
   const statusMeta = STATUS_META[tournament.status] || { label: tournament.status, badge: "bg-gray-50 text-gray-600" }
 

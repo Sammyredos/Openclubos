@@ -197,14 +197,62 @@ export function getGolfCategory(handicap: number | null | undefined): string {
   return "Open";
 }
 
-export function formatCurrency(amount: number): string {
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  NGN: "₦",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  ZAR: "R",
+  GHS: "GH₵",
+  KES: "KSh",
+  CAD: "CA$",
+  AUD: "A$",
+  AED: "AED ",
+  JPY: "¥",
+  INR: "₹",
+  CNY: "¥",
+  CHF: "CHF ",
+  NZD: "NZ$",
+  SGD: "SG$",
+};
+
+export function getCurrencySymbol(currency?: string | null): string {
+  if (!currency) return "₦";
+  const code = currency.trim().toUpperCase();
+  return CURRENCY_SYMBOLS[code] || `${code} `;
+}
+
+export function formatCurrency(
+  amount: number,
+  currency: string = "NGN",
+  options?: { showDecimals?: boolean }
+): string {
   const absValue = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
+  const symbol = getCurrencySymbol(currency);
+  const showDecimals = options?.showDecimals ?? true;
 
-  return `${sign} ₦${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return `${sign ? sign + " " : ""}${symbol}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: showDecimals ? 2 : 0,
+    maximumFractionDigits: showDecimals ? 2 : 0,
   }).format(absValue)}`;
+}
+
+export function formatTournamentFee(
+  entryFee?: number | string | null,
+  currency?: string | null,
+  options?: { requiresPayment?: boolean }
+): string {
+  if (options?.requiresPayment === false) return "FREE";
+  if (entryFee === null || entryFee === undefined || entryFee === "") return "FREE";
+  const num = typeof entryFee === "string" ? parseFloat(entryFee.replace(/[^0-9.-]+/g, "")) : entryFee;
+  if (!Number.isFinite(num) || num <= 0) return "FREE";
+
+  const symbol = getCurrencySymbol(currency || "NGN");
+  const formatted = num % 1 === 0
+    ? formatWithCommas(num)
+    : new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+  return `${symbol}${formatted}`;
 }
 
 export function formatTeeTime(timeStr?: string | null): string {

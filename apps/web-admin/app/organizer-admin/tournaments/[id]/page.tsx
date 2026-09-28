@@ -123,6 +123,7 @@ type TournamentRow = {
   status: string;
   badge: string;
   entryFee: number | null;
+  currency?: string | null;
   requiresPayment: boolean;
   startDate: string;
   endDate: string | null;
@@ -974,6 +975,7 @@ function ViewTournamentPageInner() {
         status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
         badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
         entryFee: t.entryFee ?? null,
+        currency: (t as any).currency || "NGN",
         requiresPayment: t.requiresPayment ?? false,
         startDate: t.startDate,
         endDate: t.endDate ?? null,
@@ -1044,6 +1046,7 @@ function ViewTournamentPageInner() {
           status: STATUS_META[t.status as TournamentStatus]?.label ?? t.status,
           badge: STATUS_META[t.status as TournamentStatus]?.badge ?? "bg-gray-100 text-gray-500",
           entryFee: t.entryFee ?? null,
+          currency: (t as any).currency || "NGN",
           requiresPayment: t.requiresPayment ?? false,
           startDate: t.startDate,
           endDate: t.endDate ?? null,

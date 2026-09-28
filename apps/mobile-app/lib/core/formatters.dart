@@ -51,3 +51,56 @@ String toTitleCase(String? text) {
     return capitalizeWord(word);
   }).join(' ');
 }
+
+const Map<String, String> currencySymbols = {
+  'NGN': '₦',
+  'USD': '\$',
+  'EUR': '€',
+  'GBP': '£',
+  'ZAR': 'R',
+  'GHS': 'GH₵',
+  'KES': 'KSh',
+  'CAD': 'CA\$',
+  'AUD': 'A\$',
+  'AED': 'AED ',
+  'JPY': '¥',
+  'INR': '₹',
+  'CNY': '¥',
+  'CHF': 'CHF ',
+  'NZD': 'NZ\$',
+  'SGD': 'SG\$',
+};
+
+String getCurrencySymbol(String? currency) {
+  if (currency == null || currency.trim().isEmpty) return '₦';
+  final code = currency.trim().toUpperCase();
+  return currencySymbols[code] ?? '$code ';
+}
+
+String formatTournamentFee(dynamic rawFee, {String? currency, bool requiresPayment = true}) {
+  if (!requiresPayment || rawFee == null) return 'Free';
+  final str = rawFee.toString().trim();
+  if (str == '0' || str == '0.00' || str.isEmpty) return 'Free';
+  final numValue = double.tryParse(str.replaceAll(RegExp(r'[^0-9.]'), ''));
+  if (numValue == null || numValue <= 0) return 'Free';
+
+  final symbol = getCurrencySymbol(currency);
+  final formattedNumber = numValue % 1 == 0
+      ? _formatWithCommas(numValue.toInt())
+      : _formatWithDecimals(numValue);
+  return '$symbol$formattedNumber';
+}
+
+String _formatWithCommas(int value) {
+  return value.toString().replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]},',
+  );
+}
+
+String _formatWithDecimals(double value) {
+  final parts = value.toStringAsFixed(2).split('.');
+  final intPart = int.parse(parts[0]);
+  return '${_formatWithCommas(intPart)}.${parts[1]}';
+}
+

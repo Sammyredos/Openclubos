@@ -745,16 +745,16 @@ export default function SuperAdminDashboard() {
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     {(() => {
-                      const hasData = ageDemographicsData && ageDemographicsData.some(d => d.men > 0 || d.women > 0);
-                      const displayData = hasData ? ageDemographicsData : [
-                        { age: "13-17", men: 10, women: 5 },
-                        { age: "18-24", men: 30, women: 45 },
-                        { age: "25-34", men: 50, women: 35 },
-                        { age: "35-44", men: 40, women: 55 },
-                        { age: "45-54", men: 80, women: 45 },
-                        { age: "55-64", men: 15, women: 30 },
-                        { age: "65-74+", men: 25, women: 20 },
+                      const defaultBuckets = [
+                        { age: "13-17", men: 0, women: 0 },
+                        { age: "18-24", men: 0, women: 0 },
+                        { age: "25-34", men: 0, women: 0 },
+                        { age: "35-44", men: 0, women: 0 },
+                        { age: "45-54", men: 0, women: 0 },
+                        { age: "55-64", men: 0, women: 0 },
+                        { age: "65-74+", men: 0, women: 0 },
                       ];
+                      const displayData = ageDemographicsData && ageDemographicsData.length > 0 ? ageDemographicsData : defaultBuckets;
 
                       return (
                         <BarChart data={displayData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>

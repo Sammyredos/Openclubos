@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   ClubStatus,
+  Gender,
   MemberStatus,
   TournamentStatus,
   UserRole,
@@ -45,6 +46,8 @@ export class ClubsService {
       totalMembers,
       membersThisMonth,
       membersLastMonth,
+      menCount,
+      womenCount,
     ] = await Promise.all([
       this.prisma.tournament.count({ where: { deletedAt: null, clubId: id } }),
       this.prisma.tournament.count({
@@ -79,28 +82,14 @@ export class ClubsService {
         where: {
           deletedAt: null,
           clubId: id,
-          role: {
-            in: [
-              UserRole.CLUB_ADMIN,
-              UserRole.STAFF,
-              UserRole.MARKER,
-              UserRole.MANAGER,
-            ],
-          },
+          role: { not: UserRole.SUPER_ADMIN },
         },
       }),
       this.prisma.user.count({
         where: {
           deletedAt: null,
           clubId: id,
-          role: {
-            in: [
-              UserRole.CLUB_ADMIN,
-              UserRole.STAFF,
-              UserRole.MARKER,
-              UserRole.MANAGER,
-            ],
-          },
+          role: { not: UserRole.SUPER_ADMIN },
           createdAt: { gte: startThisMonth, lt: startNextMonth },
         },
       }),
@@ -108,15 +97,24 @@ export class ClubsService {
         where: {
           deletedAt: null,
           clubId: id,
-          role: {
-            in: [
-              UserRole.CLUB_ADMIN,
-              UserRole.STAFF,
-              UserRole.MARKER,
-              UserRole.MANAGER,
-            ],
-          },
+          role: { not: UserRole.SUPER_ADMIN },
           createdAt: { gte: startLastMonth, lt: startThisMonth },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          clubId: id,
+          role: { not: UserRole.SUPER_ADMIN },
+          gender: Gender.MALE,
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          clubId: id,
+          role: { not: UserRole.SUPER_ADMIN },
+          gender: Gender.FEMALE,
         },
       }),
     ]);
@@ -179,6 +177,8 @@ export class ClubsService {
       membersThisMonth,
       membersLastMonth,
       membersGrowth,
+      menCount,
+      womenCount,
       totalTournaments,
       activeTournaments,
       ongoingTournaments,
@@ -281,6 +281,63 @@ export class ClubsService {
       registrationData: formatData(registrationsRows, false),
       revenueData: formatData(revenueRows, true),
     };
+  }
+
+  async ageDemographics(id: string) {
+    const club = await this.prisma.club.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
+    if (!club) throw new NotFoundException('Club not found');
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        clubId: id,
+        deletedAt: null,
+        dob: { not: null },
+        role: { not: UserRole.SUPER_ADMIN },
+      },
+      select: { dob: true, gender: true },
+    });
+
+    const buckets = {
+      '13-17': { men: 0, women: 0 },
+      '18-24': { men: 0, women: 0 },
+      '25-34': { men: 0, women: 0 },
+      '35-44': { men: 0, women: 0 },
+      '45-54': { men: 0, women: 0 },
+      '55-64': { men: 0, women: 0 },
+      '65-74+': { men: 0, women: 0 },
+    };
+
+    const currentYear = new Date().getFullYear();
+
+    for (const u of users) {
+      if (!u.dob) continue;
+      const dobDate = new Date(u.dob);
+      if (Number.isNaN(dobDate.getTime())) continue;
+      const age = currentYear - dobDate.getFullYear();
+      let bucket: keyof typeof buckets | null = null;
+      if (age >= 13 && age <= 17) bucket = '13-17';
+      else if (age >= 18 && age <= 24) bucket = '18-24';
+      else if (age >= 25 && age <= 34) bucket = '25-34';
+      else if (age >= 35 && age <= 44) bucket = '35-44';
+      else if (age >= 45 && age <= 54) bucket = '45-54';
+      else if (age >= 55 && age <= 64) bucket = '55-64';
+      else if (age >= 65) bucket = '65-74+';
+
+      if (bucket) {
+        const g = (u.gender || '').toUpperCase();
+        if (g === 'MALE') buckets[bucket].men++;
+        else if (g === 'FEMALE') buckets[bucket].women++;
+      }
+    }
+
+    return Object.entries(buckets).map(([age, counts]) => ({
+      age,
+      men: counts.men,
+      women: counts.women,
+    }));
   }
 
   async findAll(query: { search?: string; skip?: number; take?: number }) {
